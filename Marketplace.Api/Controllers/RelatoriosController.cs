@@ -6,6 +6,8 @@ using Marketplace.Api.Services.Simulador;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace Marketplace.Api.Controllers;
 
@@ -16,7 +18,8 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/relatorios")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class RelatoriosController(AppDbContext db) : ControllerBase
+public class RelatoriosController(AppDbContext db, ClimaService clima, IHttpClientFactory http, IConfiguration config, ILogger<RelatoriosController> log)
+    : ControllerBase
 {
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     private const decimal Quente = 24m, Frio = 15m; // °C: "hora quente" ≥ 24, "hora fria" < 15
@@ -227,6 +230,114 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
             Top(s => (s.ComCalor, s.ComFrio), vendasCalor, vendasFrio, $"com {Quente:0} °C ou mais", $"abaixo de {Frio:0} °C"),
             Top(s => (s.ComFrio, s.ComCalor), vendasFrio, vendasCalor, $"abaixo de {Frio:0} °C", $"com {Quente:0} °C ou mais"),
             Top(s => (s.ComChuva, s.SemChuva), vendasChuva, vendasSeco, "com chuva", "sem chuva"));
+    }
+
+    // POST /api/relatorios/insights?de=…&ate=… → a IA (Gemini, no n8n) comenta o período e sugere ações.
+    // A API só MONTA o resumo e as instruções; quem fala com o Gemini é o n8n (a chave fica só lá).
+    [HttpPost("insights")]
+    public async Task<IActionResult> Insights(DateOnly? de, DateOnly? ate, CancellationToken ct)
+    {
+        var periodo = Ler(de, ate);
+        var vendas = await Vendas(periodo.De, periodo.Ate);
+        var produtos = await Produtos(periodo.De, periodo.Ate);
+        var efeitoClima = await Clima(periodo.De, periodo.Ate);
+
+        List<PrevisaoDia> previsao;
+        try { previsao = await clima.PrevisaoAsync(7, ct); }
+        catch (Exception e) { log.LogWarning("Previsão indisponível: {Erro}", e.Message); previsao = []; }
+
+        var hoje = Relogio.HojeBrasilia;
+        var estoqueBaixo = await db.Produtos.Where(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo).Select(p => p.Nome).ToListAsync(ct);
+        var vencendo = await db.Lotes.Where(l => l.QuantidadeAtual > 0 && l.DataValidade <= hoje.AddDays(2) && l.Produto!.Ativo)
+            .Select(l => l.Produto!.Nome).Distinct().ToListAsync(ct);
+
+        var top = vendas.MapaDeCalor.OrderByDescending(c => c.MediaVendas).Take(3)
+            .Select(c => $"{NomesDias[c.DiaSemana]} {c.Hora}h ({c.MediaVendas} clientes)").ToList();
+
+        // Resumo COMPACTO: a IA lê melhor (e gasta menos) com poucos números bem escolhidos.
+        var dados = new
+        {
+            mercado = "Mercadinho de bairro em Porto Alegre (dados FICTÍCIOS de estudo). Abre seg–sáb 8h–19h; domingo e feriado fechado.",
+            periodo = $"{periodo.De:dd/MM/yyyy} a {periodo.Ate:dd/MM/yyyy} ({periodo.Dias} dias)",
+            indicadores = new
+            {
+                vendas.Indicadores.Faturamento, vendas.Indicadores.Vendas, vendas.Indicadores.TicketMedio,
+                vendas.Indicadores.MargemPercentual, vendas.Indicadores.FaturamentoMedioDia,
+                variacaoFaturamentoPct = vendas.Indicadores.VariacaoFaturamento,
+                variacaoTicketPct = vendas.Indicadores.VariacaoTicket,
+            },
+            mediaPorDiaDaSemana = vendas.PorDiaSemana.Select(d => $"{d.Nome}: {d.Faturamento:C0} ({d.Vendas} vendas)"),
+            horariosDePico = top,
+            formasDePagamento = vendas.PorForma.Select(f => $"{f.Forma}: {f.Valor:C0}"),
+            curvaAbc = produtos.Classes.Select(c => $"Classe {c.Classe}: {c.Produtos} produtos, {c.Participacao}% do faturamento"),
+            top10Produtos = produtos.Produtos.Take(10).Select(p => $"{p.Nome} ({p.Classe}): {p.Faturamento:C0}, margem {p.MargemPercentual}%"),
+            categorias = produtos.Categorias.Select(c => $"{c.Categoria}: {c.Participacao}% do faturamento, margem {c.MargemPercentual}%"),
+            clima = new
+            {
+                clientesPorHoraPorTemperatura = efeitoClima.PorTemperatura.Select(f => $"{f.Faixa}: {f.ClientesPorHora}/h"),
+                chuva = efeitoClima.PorChuva.Select(f => $"{f.Faixa}: {f.ClientesPorHora}/h"),
+                sobemNoCalor = efeitoClima.SobemNoCalor.Select(p => $"{p.Nome} ({p.Fator}x)"),
+                sobemNoFrio = efeitoClima.SobemNoFrio.Select(p => $"{p.Nome} ({p.Fator}x)"),
+                sobemNaChuva = efeitoClima.SobemNaChuva.Select(p => $"{p.Nome} ({p.Fator}x)"),
+            },
+            previsaoProximosDias = previsao.Select(p =>
+                $"{p.Data:dd/MM} {NomesDias[(int)p.Data.DayOfWeek]}{(ComportamentoCliente.AbertoNoDia(p.Data) ? "" : " (FECHADO)")}: " +
+                $"{p.Minima}–{p.Maxima} °C, {p.Tempo}, chuva {p.ChanceChuva}% ({p.Chuva} mm)"),
+            estoqueAgora = new { abaixoDoMinimo = estoqueBaixo, vencendoEmAte2Dias = vencendo },
+        };
+
+        var prompt = $"""
+            Você é um consultor de varejo experiente e direto. Analise os dados do mercadinho abaixo e escreva de 4 a 6
+            recomendações práticas para o gerente, em português do Brasil.
+
+            Regras:
+            - Formato: uma lista; cada item começa com um emoji e um título curto, seguido de "—" e no máximo 2 frases.
+            - Cite os números dos dados para justificar (ex.: "sábado fatura R$ 7.252 em média").
+            - Use a PREVISÃO DO TEMPO para sugerir o que reforçar ou reduzir no estoque nos próximos dias.
+            - NÃO invente números, produtos ou fatos que não estejam nos dados.
+            - Cuidado: correlação não é causa. Padrões de clima podem ter outra explicação (as horas frias são de manhã,
+              quando o café da manhã vende mais). Use "parece", "os dados sugerem" quando não for certeza.
+            - Não use Markdown (nada de **, # ou tabelas). Texto simples.
+
+            Dados (JSON):
+            {JsonSerializer.Serialize(dados, new JsonSerializerOptions { WriteIndented = false, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping })}
+            """;
+
+        // Chama o fluxo do n8n (Webhook → Gemini → Respond to Webhook), com a mesma chave da integração.
+        var url = config["Integracao:N8nInsightsUrl"] ?? "http://127.0.0.1:5678/webhook/marketplace-insights";
+        var cliente = http.CreateClient();
+        cliente.Timeout = TimeSpan.FromSeconds(90); // IA pode levar uns segundos
+        // StringContent (e não JsonContent): manda o JSON inteiro com Content-Length, o formato mais compatível.
+        using var pedido = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(JsonSerializer.Serialize(new { prompt, dados }), System.Text.Encoding.UTF8, "application/json"),
+        };
+        pedido.Headers.Add("X-Api-Key", config["Integracao:ChaveApi"] ?? "");
+
+        try
+        {
+            using var resposta = await cliente.SendAsync(pedido, ct);
+            if (resposta.StatusCode == System.Net.HttpStatusCode.NotFound)
+                return StatusCode(503, new { mensagem = "O fluxo de insights ainda não está publicado no n8n." });
+            if (!resposta.IsSuccessStatusCode)
+                return StatusCode(502, new { mensagem = $"O n8n respondeu com erro {(int)resposta.StatusCode}. Veja as execuções do fluxo no n8n." });
+
+            var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>(ct);
+            var texto = corpo.TryGetProperty("insights", out var t) ? t.GetString() : null;
+            if (string.IsNullOrWhiteSpace(texto))
+                return StatusCode(502, new { mensagem = "O n8n respondeu, mas sem o campo \"insights\"." });
+
+            return Ok(new { insights = texto.Trim(), periodo, geradoEm = DateTimeOffset.UtcNow });
+        }
+        catch (TaskCanceledException) when (!ct.IsCancellationRequested)
+        {
+            return StatusCode(504, new { mensagem = "A IA demorou demais para responder (mais de 90 s). Tente de novo." });
+        }
+        catch (HttpRequestException e)
+        {
+            log.LogWarning("Falha ao chamar o n8n: {Erro}", e.Message);
+            return StatusCode(503, new { mensagem = "Não foi possível falar com o n8n." });
+        }
     }
 
     // ------------------------------------------------------------------ apoio

@@ -50,6 +50,29 @@
       </article>
     </section>
 
+    <!-- ====================== INSIGHTS DA IA ====================== -->
+    <section class="painel bloco insights">
+      <header class="insights-topo">
+        <div>
+          <h2>💡 Insights da IA</h2>
+          <p>A IA (Gemini, pelo n8n) lê os números deste período e a previsão do tempo, e sugere ações.</p>
+        </div>
+        <button type="button" class="botao primario" (click)="gerarInsights()" [disabled]="gerando()">
+          {{ gerando() ? 'Analisando…' : insights() ? '↻ Gerar de novo' : 'Gerar insights' }}
+        </button>
+      </header>
+      @if (gerando()) {
+        <p class="aguarde">⏳ A IA está analisando {{ dias() }} dias de vendas, os produtos e o clima… (uns 10 a 20 segundos)</p>
+      } @else if (erroInsights()) {
+        <div class="mensagem-erro" role="alert">{{ erroInsights() }}</div>
+      } @else if (insights(); as ins) {
+        <ul class="lista-insights">
+          @for (item of itensInsights(); track $index) { <li>{{ item }}</li> }
+        </ul>
+        <p class="rodape-insights">Gerado agora sobre os últimos {{ ins.periodo }}. A IA pode errar: confira com os gráficos abaixo.</p>
+      }
+    </section>
+
     <!-- ====================== FATURAMENTO + CLIMA ====================== -->
     <section class="painel bloco">
       <header>

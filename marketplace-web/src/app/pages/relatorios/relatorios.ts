@@ -1,6 +1,7 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
-import { httpResource } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { RelatorioClima, RelatorioProdutos, RelatorioVendas } from '../../core/api/relatorios.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { GraficoBarras, PontoBarra } from '../../shared/graficos/grafico-barras';
@@ -22,6 +23,8 @@ const FORMAS: Record<string, string> = { Pix: 'Pix', Debito: 'Débito', Credito:
   styleUrl: './relatorios.scss',
 })
 export class Relatorios {
+  private readonly http = inject(HttpClient);
+
   protected readonly opcoesPeriodo = [7, 30, 60];
   protected readonly dias = signal(30);
 
@@ -139,6 +142,33 @@ export class Relatorios {
     if (!seco?.clientesPorHora || !chuva?.horas) return null;
     return Math.round((chuva.clientesPorHora / seco.clientesPorHora - 1) * 100);
   });
+
+  // ---------------------------------------------------------------- insights da IA (via n8n + Gemini)
+  protected readonly insights = signal<{ texto: string; periodo: string } | null>(null);
+  protected readonly gerando = signal(false);
+  protected readonly erroInsights = signal<string | null>(null);
+
+  // Cada linha que a IA escreveu vira um item da lista.
+  protected readonly itensInsights = computed(() =>
+    (this.insights()?.texto ?? '').split('\n').map((l) => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean),
+  );
+
+  async gerarInsights(): Promise<void> {
+    this.gerando.set(true);
+    this.erroInsights.set(null);
+    try {
+      const r = await firstValueFrom(
+        this.http.post<{ insights: string }>('/api/relatorios/insights', {}, { params: this.periodo() }),
+      );
+      this.insights.set({ texto: r.insights, periodo: `${this.dias()} dias` });
+    } catch (e) {
+      this.erroInsights.set(
+        e instanceof HttpErrorResponse && e.error?.mensagem ? e.error.mensagem : 'Não foi possível gerar os insights agora.',
+      );
+    } finally {
+      this.gerando.set(false);
+    }
+  }
 
   // ---------------------------------------------------------------- utilidades
   protected seta(variacao: number | null): string {

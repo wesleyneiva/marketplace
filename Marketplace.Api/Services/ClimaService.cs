@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services;
 
+public record PrevisaoDia(DateOnly Data, decimal Minima, decimal Maxima, decimal Chuva, int ChanceChuva, string Tempo);
+
 public record ClimaAgora(decimal Temperatura, decimal Chuva, int Codigo, string Descricao, bool Real)
 {
     public bool Quente => Temperatura >= 28;
@@ -117,6 +119,30 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
                 codigo, Descrever(codigo), Real: true);
         }
         return porHora;
+    }
+
+    // Previsão dos próximos dias (máx/mín, chuva) — usada pelos insights da IA ("sábado quente: reforce bebidas").
+    public async Task<List<PrevisaoDia>> PrevisaoAsync(int dias, CancellationToken ct = default)
+    {
+        var url = "https://api.open-meteo.com/v1/forecast?latitude=-30.03&longitude=-51.23&timezone=America%2FSao_Paulo"
+            + "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code"
+            + $"&forecast_days={Math.Clamp(dias, 1, 14)}";
+        using var resposta = await http.CreateClient().GetAsync(url, ct);
+        resposta.EnsureSuccessStatusCode();
+        using var json = await JsonDocument.ParseAsync(await resposta.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        var d = json.RootElement.GetProperty("daily");
+        decimal Num(string campo, int i) => d.GetProperty(campo)[i].ValueKind == JsonValueKind.Null ? 0 : d.GetProperty(campo)[i].GetDecimal();
+
+        var lista = new List<PrevisaoDia>();
+        var datas = d.GetProperty("time").EnumerateArray().ToList();
+        for (var i = 0; i < datas.Count; i++)
+        {
+            var codigo = (int)Num("weather_code", i);
+            lista.Add(new PrevisaoDia(DateOnly.Parse(datas[i].GetString()!), Math.Round(Num("temperature_2m_min", i), 0),
+                Math.Round(Num("temperature_2m_max", i), 0), Math.Round(Num("precipitation_sum", i), 1),
+                (int)Num("precipitation_probability_max", i), Descrever(codigo)));
+        }
+        return lista;
     }
 
     // Códigos WMO (os mesmos explicados na ferramenta de clima do seu /pergunta).
