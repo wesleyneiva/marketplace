@@ -44,6 +44,15 @@ sudo systemctl status marketplace      # situação do serviço
 
 A configuração do serviço (com a senha do banco) fica em `/etc/marketplace/marketplace.env`, fora do Git.
 
+**Backup** — todo dia às 03:45 (`backup-marketplace.timer`), `pg_dump` em `~/backup/marketplace-auto/AAAA-MM-DD`
+(7 dias guardados, com `resumo.txt` de linhas por tabela). Restaurar:
+
+```bash
+sudo systemctl stop marketplace
+docker exec -i marketplace-db pg_restore -U marketplace -d marketplace --clean --if-exists < marketplace.dump
+sudo systemctl start marketplace
+```
+
 **Desenvolvimento** — telas em `http://oracle-a1:4200` com recarga automática
 
 ```bash
