@@ -29,6 +29,11 @@ export const routes: Routes = [
           { path: ':id', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
         ],
       },
+      {
+        path: 'estoque',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/estoque/estoque').then((m) => m.Estoque),
+      },
     ],
   },
   { path: '**', redirectTo: '' },

@@ -4,12 +4,17 @@ import { HttpErrorResponse, httpResource } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { Router, RouterLink } from '@angular/router';
-import { Categoria, Produto, ProdutoRequest, ProdutosApi, UNIDADES } from '../../core/api/produtos.api';
+import { Categoria, Pagina, Produto, ProdutoRequest, ProdutosApi, UNIDADES } from '../../core/api/produtos.api';
+import { Lote, Movimentacao } from '../../core/api/estoque.api';
+import { DatePipe } from '@angular/common';
+import { DiaPipe } from '../../shared/dia.pipe';
+import { MovimentarDialog } from '../../shared/movimentar-dialog';
+import { QuantidadePipe } from '../../shared/quantidade.pipe';
 
 // Mesma tela para "novo" e "editar": se a rota tem :id, estamos editando.
 @Component({
   selector: 'app-produto-form',
-  imports: [ReactiveFormsModule, RouterLink, CurrencyPipe, DecimalPipe],
+  imports: [ReactiveFormsModule, RouterLink, CurrencyPipe, DecimalPipe, DatePipe, DiaPipe, QuantidadePipe, MovimentarDialog],
   templateUrl: './produto-form.html',
   styleUrl: './produto-form.scss',
 })
@@ -36,6 +41,14 @@ export class ProdutoForm {
   });
 
   protected readonly produto = signal<Produto | null>(null);
+
+  // Só na edição: lotes de validade e as últimas movimentações deste produto.
+  protected readonly lotes = httpResource<Lote[]>(() =>
+    this.id() && this.produto()?.controlaValidade ? `/api/estoque/produtos/${this.id()}/lotes` : undefined,
+  );
+  protected readonly historico = httpResource<Pagina<Movimentacao>>(() =>
+    this.id() ? { url: '/api/estoque/movimentacoes', params: { produtoId: this.id()!, tamanho: 8 } } : undefined,
+  );
   protected readonly carregando = signal(false);
   protected readonly salvando = signal(false);
   protected readonly erroGeral = signal<string | null>(null);
@@ -86,6 +99,15 @@ export class ProdutoForm {
     } finally {
       this.carregando.set(false);
     }
+  }
+
+  // Depois de uma entrada/perda/ajuste feita aqui: atualiza o estoque mostrado, os lotes e o histórico.
+  protected async aoMovimentar(): Promise<void> {
+    const id = this.id();
+    if (!id) return;
+    this.produto.set(await this.api.obter(Number(id)));
+    this.lotes.reload();
+    this.historico.reload();
   }
 
   async salvar(): Promise<void> {

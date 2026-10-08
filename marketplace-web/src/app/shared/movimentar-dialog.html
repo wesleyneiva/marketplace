@@ -1,0 +1,104 @@
+<dialog #dialogo (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header>
+      <h2>{{ titulo() }}</h2>
+      <button type="button" class="fechar" (click)="fechar()" aria-label="Fechar">✕</button>
+    </header>
+
+    <div class="corpo">
+      @if (!produto()) {
+        <label>Produto</label>
+        <app-produto-busca [flutuante]="false" (selecionado)="escolherProduto($event)" />
+        <small class="dica">Dica: com um leitor de código de barras, é só bipar aqui.</small>
+      } @else {
+        @let p = produto()!;
+        <div class="produto-escolhido">
+          <div>
+            <strong>{{ p.nome }}</strong>
+            <small>Estoque atual: <b>{{ p.estoqueAtual | quantidade: p.unidade }}</b>
+              @if (p.controlaValidade) { · perecível }</small>
+          </div>
+          <button type="button" class="botao pequeno" (click)="trocarProduto()">Trocar</button>
+        </div>
+
+        @if (lotes().length) {
+          <div class="lotes">
+            <span>Lotes com saldo:</span>
+            @for (l of lotes(); track l.id) {
+              <span class="lote" [class]="'lote ' + (l.diasRestantes < 0 ? 'vencido' : l.diasRestantes <= 3 ? 'urgente' : '')">
+                {{ l.dataValidade | dia }} · {{ l.quantidadeAtual | quantidade: p.unidade }}
+              </span>
+            }
+          </div>
+        }
+
+        <div class="grade">
+          <div class="campo">
+            <label for="qtd">{{ tipo() === 'Ajuste' ? 'Quantidade contada' : 'Quantidade' }} ({{ p.unidade }})</label>
+            <input id="qtd" name="quantidade" type="number" [step]="fracionado() ? 0.001 : 1" min="0"
+                   [(ngModel)]="quantidade" required autofocus />
+            @if (tipo() === 'Ajuste' && diferencaAjuste() !== null) {
+              <small [class]="(diferencaAjuste() ?? 0) < 0 ? 'negativo' : 'positivo'">
+                Diferença: {{ diferencaAjuste() | quantidade: p.unidade : true }}
+              </small>
+            }
+          </div>
+
+          @if (tipo() === 'Entrada') {
+            <div class="campo">
+              <label for="custo">Custo unitário (R$)</label>
+              <input id="custo" name="custo" type="number" step="0.01" min="0" [(ngModel)]="custoUnitario" />
+              <small class="dica">Atual: {{ p.precoCusto | currency: 'BRL' }}. Se mudar, o custo do produto é atualizado.</small>
+            </div>
+          }
+
+          @if (precisaValidade()) {
+            <div class="campo">
+              <label for="validade">Validade *</label>
+              <input id="validade" name="validade" type="date" [min]="hoje" [(ngModel)]="validade" required />
+            </div>
+          }
+
+          @if (tipo() === 'Perda') {
+            <div class="campo">
+              <label for="motivo">Motivo *</label>
+              <select id="motivo" name="motivo" [(ngModel)]="motivo" required>
+                <option value="" disabled>Escolha…</option>
+                @for (m of motivos; track m) { <option [value]="m">{{ m }}</option> }
+              </select>
+            </div>
+            @if (lotes().length) {
+              <div class="campo">
+                <label for="lote">De qual lote?</label>
+                <select id="lote" name="lote" [(ngModel)]="loteId">
+                  <option [ngValue]="null">Automático (o que vence primeiro)</option>
+                  @for (l of lotes(); track l.id) {
+                    <option [ngValue]="l.id">Vence {{ l.dataValidade | dia }} ({{ l.quantidadeAtual | quantidade: p.unidade }})</option>
+                  }
+                </select>
+              </div>
+            }
+          }
+
+          <div class="campo largo">
+            <label for="obs">{{ tipo() === 'Ajuste' ? 'Motivo do ajuste *' : 'Observação' }}</label>
+            <input id="obs" name="observacao" [(ngModel)]="observacao" maxlength="300"
+                   [required]="tipo() === 'Ajuste'"
+                   [placeholder]="tipo() === 'Entrada' ? 'Ex.: NF 1234, fornecedor X' : tipo() === 'Ajuste' ? 'Ex.: contagem semanal' : 'Opcional'" />
+          </div>
+        </div>
+      }
+
+      @if (erro()) {
+        <div class="erro" role="alert">{{ erro() }}</div>
+      }
+    </div>
+
+    <footer>
+      <button type="button" class="botao" (click)="fechar()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="!produto() || f.invalid || salvando()">
+        {{ salvando() ? 'Registrando…' : 'Registrar ' + tipo().toLowerCase() }}
+      </button>
+    </footer>
+  </form>
+</dialog>

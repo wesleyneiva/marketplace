@@ -1,18 +1,16 @@
 import { Component, computed, inject } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { httpResource } from '@angular/common/http';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { Lote } from '../../core/api/estoque.api';
+import { Pagina, Produto } from '../../core/api/produtos.api';
 
-interface Indicador {
-  titulo: string;
-  icone: string;
-  descricao: string;
-}
-
-// Primeira versão do dashboard: boas-vindas + os cartões que vão ganhar números reais
-// quando tivermos produtos e vendas no banco.
+// Dashboard: boas-vindas + indicadores. Os de estoque já são reais;
+// "Vendas hoje" e "Ticket médio" ganham números quando o PDV existir.
 @Component({
   selector: 'app-dashboard',
-  imports: [DatePipe],
+  imports: [DatePipe, CurrencyPipe, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })
@@ -20,6 +18,7 @@ export class Dashboard {
   private readonly auth = inject(AuthService);
 
   protected readonly hoje = new Date();
+  protected readonly veEstoque = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
 
   protected readonly saudacao = computed(() => {
     const hora = this.hoje.getHours();
@@ -28,10 +27,21 @@ export class Dashboard {
     return `${periodo}, ${primeiroNome}!`;
   });
 
-  protected readonly indicadores: Indicador[] = [
-    { titulo: 'Vendas hoje', icone: '💰', descricao: 'Faturamento do dia' },
-    { titulo: 'Ticket médio', icone: '🧾', descricao: 'Valor médio por venda' },
-    { titulo: 'Estoque baixo', icone: '⚠️', descricao: 'Produtos abaixo do mínimo' },
-    { titulo: 'Vencendo', icone: '⏰', descricao: 'Validade nos próximos 7 dias' },
-  ];
+  // O caixa não tem acesso ao estoque: para ele, nem fazemos a chamada (undefined = não buscar).
+  protected readonly estoqueBaixo = httpResource<Pagina<Produto>>(() =>
+    this.veEstoque() ? { url: '/api/produtos', params: { estoqueBaixo: true, tamanho: 5 } } : undefined,
+  );
+  protected readonly validades = httpResource<Lote[]>(() =>
+    this.veEstoque() ? { url: '/api/estoque/validades', params: { dias: 7 } } : undefined,
+  );
+
+  protected readonly resumoValidade = computed(() => {
+    const lotes = this.validades.value() ?? [];
+    return {
+      vencidos: lotes.filter((l) => l.diasRestantes < 0).length,
+      vencendo: lotes.filter((l) => l.diasRestantes >= 0).length,
+      valor: lotes.reduce((s, l) => s + l.valorEmRisco, 0),
+      primeiros: lotes.slice(0, 5),
+    };
+  });
 }

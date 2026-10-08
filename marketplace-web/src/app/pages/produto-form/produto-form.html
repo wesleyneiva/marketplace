@@ -92,3 +92,51 @@
     </button>
   </footer>
 </form>
+
+@if (editando() && produto(); as p) {
+  <section class="painel extra">
+    <header class="extra-topo">
+      <h2>🏷️ Estoque deste produto</h2>
+      <div class="extra-acoes">
+        <button type="button" class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)">📥 Entrada</button>
+        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Perda', p)">🗑️ Perda</button>
+        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Ajuste', p)">⚖️ Ajuste</button>
+      </div>
+    </header>
+
+    @if (p.controlaValidade) {
+      <h3>Lotes de validade</h3>
+      @if (lotes.value()?.length) {
+        <ul class="lotes">
+          @for (l of lotes.value()!; track l.id) {
+            <li [class.vencido]="l.diasRestantes < 0" [class.urgente]="l.diasRestantes >= 0 && l.diasRestantes <= 3">
+              <strong>{{ l.dataValidade | dia }}</strong>
+              <span>{{ l.quantidadeAtual | quantidade: p.unidade }}</span>
+              <small>{{ l.diasRestantes < 0 ? 'vencido' : l.diasRestantes === 0 ? 'vence hoje' : 'em ' + l.diasRestantes + (l.diasRestantes === 1 ? ' dia' : ' dias') }}</small>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="dica">Nenhum lote com saldo.</p>
+      }
+    }
+
+    <h3>Últimas movimentações</h3>
+    <ul class="historico">
+      @for (m of historico.value()?.itens ?? []; track m.id) {
+        <li>
+          <span class="h-data">{{ m.dataHora | date: 'dd/MM HH:mm' }}</span>
+          <span class="h-tipo">{{ m.tipo === 'Inventario' ? 'Inventário' : m.tipo }}{{ m.motivo ? ' · ' + m.motivo : '' }}</span>
+          <span class="h-qtd" [class.positivo]="m.quantidade > 0" [class.negativo]="m.quantidade < 0">{{ m.quantidade | quantidade: m.unidade : true }}</span>
+          <span class="h-saldo">→ {{ m.estoquePosterior | quantidade: m.unidade }}</span>
+          <span class="h-quem">{{ m.usuario }}</span>
+        </li>
+      } @empty {
+        <li class="dica">Sem movimentações.</li>
+      }
+    </ul>
+    <a class="ver-tudo" routerLink="/estoque" [queryParams]="{ aba: 'movimentacoes' }">Ver todas as movimentações →</a>
+  </section>
+}
+
+<app-movimentar-dialog #dialogo (salvo)="aoMovimentar()" />

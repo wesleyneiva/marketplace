@@ -1,0 +1,166 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>🏷️ Estoque</h1>
+    <p>Entradas, perdas, ajustes e validades</p>
+  </div>
+  <div class="acoes-topo">
+    <button type="button" class="botao primario" (click)="dialogo.abrir('Entrada')">📥 Entrada</button>
+    <button type="button" class="botao" (click)="dialogo.abrir('Perda')">🗑️ Perda</button>
+    <button type="button" class="botao" (click)="dialogo.abrir('Ajuste')">⚖️ Ajuste</button>
+  </div>
+</header>
+
+@if (aviso()) {
+  <div class="aviso-sucesso" role="status">✅ {{ aviso() }}</div>
+}
+
+<nav class="abas" role="tablist">
+  <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')">⏰ Validades</button>
+  <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')">📜 Movimentações</button>
+  <button role="tab" [class.ativa]="abaAtual() === 'baixo'" (click)="irPara('baixo')">⚠️ Estoque baixo</button>
+</nav>
+
+<!-- ===================== VALIDADES ===================== -->
+@if (abaAtual() === 'validades') {
+  <section class="resumo">
+    <div class="cartao-resumo vermelho">
+      <span>Lotes vencidos</span>
+      <strong>{{ resumoValidades().vencidos }}</strong>
+      <small>{{ resumoValidades().valorVencido | currency: 'BRL' }} a preço de custo</small>
+    </div>
+    <div class="cartao-resumo amarelo">
+      <span>Vencem em até {{ diasValidade() }} dias</span>
+      <strong>{{ resumoValidades().proximos }}</strong>
+      <small>{{ resumoValidades().valorTotal | currency: 'BRL' }} em risco no total</small>
+    </div>
+    <label class="periodo">
+      Mostrar até
+      <select (change)="diasValidade.set(+$any($event.target).value)">
+        <option value="3">3 dias</option>
+        <option value="7" selected>7 dias</option>
+        <option value="15">15 dias</option>
+        <option value="30">30 dias</option>
+      </select>
+    </label>
+  </section>
+
+  <section class="painel tabela-rolagem" [class.carregando]="validades.isLoading()">
+    <table>
+      <thead>
+        <tr><th>Situação</th><th>Produto</th><th>Validade</th><th class="num">Quantidade</th><th class="num">Valor em risco</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (l of validades.value() ?? []; track l.id) {
+          <tr>
+            <td>
+              <span class="situacao" [class]="'situacao s' + (l.diasRestantes < 0 ? 'vencido' : l.diasRestantes === 0 ? 'hoje' : l.diasRestantes <= 3 ? 'urgente' : 'proximo')">
+                @switch (true) {
+                  @case (l.diasRestantes < 0) { 🔴 Vencido há {{ -l.diasRestantes }} {{ -l.diasRestantes === 1 ? 'dia' : 'dias' }} }
+                  @case (l.diasRestantes === 0) { 🟠 Vence hoje }
+                  @default { 🟡 {{ l.diasRestantes }} {{ l.diasRestantes === 1 ? 'dia' : 'dias' }} }
+                }
+              </span>
+            </td>
+            <td><a class="nome" [routerLink]="['/produtos', l.produtoId]">{{ l.produto }}</a><small class="sub">{{ l.categoria }}</small></td>
+            <td>{{ l.dataValidade | dia }}</td>
+            <td class="num">{{ l.quantidadeAtual | quantidade: l.unidade }}</td>
+            <td class="num">{{ l.valorEmRisco | currency: 'BRL' }}</td>
+            <td class="acoes">
+              @if (l.diasRestantes < 0) {
+                <button class="botao pequeno perigo" (click)="dialogo.abrir('Perda', $any({ id: l.produtoId }))">Dar baixa</button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          @if (!validades.isLoading()) {
+            <tr><td colspan="6" class="vazio">🎉 Nada vencido nem vencendo nesse período.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+}
+
+<!-- ===================== MOVIMENTAÇÕES ===================== -->
+@if (abaAtual() === 'movimentacoes') {
+  <section class="filtros">
+    @if (filtroProduto(); as fp) {
+      <span class="filtro-produto">{{ fp.nome }} <button (click)="mudarFiltro(() => filtroProduto.set(null))" aria-label="Limpar produto">✕</button></span>
+    } @else {
+      <app-produto-busca class="busca" placeholder="Filtrar por produto…" (selecionado)="mudarFiltro(() => filtroProduto.set($event))" />
+    }
+    <select (change)="mudarFiltro(() => filtroTipo.set($any($event.target).value))" aria-label="Tipo">
+      <option value="">Todos os tipos</option>
+      @for (t of tipos; track t.valor) { <option [value]="t.valor">{{ t.icone }} {{ t.rotulo }}</option> }
+    </select>
+    <label class="data">De <input type="date" (change)="mudarFiltro(() => filtroDe.set($any($event.target).value))" /></label>
+    <label class="data">Até <input type="date" (change)="mudarFiltro(() => filtroAte.set($any($event.target).value))" /></label>
+  </section>
+
+  <section class="painel tabela-rolagem" [class.carregando]="movimentacoes.isLoading()">
+    <table>
+      <thead>
+        <tr><th>Quando</th><th>Tipo</th><th>Produto</th><th class="num">Quantidade</th><th class="num">Estoque</th><th>Detalhes</th><th>Quem</th></tr>
+      </thead>
+      <tbody>
+        @for (m of movimentacoes.value()?.itens ?? []; track m.id) {
+          <tr>
+            <td class="quando">{{ m.dataHora | date: 'dd/MM/yy HH:mm' }}</td>
+            <td><span class="tipo" [class]="'tipo t' + m.tipo">{{ iconeTipo(m.tipo) }} {{ m.tipo === 'Inventario' ? 'Inventário' : m.tipo }}</span></td>
+            <td><a class="nome" [routerLink]="['/produtos', m.produtoId]">{{ m.produto }}</a></td>
+            <td class="num" [class.positivo]="m.quantidade > 0" [class.negativo]="m.quantidade < 0">{{ m.quantidade | quantidade: m.unidade : true }}</td>
+            <td class="num sub-num">{{ m.estoqueAnterior | quantidade: m.unidade }} → <b>{{ m.estoquePosterior | quantidade: m.unidade }}</b></td>
+            <td class="detalhes">
+              @if (m.motivo) { <span class="selo">{{ m.motivo }}</span> }
+              @if (m.validade) { <span class="selo">val. {{ m.validade | dia }}</span> }
+              @if (m.custoUnitario !== null && m.tipo === 'Entrada') { <span class="selo">{{ m.custoUnitario | currency: 'BRL' }}/{{ m.unidade }}</span> }
+              @if (m.observacao) { <small>{{ m.observacao }}</small> }
+            </td>
+            <td class="quem">{{ m.usuario }}</td>
+          </tr>
+        } @empty {
+          @if (!movimentacoes.isLoading()) {
+            <tr><td colspan="7" class="vazio">Nenhuma movimentação com esses filtros.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+
+  @if (totalPaginasMov() > 1) {
+    <nav class="paginacao">
+      <button class="botao pequeno" [disabled]="paginaMov() === 1" (click)="paginaMov.set(paginaMov() - 1)">← Anterior</button>
+      <span>Página {{ paginaMov() }} de {{ totalPaginasMov() }}</span>
+      <button class="botao pequeno" [disabled]="paginaMov() === totalPaginasMov()" (click)="paginaMov.set(paginaMov() + 1)">Próxima →</button>
+    </nav>
+  }
+}
+
+<!-- ===================== ESTOQUE BAIXO ===================== -->
+@if (abaAtual() === 'baixo') {
+  <section class="painel tabela-rolagem" [class.carregando]="baixo.isLoading()">
+    <table>
+      <thead>
+        <tr><th>Produto</th><th>Categoria</th><th class="num">Atual</th><th class="num">Mínimo</th><th class="num">Falta para o mínimo</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (p of baixo.value()?.itens ?? []; track p.id) {
+          <tr>
+            <td><a class="nome" [routerLink]="['/produtos', p.id]">{{ p.nome }}</a></td>
+            <td>{{ p.categoria }}</td>
+            <td class="num negativo">{{ p.estoqueAtual | quantidade: p.unidade }}</td>
+            <td class="num">{{ p.estoqueMinimo | quantidade: p.unidade }}</td>
+            <td class="num">{{ p.estoqueMinimo - p.estoqueAtual | quantidade: p.unidade }}</td>
+            <td class="acoes"><button class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)">📥 Entrada</button></td>
+          </tr>
+        } @empty {
+          @if (!baixo.isLoading()) {
+            <tr><td colspan="6" class="vazio">🎉 Nenhum produto abaixo do mínimo.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+}
+
+<app-movimentar-dialog #dialogo (salvo)="aoSalvar($event)" />

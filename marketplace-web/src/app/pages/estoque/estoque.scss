@@ -1,0 +1,275 @@
+.acoes-topo {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.aviso-sucesso {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+  font-weight: 600;
+}
+
+.abas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--cor-borda);
+  margin-bottom: 16px;
+  overflow-x: auto;
+
+  button {
+    border: 0;
+    background: transparent;
+    padding: 10px 14px;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    white-space: nowrap;
+
+    &.ativa {
+      color: var(--cor-primaria-escura);
+      border-bottom-color: var(--cor-primaria);
+    }
+  }
+}
+
+.resumo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+
+.cartao-resumo {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+  }
+
+  strong {
+    font-size: 26px;
+  }
+
+  small {
+    color: var(--cor-texto-suave);
+  }
+
+  &.vermelho strong {
+    color: var(--cor-erro);
+  }
+
+  &.amarelo strong {
+    color: #b45309;
+  }
+}
+
+.periodo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 14px;
+
+  .busca {
+    flex: 1 1 260px;
+  }
+
+  .data {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--cor-texto-suave);
+  }
+}
+
+.filtro-produto {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 99px;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+  font-weight: 600;
+
+  button {
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    color: inherit;
+  }
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+  transition: opacity 0.15s;
+
+  &.carregando {
+    opacity: 0.6;
+  }
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--cor-borda);
+  vertical-align: middle;
+}
+
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-suave);
+  background: var(--cor-fundo);
+  white-space: nowrap;
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.positivo {
+  color: var(--cor-primaria);
+  font-weight: 600;
+}
+
+.negativo {
+  color: var(--cor-erro);
+  font-weight: 600;
+}
+
+.sub-num {
+  color: var(--cor-texto-suave);
+
+  b {
+    color: var(--cor-texto);
+  }
+}
+
+.nome {
+  color: var(--cor-texto);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:hover {
+    color: var(--cor-primaria);
+    text-decoration: underline;
+  }
+}
+
+.sub {
+  display: block;
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+}
+
+.situacao {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+
+  &.svencido {
+    background: var(--cor-erro-fundo);
+    color: var(--cor-erro);
+  }
+
+  &.shoje {
+    background: #ffedd5;
+    color: #9a3412;
+  }
+
+  &.surgente {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.sproximo {
+    background: #fefce8;
+    color: #854d0e;
+  }
+}
+
+.tipo {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quando,
+.quem {
+  white-space: nowrap;
+  color: var(--cor-texto-suave);
+}
+
+.detalhes {
+  .selo {
+    margin-right: 4px;
+  }
+
+  small {
+    display: block;
+    color: var(--cor-texto-suave);
+    margin-top: 2px;
+  }
+}
+
+.acoes {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.vazio {
+  text-align: center;
+  color: var(--cor-texto-suave);
+  padding: 28px;
+}
+
+.paginacao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 14px;
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+}

@@ -28,7 +28,7 @@ export class Shell {
     { rotulo: 'Dashboard', icone: '📊', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
     { rotulo: 'Caixa (PDV)', icone: '🧾', rota: '/pdv', perfis: ['Administrador', 'Caixa'], pronto: false },
     { rotulo: 'Produtos', icone: '📦', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: false },
+    { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: false },
     { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: false },
     { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: false },

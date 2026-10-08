@@ -4,19 +4,64 @@
 </header>
 
 <section class="indicadores">
-  @for (item of indicadores; track item.titulo) {
-    <article class="cartao">
-      <div class="topo-cartao">
-        <span>{{ item.titulo }}</span>
-        <span class="icone" aria-hidden="true">{{ item.icone }}</span>
-      </div>
-      <strong class="valor">—</strong>
-      <small>{{ item.descricao }}</small>
-    </article>
+  <article class="cartao">
+    <div class="topo-cartao"><span>Vendas hoje</span><span class="icone" aria-hidden="true">💰</span></div>
+    <strong class="valor apagado">—</strong>
+    <small>Chega com o PDV</small>
+  </article>
+
+  <article class="cartao">
+    <div class="topo-cartao"><span>Ticket médio</span><span class="icone" aria-hidden="true">🧾</span></div>
+    <strong class="valor apagado">—</strong>
+    <small>Chega com o PDV</small>
+  </article>
+
+  @if (veEstoque()) {
+    <a class="cartao clicavel" routerLink="/estoque" [queryParams]="{ aba: 'baixo' }">
+      <div class="topo-cartao"><span>Estoque baixo</span><span class="icone" aria-hidden="true">⚠️</span></div>
+      <strong class="valor" [class.alerta]="(estoqueBaixo.value()?.total ?? 0) > 0">{{ estoqueBaixo.value()?.total ?? '…' }}</strong>
+      <small>{{ (estoqueBaixo.value()?.total ?? 0) === 1 ? 'produto abaixo do mínimo' : 'produtos abaixo do mínimo' }}</small>
+    </a>
+
+    <a class="cartao clicavel" routerLink="/estoque" [queryParams]="{ aba: 'validades' }">
+      <div class="topo-cartao"><span>Validade (7 dias)</span><span class="icone" aria-hidden="true">⏰</span></div>
+      <strong class="valor" [class.perigo]="resumoValidade().vencidos > 0">
+        {{ validades.isLoading() ? '…' : resumoValidade().vencidos + resumoValidade().vencendo }}
+      </strong>
+      <small>
+        @if (resumoValidade().vencidos) { <b class="txt-perigo">{{ resumoValidade().vencidos }} vencido(s)</b> · }
+        {{ resumoValidade().valor | currency: 'BRL' }} em risco
+      </small>
+    </a>
   }
 </section>
 
-<section class="aviso">
-  <strong>🚧 Em construção</strong>
-  <p>Os números aparecem quando cadastrarmos produtos e começarmos a registrar vendas.</p>
-</section>
+@if (veEstoque()) {
+  <section class="listas">
+    <article class="painel lista">
+      <h2>⚠️ Repor primeiro</h2>
+      @for (p of estoqueBaixo.value()?.itens ?? []; track p.id) {
+        <a class="linha" [routerLink]="['/produtos', p.id]">
+          <span>{{ p.nome }}</span>
+          <b class="txt-alerta">{{ p.estoqueAtual }} / {{ p.estoqueMinimo }} {{ p.unidade }}</b>
+        </a>
+      } @empty {
+        <p class="vazio">🎉 Nada abaixo do mínimo.</p>
+      }
+    </article>
+
+    <article class="painel lista">
+      <h2>⏰ Vencendo primeiro</h2>
+      @for (l of resumoValidade().primeiros; track l.id) {
+        <a class="linha" [routerLink]="['/produtos', l.produtoId]">
+          <span>{{ l.produto }}</span>
+          <b [class.txt-perigo]="l.diasRestantes < 0" [class.txt-alerta]="l.diasRestantes >= 0">
+            {{ l.diasRestantes < 0 ? 'vencido' : l.diasRestantes === 0 ? 'hoje' : 'em ' + l.diasRestantes + 'd' }}
+          </b>
+        </a>
+      } @empty {
+        <p class="vazio">🎉 Nada vencendo nos próximos 7 dias.</p>
+      }
+    </article>
+  </section>
+}
