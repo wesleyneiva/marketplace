@@ -3,6 +3,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { Logo } from '../../shared/logo';
 import { Lote } from '../../core/api/estoque.api';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import { ResumoCaixa, ResumoVendas } from '../../core/api/pdv.api';
@@ -12,7 +13,7 @@ import { SimuladorApi, SimuladorStatus } from '../../core/api/simulador.api';
 // "Vendas hoje" e "Ticket médio" ganham números quando o PDV existir.
 @Component({
   selector: 'app-dashboard',
-  imports: [DatePipe, CurrencyPipe, RouterLink],
+  imports: [DatePipe, CurrencyPipe, RouterLink, Logo],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

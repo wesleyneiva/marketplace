@@ -57,8 +57,7 @@ public class SimuladorClientes(
     {
         var agora = Relogio.AgoraBrasilia;
         estado.UltimaRodada = agora;
-        var (abre, fecha) = ComportamentoCliente.Horario(DateOnly.FromDateTime(agora.DateTime));
-        var aberto = agora.Hour >= abre && agora.Hour < fecha;
+        var aberto = ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour);
         var usuarioId = await UsuarioIdAsync();
 
         using (var scope = escopos.CreateScope())
@@ -145,7 +144,7 @@ public class SimuladorClientes(
 
     // ------------------------------------------------------------------ abertura e fechamento
 
-    // Às 07:00: o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível,
+    // Na abertura (8h): o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível,
     // para os alertas) e o fornecedor entrega o que está abaixo do mínimo.
     private async Task RotinaDaManhaAsync(string usuarioId, CancellationToken ct)
     {

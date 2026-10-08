@@ -1,11 +1,8 @@
 <main class="pagina">
   <section class="cartao">
     <header class="marca">
-      <span class="logo" aria-hidden="true">🛒</span>
-      <div>
-        <h1>Marketplace</h1>
-        <p>Sistema de gestão do mercado</p>
-      </div>
+      <app-logo [tamanho]="60" />
+      <p>Sistema de gestão do mercado</p>
     </header>
 
     <form [formGroup]="form" (ngSubmit)="entrar()" novalidate>

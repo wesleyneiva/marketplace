@@ -10,7 +10,7 @@ public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas
 // Gera o PASSADO do mercadinho: N dias de vendas, com o clima REAL de cada hora em Porto Alegre.
 // Usa as mesmas regras do cliente ao vivo (ComportamentoCliente), mas:
 //  • NÃO mexe no estoque (as vendas são marcadas com Origem = Historico);
-//  • cria uma sessão do Caixa 9 por dia (abre 07:00, fecha 21:00 — domingo/feriado 08–13h), já fechada.
+//  • cria uma sessão do Caixa 9 por dia aberto (seg–sáb, 8h às 19h), já fechada.
 public class GeradorHistorico(AppDbContext db, ClimaService clima, UserManager<Usuario> usuarios, ILogger<GeradorHistorico> log)
 {
     public const string Marca = "Histórico gerado (simulador)";
@@ -44,7 +44,8 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, UserManager<U
 
         for (var dia = de; dia <= ate; dia = dia.AddDays(1))
         {
-            var (abre, fecha) = ComportamentoCliente.Horario(dia);
+            if (!ComportamentoCliente.AbertoNoDia(dia)) continue; // domingo e feriado: fechado
+            var (abre, fecha) = (ComportamentoCliente.Abre, ComportamentoCliente.Fecha);
             var sessao = new SessaoCaixa
             {
                 NumeroCaixa = SimuladorEstado.NumeroCaixa,

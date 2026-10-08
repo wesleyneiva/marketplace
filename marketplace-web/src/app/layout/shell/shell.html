@@ -1,9 +1,8 @@
 <div class="layout" [class.menu-aberto]="menuAberto()">
   <aside class="lateral">
-    <div class="marca">
-      <span class="logo" aria-hidden="true">🛒</span>
-      <strong>Marketplace</strong>
-    </div>
+    <a class="marca" routerLink="/dashboard" aria-label="Marketplace — ir para o início">
+      <app-logo [tamanho]="38" tema="escuro" />
+    </a>
 
     <nav>
       @for (item of itensVisiveis(); track item.rota) {

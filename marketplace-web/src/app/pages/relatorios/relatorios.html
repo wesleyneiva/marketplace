@@ -32,7 +32,7 @@
         <strong>{{ i.vendas | number }}</strong>
         <small [class]="'delta ' + (i.variacaoVendas === null ? '' : i.variacaoVendas >= 0 ? 'bom' : 'ruim')">
           @if (i.variacaoVendas !== null) { {{ seta(i.variacaoVendas) }} {{ i.variacaoVendas | number: '1.0-1' }}% } @else { — }
-          <span class="contra">{{ i.faturamentoMedioDia | currency: 'BRL' : 'symbol' : '1.0-0' }} por dia</span>
+          <span class="contra">{{ i.faturamentoMedioDia | currency: 'BRL' : 'symbol' : '1.0-0' }} por dia aberto</span>
         </small>
       </article>
       <article class="painel numero">

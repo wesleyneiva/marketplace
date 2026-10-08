@@ -1,5 +1,15 @@
 .cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
   margin-bottom: 22px;
+
+  .marca-inicio {
+    @media (max-width: 640px) {
+      display: none; // no celular, o logo já está no menu
+    }
+  }
 
   h1 {
     margin: 0;

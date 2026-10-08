@@ -9,6 +9,7 @@ import {
   Cupom, FORMAS_PAGAMENTO, FormaPagamento, PdvApi, ResumoCaixa, arredondar, lerNumero,
 } from '../../core/api/pdv.api';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Logo } from '../../shared/logo';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -21,7 +22,7 @@ interface ItemCarrinho {
 //   • F2 → pagamento.  Esc → fecha listas/janelas.
 @Component({
   selector: 'app-pdv',
-  imports: [FormsModule, CurrencyPipe, DatePipe, QuantidadePipe],
+  imports: [FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },

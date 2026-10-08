@@ -48,10 +48,12 @@ export class Relatorios {
         rotulo: d.data.slice(8, 10) + '/' + d.data.slice(5, 7),
         valor: d.faturamento,
         apagado: d.data === this.hoje,
-        detalhes: [
-          NOMES[dia.getDay()] + (d.data === this.hoje ? ' (hoje, até agora)' : ''),
-          `${d.vendas} vendas · lucro ${formatar(d.lucro, 'moeda')}`,
-        ],
+        detalhes: d.vendas === 0 && d.data !== this.hoje
+          ? [`${NOMES[dia.getDay()]}: mercado fechado`]
+          : [
+              NOMES[dia.getDay()] + (d.data === this.hoje ? ' (hoje, até agora)' : ''),
+              `${d.vendas} vendas · lucro ${formatar(d.lucro, 'moeda')}`,
+            ],
       };
     }),
   );
@@ -83,7 +85,8 @@ export class Relatorios {
     const horas = [...new Set(celulas.map((c) => c.coluna))].sort((a, b) => a - b);
     return {
       celulas,
-      linhas: ORDEM_SEMANA.map((d) => ({ valor: d, texto: CURTOS[d] })),
+      // Só os dias da semana com movimento (o domingo, fechado, não vira uma linha vazia).
+      linhas: ORDEM_SEMANA.filter((d) => celulas.some((c) => c.linha === d)).map((d) => ({ valor: d, texto: CURTOS[d] })),
       colunas: horas.map((h) => ({ valor: h, texto: `${h}h` })),
     };
   });

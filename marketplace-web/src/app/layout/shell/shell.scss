@@ -18,16 +18,9 @@ $largura-menu: 236px;
 }
 
 .marca {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 10px 22px;
-  font-size: 18px;
-  color: #fff;
-
-  .logo {
-    font-size: 22px;
-  }
+  display: block;
+  padding: 2px 8px 22px;
+  text-decoration: none;
 }
 
 nav {

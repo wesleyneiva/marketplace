@@ -54,14 +54,17 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
             GROUP BY p."Forma" ORDER BY 2 DESC
             """).ToListAsync();
 
+        // Médias só com os dias em que o mercado ABRIU (domingo e feriado fechado não puxam a média para baixo).
+        var abertos = dias.Where(d => ComportamentoCliente.AbertoNoDia(d.Data)).ToList();
+
         // Quantas vezes cada dia da semana aparece no período (para tirar a MÉDIA, e não a soma).
-        var ocorrencias = dias.GroupBy(d => (int)d.Data.DayOfWeek).ToDictionary(g => g.Key, g => g.Count());
+        var ocorrencias = abertos.GroupBy(d => (int)d.Data.DayOfWeek).ToDictionary(g => g.Key, g => g.Count());
 
         var porDiaSemana = Enumerable.Range(0, 7)
             .Where(ocorrencias.ContainsKey)
             .Select(d =>
             {
-                var doDia = dias.Where(x => (int)x.Data.DayOfWeek == d).ToList();
+                var doDia = abertos.Where(x => (int)x.Data.DayOfWeek == d).ToList();
                 return new MediaDiaSemana(d, NomesDias[d],
                     Math.Round((decimal)doDia.Average(x => x.Vendas), 1), Math.Round(doDia.Average(x => x.Faturamento), 2));
             })
@@ -73,7 +76,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
             .ToList();
 
         return new RelatorioVendas(
-            periodo, CalcularIndicadores(dias, anterior),
+            periodo, CalcularIndicadores(dias, anterior, abertos.Count),
             dias.Select(d => new VendaDia(d.Data, d.Vendas, d.Faturamento, Math.Round(d.Faturamento - d.Custo, 2), d.TempMax, d.TempMin, d.Chuva)).ToList(),
             porDiaSemana, mapa, formas);
     }
@@ -147,8 +150,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
         var abertas = horas.Where(h =>
         {
             var local = h.Hora.ToOffset(TimeSpan.FromHours(-3));
-            var (abre, fecha) = ComportamentoCliente.Horario(DateOnly.FromDateTime(local.DateTime));
-            return local.Hour >= abre && local.Hour < fecha;
+            return ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(local.DateTime), local.Hour);
         }).ToList();
 
         var faturamentoPorHora = await FaturamentoPorHoraAsync(ini, fim);
@@ -270,7 +272,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
         return linhas.ToDictionary(l => l.Hora, l => l.Valor);
     }
 
-    private static Indicadores CalcularIndicadores(List<LinhaDia> atual, List<LinhaDia> anterior)
+    private static Indicadores CalcularIndicadores(List<LinhaDia> atual, List<LinhaDia> anterior, int diasAbertos)
     {
         decimal Fat(List<LinhaDia> d) => d.Sum(x => x.Faturamento);
         int Qtd(List<LinhaDia> d) => d.Sum(x => x.Vendas);
@@ -280,7 +282,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
         var custo = atual.Sum(x => x.Custo);
         return new Indicadores(
             Fat(atual), Qtd(atual), Math.Round(Ticket(atual), 2), Math.Round(Fat(atual) - custo, 2), Margem(Fat(atual), custo),
-            atual.Count == 0 ? 0 : Math.Round(Fat(atual) / atual.Count, 2),
+            diasAbertos == 0 ? 0 : Math.Round(Fat(atual) / diasAbertos, 2), // média por dia ABERTO
             Variacao(Fat(atual), Fat(anterior)), Variacao(Qtd(atual), Qtd(anterior)), Variacao(Ticket(atual), Ticket(anterior)));
     }
 

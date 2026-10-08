@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { Logo } from '../../shared/logo';
 
 interface ItemMenu {
   rotulo: string;
@@ -13,7 +14,7 @@ interface ItemMenu {
 // "Casca" do sistema: menu lateral + barra do topo. As páginas aparecem no <router-outlet>.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })

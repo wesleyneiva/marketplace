@@ -1,6 +1,9 @@
 <header class="cabecalho">
-  <h1>{{ saudacao() }}</h1>
-  <p>{{ hoje | date: "EEEE, d 'de' MMMM 'de' y" }}</p>
+  <div>
+    <h1>{{ saudacao() }}</h1>
+    <p>{{ hoje | date: "EEEE, d 'de' MMMM 'de' y" }}</p>
+  </div>
+  <app-logo class="marca-inicio" [tamanho]="52" />
 </header>
 
 @if (simulador.value(); as sim) {
