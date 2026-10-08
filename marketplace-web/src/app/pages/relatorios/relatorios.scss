@@ -1,0 +1,306 @@
+.periodos {
+  display: flex;
+  gap: 6px;
+}
+
+.mensagem-erro {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+}
+
+.relatorio {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: opacity 0.15s;
+
+  &.carregando {
+    opacity: 0.55;
+  }
+}
+
+// ---------- Números do topo ----------
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.numero {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  > span {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+  }
+
+  strong {
+    font-size: 28px;
+    font-weight: 650;
+  }
+
+  .delta {
+    font-weight: 600;
+    color: var(--cor-texto-suave);
+
+    &.bom { color: #006300; }
+    &.ruim { color: var(--cor-erro); }
+
+    .contra {
+      margin-left: 4px;
+      font-weight: 400;
+      color: var(--cor-texto-suave);
+    }
+  }
+}
+
+// ---------- Blocos ----------
+.bloco {
+  padding: 18px 20px;
+  min-width: 0;
+
+  > header {
+    margin-bottom: 14px;
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: var(--cor-texto-suave);
+      font-size: 14px;
+    }
+  }
+}
+
+.sub {
+  margin: 18px 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+}
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 16px;
+
+  &.internas .sub {
+    margin-top: 0;
+  }
+}
+
+// ---------- Tabelas ----------
+.rolagem {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--cor-borda);
+  text-align: left;
+}
+
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-suave);
+  background: var(--cor-fundo);
+  white-space: nowrap;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.forte {
+  font-weight: 600;
+}
+
+.tabela-dados {
+  margin-top: 12px;
+
+  summary {
+    cursor: pointer;
+    color: var(--cor-primaria);
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .rolagem {
+    max-height: 320px;
+    overflow-y: auto;
+    margin-top: 8px;
+  }
+}
+
+// ---------- Curva ABC ----------
+$cor-a: #15803d;
+$cor-b: #b45309;
+$cor-c: #6b7280;
+
+.classes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.classe {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 12px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  text-align: left;
+  cursor: pointer;
+  color: var(--cor-texto);
+
+  b {
+    grid-row: span 2;
+    font-size: 24px;
+  }
+
+  span { font-weight: 600; }
+  small { color: var(--cor-texto-suave); }
+
+  &.ligado {
+    border-width: 2px;
+    padding: 9px 13px;
+  }
+
+  &.classe-A b { color: $cor-a; }
+  &.classe-B b { color: $cor-b; }
+  &.classe-C b { color: $cor-c; }
+  &.classe-A.ligado { border-color: $cor-a; }
+  &.classe-B.ligado { border-color: $cor-b; }
+  &.classe-C.ligado { border-color: $cor-c; }
+}
+
+.abc {
+  .pos {
+    color: var(--cor-texto-suave);
+    width: 32px;
+  }
+
+  .nome {
+    display: block;
+    font-weight: 600;
+  }
+
+  small {
+    color: var(--cor-texto-suave);
+    font-size: 12px;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: 0;
+  }
+}
+
+.selo-classe {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+
+  &.classe-A { background: $cor-a; }
+  &.classe-B { background: $cor-b; }
+  &.classe-C { background: $cor-c; }
+}
+
+.barra-celula {
+  min-width: 140px;
+  white-space: nowrap;
+
+  .barrinha {
+    display: inline-block;
+    height: 10px;
+    margin-right: 8px;
+    border-radius: 0 3px 3px 0;
+    background: var(--grafico-serie);
+    vertical-align: middle;
+    max-width: 90px;
+  }
+}
+
+// ---------- Clima ----------
+.sensiveis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 15px;
+  }
+}
+
+.sensivel {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--cor-borda);
+  font-size: 14px;
+
+  .fator {
+    flex-shrink: 0;
+    min-width: 46px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--cor-primaria-clara);
+    color: var(--cor-primaria-escura);
+    font-weight: 700;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
+  small {
+    display: block;
+    color: var(--cor-texto-suave);
+    font-size: 12px;
+  }
+}
+
+.vazio {
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+}
+
+.nota {
+  margin: 18px 0 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  font-size: 14px;
+  color: #713f12;
+}

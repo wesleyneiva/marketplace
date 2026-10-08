@@ -1,0 +1,199 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>📈 Relatórios</h1>
+    <p>{{ periodo().de | dia }} a {{ periodo().ate | dia }} · todas as vendas concluídas (caixa, simulador e histórico)</p>
+  </div>
+  <div class="periodos" role="group" aria-label="Período">
+    @for (d of opcoesPeriodo; track d) {
+      <button type="button" class="botao" [class.ligado]="dias() === d" (click)="dias.set(d)">{{ d }} dias</button>
+    }
+  </div>
+</header>
+
+@if (vendas.error() || produtos.error() || clima.error()) {
+  <div class="mensagem-erro" role="alert">Não foi possível carregar os relatórios. Tente de novo em instantes.</div>
+}
+
+<div class="relatorio" [class.carregando]="carregando()">
+  <!-- ====================== NÚMEROS ====================== -->
+  @if (vendas.value(); as v) {
+    @let i = v.indicadores;
+    <section class="indicadores">
+      <article class="painel numero">
+        <span>Faturamento</span>
+        <strong>{{ i.faturamento | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
+        <small [class]="'delta ' + (i.variacaoFaturamento === null ? '' : i.variacaoFaturamento >= 0 ? 'bom' : 'ruim')">
+          @if (i.variacaoFaturamento !== null) { {{ seta(i.variacaoFaturamento) }} {{ i.variacaoFaturamento | number: '1.0-1' }}% } @else { sem período anterior }
+          <span class="contra">vs {{ v.periodo.dias }} dias anteriores</span>
+        </small>
+      </article>
+      <article class="painel numero">
+        <span>Vendas</span>
+        <strong>{{ i.vendas | number }}</strong>
+        <small [class]="'delta ' + (i.variacaoVendas === null ? '' : i.variacaoVendas >= 0 ? 'bom' : 'ruim')">
+          @if (i.variacaoVendas !== null) { {{ seta(i.variacaoVendas) }} {{ i.variacaoVendas | number: '1.0-1' }}% } @else { — }
+          <span class="contra">{{ i.faturamentoMedioDia | currency: 'BRL' : 'symbol' : '1.0-0' }} por dia</span>
+        </small>
+      </article>
+      <article class="painel numero">
+        <span>Ticket médio</span>
+        <strong>{{ i.ticketMedio | currency: 'BRL' }}</strong>
+        <small [class]="'delta ' + (i.variacaoTicket === null ? '' : i.variacaoTicket >= 0 ? 'bom' : 'ruim')">
+          @if (i.variacaoTicket !== null) { {{ seta(i.variacaoTicket) }} {{ i.variacaoTicket | number: '1.0-1' }}% } @else { — }
+          <span class="contra">por venda</span>
+        </small>
+      </article>
+      <article class="painel numero">
+        <span>Lucro bruto</span>
+        <strong>{{ i.lucroBruto | currency: 'BRL' : 'symbol' : '1.0-0' }}</strong>
+        <small class="delta"><span class="contra">margem de {{ i.margemPercentual | number: '1.0-1' }}%</span></small>
+      </article>
+    </section>
+
+    <!-- ====================== FATURAMENTO + CLIMA ====================== -->
+    <section class="painel bloco">
+      <header>
+        <h2>Faturamento por dia</h2>
+        <p>Passe o mouse sobre um dia para ver os detalhes. A coluna clara é hoje, ainda em andamento.</p>
+      </header>
+      <app-grafico-colunas [dados]="colunasDia()" formato="moeda" descricao="Faturamento por dia" />
+      <h3 class="sub">Temperatura em Porto Alegre (mínima e máxima do dia)</h3>
+      <app-grafico-faixa [dados]="faixaTemperatura()" descricao="Temperatura mínima e máxima por dia" />
+      <details class="tabela-dados">
+        <summary>Ver os dados em tabela</summary>
+        <div class="rolagem">
+          <table>
+            <thead><tr><th>Dia</th><th class="num">Vendas</th><th class="num">Faturamento</th><th class="num">Lucro</th><th class="num">Mín / Máx</th><th class="num">Chuva</th></tr></thead>
+            <tbody>
+              @for (d of v.porDia; track d.data) {
+                <tr>
+                  <td>{{ d.data | dia }}</td><td class="num">{{ d.vendas }}</td>
+                  <td class="num">{{ d.faturamento | currency: 'BRL' }}</td><td class="num">{{ d.lucro | currency: 'BRL' }}</td>
+                  <td class="num">{{ d.tempMin ?? '—' }} / {{ d.tempMax ?? '—' }} °C</td><td class="num">{{ d.chuva | number: '1.0-1' }} mm</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- ====================== SEMANA E HORÁRIOS ====================== -->
+    <div class="duas-colunas">
+      <section class="painel bloco">
+        <header><h2>Faturamento médio por dia da semana</h2></header>
+        <app-grafico-barras [dados]="barrasSemana()" formato="moeda" [larguraRotulos]="80" descricao="Faturamento médio por dia da semana" />
+      </section>
+      <section class="painel bloco">
+        <header><h2>Formas de pagamento</h2></header>
+        <app-grafico-barras [dados]="barrasForma()" formato="moeda" [larguraRotulos]="80" descricao="Faturamento por forma de pagamento" />
+      </section>
+    </div>
+
+    <section class="painel bloco">
+      <header>
+        <h2>Movimento por dia e hora</h2>
+        <p>Média de clientes em cada hora. @if (horarioPico(); as pico) { O pico é <b>{{ pico }}</b>. }</p>
+      </header>
+      <app-mapa-calor [celulas]="mapa().celulas" [linhas]="mapa().linhas" [colunas]="mapa().colunas"
+                      [textoValor]="textoCelula" [tituloCelula]="tituloCelula" descricao="Mapa de calor de clientes por dia da semana e hora" />
+    </section>
+  }
+
+  <!-- ====================== PRODUTOS ====================== -->
+  @if (produtos.value(); as p) {
+    <section class="painel bloco">
+      <header>
+        <h2>Curva ABC dos produtos</h2>
+        <p>Do que mais fatura para o que menos fatura. <b>A</b> = os poucos que fazem 80% do faturamento (nunca podem faltar);
+          <b>B</b> = os próximos 15%; <b>C</b> = os 5% finais.</p>
+      </header>
+      <div class="classes">
+        @for (c of p.classes; track c.classe) {
+          <button type="button" class="classe" [class]="'classe classe-' + c.classe" [class.ligado]="filtroClasse() === c.classe"
+                  (click)="filtroClasse.set(filtroClasse() === c.classe ? null : c.classe)">
+            <b>{{ c.classe }}</b>
+            <span>{{ c.produtos }} produtos</span>
+            <small>{{ c.participacao | number: '1.0-1' }}% do faturamento</small>
+          </button>
+        }
+      </div>
+      <div class="rolagem">
+        <table class="abc">
+          <thead>
+            <tr><th>#</th><th>Produto</th><th>Classe</th><th class="num">Vendido</th><th class="num">Faturamento</th><th>Participação</th><th class="num">Margem</th></tr>
+          </thead>
+          <tbody>
+            @for (x of produtosFiltrados(); track x.produtoId) {
+              <tr>
+                <td class="pos">{{ p.produtos.indexOf(x) + 1 }}</td>
+                <td><span class="nome">{{ x.nome }}</span><small>{{ x.categoria }}</small></td>
+                <td><span [class]="'selo-classe classe-' + x.classe">{{ x.classe }}</span></td>
+                <td class="num">{{ x.quantidade | quantidade: x.unidade }}</td>
+                <td class="num forte">{{ x.faturamento | currency: 'BRL' }}</td>
+                <td class="barra-celula">
+                  <span class="barrinha" [style.width.%]="(x.participacao / p.produtos[0].participacao) * 100"></span>
+                  <small>{{ x.participacao | number: '1.1-1' }}%</small>
+                </td>
+                <td class="num">{{ x.margemPercentual | number: '1.1-1' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="painel bloco">
+      <header><h2>Categorias: faturamento e margem</h2><p>A barra é o faturamento; a margem vem escrita ao lado.</p></header>
+      <app-grafico-barras [dados]="barrasCategoria()" formato="moeda" [larguraRotulos]="130" descricao="Faturamento por categoria" />
+    </section>
+  }
+
+  <!-- ====================== CLIMA ====================== -->
+  @if (clima.value(); as c) {
+    <section class="painel bloco">
+      <header>
+        <h2>🌦️ O clima influenciou as vendas?</h2>
+        <p>Cruzamos cada venda com o clima real daquela hora em Porto Alegre.
+          @if (efeitoChuva() !== null) { Com chuva, o movimento foi <b>{{ efeitoChuva()! > 0 ? '+' : '' }}{{ efeitoChuva() }}%</b> em relação às horas secas. }</p>
+      </header>
+
+      <div class="duas-colunas internas">
+        <div>
+          <h3 class="sub">Clientes por hora, pela temperatura</h3>
+          <app-grafico-barras [dados]="barrasTemperatura()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora por faixa de temperatura" />
+        </div>
+        <div>
+          <h3 class="sub">Clientes por hora, com e sem chuva</h3>
+          <app-grafico-barras [dados]="barrasChuva()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora com e sem chuva" />
+        </div>
+      </div>
+
+      <div class="sensiveis">
+        @for (grupo of [
+          { titulo: '🔥 Sobem no calor', lista: c.sobemNoCalor },
+          { titulo: '🥶 Sobem no frio', lista: c.sobemNoFrio },
+          { titulo: '🌧️ Sobem na chuva', lista: c.sobemNaChuva }
+        ]; track grupo.titulo) {
+          <div class="grupo">
+            <h3>{{ grupo.titulo }}</h3>
+            @for (x of grupo.lista; track x.nome) {
+              <div class="sensivel">
+                <span class="fator">{{ x.fator | number: '1.1-1' }}×</span>
+                <div><b>{{ x.nome }}</b><small>{{ x.explicacao }}</small></div>
+              </div>
+            } @empty {
+              <p class="vazio">Nenhum padrão confiável neste período.</p>
+            }
+          </div>
+        }
+      </div>
+
+      <p class="nota">
+        ⚠️ <b>Correlação não é causa.</b> Só aparecem padrões com ~99,7% de confiança estatística (teste z ≥ 3 — testamos muitos produtos de uma vez, e com menos confiança alguns "padrões" seriam só sorte), mas um padrão
+        pode ter outra explicação: as horas frias são as do começo da manhã, quando o café da manhã vende mais — por isso
+        presunto e requeijão "sobem no frio".
+      </p>
+    </section>
+  }
+</div>

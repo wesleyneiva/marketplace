@@ -151,3 +151,93 @@ select {
     outline-offset: -1px;
   }
 }
+
+// ---------- Gráficos (SVG desenhado pelos componentes em shared/graficos) ----------
+// Regras: marcas finas, grade e eixos discretos, texto sempre em cor de TEXTO (nunca na cor da barra).
+:root {
+  --grafico-serie: #15803d;        // verde do Marketplace (gráficos de uma série)
+  --grafico-serie-ativa: #0f5f2d;
+  --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
+  --grafico-grade: #e9e8e2;
+  --grafico-base: #c3c2b7;
+  --grafico-texto-eixo: #898781;
+}
+
+// Componentes Angular são "inline" por padrão: aí a largura não pode ser medida e o gráfico
+// fica com o tamanho inicial (e vaza da tela). Como bloco, ele ocupa a largura do espaço que tem.
+app-grafico-colunas,
+app-grafico-faixa,
+app-grafico-barras,
+app-mapa-calor {
+  display: block;
+  min-width: 0;
+}
+
+.grafico {
+  position: relative;
+  width: 100%;
+
+  svg {
+    display: block;
+    overflow: visible;
+    font-family: inherit;
+  }
+
+  .grade { stroke: var(--grafico-grade); stroke-width: 1; }
+  .base { stroke: var(--grafico-base); stroke-width: 1; }
+  .eixo { fill: var(--grafico-texto-eixo); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .rotulo { fill: var(--cor-texto-suave); font-size: 12px; }
+  .valor { fill: var(--cor-texto); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .valor .extra { fill: var(--cor-texto-suave); font-weight: 400; }
+
+  .coluna { fill: var(--grafico-serie); transition: fill 0.1s; }
+  .coluna.destaque, .coluna.ativa { fill: var(--grafico-serie-ativa); }
+  .coluna.apagada { opacity: 0.4; }
+  .alvo { fill: transparent; cursor: default; }
+
+  .faixa-area { fill: var(--grafico-temperatura); opacity: 0.12; }
+  .faixa-linha { fill: none; stroke: var(--grafico-temperatura); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .mira { stroke: var(--grafico-base); stroke-width: 1; }
+  .ponto { fill: var(--grafico-temperatura); stroke: var(--cor-superficie); stroke-width: 2; }
+
+  .celula.ativa { stroke: var(--cor-texto); stroke-width: 1.5; }
+}
+
+.dica-grafico {
+  position: absolute;
+  z-index: 10;
+  transform: translate(-50%, calc(-100% - 10px));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 120px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #12261c;
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.18);
+
+  small { color: #c9dccf; font-size: 12px; }
+}
+
+.legenda-rampa {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 8px 0 0 64px;
+  font-size: 11px;
+  color: var(--grafico-texto-eixo);
+
+  i { width: 18px; height: 10px; border-radius: 2px; }
+  span:first-child { margin-right: 4px; }
+  span:last-child { margin-left: 4px; }
+}
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}

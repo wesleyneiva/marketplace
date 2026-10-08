@@ -20,6 +20,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
 {
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     private const decimal Quente = 24m, Frio = 15m; // °C: "hora quente" ≥ 24, "hora fria" < 15
+    private const double ZMinimo = 3.0;             // confiança exigida para mostrar um padrão de clima (~99,7%)
 
     // GET /api/relatorios/vendas?de=2026-09-09&ate=2026-10-08
     [HttpGet("vendas")]
@@ -201,7 +202,9 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
         // "Fator" = quantas vezes MAIS o produto aparece numa condição do que na outra.
         // Ex.: café em 18% das compras no frio e em 6% no calor → fator 3,2.
         // Para não mostrar "padrões" que são só sorte, cada um passa por um TESTE ESTATÍSTICO (teste z de duas
-        // proporções): só entra se z ≥ 2, ou seja, ~95% de confiança de que a diferença é real.
+        // proporções). Como testamos ~55 produtos × 3 condições de uma vez, com 95% de confiança (z ≥ 2) uns 5%
+        // dariam "positivo" por puro acaso (o problema das COMPARAÇÕES MÚLTIPLAS: esponja "subindo na chuva").
+        // Por isso exigimos z ≥ 3 (~99,7%), na linha da correção de Bonferroni.
         List<ProdutoSensivel> Top(Func<LinhaSensibilidade, (int a, int b)> par, int totalA, int totalB, string textoA, string textoB) =>
             sens.Select(s => (s.Nome, par(s).a, par(s).b))
                 .Where(x => totalA > 0 && totalB > 0 && x.a + x.b > 0)
@@ -215,7 +218,7 @@ public class RelatoriosController(AppDbContext db) : ControllerBase
                     return (Produto: new ProdutoSensivel(x.Nome, fator,
                         $"em {p1 * 100:0.#}% das compras {textoA} e {p2 * 100:0.#}% {textoB}"), z);
                 })
-                .Where(x => x.z >= 2 && x.Produto.Fator >= 1.2m)
+                .Where(x => x.z >= ZMinimo && x.Produto.Fator >= 1.2m)
                 .OrderByDescending(x => x.Produto.Fator).Take(5).Select(x => x.Produto).ToList();
 
         return new RelatorioClima(periodo, porTemperatura, porChuva,
