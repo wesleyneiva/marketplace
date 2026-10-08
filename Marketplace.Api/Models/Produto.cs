@@ -30,6 +30,14 @@ public class Produto
     // Produto nunca é apagado (as vendas antigas apontam para ele): só desativado.
     public bool Ativo { get; set; } = true;
 
+    // Lotes de validade (só perecíveis).
+    public List<LoteValidade> Lotes { get; set; } = [];
+
+    // Controle de concorrência: se duas pessoas mexerem no estoque do mesmo produto ao mesmo
+    // tempo, a segunda recebe um erro em vez de sobrescrever a primeira. (No PostgreSQL, usa a
+    // coluna interna "xmin", que muda a cada alteração da linha.)
+    public uint Versao { get; set; }
+
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset AtualizadoEm { get; set; } = DateTimeOffset.UtcNow;
 }

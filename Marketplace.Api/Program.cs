@@ -14,6 +14,9 @@ builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Marketplace")));
 
+// Regras de estoque (usadas pelo EstoqueController e, no futuro, pelo PDV).
+builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
+
 // Login e perfis: ASP.NET Core Identity, guardando usuários no nosso banco.
 builder.Services.AddIdentity<Usuario, IdentityRole>(options =>
     {
@@ -53,6 +56,7 @@ var app = builder.Build();
 
 await SeedInicial.ExecutarAsync(app.Services);
 await SeedCatalogo.ExecutarAsync(app.Services);
+await SeedEstoque.ExecutarAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

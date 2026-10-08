@@ -69,21 +69,15 @@
       @else { <small class="dica">Abaixo disso, o sistema avisa.</small> }
     </div>
 
-    @if (editando()) {
-      <div class="campo">
-        <span class="rotulo">Estoque atual</span>
-        <strong class="estoque-atual">
-          {{ produto()?.estoqueAtual ?? 0 | number: '1.0-3' }} {{ form.controls.unidade.value }}
-        </strong>
-        <small class="dica">Muda por movimentação (entrada, venda, perda) — em breve.</small>
-      </div>
-    } @else {
-      <div class="campo">
-        <label for="estoqueInicial">Estoque inicial</label>
-        <input id="estoqueInicial" type="number" step="0.001" min="0" formControlName="estoqueInicial" />
-        @if (erroDe('estoqueInicial'); as msg) { <small class="erro">{{ msg }}</small> }
-      </div>
-    }
+    <div class="campo">
+      <span class="rotulo">Estoque atual</span>
+      <strong class="estoque-atual">
+        {{ produto()?.estoqueAtual ?? 0 | number: '1.0-3' }} {{ form.controls.unidade.value }}
+      </strong>
+      <small class="dica">
+        {{ editando() ? 'Muda por movimentação (entrada, venda, perda).' : 'Começa em zero: depois de salvar, registre a entrada no Estoque.' }}
+      </small>
+    </div>
 
     <label class="campo marcar largo">
       <input type="checkbox" formControlName="controlaValidade" />

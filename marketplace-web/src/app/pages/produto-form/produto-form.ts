@@ -32,7 +32,6 @@ export class ProdutoForm {
     precoCusto: [0, [Validators.required, Validators.min(0)]],
     precoVenda: [0, [Validators.required, Validators.min(0.01)]],
     estoqueMinimo: [0, [Validators.required, Validators.min(0)]],
-    estoqueInicial: [0, [Validators.min(0)]],
     controlaValidade: [false],
   });
 
@@ -154,7 +153,6 @@ export class ProdutoForm {
       precoVenda: 'O preço de venda deve ser maior que zero.',
       precoCusto: 'Preço de custo inválido.',
       estoqueMinimo: 'Estoque mínimo inválido.',
-      estoqueInicial: 'Estoque inicial inválido.',
     };
     return mensagens[campo] ?? 'Valor inválido.';
   }

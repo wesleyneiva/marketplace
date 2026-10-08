@@ -28,11 +28,8 @@ public record ProdutoRequest(
     [Range(0, 999999, ErrorMessage = "Estoque mínimo inválido.")]
     decimal EstoqueMinimo,
 
-    bool ControlaValidade,
-
-    // Só é usado na criação (estoque inicial). Depois, estoque muda por movimentação.
-    [Range(0, 999999, ErrorMessage = "Estoque inicial inválido.")]
-    decimal EstoqueInicial = 0);
+    // O estoque NÃO vem no cadastro: começa em zero e só muda por movimentação (entrada, perda...).
+    bool ControlaValidade);
 
 // O que a API devolve: já com o nome da categoria e a margem calculada.
 public record ProdutoResponse(

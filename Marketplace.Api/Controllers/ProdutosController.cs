@@ -79,7 +79,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         if (await ValidarAsync(request, idAtual: null) is { } erro)
             return erro;
 
-        var produto = new Produto { EstoqueAtual = request.EstoqueInicial };
+        var produto = new Produto(); // estoque começa em zero → depois, registrar uma entrada
         Preencher(produto, request);
 
         db.Produtos.Add(produto);

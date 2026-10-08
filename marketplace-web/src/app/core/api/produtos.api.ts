@@ -29,7 +29,6 @@ export interface ProdutoRequest {
   precoVenda: number;
   estoqueMinimo: number;
   controlaValidade: boolean;
-  estoqueInicial: number;
 }
 
 export interface Categoria {

@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Produto> Produtos => Set<Produto>();
+    public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
+    public DbSet<LoteValidade> Lotes => Set<LoteValidade>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -50,11 +52,43 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(p => p.CodigoBarras).IsUnique();
             e.HasIndex(p => p.Nome);
 
+            // xmin do PostgreSQL como "versão" da linha (controle de concorrência).
+            e.Property(p => p.Versao).IsRowVersion();
+
             // Não deixa apagar uma categoria que ainda tem produtos.
             e.HasOne(p => p.Categoria)
                 .WithMany(c => c.Produtos)
                 .HasForeignKey(p => p.CategoriaId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<MovimentacaoEstoque>(e =>
+        {
+            // Guarda o tipo como texto ("Entrada", "Perda"...) — fica legível no banco e no n8n.
+            e.Property(m => m.Tipo).HasConversion<string>().HasMaxLength(20);
+            e.Property(m => m.Quantidade).HasPrecision(12, 3);
+            e.Property(m => m.EstoqueAnterior).HasPrecision(12, 3);
+            e.Property(m => m.EstoquePosterior).HasPrecision(12, 3);
+            e.Property(m => m.CustoUnitario).HasPrecision(10, 2);
+            e.Property(m => m.Motivo).HasMaxLength(30);
+            e.Property(m => m.Observacao).HasMaxLength(300);
+
+            e.HasIndex(m => new { m.ProdutoId, m.DataHora });
+            e.HasIndex(m => m.DataHora);
+
+            e.HasOne(m => m.Produto).WithMany().HasForeignKey(m => m.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Lote).WithMany().HasForeignKey(m => m.LoteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Usuario).WithMany().HasForeignKey(m => m.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<LoteValidade>(e =>
+        {
+            e.Property(l => l.QuantidadeInicial).HasPrecision(12, 3);
+            e.Property(l => l.QuantidadeAtual).HasPrecision(12, 3);
+            e.HasIndex(l => new { l.ProdutoId, l.DataValidade });
+            e.HasIndex(l => l.DataValidade);
+
+            e.HasOne(l => l.Produto).WithMany(p => p.Lotes).HasForeignKey(l => l.ProdutoId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
