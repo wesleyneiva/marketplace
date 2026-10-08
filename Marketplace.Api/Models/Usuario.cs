@@ -8,4 +8,14 @@ namespace Marketplace.Api.Models;
 public class Usuario : IdentityUser
 {
     public string NomeCompleto { get; set; } = "";
+
+    // Desativado = não entra mais (e quem estava logado cai em até 1 minuto). Nunca apagamos um usuário:
+    // as vendas e movimentações antigas continuam apontando para ele.
+    public bool Ativo { get; set; } = true;
+
+    // Senha provisória (criada ou redefinida pelo administrador): obriga a trocar no próximo acesso.
+    public bool TrocarSenha { get; set; }
+
+    public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset? UltimoAcessoEm { get; set; }
 }

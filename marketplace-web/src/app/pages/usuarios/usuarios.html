@@ -1,0 +1,88 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>👥 Usuários</h1>
+    <p>Funcionários que acessam o sistema. Ninguém é apagado: quem sai é desativado.</p>
+  </div>
+  <button type="button" class="botao primario" (click)="abrirNovo()">+ Novo usuário</button>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+
+<section class="painel rolagem">
+  <table>
+    <thead>
+      <tr><th>Nome</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (u of usuarios.value() ?? []; track u.id) {
+        <tr [class.inativo]="!u.ativo">
+          <td><span class="nome">{{ u.nome }} @if (u.id === eu()?.id) { <em>(você)</em> }</span><small>{{ u.email }}</small></td>
+          <td><span class="perfil" [class]="'perfil p-' + u.perfil">{{ u.perfil }}</span></td>
+          <td>
+            @if (u.sistema) { <span class="selo">🤖 sistema</span> }
+            @else if (!u.ativo) { <span class="selo inativo">desativado</span> }
+            @else if (u.trocarSenha) { <span class="selo alerta">aguardando 1º acesso</span> }
+            @else { <span class="selo ok">ativo</span> }
+          </td>
+          <td class="quando">{{ u.ultimoAcessoEm ? (u.ultimoAcessoEm | date: 'dd/MM/yy HH:mm') : 'nunca' }}</td>
+          <td class="acoes">
+            @if (!u.sistema) {
+              <button type="button" class="botao pequeno" (click)="abrirEdicao(u)">Editar</button>
+              @if (u.id !== eu()?.id) {
+                <button type="button" class="botao pequeno" (click)="redefinirSenha(u)">🔑 Nova senha</button>
+                <button type="button" class="botao pequeno" [class.perigo]="u.ativo" (click)="alternarAtivo(u)">{{ u.ativo ? 'Desativar' : 'Reativar' }}</button>
+              }
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<!-- Cadastro / edição -->
+<dialog #dlgUsuario class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ editando() ? 'Editar usuário' : 'Novo usuário' }}</h2><button type="button" class="fechar" (click)="dlgUsuario.close()">✕</button></header>
+    <div class="corpo">
+      <label>Nome completo<input name="nome" [(ngModel)]="nome" required minlength="3" maxlength="150" autofocus /></label>
+      <label>E-mail (usado para entrar)
+        <input name="email" type="email" [(ngModel)]="email" required [disabled]="!!editando()" />
+      </label>
+      <fieldset>
+        <legend>Perfil</legend>
+        @for (p of perfis; track p.valor) {
+          <label class="opcao" [class.marcada]="perfil === p.valor">
+            <input type="radio" name="perfil" [value]="p.valor" [(ngModel)]="perfil" />
+            <span><b>{{ p.valor }}</b><small>{{ p.descricao }}</small></span>
+          </label>
+        }
+      </fieldset>
+      @if (!editando()) { <p class="dica">O sistema gera uma <b>senha provisória</b>; no primeiro acesso a pessoa cria a dela.</p> }
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgUsuario.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : editando() ? 'Salvar' : 'Cadastrar' }}</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Senha provisória: mostrada UMA vez -->
+<dialog #dlgSenha class="janela" (close)="senhaProvisoria.set(null)">
+  @if (senhaProvisoria(); as s) {
+    <header><h2>🔑 Senha provisória</h2></header>
+    <div class="corpo">
+      <p>Repasse estes dados para <b>{{ s.nome }}</b>. No primeiro acesso, o sistema pede para criar uma senha nova.</p>
+      <div class="credencial">
+        <div><span>E-mail</span><b>{{ s.email }}</b></div>
+        <div><span>Senha provisória</span><b class="senha">{{ s.senha }}</b></div>
+      </div>
+      <p class="dica">⚠️ Esta senha <b>não aparece de novo</b>. Se perder, use "Nova senha".</p>
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="copiarSenha()">{{ copiado() ? '✓ Copiada' : 'Copiar senha' }}</button>
+      <button type="button" class="botao primario" (click)="fecharSenha()">Pronto</button>
+    </footer>
+  }
+</dialog>

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { precisaLogin, precisaPerfil, somenteDeslogado } from './core/auth/auth.guards';
+import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, somenteDeslogado } from './core/auth/auth.guards';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
 export const routes: Routes = [
@@ -7,6 +7,12 @@ export const routes: Routes = [
     path: 'login',
     canActivate: [somenteDeslogado],
     loadComponent: () => import('./pages/login/login').then((m) => m.Login),
+  },
+  {
+    // Primeiro acesso (senha provisória) ou "trocar minha senha": tela própria, fora da casca, com o logo.
+    path: 'trocar-senha',
+    canActivate: [logadoMesmoComSenhaProvisoria],
+    loadComponent: () => import('./pages/trocar-senha/trocar-senha').then((m) => m.TrocarSenha),
   },
   {
     // "Casca" do sistema (menu lateral + topo). As páginas internas aparecem dentro dela.
@@ -37,6 +43,11 @@ export const routes: Routes = [
         path: 'relatorios',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/relatorios/relatorios').then((m) => m.Relatorios),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [precisaPerfil('Administrador')],
+        loadComponent: () => import('./pages/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
         path: 'estoque',

@@ -8,6 +8,7 @@ export interface UsuarioLogado {
   nome: string;
   email: string;
   perfis: string[];
+  trocarSenha: boolean; // senha provisória: precisa trocar antes de usar o sistema
 }
 
 // Serviço de autenticação: fala com /api/auth e guarda "quem está logado" num signal.
@@ -28,6 +29,12 @@ export class AuthService {
     );
     this.usuarioAtual.set(usuario);
     this.verificado = true;
+  }
+
+  async trocarSenha(senhaAtual: string, novaSenha: string): Promise<void> {
+    this.usuarioAtual.set(
+      await firstValueFrom(this.http.post<UsuarioLogado>('/api/auth/trocar-senha', { senhaAtual, novaSenha })),
+    );
   }
 
   async logout(): Promise<void> {

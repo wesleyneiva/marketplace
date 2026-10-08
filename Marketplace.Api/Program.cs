@@ -43,7 +43,12 @@ builder.Services.AddIdentity<Usuario, IdentityRole>(options =>
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddEntityFrameworkStores<AppDbContext>()
-    .AddDefaultTokenProviders();
+    .AddDefaultTokenProviders()
+    .AddClaimsPrincipalFactory<Marketplace.Api.Seguranca.MarcaSenhaProvisoria>();
+
+// A cada 1 minuto, o cookie de quem está logado é conferido contra o banco: usuário desativado
+// (ou que trocou a senha em outro lugar) cai em até 1 minuto. O padrão do Identity é 30 minutos.
+builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(1));
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -114,6 +119,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles(arquivosEstaticos);
 
 app.UseAuthentication();
+app.Use(Marketplace.Api.Seguranca.MarcaSenhaProvisoria.Middleware);
 app.UseAuthorization();
 
 app.MapControllers();

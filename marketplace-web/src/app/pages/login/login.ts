@@ -37,12 +37,12 @@ export class Login {
     try {
       const { email, senha } = this.form.getRawValue();
       await this.auth.login(email, senha);
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.auth.usuario()?.trocarSenha ? '/trocar-senha' : '/dashboard');
     } catch (e) {
       // A API manda { mensagem: "..." } no 401; se nem respondeu, é problema de conexão.
       const resposta = e instanceof HttpErrorResponse ? e : null;
       this.erro.set(
-        resposta?.status === 401
+        resposta?.status === 401 || resposta?.status === 403
           ? (resposta.error?.mensagem ?? 'E-mail ou senha inválidos.')
           : 'Não foi possível falar com o servidor. Tente de novo em instantes.',
       );

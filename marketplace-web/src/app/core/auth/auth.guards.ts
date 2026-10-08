@@ -5,7 +5,16 @@ import { AuthService } from './auth.service';
 // Guard = "porteiro" de rota: decide se a página pode abrir.
 
 // Páginas internas: só entra quem está logado; senão vai para /login.
+// Quem está com SENHA PROVISÓRIA vai antes para /trocar-senha (primeiro acesso).
 export const precisaLogin: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
+  return auth.usuario()?.trocarSenha ? router.createUrlTree(['/trocar-senha']) : true;
+};
+
+// A tela de trocar senha: precisa estar logado (com ou sem senha provisória).
+export const logadoMesmoComSenhaProvisoria: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
   return (await auth.garantirSessao()) ? true : router.createUrlTree(['/login']);
@@ -25,5 +34,6 @@ export const precisaPerfil =
     const auth = inject(AuthService);
     const router = inject(Router);
     if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
+    if (auth.usuario()?.trocarSenha) return router.createUrlTree(['/trocar-senha']);
     return auth.temPerfil(...perfis) ? true : router.createUrlTree(['/dashboard']);
   };

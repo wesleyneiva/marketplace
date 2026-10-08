@@ -32,7 +32,7 @@ export class Shell {
     { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: false },
     { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: false },
+    { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
   ];
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.

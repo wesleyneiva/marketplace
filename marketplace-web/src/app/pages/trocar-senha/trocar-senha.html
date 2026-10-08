@@ -1,0 +1,38 @@
+<main class="pagina">
+  <section class="cartao">
+    <header class="marca">
+      <app-logo [tamanho]="60" />
+      @if (obrigatorio()) {
+        <p>Bem-vindo(a), <b>{{ usuario()?.nome }}</b>! No primeiro acesso, crie a <b>sua</b> senha.</p>
+      } @else {
+        <p>Trocar minha senha</p>
+      }
+    </header>
+
+    <form (ngSubmit)="salvar()" novalidate>
+      <label for="atual">{{ obrigatorio() ? 'Senha provisória (a que você recebeu)' : 'Senha atual' }}</label>
+      <input id="atual" name="atual" type="password" [(ngModel)]="senhaAtual" autocomplete="current-password" required autofocus />
+
+      <label for="nova">Nova senha</label>
+      <input id="nova" name="nova" type="password" [ngModel]="novaSenha()" (ngModelChange)="novaSenha.set($event)" autocomplete="new-password" required />
+      <ul class="regras">
+        @for (r of regras(); track r.texto) {
+          <li [class.ok]="r.ok">{{ r.ok ? '✓' : '○' }} {{ r.texto }}</li>
+        }
+      </ul>
+
+      <label for="confirma">Repita a nova senha</label>
+      <input id="confirma" name="confirma" type="password" [(ngModel)]="confirmacao" autocomplete="new-password" required />
+
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+
+      <button type="submit" class="entrar" [disabled]="salvando()">{{ salvando() ? 'Salvando…' : 'Salvar nova senha' }}</button>
+      @if (obrigatorio()) {
+        <button type="button" class="link" (click)="sair()">Sair</button>
+      } @else {
+        <a class="link" routerLink="/dashboard">Voltar</a>
+      }
+    </form>
+  </section>
+  <footer>Ambiente de estudo · dados fictícios</footer>
+</main>
