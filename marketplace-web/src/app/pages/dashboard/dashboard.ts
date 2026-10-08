@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -6,6 +6,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Lote } from '../../core/api/estoque.api';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import { ResumoCaixa, ResumoVendas } from '../../core/api/pdv.api';
+import { SimuladorApi, SimuladorStatus } from '../../core/api/simulador.api';
 
 // Dashboard: boas-vindas + indicadores. Os de estoque já são reais;
 // "Vendas hoje" e "Ticket médio" ganham números quando o PDV existir.
@@ -17,6 +18,7 @@ import { ResumoCaixa, ResumoVendas } from '../../core/api/pdv.api';
 })
 export class Dashboard {
   private readonly auth = inject(AuthService);
+  private readonly simuladorApi = inject(SimuladorApi);
 
   protected readonly hoje = new Date();
   protected readonly veEstoque = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
@@ -48,6 +50,36 @@ export class Dashboard {
     const c = this.meuCaixa.value();
     return c ? { total: c.totalVendido, quantidade: c.quantidadeVendas, ticket: c.ticketMedio, lucro: null, rotulo: `seu caixa (${c.numeroCaixa})` } : null;
   });
+
+  // ----- Simulador de clientes (gerência vê; só o Administrador pausa/retoma) -----
+  protected readonly ehAdmin = computed(() => this.auth.temPerfil('Administrador'));
+  protected readonly simulador = httpResource<SimuladorStatus>(() => (this.veEstoque() ? '/api/simulador' : undefined));
+  protected readonly ocupado = signal(false);
+  protected readonly avisoSimulador = signal<string | null>(null);
+
+  protected async alternarSimulador(): Promise<void> {
+    this.ocupado.set(true);
+    try {
+      const atual = this.simulador.value();
+      this.simulador.set(atual?.ativo ? await this.simuladorApi.pausar() : await this.simuladorApi.retomar());
+    } finally {
+      this.ocupado.set(false);
+    }
+  }
+
+  protected async atenderAgora(): Promise<void> {
+    this.ocupado.set(true);
+    try {
+      const r = await this.simuladorApi.atenderAgora(5);
+      this.avisoSimulador.set(`${r.vendasFeitas} de ${r.clientes} clientes compraram agora.`);
+      setTimeout(() => this.avisoSimulador.set(null), 5000);
+      this.simulador.reload();
+      this.vendasDia.reload();
+      this.estoqueBaixo.reload();
+    } finally {
+      this.ocupado.set(false);
+    }
+  }
 
   protected readonly resumoValidade = computed(() => {
     const lotes = this.validades.value() ?? [];

@@ -3,6 +3,28 @@
   <p>{{ hoje | date: "EEEE, d 'de' MMMM 'de' y" }}</p>
 </header>
 
+@if (simulador.value(); as sim) {
+  <section class="simulador" [class.pausado]="!sim.ativo">
+    <span class="robo" aria-hidden="true">🤖</span>
+    <div class="info">
+      <strong>Simulador de clientes {{ sim.ativo ? 'ativo' : 'pausado' }}</strong>
+      <small>
+        @if (sim.temperatura !== null) { Porto Alegre {{ sim.temperatura }} °C, {{ sim.tempo }} · }
+        Caixa 9 {{ sim.caixaAberto ? 'aberto' : 'fechado' }} ·
+        {{ sim.vendasHoje }} {{ sim.vendasHoje === 1 ? 'cliente' : 'clientes' }} hoje ({{ sim.faturamentoHoje | currency: 'BRL' }})
+        @if (sim.ultimoErro) { · <b class="txt-perigo">erro: {{ sim.ultimoErro }}</b> }
+      </small>
+      @if (avisoSimulador()) { <small class="ok">✅ {{ avisoSimulador() }}</small> }
+    </div>
+    @if (ehAdmin()) {
+      <button type="button" class="botao pequeno" (click)="atenderAgora()" [disabled]="ocupado()">+5 clientes agora</button>
+      <button type="button" class="botao pequeno" (click)="alternarSimulador()" [disabled]="ocupado()">
+        {{ sim.ativo ? '⏸ Pausar' : '▶ Retomar' }}
+      </button>
+    }
+  </section>
+}
+
 <section class="indicadores">
   <a class="cartao clicavel" routerLink="/pdv">
     <div class="topo-cartao"><span>Vendas hoje</span><span class="icone" aria-hidden="true">💰</span></div>

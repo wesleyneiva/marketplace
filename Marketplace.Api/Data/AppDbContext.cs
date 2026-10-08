@@ -23,6 +23,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Venda> Vendas => Set<Venda>();
     public DbSet<ItemVenda> ItensVenda => Set<ItemVenda>();
     public DbSet<PagamentoVenda> PagamentosVenda => Set<PagamentoVenda>();
+    public DbSet<ClimaRegistro> Clima => Set<ClimaRegistro>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -96,6 +97,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(l => l.DataValidade);
 
             e.HasOne(l => l.Produto).WithMany(p => p.Lotes).HasForeignKey(l => l.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ClimaRegistro>(e =>
+        {
+            e.ToTable("Clima");
+            e.Property(c => c.Temperatura).HasPrecision(4, 1);
+            e.Property(c => c.Chuva).HasPrecision(5, 1);
+            e.HasIndex(c => c.DataHora).IsUnique(); // uma linha por hora
         });
 
         // ----- PDV -----

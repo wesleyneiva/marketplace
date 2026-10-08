@@ -17,6 +17,11 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   primeiro); histórico completo de "quem mexeu, quando e por quê"; alertas de validade e estoque baixo.
 - **Caixa (PDV)** — feito para teclado e leitor de código de barras; venda por peso (KG); desconto
   limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**.
+- **Simulador de clientes** — trabalhador em segundo plano que "abre" o Caixa 9 às 07:00 e vende o dia todo:
+  clientes por hora (picos no almoço e às 18h, sábado mais forte, começo do mês), cesta sorteada por
+  popularidade e pelo **clima real de Porto Alegre** (calor → bebidas geladas; frio → café; chuva → menos
+  gente; fim de semana → churrasco), pagamentos realistas com troco, fornecedor repondo às 07:00 e
+  fechamento às 21:00. O clima de cada hora fica na tabela `Clima`, para cruzar com as vendas.
 - **Regras importantes**
   - o preço sempre vem do banco (nunca da tela);
   - produto vencido não é vendido;

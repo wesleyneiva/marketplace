@@ -25,6 +25,14 @@ builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 
+// Simulador de clientes (trabalhador em segundo plano) + clima real de Porto Alegre.
+// Só simula se "Simulador:Ativo" = true (ligado no serviço de produção, desligado no desenvolvimento).
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<Marketplace.Api.Services.ClimaService>();
+builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
+builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.Simulador.SimuladorClientes>());
+
 // Login e perfis: ASP.NET Core Identity, guardando usuários no nosso banco.
 builder.Services.AddIdentity<Usuario, IdentityRole>(options =>
     {
@@ -80,6 +88,7 @@ if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
 await SeedInicial.ExecutarAsync(app.Services);
 await SeedCatalogo.ExecutarAsync(app.Services);
 await SeedEstoque.ExecutarAsync(app.Services);
+await SeedSimulador.ExecutarAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
