@@ -17,3 +17,13 @@ export const somenteDeslogado: CanActivateFn = async () => {
   const router = inject(Router);
   return (await auth.garantirSessao()) ? router.createUrlTree(['/dashboard']) : true;
 };
+
+// Páginas restritas a alguns perfis. Uso: canActivate: [precisaPerfil('Administrador', 'Gerente')]
+export const precisaPerfil =
+  (...perfis: string[]): CanActivateFn =>
+  async () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
+    return auth.temPerfil(...perfis) ? true : router.createUrlTree(['/dashboard']);
+  };

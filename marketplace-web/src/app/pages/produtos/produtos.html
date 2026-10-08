@@ -1,0 +1,94 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>📦 Produtos</h1>
+    <p>
+      @if (produtos.value(); as p) { {{ p.total }} {{ p.total === 1 ? 'produto' : 'produtos' }} } @else { Carregando… }
+    </p>
+  </div>
+  <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
+</header>
+
+<section class="filtros">
+  <input type="search" class="busca" placeholder="Buscar por nome ou código de barras…"
+         (input)="digitarBusca($any($event.target).value)" aria-label="Buscar produto" />
+
+  <select (change)="escolherCategoria($any($event.target).value)" aria-label="Categoria">
+    <option value="">Todas as categorias</option>
+    @for (c of categorias.value() ?? []; track c.id) {
+      <option [value]="c.id">{{ c.nome }} ({{ c.quantidadeProdutos }})</option>
+    }
+  </select>
+
+  <button type="button" class="botao" [class.ligado]="estoqueBaixo()" (click)="alternarEstoqueBaixo()">
+    ⚠️ Estoque baixo
+  </button>
+  <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="alternarInativos()">
+    Mostrar inativos
+  </button>
+</section>
+
+@if (erro()) {
+  <div class="mensagem-erro" role="alert">{{ erro() }}</div>
+}
+
+<section class="painel tabela-rolagem" [class.carregando]="produtos.isLoading()">
+  @if (produtos.error()) {
+    <p class="vazio">Não foi possível carregar os produtos. <button class="botao pequeno" (click)="produtos.reload()">Tentar de novo</button></p>
+  } @else {
+    <table>
+      <thead>
+        <tr>
+          <th>Produto</th>
+          <th>Categoria</th>
+          <th class="num">Custo</th>
+          <th class="num">Venda</th>
+          <th class="num">Margem</th>
+          <th class="num">Estoque</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of produtos.value()?.itens ?? []; track p.id) {
+          <tr [class.inativo]="!p.ativo">
+            <td>
+              <a class="nome" [routerLink]="['/produtos', p.id]">{{ p.nome }}</a>
+              <small class="codigo">{{ p.codigoBarras ?? 'sem código de barras' }}</small>
+            </td>
+            <td>{{ p.categoria }}</td>
+            <td class="num">{{ p.precoCusto | currency: 'BRL' }}</td>
+            <td class="num forte">{{ p.precoVenda | currency: 'BRL' }}</td>
+            <td class="num">{{ p.margemPercentual | number: '1.1-1' }}%</td>
+            <td class="num">
+              {{ p.estoqueAtual | number: (p.unidade === 'KG' ? '1.3-3' : '1.0-0') }} {{ p.unidade }}
+              @if (p.estoqueBaixo && p.ativo) {
+                <span class="selo alerta" [title]="'Mínimo: ' + p.estoqueMinimo">⚠️ baixo</span>
+              }
+              @if (!p.ativo) {
+                <span class="selo inativo">inativo</span>
+              }
+            </td>
+            <td class="acoes">
+              <a class="botao pequeno" [routerLink]="['/produtos', p.id]">Editar</a>
+              <button type="button" class="botao pequeno" [class.perigo]="p.ativo"
+                      [disabled]="processando() === p.id" (click)="alternarAtivo(p)">
+                {{ p.ativo ? 'Desativar' : 'Reativar' }}
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          @if (!produtos.isLoading()) {
+            <tr><td colspan="7" class="vazio">Nenhum produto encontrado com esses filtros.</td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  }
+</section>
+
+@if (totalPaginas() > 1) {
+  <nav class="paginacao" aria-label="Paginação">
+    <button class="botao pequeno" [disabled]="pagina() === 1" (click)="irParaPagina(pagina() - 1)">← Anterior</button>
+    <span>Página {{ pagina() }} de {{ totalPaginas() }}</span>
+    <button class="botao pequeno" [disabled]="pagina() === totalPaginas()" (click)="irParaPagina(pagina() + 1)">Próxima →</button>
+  </nav>
+}

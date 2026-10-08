@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { precisaLogin, somenteDeslogado } from './core/auth/auth.guards';
+import { precisaLogin, precisaPerfil, somenteDeslogado } from './core/auth/auth.guards';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
 export const routes: Routes = [
@@ -18,6 +18,16 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         loadComponent: () => import('./pages/dashboard/dashboard').then((m) => m.Dashboard),
+      },
+      {
+        path: 'produtos',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        children: [
+          { path: '', loadComponent: () => import('./pages/produtos/produtos').then((m) => m.Produtos) },
+          // "novo" e ":id" usam a mesma tela de formulário. O :id chega no componente como input().
+          { path: 'novo', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
+          { path: ':id', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
+        ],
       },
     ],
   },

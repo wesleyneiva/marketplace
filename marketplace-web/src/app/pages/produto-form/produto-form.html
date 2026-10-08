@@ -1,0 +1,100 @@
+<header class="titulo-pagina">
+  <div>
+    <a routerLink="/produtos" class="voltar">← Produtos</a>
+    <h1>{{ editando() ? 'Editar produto' : 'Novo produto' }}</h1>
+  </div>
+</header>
+
+@if (erroGeral()) {
+  <div class="mensagem-erro" role="alert">{{ erroGeral() }}</div>
+}
+
+<form class="painel formulario" [formGroup]="form" (ngSubmit)="salvar()" [class.carregando]="carregando()" novalidate>
+  <div class="grade">
+    <div class="campo largo">
+      <label for="nome">Nome do produto *</label>
+      <input id="nome" formControlName="nome" placeholder="Ex.: Arroz branco tipo 1 5kg" />
+      @if (erroDe('nome'); as msg) { <small class="erro">{{ msg }}</small> }
+    </div>
+
+    <div class="campo">
+      <label for="codigoBarras">Código de barras</label>
+      <input id="codigoBarras" formControlName="codigoBarras" inputmode="numeric" placeholder="Opcional (EAN)" />
+      @if (erroDe('codigoBarras'); as msg) { <small class="erro">{{ msg }}</small> }
+      @else { <small class="dica">Deixe vazio para itens a granel.</small> }
+    </div>
+
+    <div class="campo">
+      <label for="categoriaId">Categoria *</label>
+      <select id="categoriaId" formControlName="categoriaId">
+        <option [ngValue]="0" disabled>Escolha…</option>
+        @for (c of categorias.value() ?? []; track c.id) {
+          <option [ngValue]="c.id">{{ c.nome }}</option>
+        }
+      </select>
+      @if (erroDe('categoriaId'); as msg) { <small class="erro">{{ msg }}</small> }
+    </div>
+
+    <div class="campo">
+      <label for="unidade">Unidade de venda *</label>
+      <select id="unidade" formControlName="unidade">
+        @for (u of unidades; track u.sigla) {
+          <option [value]="u.sigla">{{ u.sigla }} — {{ u.nome }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="campo">
+      <label for="precoCusto">Preço de custo (R$) *</label>
+      <input id="precoCusto" type="number" step="0.01" min="0" formControlName="precoCusto" />
+      @if (erroDe('precoCusto'); as msg) { <small class="erro">{{ msg }}</small> }
+    </div>
+
+    <div class="campo">
+      <label for="precoVenda">Preço de venda (R$) *</label>
+      <input id="precoVenda" type="number" step="0.01" min="0" formControlName="precoVenda" />
+      @if (erroDe('precoVenda'); as msg) { <small class="erro">{{ msg }}</small> }
+    </div>
+
+    <div class="campo resumo-margem" [class.negativa]="(margem() ?? 0) < 0">
+      <span>Margem</span>
+      <strong>{{ margem() === null ? '—' : (margem()! | number: '1.1-1') + '%' }}</strong>
+      <small>{{ lucroPorUnidade() | currency: 'BRL' }} de lucro bruto por {{ form.controls.unidade.value }}</small>
+    </div>
+
+    <div class="campo">
+      <label for="estoqueMinimo">Estoque mínimo *</label>
+      <input id="estoqueMinimo" type="number" step="0.001" min="0" formControlName="estoqueMinimo" />
+      @if (erroDe('estoqueMinimo'); as msg) { <small class="erro">{{ msg }}</small> }
+      @else { <small class="dica">Abaixo disso, o sistema avisa.</small> }
+    </div>
+
+    @if (editando()) {
+      <div class="campo">
+        <span class="rotulo">Estoque atual</span>
+        <strong class="estoque-atual">
+          {{ produto()?.estoqueAtual ?? 0 | number: '1.0-3' }} {{ form.controls.unidade.value }}
+        </strong>
+        <small class="dica">Muda por movimentação (entrada, venda, perda) — em breve.</small>
+      </div>
+    } @else {
+      <div class="campo">
+        <label for="estoqueInicial">Estoque inicial</label>
+        <input id="estoqueInicial" type="number" step="0.001" min="0" formControlName="estoqueInicial" />
+        @if (erroDe('estoqueInicial'); as msg) { <small class="erro">{{ msg }}</small> }
+      </div>
+    }
+
+    <label class="campo marcar largo">
+      <input type="checkbox" formControlName="controlaValidade" />
+      <span>Produto perecível (controlar data de validade)</span>
+    </label>
+  </div>
+
+  <footer class="rodape">
+    <a class="botao" routerLink="/produtos">Cancelar</a>
+    <button type="submit" class="botao primario" [disabled]="salvando() || carregando()">
+      {{ salvando() ? 'Salvando…' : 'Salvar' }}
+    </button>
+  </footer>
+</form>

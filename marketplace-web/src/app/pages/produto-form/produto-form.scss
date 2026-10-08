@@ -1,0 +1,116 @@
+.voltar {
+  color: var(--cor-texto-suave);
+  text-decoration: none;
+  font-size: 14px;
+
+  &:hover {
+    color: var(--cor-primaria);
+  }
+}
+
+.mensagem-erro {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+}
+
+.formulario {
+  max-width: 860px;
+  padding: 22px;
+
+  &.carregando {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 18px 20px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  &.largo {
+    grid-column: 1 / -1;
+  }
+
+  label,
+  .rotulo {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  input,
+  select {
+    width: 100%;
+  }
+
+  input.ng-touched.ng-invalid,
+  select.ng-touched.ng-invalid {
+    border-color: var(--cor-erro);
+  }
+}
+
+.erro {
+  color: var(--cor-erro);
+}
+
+.dica {
+  color: var(--cor-texto-suave);
+}
+
+.resumo-margem {
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+
+  span {
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  strong {
+    font-size: 22px;
+  }
+
+  &.negativa {
+    background: var(--cor-erro-fundo);
+    color: var(--cor-erro);
+  }
+}
+
+.estoque-atual {
+  font-size: 20px;
+  padding: 6px 0;
+}
+
+.marcar {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+
+  input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--cor-primaria);
+  }
+}
+
+.rodape {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--cor-borda);
+}

@@ -38,3 +38,116 @@ button,
 input {
   font: inherit;
 }
+
+// ---------- Peças reaproveitadas em várias telas ----------
+
+.titulo-pagina {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: var(--cor-texto-suave);
+  }
+}
+
+.botao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover:not(:disabled) {
+    border-color: var(--cor-primaria);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+
+  &.primario {
+    background: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: #fff;
+    font-weight: 600;
+
+    &:hover:not(:disabled) {
+      background: var(--cor-primaria-escura);
+    }
+  }
+
+  &.perigo:hover:not(:disabled) {
+    border-color: var(--cor-erro);
+    color: var(--cor-erro);
+  }
+
+  &.pequeno {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+
+  &.ligado {
+    background: var(--cor-primaria-clara);
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria-escura);
+    font-weight: 600;
+  }
+}
+
+.painel {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+}
+
+.selo {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  background: var(--cor-fundo);
+  color: var(--cor-texto-suave);
+
+  &.alerta {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &.inativo {
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+}
+
+input,
+select {
+  padding: 9px 11px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+
+  &:focus {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: -1px;
+  }
+}
