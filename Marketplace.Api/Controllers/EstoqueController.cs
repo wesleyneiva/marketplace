@@ -48,18 +48,22 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
         var consulta = db.Movimentacoes.AsNoTracking();
         if (produtoId is not null) consulta = consulta.Where(m => m.ProdutoId == produtoId);
         if (tipo is not null) consulta = consulta.Where(m => m.Tipo == tipo);
-        if (de is not null) consulta = consulta.Where(m => m.DataHora >= InicioDoDia(de.Value));
-        if (ate is not null) consulta = consulta.Where(m => m.DataHora < InicioDoDia(ate.Value.AddDays(1)));
+        if (de is not null)
+        {
+            var inicio = Relogio.InicioDoDiaUtc(de.Value);
+            consulta = consulta.Where(m => m.DataHora >= inicio);
+        }
+        if (ate is not null)
+        {
+            var fim = Relogio.InicioDoDiaUtc(ate.Value.AddDays(1));
+            consulta = consulta.Where(m => m.DataHora < fim);
+        }
 
         var total = await consulta.CountAsync();
         var itens = await consulta
             .OrderByDescending(m => m.DataHora).ThenByDescending(m => m.Id)
             .Skip((pagina - 1) * tamanho).Take(tamanho)
-            .Select(m => new MovimentacaoResponse(
-                m.Id, m.DataHora, m.ProdutoId, m.Produto!.Nome, m.Produto.Unidade, m.Tipo.ToString(),
-                m.Quantidade, m.EstoqueAnterior, m.EstoquePosterior, m.CustoUnitario, m.Motivo, m.Observacao,
-                m.Lote != null ? m.Lote.DataValidade : null,
-                m.Usuario != null ? m.Usuario.NomeCompleto : "Sistema"))
+            .Select(ParaResposta)
             .ToListAsync();
 
         return new Pagina<MovimentacaoResponse>(itens, total, pagina, tamanho);
@@ -99,24 +103,24 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
         }).ToList();
     }
 
-    // Meia-noite de Brasília daquele dia, para filtrar por data.
-    private static DateTimeOffset InicioDoDia(DateOnly dia) =>
-        new(dia.ToDateTime(TimeOnly.MinValue), TimeSpan.FromHours(-3));
-
-    // Executa a operação e traduz erros de regra de negócio em 400 com mensagem.
-    private async Task<ActionResult<MovimentacaoResponse>> Executar(Func<Task<MovimentacaoEstoque>> operacao)
+    // Executa a operação e traduz erros de regra de negócio em 400/409 com mensagem.
+    // Uma operação pode gerar várias movimentações (uma por lote, no FEFO): a resposta é o RESUMO
+    // delas (quantidade somada, estoque antes da primeira → depois da última).
+    private async Task<ActionResult<MovimentacaoResponse>> Executar(Func<Task<List<MovimentacaoEstoque>>> operacao)
     {
         try
         {
-            var m = await operacao();
-            var resposta = await db.Movimentacoes.AsNoTracking().Where(x => x.Id == m.Id)
-                .Select(x => new MovimentacaoResponse(
-                    x.Id, x.DataHora, x.ProdutoId, x.Produto!.Nome, x.Produto.Unidade, x.Tipo.ToString(),
-                    x.Quantidade, x.EstoqueAnterior, x.EstoquePosterior, x.CustoUnitario, x.Motivo, x.Observacao,
-                    x.Lote != null ? x.Lote.DataValidade : null,
-                    x.Usuario != null ? x.Usuario.NomeCompleto : "Sistema"))
-                .FirstAsync();
-            return Created($"/api/estoque/movimentacoes/{m.Id}", resposta);
+            var movs = await operacao();
+            var ids = movs.Select(m => m.Id).ToList();
+            var linhas = await db.Movimentacoes.AsNoTracking().Where(x => ids.Contains(x.Id))
+                .OrderBy(x => x.Id).Select(ParaResposta).ToListAsync();
+
+            var resumo = linhas[^1] with
+            {
+                Quantidade = linhas.Sum(l => l.Quantidade),
+                EstoqueAnterior = linhas[0].EstoqueAnterior,
+            };
+            return Created($"/api/estoque/movimentacoes/{resumo.Id}", resumo);
         }
         catch (ConflitoEstoqueException e)
         {
@@ -127,4 +131,12 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
             return BadRequest(new { mensagem = e.Message });
         }
     }
+
+    private static readonly System.Linq.Expressions.Expression<Func<MovimentacaoEstoque, MovimentacaoResponse>> ParaResposta =
+        x => new MovimentacaoResponse(
+            x.Id, x.DataHora, x.ProdutoId, x.Produto!.Nome, x.Produto.Unidade, x.Tipo.ToString(),
+            x.Quantidade, x.EstoqueAnterior, x.EstoquePosterior, x.CustoUnitario, x.Motivo, x.Observacao,
+            x.Lote != null ? x.Lote.DataValidade : null,
+            x.Usuario != null ? x.Usuario.NomeCompleto : "Sistema",
+            x.VendaId);
 }

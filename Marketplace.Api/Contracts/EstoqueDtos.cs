@@ -38,7 +38,8 @@ public record MovimentacaoResponse(
     string? Motivo,
     string? Observacao,
     DateOnly? Validade,
-    string Usuario);
+    string Usuario,
+    int? VendaId);
 
 public record LoteResponse(
     int Id,

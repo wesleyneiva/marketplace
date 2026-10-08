@@ -3,6 +3,9 @@ using Marketplace.Api.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
+// Números e dinheiro nas mensagens no formato brasileiro (R$ 1.234,56).
+System.Globalization.CultureInfo.DefaultThreadCurrentCulture = new System.Globalization.CultureInfo("pt-BR");
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -16,6 +19,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 // Regras de estoque (usadas pelo EstoqueController e, no futuro, pelo PDV).
 builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
+builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
+builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 
 // Login e perfis: ASP.NET Core Identity, guardando usuários no nosso banco.
 builder.Services.AddIdentity<Usuario, IdentityRole>(options =>

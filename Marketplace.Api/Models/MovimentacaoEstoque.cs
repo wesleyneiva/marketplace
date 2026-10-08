@@ -29,6 +29,10 @@ public class MovimentacaoEstoque
     public int? LoteId { get; set; }
     public LoteValidade? Lote { get; set; }
 
+    // Venda que causou esta saída (ou o cancelamento que a devolveu).
+    public int? VendaId { get; set; }
+    public Venda? Venda { get; set; }
+
     // Quem fez. Nulo = o próprio sistema (ex.: inventário inicial do catálogo fictício).
     public string? UsuarioId { get; set; }
     public Usuario? Usuario { get; set; }
@@ -39,7 +43,8 @@ public class MovimentacaoEstoque
 public enum TipoMovimentacao
 {
     Entrada,      // chegou mercadoria do fornecedor
-    Venda,        // saiu pelo caixa (vai ser usado pelo PDV)
+    Venda,        // saiu pelo caixa (PDV)
+    Cancelamento, // venda cancelada: a mercadoria volta para o estoque
     Perda,        // venceu, quebrou, sumiu...
     Ajuste,       // contagem de inventário: o sistema dizia X, a prateleira tem Y
     Inventario,   // estoque inicial (quando o sistema começou a ser usado)

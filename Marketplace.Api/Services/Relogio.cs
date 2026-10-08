@@ -8,4 +8,12 @@ public static class Relogio
     public static DateTimeOffset AgoraBrasilia => TimeZoneInfo.ConvertTime(DateTimeOffset.UtcNow, Brasilia);
 
     public static DateOnly HojeBrasilia => DateOnly.FromDateTime(AgoraBrasilia.DateTime);
+
+    // Meia-noite de Brasília daquele dia, convertida para UTC (o PostgreSQL/Npgsql só aceita UTC).
+    // Ex.: 08/10 00:00 em Brasília = 08/10 03:00 UTC.
+    public static DateTimeOffset InicioDoDiaUtc(DateOnly dia)
+    {
+        var meiaNoite = dia.ToDateTime(TimeOnly.MinValue);
+        return new DateTimeOffset(meiaNoite, Brasilia.GetUtcOffset(meiaNoite)).ToUniversalTime();
+    }
 }

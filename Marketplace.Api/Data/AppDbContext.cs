@@ -18,6 +18,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
     public DbSet<LoteValidade> Lotes => Set<LoteValidade>();
+    public DbSet<SessaoCaixa> SessoesCaixa => Set<SessaoCaixa>();
+    public DbSet<MovimentoCaixa> MovimentosCaixa => Set<MovimentoCaixa>();
+    public DbSet<Venda> Vendas => Set<Venda>();
+    public DbSet<ItemVenda> ItensVenda => Set<ItemVenda>();
+    public DbSet<PagamentoVenda> PagamentosVenda => Set<PagamentoVenda>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -79,6 +84,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasOne(m => m.Produto).WithMany().HasForeignKey(m => m.ProdutoId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.Lote).WithMany().HasForeignKey(m => m.LoteId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.Usuario).WithMany().HasForeignKey(m => m.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Venda).WithMany().HasForeignKey(m => m.VendaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(m => m.VendaId);
         });
 
         builder.Entity<LoteValidade>(e =>
@@ -89,6 +96,69 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.HasIndex(l => l.DataValidade);
 
             e.HasOne(l => l.Produto).WithMany(p => p.Lotes).HasForeignKey(l => l.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- PDV -----
+        builder.Entity<SessaoCaixa>(e =>
+        {
+            e.Property(s => s.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(s => s.ValorAbertura).HasPrecision(12, 2);
+            e.Property(s => s.ValorEsperado).HasPrecision(12, 2);
+            e.Property(s => s.ValorContado).HasPrecision(12, 2);
+            e.Property(s => s.Diferenca).HasPrecision(12, 2);
+            e.Property(s => s.ObservacaoFechamento).HasMaxLength(300);
+            e.HasIndex(s => new { s.UsuarioId, s.Status });
+            e.HasIndex(s => s.AbertaEm);
+
+            // Regra no próprio banco: no máximo UMA sessão aberta por caixa físico
+            // (índice único "parcial": só vale para as linhas com Status = 'Aberta').
+            e.HasIndex(s => s.NumeroCaixa).IsUnique().HasFilter("\"Status\" = 'Aberta'")
+                .HasDatabaseName("IX_SessoesCaixa_UmaAbertaPorCaixa");
+
+            e.HasOne(s => s.Usuario).WithMany().HasForeignKey(s => s.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<MovimentoCaixa>(e =>
+        {
+            e.Property(m => m.Tipo).HasConversion<string>().HasMaxLength(15);
+            e.Property(m => m.Valor).HasPrecision(12, 2);
+            e.Property(m => m.Motivo).HasMaxLength(150);
+            e.HasOne(m => m.SessaoCaixa).WithMany(s => s.Movimentos).HasForeignKey(m => m.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Usuario).WithMany().HasForeignKey(m => m.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Venda>(e =>
+        {
+            e.Property(v => v.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(v => v.Subtotal).HasPrecision(12, 2);
+            e.Property(v => v.Desconto).HasPrecision(12, 2);
+            e.Property(v => v.Total).HasPrecision(12, 2);
+            e.Property(v => v.ValorPago).HasPrecision(12, 2);
+            e.Property(v => v.Troco).HasPrecision(12, 2);
+            e.Property(v => v.MotivoCancelamento).HasMaxLength(200);
+            e.HasIndex(v => v.DataHora);
+            e.HasOne(v => v.SessaoCaixa).WithMany(s => s.Vendas).HasForeignKey(v => v.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.Usuario).WithMany().HasForeignKey(v => v.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(v => v.CanceladaPor).WithMany().HasForeignKey(v => v.CanceladaPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ItemVenda>(e =>
+        {
+            e.Property(i => i.Descricao).HasMaxLength(150);
+            e.Property(i => i.Unidade).HasMaxLength(3);
+            e.Property(i => i.Quantidade).HasPrecision(12, 3);
+            e.Property(i => i.PrecoUnitario).HasPrecision(10, 2);
+            e.Property(i => i.CustoUnitario).HasPrecision(10, 2);
+            e.Property(i => i.Total).HasPrecision(12, 2);
+            e.HasOne(i => i.Venda).WithMany(v => v.Itens).HasForeignKey(i => i.VendaId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Produto).WithMany().HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<PagamentoVenda>(e =>
+        {
+            e.Property(p => p.Forma).HasConversion<string>().HasMaxLength(10);
+            e.Property(p => p.Valor).HasPrecision(12, 2);
+            e.HasOne(p => p.Venda).WithMany(v => v.Pagamentos).HasForeignKey(p => p.VendaId).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
