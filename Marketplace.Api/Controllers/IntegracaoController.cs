@@ -15,7 +15,7 @@ namespace Marketplace.Api.Controllers;
 [Route("api/integracao")]
 [AllowAnonymous]
 [ChaveApi]
-public class IntegracaoController(AppDbContext db) : ControllerBase
+public class IntegracaoController(AppDbContext db, RelatoriosService relatorios, InsightsService insights) : ControllerBase
 {
     // GET /api/integracao/resumo?data=2026-10-08 → fechamento do dia (padrão: hoje)
     [HttpGet("resumo")]
@@ -195,6 +195,41 @@ public class IntegracaoController(AppDbContext db) : ControllerBase
         if (produtos.Count > 5) m.AppendLine("\n… há mais produtos: seja mais específico.");
 
         return new { encontrados = produtos.Count, produtos, mensagem = m.ToString().TrimEnd() };
+    }
+
+    // GET /api/integracao/semana → fechamento da SEMANA (segunda até hoje) para o n8n mandar no sábado:
+    //   "mensagem": os números prontos para o Telegram
+    //   "prompt":   o pedido para a IA (o n8n passa ao Gemini e junta a resposta à mensagem)
+    [HttpGet("semana")]
+    public async Task<object> Semana(CancellationToken ct)
+    {
+        var hoje = Relogio.HojeBrasilia;
+        if (hoje.DayOfWeek == DayOfWeek.Sunday) hoje = hoje.AddDays(-1); // domingo (fechado): fala da semana que passou
+        var segunda = hoje.AddDays(-(((int)hoje.DayOfWeek + 6) % 7));
+        var periodo = RelatoriosService.Ler(segunda, hoje);
+
+        var vendas = await relatorios.Vendas(periodo.De, periodo.Ate);
+        var produtos = await relatorios.Produtos(periodo.De, periodo.Ate);
+        var i = vendas.Indicadores;
+        var dias = vendas.PorDia.Where(d => d.Vendas > 0).ToList();
+        var melhor = dias.OrderByDescending(d => d.Faturamento).FirstOrDefault();
+        var pior = dias.OrderBy(d => d.Faturamento).FirstOrDefault();
+        string Variacao(decimal? v) => v is null ? "" : $" ({(v >= 0 ? "▲" : "▼")} {Math.Abs(v.Value):0.#}% vs semana anterior)";
+
+        var m = new StringBuilder();
+        m.AppendLine($"📅 Marketplace — semana de {periodo.De:dd/MM} a {periodo.Ate:dd/MM}");
+        m.AppendLine($"💰 Faturamento: {i.Faturamento:C}{Variacao(i.VariacaoFaturamento)}");
+        m.AppendLine($"🧾 {i.Vendas} vendas · ticket médio {i.TicketMedio:C}{Variacao(i.VariacaoTicket)}");
+        m.AppendLine($"📈 Lucro bruto: {i.LucroBruto:C} (margem {i.MargemPercentual:0.#}%)");
+        if (melhor is not null && pior is not null)
+            m.AppendLine($"🏅 Melhor dia: {melhor.Data:dd/MM} ({melhor.Faturamento:C0}) · mais fraco: {pior.Data:dd/MM} ({pior.Faturamento:C0})");
+        m.AppendLine("🏆 Campeões: " + string.Join(", ", produtos.Produtos.Take(3).Select(p => $"{p.Nome} ({p.Faturamento:C0})")));
+
+        var (_, prompt) = await insights.MontarAsync(periodo,
+            "FOCO: é o fechamento da semana. Comente a semana em 1 item e use os outros para planejar a PRÓXIMA semana " +
+            "(compras, estoque, equipe por dia) com base na previsão do tempo.", ct);
+
+        return new { periodo, mensagem = m.ToString().TrimEnd(), prompt };
     }
 
     private static string Qtd(decimal valor, string unidade) =>
