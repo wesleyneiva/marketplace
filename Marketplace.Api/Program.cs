@@ -1,6 +1,8 @@
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 
 // Números e dinheiro nas mensagens no formato brasileiro (R$ 1.234,56).
@@ -13,7 +15,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 
 // Banco de dados: PostgreSQL via Entity Framework Core.
-// A string de conexão (com a senha) NÃO fica no código: vem do "user-secrets" em desenvolvimento.
+// A string de conexão (com a senha) NÃO fica no código: vem do "user-secrets" em desenvolvimento
+// e, no serviço (produção), da variável ConnectionStrings__Marketplace em /etc/marketplace/marketplace.env.
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Marketplace")));
 
@@ -54,10 +57,25 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
+// Chaves que "assinam" o cookie de login. Ficam numa pasta fixa: assim, reiniciar a API
+// (ou a VM) NÃO desloga ninguém, e o modo desenvolvimento e o serviço usam as mesmas chaves.
+var pastaChaves = builder.Configuration["DataProtection:Pasta"]
+    ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".local/share/marketplace/chaves");
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(pastaChaves))
+    .SetApplicationName("Marketplace");
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// No serviço, a API aplica sozinha as migrations pendentes ao ligar (o "dotnet ef database update").
+if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+}
 
 await SeedInicial.ExecutarAsync(app.Services);
 await SeedCatalogo.ExecutarAsync(app.Services);
@@ -69,9 +87,30 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// ----- Telas do Angular (já compiladas) servidas pela própria API, na pasta wwwroot -----
+// Arquivos com "hash" no nome (main-ABC123.js) podem ficar 1 ano no cache do navegador;
+// o index.html nunca fica em cache, para cada publicação nova aparecer na hora.
+var arquivosEstaticos = new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var nome = ctx.File.Name;
+        ctx.Context.Response.Headers.CacheControl = nome == "index.html"
+            ? "no-cache"
+            : "public, max-age=31536000, immutable";
+    },
+};
+app.UseDefaultFiles();
+app.UseStaticFiles(arquivosEstaticos);
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Endereço que não existe: em /api → 404 de verdade; fora de /api → index.html
+// (quem cuida das rotas /dashboard, /pdv... é o Angular, no navegador).
+app.MapFallback("/api/{**resto}", () => Results.NotFound());
+app.MapFallbackToFile("index.html", arquivosEstaticos);
 
 app.Run();
