@@ -18,6 +18,9 @@ public class Venda
     public decimal ValorPago { get; set; } // soma dos pagamentos
     public decimal Troco { get; set; }     // valor pago − total (só existe com dinheiro)
 
+    // De onde veio a venda: PDV (pessoa), simulador ao vivo ou histórico gerado (este SEM movimentar estoque).
+    public OrigemVenda Origem { get; set; } = OrigemVenda.Caixa;
+
     public StatusVenda Status { get; set; } = StatusVenda.Concluida;
     public DateTimeOffset? CanceladaEm { get; set; }
     public string? CanceladaPorId { get; set; }
@@ -29,6 +32,8 @@ public class Venda
 }
 
 public enum StatusVenda { Concluida, Cancelada }
+
+public enum OrigemVenda { Caixa, Simulador, Historico }
 
 // Item do cupom. Nome, preço e custo são COPIADOS do produto na hora da venda:
 // se o preço mudar amanhã, o cupom de hoje continua mostrando o que o cliente pagou.

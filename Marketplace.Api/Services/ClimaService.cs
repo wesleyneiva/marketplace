@@ -68,6 +68,57 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
         await db.SaveChangesAsync(ct);
     }
 
+    // Clima HORA A HORA dos últimos N dias. Junta duas fontes da Open-Meteo:
+    //  • archive-api: o histórico "oficial" (completo, mas com alguns dias de atraso);
+    //  • forecast com past_days: cobre os últimos dias que o arquivo ainda não tem.
+    // Grava na tabela Clima as horas que faltam e devolve tudo por hora (UTC).
+    public async Task<Dictionary<DateTimeOffset, ClimaAgora>> ObterHistoricoAsync(int dias, CancellationToken ct = default)
+    {
+        const string local = "latitude=-30.03&longitude=-51.23&hourly=temperature_2m,precipitation,weather_code&timezone=America%2FSao_Paulo";
+        var hoje = Relogio.HojeBrasilia;
+        var inicio = hoje.AddDays(-Math.Clamp(dias, 1, 90));
+
+        var porHora = await LerHorasAsync(
+            $"https://archive-api.open-meteo.com/v1/archive?{local}&start_date={inicio:yyyy-MM-dd}&end_date={hoje.AddDays(-1):yyyy-MM-dd}", ct);
+        foreach (var (hora, c) in await LerHorasAsync($"https://api.open-meteo.com/v1/forecast?{local}&past_days=14&forecast_days=1", ct))
+            porHora.TryAdd(hora, c); // só preenche as horas que o arquivo ainda não tem
+
+        using var scope = escopos.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var primeira = porHora.Keys.Min();
+        var existentes = (await db.Clima.Where(c => c.DataHora >= primeira).Select(c => c.DataHora).ToListAsync(ct)).ToHashSet();
+        foreach (var (hora, c) in porHora.Where(x => x.Key <= DateTimeOffset.UtcNow && !existentes.Contains(x.Key)))
+            db.Clima.Add(new ClimaRegistro { DataHora = hora, Temperatura = c.Temperatura, Chuva = c.Chuva, CodigoTempo = c.Codigo });
+        await db.SaveChangesAsync(ct);
+        return porHora;
+    }
+
+    private async Task<Dictionary<DateTimeOffset, ClimaAgora>> LerHorasAsync(string url, CancellationToken ct)
+    {
+        using var resposta = await http.CreateClient().GetAsync(url, ct);
+        resposta.EnsureSuccessStatusCode();
+        using var json = await JsonDocument.ParseAsync(await resposta.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
+        var h = json.RootElement.GetProperty("hourly");
+        var horas = h.GetProperty("time").EnumerateArray().ToList();
+        var temps = h.GetProperty("temperature_2m").EnumerateArray().ToList();
+        var chuvas = h.GetProperty("precipitation").EnumerateArray().ToList();
+        var codigos = h.GetProperty("weather_code").EnumerateArray().ToList();
+        var fuso = TimeSpan.FromSeconds(json.RootElement.GetProperty("utc_offset_seconds").GetInt32());
+
+        var porHora = new Dictionary<DateTimeOffset, ClimaAgora>();
+        for (var i = 0; i < horas.Count; i++)
+        {
+            if (temps[i].ValueKind == JsonValueKind.Null) continue; // hora sem dado (futuro ou ainda não arquivada)
+            var horaLocal = DateTime.Parse(horas[i].GetString()!, System.Globalization.CultureInfo.InvariantCulture);
+            var codigo = codigos[i].ValueKind == JsonValueKind.Null ? 1 : codigos[i].GetInt32();
+            porHora[new DateTimeOffset(horaLocal, fuso).ToUniversalTime()] = new ClimaAgora(
+                Math.Round(temps[i].GetDecimal(), 1),
+                chuvas[i].ValueKind == JsonValueKind.Null ? 0 : Math.Round(chuvas[i].GetDecimal(), 1),
+                codigo, Descrever(codigo), Real: true);
+        }
+        return porHora;
+    }
+
     // Códigos WMO (os mesmos explicados na ferramenta de clima do seu /pergunta).
     private static string Descrever(int codigo) => codigo switch
     {

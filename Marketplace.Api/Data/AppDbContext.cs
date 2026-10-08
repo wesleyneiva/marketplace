@@ -139,6 +139,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Venda>(e =>
         {
             e.Property(v => v.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(v => v.Origem).HasConversion<string>().HasMaxLength(10).HasDefaultValue(OrigemVenda.Caixa);
+            e.HasIndex(v => new { v.Origem, v.DataHora });
             e.Property(v => v.Subtotal).HasPrecision(12, 2);
             e.Property(v => v.Desconto).HasPrecision(12, 2);
             e.Property(v => v.Total).HasPrecision(12, 2);

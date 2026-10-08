@@ -15,7 +15,7 @@ public record SimuladorStatus(
 [ApiController]
 [Route("api/simulador")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class SimuladorController(SimuladorEstado estado, SimuladorClientes simulador, ClimaService clima, AppDbContext db)
+public class SimuladorController(SimuladorEstado estado, SimuladorClientes simulador, ClimaService clima, AppDbContext db, GeradorHistorico gerador)
     : ControllerBase
 {
     // GET /api/simulador → situação + vendas simuladas de hoje
@@ -50,4 +50,24 @@ public class SimuladorController(SimuladorEstado estado, SimuladorClientes simul
         var vendidos = await simulador.AtenderAgoraAsync(Math.Clamp(quantidade, 1, 50), HttpContext.RequestAborted);
         return new { clientes = quantidade, vendasFeitas = vendidos };
     }
+
+    // POST /api/simulador/historico?dias=60&substituir=false → gera o passado (vendas sem mexer no estoque)
+    [HttpPost("historico")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<IActionResult> GerarHistorico(int dias = 60, bool substituir = false)
+    {
+        try
+        {
+            return Ok(await gerador.GerarAsync(dias, substituir, HttpContext.RequestAborted));
+        }
+        catch (InvalidOperationException e)
+        {
+            return Conflict(new { mensagem = e.Message });
+        }
+    }
+
+    // DELETE /api/simulador/historico → apaga só o histórico gerado
+    [HttpDelete("historico")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<object> ApagarHistorico() => new { vendasApagadas = await gerador.ApagarAsync(HttpContext.RequestAborted) };
 }

@@ -12,13 +12,14 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
     // Até quanto de desconto o perfil Caixa pode dar sozinho (acima disso, só Gerente/Administrador).
     public const decimal DescontoMaximoCaixa = 0.10m;
 
-    public Task<Venda> FinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido) =>
-        ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido));
+    public Task<Venda> FinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido,
+        OrigemVenda origem = OrigemVenda.Caixa) =>
+        ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido, origem));
 
     public Task<Venda> CancelarAsync(int vendaId, string usuarioId, string motivo) =>
         ComRepeticaoAsync(() => TentarCancelarAsync(vendaId, usuarioId, motivo));
 
-    private async Task<Venda> TentarFinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido)
+    private async Task<Venda> TentarFinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido, OrigemVenda origem)
     {
         var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId)
             ?? throw new EstoqueException("Abra o caixa antes de vender.");
@@ -39,7 +40,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             .FromSql($"SELECT *, xmin FROM \"Produtos\" WHERE \"Id\" = ANY({ids}) ORDER BY \"Id\" FOR UPDATE")
             .ToDictionaryAsync(p => p.Id);
 
-        var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId };
+        var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId, Origem = origem };
 
         foreach (var item in itensAgrupados)
         {
@@ -107,6 +108,8 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             ?? throw new EstoqueException("Venda não encontrada.");
         if (venda.Status == StatusVenda.Cancelada)
             throw new EstoqueException("Esta venda já foi cancelada.");
+        if (venda.Origem == OrigemVenda.Historico)
+            throw new EstoqueException("Venda do histórico gerado: não pode ser cancelada (não movimentou estoque).");
         if (venda.SessaoCaixa!.Status != StatusSessao.Aberta)
             throw new EstoqueException("Só é possível cancelar vendas de um caixa ainda aberto.");
 

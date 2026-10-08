@@ -31,6 +31,7 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<Marketplace.Api.Services.ClimaService>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
+builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistorico>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.Simulador.SimuladorClientes>());
 
 // Login e perfis: ASP.NET Core Identity, guardando usuários no nosso banco.

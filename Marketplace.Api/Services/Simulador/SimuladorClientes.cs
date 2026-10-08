@@ -29,13 +29,6 @@ public class SimuladorClientes(
     IServiceScopeFactory escopos, SimuladorEstado estado, ClimaService clima, ILogger<SimuladorClientes> log)
     : BackgroundService
 {
-    // Clientes por hora num dia comum (pico no almoço e na saída do trabalho).
-    private static readonly Dictionary<int, double> ClientesPorHora = new()
-    {
-        [7] = 4, [8] = 7, [9] = 6, [10] = 6, [11] = 9, [12] = 11, [13] = 8,
-        [14] = 5, [15] = 5, [16] = 6, [17] = 10, [18] = 14, [19] = 12, [20] = 7,
-    };
-
     protected override async Task ExecuteAsync(CancellationToken parar)
     {
         log.LogInformation("Simulador de clientes iniciado (ativo: {Ativo}, intensidade: {Intensidade}).",
@@ -64,7 +57,7 @@ public class SimuladorClientes(
     {
         var agora = Relogio.AgoraBrasilia;
         estado.UltimaRodada = agora;
-        var (abre, fecha) = Horario(agora);
+        var (abre, fecha) = ComportamentoCliente.Horario(DateOnly.FromDateTime(agora.DateTime));
         var aberto = agora.Hour >= abre && agora.Hour < fecha;
         var usuarioId = await UsuarioIdAsync();
 
@@ -87,7 +80,8 @@ public class SimuladorClientes(
         }
 
         var tempo = await clima.ObterAsync(ct);
-        var clientes = Poisson(ClientesNesteMinuto(agora, tempo));
+        var porMinuto = ComportamentoCliente.ClientesNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour, tempo, estado.Intensidade) / 60;
+        var clientes = ComportamentoCliente.Poisson(porMinuto);
         for (var i = 0; i < clientes; i++)
             await AtenderClienteAsync(usuarioId, tempo, agora, ct);
     }
@@ -107,24 +101,6 @@ public class SimuladorClientes(
         for (var i = 0; i < quantidade; i++)
             if (await AtenderClienteAsync(usuarioId, tempo, Relogio.AgoraBrasilia, ct)) vendidos++;
         return vendidos;
-    }
-
-    private static (int Abre, int Fecha) Horario(DateTimeOffset agora) =>
-        agora.DayOfWeek == DayOfWeek.Sunday ? (8, 13) : (7, 21);
-
-    private double ClientesNesteMinuto(DateTimeOffset agora, ClimaAgora tempo)
-    {
-        var porHora = ClientesPorHora.GetValueOrDefault(agora.Hour, 3);
-        porHora *= agora.DayOfWeek switch
-        {
-            DayOfWeek.Saturday => 1.35,
-            DayOfWeek.Friday => 1.15,
-            DayOfWeek.Sunday => 0.9,
-            _ => 1.0,
-        };
-        porHora *= agora.Day <= 10 ? 1.15 : agora.Day >= 25 ? 0.9 : 1.0; // salário no começo do mês
-        if (tempo.Chovendo) porHora *= 0.75;                               // chuva: menos gente na rua
-        return porHora * estado.Intensidade / 60.0;
     }
 
     // ------------------------------------------------------------------ um cliente
@@ -150,21 +126,13 @@ public class SimuladorClientes(
             .ToList();
         if (opcoes.Count == 0) return false;
 
-        var itens = new List<ItemVendaRequest>();
-        var total = 0m;
-        foreach (var (produto, habito, disponivel) in SortearCesta(opcoes, tempo, agora))
-        {
-            var quantidade = Math.Min(Quantidade(produto, habito), disponivel);
-            if (produto.Unidade is not (Unidades.Quilo or Unidades.Litro)) quantidade = Math.Floor(quantidade);
-            if (quantidade <= 0) continue;
-            itens.Add(new ItemVendaRequest(produto.Id, quantidade));
-            total += Math.Round(quantidade * produto.PrecoVenda, 2, MidpointRounding.AwayFromZero);
-        }
+        var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, agora);
+        var total = itens.Sum(i => Math.Round(i.Quantidade * opcoes.First(o => o.Produto.Id == i.ProdutoId).Produto.PrecoVenda, 2, MidpointRounding.AwayFromZero));
         if (itens.Count == 0) return false;
 
         try
         {
-            await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, new NovaVendaRequest(itens, 0, [Pagamento(total)]));
+            await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, new NovaVendaRequest(itens, 0, [ComportamentoCliente.Pagamento(total)]), OrigemVenda.Simulador);
             return true;
         }
         catch (EstoqueException e)
@@ -173,59 +141,6 @@ public class SimuladorClientes(
             log.LogDebug("Cliente simulado não conseguiu comprar: {Motivo}", e.Message);
             return false;
         }
-    }
-
-    // Tamanho da cesta: muita gente leva 1 ou 2 coisas; alguns fazem "rancho".
-    private static readonly int[] TamanhosDeCesta = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 6, 7, 8, 10];
-
-    private static IEnumerable<(Produto, Habito, decimal)> SortearCesta(
-        List<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes, ClimaAgora tempo, DateTimeOffset agora)
-    {
-        var tamanho = Math.Min(TamanhosDeCesta[Random.Shared.Next(TamanhosDeCesta.Length)], opcoes.Count);
-        var pesos = opcoes.Select(o => o.Habito.Popularidade * PerfilConsumo.Multiplicador(o.Habito, tempo, agora)).ToList();
-        var restantes = Enumerable.Range(0, opcoes.Count).ToList();
-
-        // Sorteio "com peso" e sem repetir: o pão francês sai muito mais que o shampoo.
-        for (var n = 0; n < tamanho; n++)
-        {
-            var soma = restantes.Sum(i => pesos[i]);
-            var alvo = Random.Shared.NextDouble() * soma;
-            foreach (var i in restantes)
-            {
-                alvo -= pesos[i];
-                if (alvo > 0) continue;
-                yield return opcoes[i];
-                restantes.Remove(i);
-                break;
-            }
-        }
-    }
-
-    private static decimal Quantidade(Produto produto, Habito habito)
-    {
-        if (produto.Unidade is Unidades.Quilo or Unidades.Litro)
-        {
-            var (min, max) = habito.PesoMax > 0 ? (habito.PesoMin, habito.PesoMax) : (0.3m, 1.5m);
-            // Peso de balança: 3 casas (gramas).
-            return Math.Round(min + (decimal)Random.Shared.NextDouble() * (max - min), 3);
-        }
-        if (habito.Pacotes is { Length: > 0 } pacotes)
-            return pacotes[Random.Shared.Next(pacotes.Length)];
-        return Random.Shared.NextDouble() < 0.85 ? 1 : 2;
-    }
-
-    // Pix 40% · Débito 30% · Crédito 15% · Dinheiro 15% (às vezes com nota "redonda" e troco).
-    private static PagamentoRequest Pagamento(decimal total)
-    {
-        var sorteio = Random.Shared.NextDouble();
-        if (sorteio < 0.40) return new("Pix", total);
-        if (sorteio < 0.70) return new("Debito", total);
-        if (sorteio < 0.85) return new("Credito", total);
-
-        decimal[] notas = [2, 5, 10, 20, 50, 100, 200];
-        var nota = notas.FirstOrDefault(n => n >= total);
-        var paga = nota > 0 && Random.Shared.NextDouble() < 0.7 ? nota : total; // 30% pagam o valor exato
-        return new("Dinheiro", paga);
     }
 
     // ------------------------------------------------------------------ abertura e fechamento
@@ -308,20 +223,5 @@ public class SimuladorClientes(
         _usuarioId = (await usuarios.FindByEmailAsync(SimuladorEstado.Email))?.Id
             ?? throw new InvalidOperationException("Usuário do simulador não existe (SeedSimulador).");
         return _usuarioId;
-    }
-
-    // Quantos clientes chegam num minuto, se a média é "lambda" (distribuição de Poisson).
-    // Ex.: média 0,2 por minuto → na maioria dos minutos ninguém; às vezes 1; raramente 2.
-    private static int Poisson(double lambda)
-    {
-        var limite = Math.Exp(-lambda);
-        var k = 0;
-        var p = 1.0;
-        do
-        {
-            k++;
-            p *= Random.Shared.NextDouble();
-        } while (p > limite);
-        return k - 1;
     }
 }
