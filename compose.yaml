@@ -1,0 +1,26 @@
+# Banco de dados do Marketplace (PostgreSQL 18).
+# Rede do host + listen_addresses=127.0.0.1: o banco só aceita conexões de dentro da VM
+# (API, n8n). Nem o Tailscale nem a internet alcançam a porta 5432.
+# A senha fica no arquivo .env (fora do Git). Modelo: .env.example
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: marketplace-db
+    restart: unless-stopped
+    network_mode: host
+    command: ["postgres", "-c", "listen_addresses=127.0.0.1", "-c", "port=5432"]
+    environment:
+      POSTGRES_DB: marketplace
+      POSTGRES_USER: marketplace
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no arquivo .env}
+      TZ: America/Sao_Paulo
+    volumes:
+      - marketplace_pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U marketplace -d marketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  marketplace_pgdata:
