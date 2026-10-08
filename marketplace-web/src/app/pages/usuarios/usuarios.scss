@@ -86,3 +86,8 @@ fieldset {
   span { color: var(--cor-texto-suave); }
   .senha { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 17px; letter-spacing: 0.04em; }
 }
+
+// ---------- Compartilhado com Fornecedores e Compras ----------
+.botoes-topo { display: flex; gap: 8px; flex-wrap: wrap; }
+.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; } }

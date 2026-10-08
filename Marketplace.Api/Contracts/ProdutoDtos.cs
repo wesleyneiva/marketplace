@@ -29,7 +29,10 @@ public record ProdutoRequest(
     decimal EstoqueMinimo,
 
     // O estoque NÃO vem no cadastro: começa em zero e só muda por movimentação (entrada, perda...).
-    bool ControlaValidade);
+    bool ControlaValidade,
+
+    // Fornecedor principal (opcional): de quem a sugestão de compra pede este produto.
+    int? FornecedorId = null);
 
 // O que a API devolve: já com o nome da categoria e a margem calculada.
 public record ProdutoResponse(
@@ -46,7 +49,9 @@ public record ProdutoResponse(
     decimal EstoqueMinimo,
     bool EstoqueBaixo,
     bool ControlaValidade,
-    bool Ativo);
+    bool Ativo,
+    int? FornecedorId,
+    string? Fornecedor);
 
 // Resultado paginado: uma "página" de itens + o total (para a tela montar a paginação).
 public record Pagina<T>(IReadOnlyList<T> Itens, int Total, int PaginaAtual, int TamanhoPagina);

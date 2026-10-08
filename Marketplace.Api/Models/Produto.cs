@@ -13,6 +13,10 @@ public class Produto
     public int CategoriaId { get; set; }
     public Categoria? Categoria { get; set; }
 
+    // Fornecedor principal (de quem a sugestão de compra pede).
+    public int? FornecedorId { get; set; }
+    public Fornecedor? Fornecedor { get; set; }
+
     // UN (unidade), KG, L, PCT, CX, DZ
     public string Unidade { get; set; } = Unidades.Unidade;
 

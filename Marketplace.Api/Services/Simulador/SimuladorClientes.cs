@@ -144,8 +144,11 @@ public class SimuladorClientes(
 
     // ------------------------------------------------------------------ abertura e fechamento
 
-    // Na abertura (8h): o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível,
-    // para os alertas) e o fornecedor entrega o que está abaixo do mínimo.
+    // Na abertura (8h), a rotina do "gerente automático":
+    //  1. recebe os pedidos AUTOMÁTICOS que chegaram hoje (confere tudo e informa a validade dos perecíveis);
+    //  2. o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível, para os alertas);
+    //  3. faz os pedidos novos pela SUGESTÃO DE COMPRA e envia aos fornecedores (chegam em 1 a 4 dias).
+    // Nada de estoque "mágico": se o pedido demora, o produto pode faltar — como num mercado de verdade.
     private async Task RotinaDaManhaAsync(string usuarioId, CancellationToken ct)
     {
         var hoje = Relogio.HojeBrasilia;
@@ -154,7 +157,20 @@ public class SimuladorClientes(
         using var scope = escopos.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var estoque = scope.ServiceProvider.GetRequiredService<EstoqueService>();
+        var compras = scope.ServiceProvider.GetRequiredService<ComprasService>();
 
+        // 1. Entregas do dia
+        var chegaram = await db.PedidosCompra.AsNoTracking().Include(p => p.Itens).ThenInclude(i => i.Produto).ThenInclude(p => p!.Categoria)
+            .Where(p => p.Automatico && p.Status == StatusPedido.Enviado && p.PrevisaoEntrega <= hoje) // os pedidos feitos por PESSOAS, quem confere são elas
+            .ToListAsync(ct);
+        foreach (var pedido in chegaram)
+        {
+            var conferencia = pedido.Itens.Select(i => new ItemRecebimento(i.Id, i.Quantidade,
+                i.Produto!.ControlaValidade ? hoje.AddDays(DiasDeValidade(i.Produto)) : null, null)).ToList();
+            await compras.ReceberAsync(pedido.Id, conferencia, usuarioId);
+        }
+
+        // 2. Vencidos para fora
         var vencidos = await db.Lotes.AsNoTracking()
             .Where(l => l.QuantidadeAtual > 0 && l.DataValidade < hoje.AddDays(-1) && l.Produto!.Ativo)
             .ToListAsync(ct);
@@ -162,24 +178,19 @@ public class SimuladorClientes(
             await estoque.RegistrarPerdaAsync(lote.ProdutoId, lote.QuantidadeAtual, "Vencido", lote.Id,
                 "Retirado da prateleira pelo repositor (simulador)", usuarioId);
 
-        var produtos = await db.Produtos.AsNoTracking().Include(p => p.Categoria).Where(p => p.Ativo).ToListAsync(ct);
-        var repostos = 0;
-        foreach (var p in produtos.Where(p => p.EstoqueAtual <= p.EstoqueMinimo * 1.5m))
+        // 3. Pedidos novos, pela sugestão
+        var novos = 0;
+        foreach (var sugestao in await compras.SugestaoAsync(ct))
         {
-            var fracionado = p.Unidade is Unidades.Quilo or Unidades.Litro;
-            var quantidade = Math.Max(p.EstoqueMinimo * 3, fracionado ? 5 : 6) - p.EstoqueAtual;
-            quantidade = fracionado ? Math.Ceiling(quantidade * 2) / 2 : Math.Ceiling(quantidade);
-            if (quantidade <= 0) continue;
-
-            DateOnly? validade = p.ControlaValidade ? hoje.AddDays(DiasDeValidade(p)) : null;
-            await estoque.RegistrarEntradaAsync(p.Id, quantidade, null, validade,
-                "Pedido automático do fornecedor (simulador)", usuarioId);
-            repostos++;
+            var itens = sugestao.Itens.Select(i => new ItemPedidoRequest(i.ProdutoId, i.Sugerido, null)).ToList();
+            await compras.CriarAsync(new NovoPedidoRequest(sugestao.FornecedorId, itens, "Pedido automático (simulador)", Enviar: true),
+                usuarioId, automatico: true);
+            novos++;
         }
 
         estado.UltimaRotinaDaManha = hoje;
-        log.LogInformation("Rotina da manhã: {Vencidos} lote(s) vencido(s) retirado(s), {Repostos} produto(s) reposto(s).",
-            vencidos.Count, repostos);
+        log.LogInformation("Rotina da manhã: {Recebidos} pedido(s) recebido(s), {Vencidos} lote(s) vencido(s) retirado(s), {Novos} pedido(s) novo(s).",
+            chegaram.Count, vencidos.Count, novos);
     }
 
     private static int DiasDeValidade(Produto p)

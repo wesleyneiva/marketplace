@@ -24,6 +24,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ItemVenda> ItensVenda => Set<ItemVenda>();
     public DbSet<PagamentoVenda> PagamentosVenda => Set<PagamentoVenda>();
     public DbSet<ClimaRegistro> Clima => Set<ClimaRegistro>();
+    public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
+    public DbSet<PedidoCompra> PedidosCompra => Set<PedidoCompra>();
+    public DbSet<ItemPedidoCompra> ItensPedidoCompra => Set<ItemPedidoCompra>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -105,6 +108,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(c => c.Temperatura).HasPrecision(4, 1);
             e.Property(c => c.Chuva).HasPrecision(5, 1);
             e.HasIndex(c => c.DataHora).IsUnique(); // uma linha por hora
+        });
+
+        // ----- Compras -----
+        builder.Entity<Fornecedor>(e =>
+        {
+            e.Property(f => f.Nome).HasMaxLength(120).UseCollation(OrdemPortugues);
+            e.HasIndex(f => f.Nome).IsUnique();
+            e.Property(f => f.Cnpj).HasMaxLength(18);
+            e.Property(f => f.Contato).HasMaxLength(100);
+            e.Property(f => f.Telefone).HasMaxLength(30);
+            e.Property(f => f.Email).HasMaxLength(150);
+            e.Property(f => f.Observacao).HasMaxLength(300);
+        });
+
+        builder.Entity<Produto>()
+            .HasOne(p => p.Fornecedor).WithMany(f => f.Produtos).HasForeignKey(p => p.FornecedorId).OnDelete(DeleteBehavior.SetNull);
+
+        builder.Entity<PedidoCompra>(e =>
+        {
+            e.Property(p => p.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(p => p.Observacao).HasMaxLength(300);
+            e.HasIndex(p => new { p.Status, p.PrevisaoEntrega });
+            e.HasOne(p => p.Fornecedor).WithMany().HasForeignKey(p => p.FornecedorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.CriadoPor).WithMany().HasForeignKey(p => p.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(p => p.RecebidoPor).WithMany().HasForeignKey(p => p.RecebidoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ItemPedidoCompra>(e =>
+        {
+            e.Property(i => i.Quantidade).HasPrecision(12, 3);
+            e.Property(i => i.QuantidadeRecebida).HasPrecision(12, 3);
+            e.Property(i => i.CustoUnitario).HasPrecision(10, 2);
+            e.HasOne(i => i.PedidoCompra).WithMany(p => p.Itens).HasForeignKey(i => i.PedidoCompraId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.Produto).WithMany().HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- PDV -----

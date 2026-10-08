@@ -24,6 +24,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
+builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 
 // Simulador de clientes (trabalhador em segundo plano) + clima real de Porto Alegre.
 // Só simula se "Simulador:Ativo" = true (ligado no serviço de produção, desligado no desenvolvimento).
@@ -95,6 +96,7 @@ await SeedInicial.ExecutarAsync(app.Services);
 await SeedCatalogo.ExecutarAsync(app.Services);
 await SeedEstoque.ExecutarAsync(app.Services);
 await SeedSimulador.ExecutarAsync(app.Services);
+await SeedFornecedores.ExecutarAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

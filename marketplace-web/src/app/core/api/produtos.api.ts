@@ -18,6 +18,8 @@ export interface Produto {
   estoqueBaixo: boolean;
   controlaValidade: boolean;
   ativo: boolean;
+  fornecedorId: number | null;
+  fornecedor: string | null;
 }
 
 export interface ProdutoRequest {
@@ -29,6 +31,7 @@ export interface ProdutoRequest {
   precoVenda: number;
   estoqueMinimo: number;
   controlaValidade: boolean;
+  fornecedorId: number | null;
 }
 
 export interface Categoria {

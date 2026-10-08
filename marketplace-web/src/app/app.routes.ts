@@ -45,6 +45,16 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/relatorios/relatorios').then((m) => m.Relatorios),
       },
       {
+        path: 'fornecedores',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/fornecedores/fornecedores').then((m) => m.Fornecedores),
+      },
+      {
+        path: 'compras',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/compras/compras').then((m) => m.Compras),
+      },
+      {
         path: 'usuarios',
         canActivate: [precisaPerfil('Administrador')],
         loadComponent: () => import('./pages/usuarios/usuarios').then((m) => m.Usuarios),

@@ -1,0 +1,68 @@
+@use '../usuarios/usuarios.scss';
+
+.abas {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--cor-borda);
+  margin-bottom: 14px;
+
+  button {
+    border: 0; background: transparent; padding: 10px 14px; font-weight: 600;
+    color: var(--cor-texto-suave); border-bottom: 3px solid transparent; cursor: pointer;
+    &.ativa { color: var(--cor-primaria-escura); border-bottom-color: var(--cor-primaria); }
+  }
+}
+
+.explica { margin: 0 0 14px; color: var(--cor-texto-suave); font-size: 14px; }
+
+.fornecedor {
+  margin-bottom: 16px;
+
+  > header {
+    display: flex; justify-content: space-between; align-items: center; gap: 12px;
+    padding: 14px 16px; border-bottom: 1px solid var(--cor-borda);
+    h2 { margin: 0; font-size: 16px; }
+  }
+
+  > footer {
+    display: flex; justify-content: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid var(--cor-borda);
+  }
+}
+
+.total-pedido {
+  display: flex; flex-direction: column; align-items: flex-end;
+  span { font-size: 12px; color: var(--cor-texto-suave); }
+  strong { font-size: 18px; }
+}
+
+.qtd { width: 84px; text-align: right; padding: 5px 8px; }
+
+.urgente { color: #b45309 !important; font-weight: 600; }
+
+tr.desmarcado td { opacity: 0.45; }
+
+.vazio-grande { padding: 28px; text-align: center; color: var(--cor-texto-suave); }
+
+.filtros { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+.pos { color: var(--cor-texto-suave); width: 40px; }
+
+.forte { font-weight: 600; }
+
+.linha-pedido { cursor: pointer; &:hover td { background: #fafcfb; } }
+
+.status {
+  display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; margin-right: 4px;
+  &.s-Rascunho { background: #f3f4f6; color: #4b5563; }
+  &.s-Enviado { background: #dbeafe; color: #1e40af; }
+  &.s-Recebido { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+  &.s-Cancelado { background: var(--cor-erro-fundo); color: var(--cor-erro); }
+}
+
+.detalhe > td { background: var(--cor-fundo); }
+
+.itens { font-size: 13px; th { background: transparent; } }
+
+.janela.larga { width: min(760px, calc(100vw - 32px)); }
+
+input.falta { border-color: #b45309; }

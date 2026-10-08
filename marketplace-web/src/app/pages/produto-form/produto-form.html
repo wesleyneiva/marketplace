@@ -36,6 +36,17 @@
     </div>
 
     <div class="campo">
+      <label for="fornecedorId">Fornecedor</label>
+      <select id="fornecedorId" formControlName="fornecedorId">
+        <option [ngValue]="null">— sem fornecedor —</option>
+        @for (f of fornecedores.value() ?? []; track f.id) {
+          <option [ngValue]="f.id">{{ f.nome }} ({{ f.prazoEntregaDias }}d)</option>
+        }
+      </select>
+      <small class="dica">De quem a sugestão de compra pede.</small>
+    </div>
+
+    <div class="campo">
       <label for="unidade">Unidade de venda *</label>
       <select id="unidade" formControlName="unidade">
         @for (u of unidades; track u.sigla) {

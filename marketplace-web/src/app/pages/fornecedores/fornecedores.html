@@ -1,0 +1,56 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>🚚 Fornecedores</h1>
+    <p>De quem o mercado compra. O prazo de entrega entra no cálculo da sugestão de compra.</p>
+  </div>
+  <div class="botoes-topo">
+    <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="incluirInativos.set(!incluirInativos())">Mostrar inativos</button>
+    <a class="botao" routerLink="/compras">🛍️ Compras</a>
+    <button type="button" class="botao primario" (click)="abrir()">+ Novo fornecedor</button>
+  </div>
+</header>
+
+<section class="painel rolagem">
+  <table>
+    <thead><tr><th>Fornecedor</th><th>Contato</th><th class="num">Entrega</th><th class="num">Produtos</th><th class="num">Pedidos abertos</th><th></th></tr></thead>
+    <tbody>
+      @for (f of fornecedores.value() ?? []; track f.id) {
+        <tr [class.inativo]="!f.ativo">
+          <td><span class="nome">{{ f.nome }}</span><small>{{ f.cnpj ?? 'sem CNPJ' }}</small></td>
+          <td>{{ f.contato ?? '—' }}<small>{{ f.telefone ?? '' }} {{ f.email ?? '' }}</small></td>
+          <td class="num">{{ f.prazoEntregaDias }} {{ f.prazoEntregaDias === 1 ? 'dia' : 'dias' }}</td>
+          <td class="num">{{ f.produtos }}</td>
+          <td class="num">{{ f.pedidosAbertos || '—' }}</td>
+          <td class="acoes">
+            <button type="button" class="botao pequeno" (click)="abrir(f)">Editar</button>
+            <button type="button" class="botao pequeno" [class.perigo]="f.ativo" (click)="alternar(f)">{{ f.ativo ? 'Desativar' : 'Reativar' }}</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<dialog #dlg class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ editando() ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2><button type="button" class="fechar" (click)="dlg.close()">✕</button></header>
+    <div class="corpo">
+      <label>Nome *<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="120" autofocus /></label>
+      <div class="dupla">
+        <label>CNPJ<input name="cnpj" [(ngModel)]="form.cnpj" maxlength="18" placeholder="Opcional" /></label>
+        <label>Prazo de entrega (dias) *<input name="prazo" type="number" min="1" max="30" [(ngModel)]="form.prazoEntregaDias" required /></label>
+      </div>
+      <div class="dupla">
+        <label>Contato<input name="contato" [(ngModel)]="form.contato" maxlength="100" /></label>
+        <label>Telefone<input name="telefone" [(ngModel)]="form.telefone" maxlength="30" /></label>
+      </div>
+      <label>E-mail<input name="email" type="email" [(ngModel)]="form.email" maxlength="150" /></label>
+      <label>Observação<input name="obs" [(ngModel)]="form.observacao" maxlength="300" /></label>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlg.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+    </footer>
+  </form>
+</dialog>

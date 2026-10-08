@@ -28,6 +28,7 @@ export class ProdutoForm {
 
   protected readonly unidades = UNIDADES;
   protected readonly categorias = httpResource<Categoria[]>(() => '/api/categorias');
+  protected readonly fornecedores = httpResource<{ id: number; nome: string; prazoEntregaDias: number }[]>(() => '/api/fornecedores');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
     nome: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(150)]],
@@ -38,6 +39,7 @@ export class ProdutoForm {
     precoVenda: [0, [Validators.required, Validators.min(0.01)]],
     estoqueMinimo: [0, [Validators.required, Validators.min(0)]],
     controlaValidade: [false],
+    fornecedorId: [null as number | null],
   });
 
   protected readonly produto = signal<Produto | null>(null);
@@ -93,6 +95,7 @@ export class ProdutoForm {
         precoVenda: p.precoVenda,
         estoqueMinimo: p.estoqueMinimo,
         controlaValidade: p.controlaValidade,
+        fornecedorId: p.fornecedorId,
       });
     } catch {
       this.erroGeral.set('Produto não encontrado.');

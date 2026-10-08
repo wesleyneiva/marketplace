@@ -147,6 +147,9 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         if (!await db.Categorias.AnyAsync(c => c.Id == request.CategoriaId && c.Ativa))
             ModelState.AddModelError(nameof(request.CategoriaId), "Categoria não encontrada.");
 
+        if (request.FornecedorId is not null && !await db.Fornecedores.AnyAsync(f => f.Id == request.FornecedorId))
+            ModelState.AddModelError(nameof(request.FornecedorId), "Fornecedor não encontrado.");
+
         if (!ModelState.IsValid)
             return ValidationProblem(ModelState);
 
@@ -167,6 +170,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         produto.PrecoVenda = request.PrecoVenda;
         produto.EstoqueMinimo = request.EstoqueMinimo;
         produto.ControlaValidade = request.ControlaValidade;
+        produto.FornecedorId = request.FornecedorId;
     }
 
     private async Task<ProdutoResponse> ObterResposta(int id) =>
@@ -189,5 +193,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             p.EstoqueMinimo,
             p.EstoqueAtual <= p.EstoqueMinimo,
             p.ControlaValidade,
-            p.Ativo);
+            p.Ativo,
+            p.FornecedorId,
+            p.Fornecedor != null ? p.Fornecedor.Nome : null);
 }

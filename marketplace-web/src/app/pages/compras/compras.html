@@ -1,0 +1,158 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>🛍️ Compras</h1>
+    <p>O que comprar, de quem, e a conferência quando a mercadoria chega.</p>
+  </div>
+  <a class="botao" routerLink="/fornecedores">🚚 Fornecedores</a>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+
+<nav class="abas" role="tablist">
+  <button role="tab" [class.ativa]="aba() === 'sugestao'" (click)="aba.set('sugestao')">💡 Sugestão de compra</button>
+  <button role="tab" [class.ativa]="aba() === 'pedidos'" (click)="aba.set('pedidos')">📋 Pedidos</button>
+</nav>
+
+<!-- ======================= SUGESTÃO ======================= -->
+@if (aba() === 'sugestao') {
+  <p class="explica">
+    Para cada produto: quanto vende por dia (média dos últimos 14 dias abertos), quantos dias o estoque aguenta e o que já
+    está a caminho. A sugestão cobre o <b>prazo de entrega + 7 dias</b> de venda. Ajuste as quantidades à vontade.
+  </p>
+
+  @for (s of sugestao.value() ?? []; track s.fornecedorId) {
+    <section class="painel fornecedor">
+      <header>
+        <div>
+          <h2>{{ s.fornecedor }}</h2>
+          <small>entrega em {{ s.prazoEntregaDias }} {{ s.prazoEntregaDias === 1 ? 'dia' : 'dias' }} · {{ s.itens.length }} produtos sugeridos</small>
+        </div>
+        <div class="total-pedido">
+          <span>{{ selecionados(s) }} itens</span>
+          <strong>{{ totalSelecionado(s) | currency: 'BRL' }}</strong>
+        </div>
+      </header>
+      <div class="rolagem">
+        <table>
+          <thead>
+            <tr><th></th><th>Produto</th><th class="num">Estoque</th><th class="num">Vende/dia</th><th class="num">Dura</th><th class="num">A caminho</th><th class="num">Comprar</th><th class="num">Custo</th></tr>
+          </thead>
+          <tbody>
+            @for (i of s.itens; track i.produtoId) {
+              @let e = escolha(i);
+              <tr [class.desmarcado]="!e.marcado">
+                <td><input type="checkbox" [(ngModel)]="e.marcado" [attr.aria-label]="'Comprar ' + i.produto" /></td>
+                <td><span class="nome">{{ i.produto }}</span><small [class.urgente]="(i.diasDeEstoque ?? 99) <= s.prazoEntregaDias">{{ i.motivo }}</small></td>
+                <td class="num">{{ i.estoqueAtual | quantidade: i.unidade }}<small>mín. {{ i.estoqueMinimo | quantidade: i.unidade }}</small></td>
+                <td class="num">{{ i.consumoDiario | number: '1.0-2' }}</td>
+                <td class="num" [class.urgente]="(i.diasDeEstoque ?? 99) <= s.prazoEntregaDias">{{ i.diasDeEstoque === null ? '—' : (i.diasDeEstoque | number: '1.0-1') + ' d' }}</td>
+                <td class="num">{{ i.jaPedido ? (i.jaPedido | quantidade: i.unidade) : '—' }}</td>
+                <td class="num"><input class="qtd" type="number" min="0" [step]="i.unidade === 'KG' || i.unidade === 'L' ? 0.5 : 1" [(ngModel)]="e.quantidade" [disabled]="!e.marcado" /> {{ i.unidade }}</td>
+                <td class="num"><input class="qtd" type="number" min="0" step="0.01" [(ngModel)]="e.custo" [disabled]="!e.marcado" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer>
+        <button type="button" class="botao" (click)="criarPedido(s, false)" [disabled]="ocupado() || !selecionados(s)">Salvar rascunho</button>
+        <button type="button" class="botao primario" (click)="criarPedido(s, true)" [disabled]="ocupado() || !selecionados(s)">📤 Criar e enviar ao fornecedor</button>
+      </footer>
+    </section>
+  } @empty {
+    @if (!sugestao.isLoading()) {
+      <section class="painel vazio-grande">🎉 Nada a comprar agora: o estoque (com o que já está a caminho) aguenta até as próximas entregas.</section>
+    }
+  }
+}
+
+<!-- ======================= PEDIDOS ======================= -->
+@if (aba() === 'pedidos') {
+  <div class="filtros">
+    @for (f of [{ v: 'abertos', t: 'Em aberto' }, { v: 'Recebido', t: 'Recebidos' }, { v: 'Cancelado', t: 'Cancelados' }, { v: 'todos', t: 'Todos' }]; track f.v) {
+      <button type="button" class="botao" [class.ligado]="filtro() === f.v" (click)="filtro.set($any(f.v))">{{ f.t }}</button>
+    }
+  </div>
+
+  <section class="painel rolagem">
+    <table class="pedidos">
+      <thead><tr><th>#</th><th>Fornecedor</th><th>Situação</th><th>Feito em</th><th>Entrega</th><th class="num">Total</th><th></th></tr></thead>
+      <tbody>
+        @for (p of pedidosVisiveis(); track p.id) {
+          <tr class="linha-pedido" (click)="aberto.set(aberto() === p.id ? null : p.id)">
+            <td class="pos">{{ p.id }}</td>
+            <td><span class="nome">{{ p.fornecedor }}</span><small>{{ p.itens.length }} itens · {{ p.automatico ? '🤖 automático' : p.criadoPor }}</small></td>
+            <td>
+              <span class="status" [class]="'status s-' + p.status">{{ p.status }}</span>
+              @if (p.atrasado) { <span class="selo alerta">atrasado</span> }
+            </td>
+            <td class="quando">{{ p.criadoEm | date: 'dd/MM HH:mm' }}</td>
+            <td class="quando">{{ p.status === 'Recebido' ? '✓ ' + (p.recebidoEm | date: 'dd/MM HH:mm') : p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }}</td>
+            <td class="num forte">{{ p.total | currency: 'BRL' }}</td>
+            <td class="acoes" (click)="$event.stopPropagation()">
+              @if (p.status === 'Rascunho') { <button type="button" class="botao pequeno primario" (click)="enviar(p)" [disabled]="ocupado()">📤 Enviar</button> }
+              @if (p.status === 'Enviado') { <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)">📦 Receber</button> }
+              @if (p.status === 'Rascunho' || p.status === 'Enviado') { <button type="button" class="botao pequeno perigo" (click)="cancelar(p)" [disabled]="ocupado()">Cancelar</button> }
+            </td>
+          </tr>
+          @if (aberto() === p.id) {
+            <tr class="detalhe">
+              <td></td>
+              <td colspan="6">
+                <table class="itens">
+                  <thead><tr><th>Produto</th><th class="num">Pedido</th><th class="num">Recebido</th><th>Validade</th><th class="num">Custo</th><th class="num">Total</th></tr></thead>
+                  <tbody>
+                    @for (i of p.itens; track i.id) {
+                      <tr>
+                        <td>{{ i.produto }}</td>
+                        <td class="num">{{ i.quantidade | quantidade: i.unidade }}</td>
+                        <td class="num" [class.urgente]="i.quantidadeRecebida !== null && i.quantidadeRecebida < i.quantidade">{{ i.quantidadeRecebida === null ? '—' : (i.quantidadeRecebida | quantidade: i.unidade) }}</td>
+                        <td>{{ i.validade ? (i.validade | dia) : '—' }}</td>
+                        <td class="num">{{ i.custoUnitario | currency: 'BRL' }}</td>
+                        <td class="num">{{ i.total | currency: 'BRL' }}</td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </td>
+            </tr>
+          }
+        } @empty {
+          @if (!pedidos.isLoading()) { <tr><td colspan="7" class="vazio">Nenhum pedido aqui.</td></tr> }
+        }
+      </tbody>
+    </table>
+  </section>
+}
+
+<!-- ======================= CONFERÊNCIA NA ENTREGA ======================= -->
+<dialog #dlgReceber class="janela larga" (close)="erroReceber.set(null)">
+  @if (recebendo(); as p) {
+    <header><h2>📦 Receber pedido #{{ p.id }} — {{ p.fornecedor }}</h2><button type="button" class="fechar" (click)="dlgReceber.close()">✕</button></header>
+    <div class="corpo">
+      <p class="dica">Confira cada item contra a nota e a mercadoria. Se veio menos, corrija a quantidade. Perecível: informe a validade impressa.</p>
+      <div class="rolagem">
+        <table>
+          <thead><tr><th>Produto</th><th class="num">Pedido</th><th class="num">Chegou</th><th>Validade</th><th class="num">Custo</th></tr></thead>
+          <tbody>
+            @for (c of conferencia; track c.itemId) {
+              <tr>
+                <td>{{ c.produto }}</td>
+                <td class="num">{{ c.pedido | quantidade: c.unidade }}</td>
+                <td class="num"><input class="qtd" type="number" min="0" [step]="c.unidade === 'KG' || c.unidade === 'L' ? 0.001 : 1" [(ngModel)]="c.recebido" [class.falta]="faltou(c)" />
+                  @if (faltou(c)) { <small class="urgente">faltou {{ c.pedido - c.recebido | quantidade: c.unidade }}</small> }</td>
+                <td>@if (c.perecivel) { <input type="date" [(ngModel)]="c.validade" /> } @else { <small>não perecível</small> }</td>
+                <td class="num"><input class="qtd" type="number" min="0" step="0.01" [(ngModel)]="c.custo" /></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      @if (erroReceber()) { <div class="erro" role="alert">{{ erroReceber() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgReceber.close()">Voltar</button>
+      <button type="button" class="botao primario" (click)="confirmarRecebimento()" [disabled]="ocupado()">{{ ocupado() ? 'Registrando…' : 'Confirmar entrada no estoque' }}</button>
+    </footer>
+  }
+</dialog>
