@@ -1,0 +1,42 @@
+<main class="pagina">
+  <section class="cartao">
+    <header class="marca">
+      <span class="logo" aria-hidden="true">🛒</span>
+      <div>
+        <h1>Marketplace</h1>
+        <p>Sistema de gestão do mercado</p>
+      </div>
+    </header>
+
+    <form [formGroup]="form" (ngSubmit)="entrar()" novalidate>
+      <label for="email">E-mail</label>
+      <input id="email" type="email" formControlName="email" autocomplete="username"
+             placeholder="voce@marketplace.com" autofocus />
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <small class="aviso">Informe um e-mail válido.</small>
+      }
+
+      <label for="senha">Senha</label>
+      <div class="campo-senha">
+        <input id="senha" [type]="mostrarSenha() ? 'text' : 'password'" formControlName="senha"
+               autocomplete="current-password" />
+        <button type="button" class="olho" (click)="mostrarSenha.set(!mostrarSenha())"
+                [attr.aria-label]="mostrarSenha() ? 'Esconder senha' : 'Mostrar senha'">
+          {{ mostrarSenha() ? 'Esconder' : 'Mostrar' }}
+        </button>
+      </div>
+      @if (form.controls.senha.touched && form.controls.senha.invalid) {
+        <small class="aviso">Informe a senha.</small>
+      }
+
+      @if (erro()) {
+        <div class="erro" role="alert">{{ erro() }}</div>
+      }
+
+      <button type="submit" class="entrar" [disabled]="entrando()">
+        {{ entrando() ? 'Entrando…' : 'Entrar' }}
+      </button>
+    </form>
+  </section>
+  <footer>Ambiente de estudo · dados fictícios</footer>
+</main>

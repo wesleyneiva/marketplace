@@ -1,0 +1,137 @@
+.pagina {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px;
+  background: linear-gradient(160deg, var(--cor-primaria-clara), var(--cor-fundo) 60%);
+}
+
+.cartao {
+  width: 100%;
+  max-width: 380px;
+  background: var(--cor-superficie);
+  border-radius: 14px;
+  box-shadow: var(--sombra);
+  padding: 32px 28px;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 28px;
+
+  .logo {
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--cor-primaria-clara);
+  }
+
+  h1 {
+    margin: 0;
+    font-size: 22px;
+  }
+
+  p {
+    margin: 2px 0 0;
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+  }
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 14px 0 6px;
+}
+
+input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+
+  &:focus {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: -1px;
+  }
+
+  &.ng-touched.ng-invalid {
+    border-color: var(--cor-erro);
+  }
+}
+
+.campo-senha {
+  position: relative;
+
+  input {
+    padding-right: 84px;
+  }
+
+  .olho {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: var(--cor-primaria);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 8px;
+    cursor: pointer;
+  }
+}
+
+.aviso {
+  color: var(--cor-erro);
+  margin-top: 4px;
+}
+
+.erro {
+  margin-top: 16px;
+  padding: 10px 12px;
+  border-radius: var(--raio);
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+  font-size: 14px;
+}
+
+.entrar {
+  margin-top: 24px;
+  padding: 12px;
+  border: 0;
+  border-radius: var(--raio);
+  background: var(--cor-primaria);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: var(--cor-primaria-escura);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+}
+
+footer {
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+}

@@ -1,1 +1,40 @@
-/* You can add global styles to this file, and also import other style files */
+// Estilos globais do Marketplace.
+// As cores ficam em "variáveis CSS" (--nome) para trocar o tema num lugar só.
+:root {
+  --cor-primaria: #15803d;        // verde "mercado"
+  --cor-primaria-escura: #166534;
+  --cor-primaria-clara: #dcfce7;
+  --cor-fundo: #f4f6f5;
+  --cor-superficie: #ffffff;
+  --cor-texto: #1c2321;
+  --cor-texto-suave: #5f6b66;
+  --cor-borda: #e2e8e5;
+  --cor-erro: #b91c1c;
+  --cor-erro-fundo: #fef2f2;
+  --raio: 10px;
+  --sombra: 0 1px 3px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.04);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+}
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}

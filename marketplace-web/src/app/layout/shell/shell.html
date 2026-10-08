@@ -1,0 +1,46 @@
+<div class="layout" [class.menu-aberto]="menuAberto()">
+  <aside class="lateral">
+    <div class="marca">
+      <span class="logo" aria-hidden="true">🛒</span>
+      <strong>Marketplace</strong>
+    </div>
+
+    <nav>
+      @for (item of itensVisiveis(); track item.rota) {
+        @if (item.pronto) {
+          <a [routerLink]="item.rota" routerLinkActive="ativo" (click)="menuAberto.set(false)">
+            <span class="icone" aria-hidden="true">{{ item.icone }}</span>{{ item.rotulo }}
+          </a>
+        } @else {
+          <span class="item-futuro" title="Em breve">
+            <span class="icone" aria-hidden="true">{{ item.icone }}</span>{{ item.rotulo }}
+            <em>em breve</em>
+          </span>
+        }
+      }
+    </nav>
+  </aside>
+
+  <div class="fundo-menu" (click)="menuAberto.set(false)"></div>
+
+  <div class="principal">
+    <header class="topo">
+      <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu">☰</button>
+      <div class="espaco"></div>
+      @if (usuario(); as u) {
+        <div class="usuario">
+          <span class="avatar" aria-hidden="true">{{ iniciais() }}</span>
+          <div class="dados">
+            <strong>{{ u.nome }}</strong>
+            <small>{{ u.perfis.join(', ') }}</small>
+          </div>
+        </div>
+      }
+      <button type="button" class="sair" (click)="sair()">Sair</button>
+    </header>
+
+    <main class="conteudo">
+      <router-outlet />
+    </main>
+  </div>
+</div>

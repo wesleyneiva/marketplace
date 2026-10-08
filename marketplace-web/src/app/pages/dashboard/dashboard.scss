@@ -1,0 +1,62 @@
+.cabecalho {
+  margin-bottom: 22px;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--cor-texto-suave);
+
+    &::first-letter {
+      text-transform: uppercase;
+    }
+  }
+}
+
+.indicadores {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 16px;
+}
+
+.cartao {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  .topo-cartao {
+    display: flex;
+    justify-content: space-between;
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .valor {
+    font-size: 28px;
+  }
+
+  small {
+    color: var(--cor-texto-suave);
+  }
+}
+
+.aviso {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  border: 1px dashed var(--cor-borda);
+  background: var(--cor-superficie);
+
+  p {
+    margin: 6px 0 0;
+    color: var(--cor-texto-suave);
+  }
+}

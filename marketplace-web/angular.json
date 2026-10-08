@@ -72,7 +72,8 @@
             "allowedHosts": [
               "oracle-a1",
               "oracle-a1.tailaf91bf.ts.net"
-            ]
+            ],
+            "proxyConfig": "proxy.conf.json"
           }
         },
         "test": {

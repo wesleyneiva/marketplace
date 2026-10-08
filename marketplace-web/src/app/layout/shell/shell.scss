@@ -1,0 +1,196 @@
+$largura-menu: 236px;
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+.lateral {
+  width: $largura-menu;
+  flex-shrink: 0;
+  background: #12261c;
+  color: #d7e6dd;
+  padding: 18px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.marca {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px 22px;
+  font-size: 18px;
+  color: #fff;
+
+  .logo {
+    font-size: 22px;
+  }
+}
+
+nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+
+  a,
+  .item-futuro {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+    font-size: 15px;
+  }
+
+  a:hover {
+    background: rgb(255 255 255 / 0.06);
+  }
+
+  a.ativo {
+    background: var(--cor-primaria);
+    color: #fff;
+  }
+
+  .item-futuro {
+    opacity: 0.5;
+    cursor: default;
+
+    em {
+      margin-left: auto;
+      font-style: normal;
+      font-size: 11px;
+      border: 1px solid currentColor;
+      border-radius: 99px;
+      padding: 1px 7px;
+    }
+  }
+
+  .icone {
+    width: 20px;
+    text-align: center;
+  }
+}
+
+.principal {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 24px;
+  background: var(--cor-superficie);
+  border-bottom: 1px solid var(--cor-borda);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.espaco {
+  flex: 1;
+}
+
+.botao-menu {
+  display: none;
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    background: var(--cor-primaria-clara);
+    color: var(--cor-primaria-escura);
+    font-weight: 700;
+    font-size: 14px;
+  }
+
+  .dados {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+
+    small {
+      color: var(--cor-texto-suave);
+    }
+  }
+}
+
+.sair {
+  border: 1px solid var(--cor-borda);
+  background: var(--cor-superficie);
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--cor-erro);
+    color: var(--cor-erro);
+  }
+}
+
+.conteudo {
+  padding: 24px;
+}
+
+.fundo-menu {
+  display: none;
+}
+
+// Celular / tela estreita: o menu vira uma gaveta que abre pelo botão ☰.
+@media (max-width: 860px) {
+  .lateral {
+    position: fixed;
+    left: 0;
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.2s;
+  }
+
+  .menu-aberto .lateral {
+    transform: none;
+  }
+
+  .menu-aberto .fundo-menu {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    background: rgb(0 0 0 / 0.35);
+  }
+
+  .botao-menu {
+    display: block;
+  }
+
+  .usuario .dados {
+    display: none;
+  }
+
+  .topo {
+    padding: 10px 16px;
+  }
+
+  .conteudo {
+    padding: 16px;
+  }
+}

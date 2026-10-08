@@ -1,0 +1,22 @@
+<header class="cabecalho">
+  <h1>{{ saudacao() }}</h1>
+  <p>{{ hoje | date: "EEEE, d 'de' MMMM 'de' y" }}</p>
+</header>
+
+<section class="indicadores">
+  @for (item of indicadores; track item.titulo) {
+    <article class="cartao">
+      <div class="topo-cartao">
+        <span>{{ item.titulo }}</span>
+        <span class="icone" aria-hidden="true">{{ item.icone }}</span>
+      </div>
+      <strong class="valor">—</strong>
+      <small>{{ item.descricao }}</small>
+    </article>
+  }
+</section>
+
+<section class="aviso">
+  <strong>🚧 Em construção</strong>
+  <p>Os números aparecem quando cadastrarmos produtos e começarmos a registrar vendas.</p>
+</section>
