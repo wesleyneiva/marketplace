@@ -22,6 +22,9 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   popularidade e pelo **clima real de Porto Alegre** (calor → bebidas geladas; frio → café; chuva → menos
   gente; fim de semana → churrasco), pagamentos realistas com troco, fornecedor repondo às 07:00 e
   fechamento às 21:00. O clima de cada hora fica na tabela `Clima`, para cruzar com as vendas.
+- **Integração com n8n/Telegram** — `/api/integracao/{resumo,alertas,estoque}` (somente leitura, protegida por
+  chave no cabeçalho `X-Api-Key`), cada resposta com uma `mensagem` pronta para o Telegram. Fluxos no n8n:
+  resumo do dia às 21:15, alertas às 08:00 e 15:00 (só quando há alerta) e os comandos `/vendas` e `/estoque` no bot.
 - **Regras importantes**
   - o preço sempre vem do banco (nunca da tela);
   - produto vencido não é vendido;
