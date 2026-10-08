@@ -4,16 +4,28 @@
 </header>
 
 <section class="indicadores">
-  <article class="cartao">
+  <a class="cartao clicavel" routerLink="/pdv">
     <div class="topo-cartao"><span>Vendas hoje</span><span class="icone" aria-hidden="true">💰</span></div>
-    <strong class="valor apagado">—</strong>
-    <small>Chega com o PDV</small>
-  </article>
+    @if (vendas(); as v) {
+      <strong class="valor">{{ v.total | currency: 'BRL' }}</strong>
+      <small>{{ v.quantidade }} {{ v.quantidade === 1 ? 'venda' : 'vendas' }} · {{ v.rotulo }}</small>
+    } @else {
+      <strong class="valor apagado">—</strong>
+      <small>{{ veEstoque() ? 'Carregando…' : 'Abra o caixa para vender' }}</small>
+    }
+  </a>
 
   <article class="cartao">
     <div class="topo-cartao"><span>Ticket médio</span><span class="icone" aria-hidden="true">🧾</span></div>
-    <strong class="valor apagado">—</strong>
-    <small>Chega com o PDV</small>
+    @if (vendas(); as v) {
+      <strong class="valor">{{ v.ticket | currency: 'BRL' }}</strong>
+      <small>
+        @if (v.lucro !== null) { Lucro bruto: {{ v.lucro | currency: 'BRL' }} } @else { Valor médio por venda }
+      </small>
+    } @else {
+      <strong class="valor apagado">—</strong>
+      <small>Valor médio por venda</small>
+    }
   </article>
 
   @if (veEstoque()) {

@@ -26,7 +26,7 @@ export class Shell {
 
   private readonly menu: ItemMenu[] = [
     { rotulo: 'Dashboard', icone: '📊', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
-    { rotulo: 'Caixa (PDV)', icone: '🧾', rota: '/pdv', perfis: ['Administrador', 'Caixa'], pronto: false },
+    { rotulo: 'Caixa (PDV)', icone: '🧾', rota: '/pdv', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
     { rotulo: 'Produtos', icone: '📦', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: false },

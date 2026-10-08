@@ -1,0 +1,276 @@
+@if (caixa() === undefined) {
+  <p class="carregando">Carregando o caixa…</p>
+} @else if (caixa() === null) {
+  <!-- ======================= ABRIR CAIXA ======================= -->
+  <section class="painel abrir">
+    <h1>🧾 Abrir caixa</h1>
+    <p>Conte o dinheiro que está na gaveta antes de começar.</p>
+    <form (ngSubmit)="abrirCaixa()">
+      <label>Caixa nº
+        <select name="numero" [(ngModel)]="numeroCaixa">
+          @for (n of [1, 2, 3, 4, 5]; track n) { <option [ngValue]="n">Caixa {{ n }}</option> }
+        </select>
+      </label>
+      <label>Troco inicial (R$)
+        <input name="troco" [(ngModel)]="trocoInicial" inputmode="decimal" />
+      </label>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+      <button type="submit" class="botao primario grande">Abrir caixa</button>
+    </form>
+  </section>
+} @else {
+  @let cx = caixa()!;
+  <!-- ======================= CAIXA ABERTO ======================= -->
+  <div class="pdv">
+    <header class="barra">
+      <strong>🧾 Caixa {{ cx.numeroCaixa }}</strong>
+      <span>{{ cx.operador }}</span>
+      <span class="pilula">{{ cx.quantidadeVendas }} {{ cx.quantidadeVendas === 1 ? 'venda' : 'vendas' }} · {{ cx.totalVendido | currency: 'BRL' }}</span>
+      <span class="espaco"></span>
+      <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')">↑ Sangria</button>
+      <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')">↓ Suprimento</button>
+      <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>
+    </header>
+
+    @if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+    @if (erro() && !produtoPeso()) { <div class="erro" role="alert">⚠️ {{ erro() }}</div> }
+
+    <div class="colunas">
+      <!-- ----- Esquerda: busca + itens ----- -->
+      <section class="esquerda">
+        @if (produtoPeso(); as pp) {
+          <form class="peso" (ngSubmit)="confirmarPeso()">
+            <span>⚖️ Peso de <b>{{ pp.nome }}</b> ({{ pp.precoVenda | currency: 'BRL' }}/{{ pp.unidade }})</span>
+            <input #campoPeso name="peso" [(ngModel)]="textoPeso" inputmode="decimal" placeholder="Ex.: 1,235"
+                   (keydown.escape)="cancelarPeso()" />
+            <button type="submit" class="botao primario">OK</button>
+            <button type="button" class="botao" (click)="cancelarPeso()">Cancelar</button>
+            @if (erro()) { <small class="erro-peso">{{ erro() }}</small> }
+          </form>
+        } @else {
+          <div class="busca">
+            <input #campoBusca name="busca" [(ngModel)]="textoBusca" autocomplete="off"
+                   placeholder="Bipe o código ou digite o nome · 3*arroz = 3 unidades"
+                   (keydown.enter)="buscar()" (keydown.arrowdown)="moverSelecao(1, $event)"
+                   (keydown.arrowup)="moverSelecao(-1, $event)" aria-label="Buscar produto" />
+            @if (buscando()) { <span class="girando">⏳</span> }
+            @if (resultados().length) {
+              <ul class="resultados" role="listbox">
+                @for (p of resultados(); track p.id; let i = $index) {
+                  <li role="option" [class.ativo]="i === indiceResultado()" (mousedown)="escolher(p)">
+                    <span>{{ p.nome }}</span>
+                    <small>{{ p.codigoBarras ?? 'a granel' }} · estoque {{ p.estoqueAtual | quantidade: p.unidade }}</small>
+                    <b>{{ p.precoVenda | currency: 'BRL' }}<small>/{{ p.unidade }}</small></b>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        }
+
+        <div class="painel itens">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Produto</th><th class="num">Qtd</th><th class="num">Preço</th><th class="num">Total</th><th></th></tr>
+            </thead>
+            <tbody>
+              @for (item of carrinho(); track item.produto.id; let i = $index) {
+                <tr [class.novo]="item.produto.id === ultimoId()">
+                  <td class="seq">{{ i + 1 }}</td>
+                  <td>{{ item.produto.nome }}</td>
+                  <td class="num">{{ item.quantidade | quantidade: item.produto.unidade }}</td>
+                  <td class="num">{{ item.produto.precoVenda | currency: 'BRL' }}</td>
+                  <td class="num forte">{{ totalItem(item) | currency: 'BRL' }}</td>
+                  <td><button type="button" class="remover" (click)="remover(item)" [attr.aria-label]="'Remover ' + item.produto.nome">✕</button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="vazio">🛒 Caixa livre — bipe o primeiro produto.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ----- Direita: totais e ações ----- -->
+      <aside class="direita">
+        <div class="painel totais">
+          <div class="linha"><span>Itens</span><span>{{ quantidadeItens() }}</span></div>
+          <div class="linha"><span>Subtotal</span><span>{{ subtotal() | currency: 'BRL' }}</span></div>
+          <form class="linha desconto" (ngSubmit)="aplicarDesconto()">
+            <label for="desc">Desconto (R$)</label>
+            <input id="desc" name="desconto" [(ngModel)]="textoDesconto" inputmode="decimal" placeholder="0,00" (blur)="aplicarDesconto()" />
+          </form>
+          @if (descontoAcimaDoLimite()) { <small class="erro-peso">Acima de 10%: precisa de gerente.</small> }
+          <div class="total">
+            <span>TOTAL</span>
+            <strong>{{ total() | currency: 'BRL' }}</strong>
+          </div>
+          <button type="button" class="botao primario grande" (click)="abrirPagamento()" [disabled]="!carrinho().length">
+            Finalizar <kbd>F2</kbd>
+          </button>
+          <button type="button" class="botao" (click)="cancelarCompra()" [disabled]="!carrinho().length">Cancelar compra</button>
+        </div>
+        <p class="atalhos">
+          <kbd>Enter</kbd> buscar/adicionar · <kbd>↑</kbd><kbd>↓</kbd> escolher · <kbd>Esc</kbd> limpar · <kbd>F2</kbd> pagar
+        </p>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ======================= PAGAMENTO ======================= -->
+  <dialog #dlgPagamento class="janela" (close)="erro.set(null); pagamentos.set([])">
+    <header><h2>💰 Pagamento</h2><button type="button" class="fechar" (click)="dlgPagamento.close()">✕</button></header>
+    <div class="corpo">
+      <div class="placar">
+        <div><span>Total</span><strong>{{ total() | currency: 'BRL' }}</strong></div>
+        <div><span>Pago</span><strong>{{ pago() | currency: 'BRL' }}</strong></div>
+        @if (falta() > 0) {
+          <div class="falta"><span>Falta</span><strong>{{ falta() | currency: 'BRL' }}</strong></div>
+        } @else {
+          <div class="troco"><span>Troco</span><strong>{{ troco() | currency: 'BRL' }}</strong></div>
+        }
+      </div>
+
+      @if (falta() > 0) {
+        <div class="formas">
+          @for (f of formas; track f.valor) {
+            <button type="button" class="botao" [class.ligado]="formaAtual() === f.valor" (click)="escolherForma(f.valor)">
+              {{ f.icone }} {{ f.rotulo }} <kbd>Alt+{{ f.tecla }}</kbd>
+            </button>
+          }
+        </div>
+        <form class="valor" (ngSubmit)="confirmarValor()">
+          <label for="valor">Valor em {{ rotuloForma(formaAtual()) }}</label>
+          <input #campoValor id="valor" name="valor" [(ngModel)]="textoValor" inputmode="decimal" />
+          <button type="submit" class="botao primario">Adicionar</button>
+        </form>
+        @if (formaAtual() === 'Dinheiro') {
+          <div class="notas">
+            Recebeu:
+            @for (n of [10, 20, 50, 100, 200]; track n) {
+              @if (n >= falta()) { <button type="button" class="botao pequeno" (click)="notaRapida(n)">R$ {{ n }}</button> }
+            }
+          </div>
+        }
+      }
+
+      @if (pagamentos().length) {
+        <ul class="lista-pagamentos">
+          @for (p of pagamentos(); track $index) {
+            <li><span>{{ rotuloForma(p.forma) }}</span><b>{{ p.valor | currency: 'BRL' }}</b>
+              <button type="button" class="remover" (click)="removerPagamento($index)" aria-label="Remover pagamento">✕</button></li>
+          }
+        </ul>
+      }
+
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgPagamento.close()">Voltar</button>
+      <button #btnConfirmar type="button" class="botao primario grande" [disabled]="falta() > 0 || finalizando()" (click)="finalizar()">
+        {{ finalizando() ? 'Registrando…' : 'Confirmar venda' }}
+      </button>
+    </footer>
+  </dialog>
+
+  <!-- ======================= CUPOM ======================= -->
+  <dialog #dlgCupom class="janela cupom-janela" (close)="novaVenda()">
+    @if (cupom(); as c) {
+      <div class="cupom">
+        <div class="cupom-topo">
+          <strong>🛒 MARKETPLACE</strong>
+          <small>Mercadinho fictício · ambiente de estudo</small>
+          <small>Venda #{{ c.id }} · Caixa {{ c.numeroCaixa }} · {{ c.dataHora | date: 'dd/MM/yyyy HH:mm' }}</small>
+          <small>Operador: {{ c.operador }}</small>
+        </div>
+        <table>
+          @for (i of c.itens; track $index) {
+            <tr>
+              <td>{{ i.descricao }}<br /><small>{{ i.quantidade | quantidade: i.unidade }} × {{ i.precoUnitario | currency: 'BRL' }}</small></td>
+              <td class="num">{{ i.total | currency: 'BRL' }}</td>
+            </tr>
+          }
+        </table>
+        <div class="cupom-totais">
+          <div><span>Subtotal</span><span>{{ c.subtotal | currency: 'BRL' }}</span></div>
+          @if (c.desconto > 0) { <div><span>Desconto</span><span>−{{ c.desconto | currency: 'BRL' }}</span></div> }
+          <div class="grande"><span>TOTAL</span><span>{{ c.total | currency: 'BRL' }}</span></div>
+          @for (p of c.pagamentos; track $index) { <div><span>{{ rotuloForma(p.forma) }}</span><span>{{ p.valor | currency: 'BRL' }}</span></div> }
+          @if (c.troco > 0) { <div class="troco-cupom"><span>TROCO</span><span>{{ c.troco | currency: 'BRL' }}</span></div> }
+        </div>
+        <small class="cupom-rodape">Obrigado pela preferência! · Não é documento fiscal</small>
+      </div>
+      <footer><button #btnNovaVenda type="button" class="botao primario grande" (click)="novaVenda()">Nova venda <kbd>Enter</kbd></button></footer>
+    }
+  </dialog>
+
+  <!-- ======================= SANGRIA / SUPRIMENTO ======================= -->
+  <dialog #dlgMovimento class="janela pequena" (close)="erro.set(null)">
+    <form (ngSubmit)="confirmarMovimento()">
+      <header>
+        <h2>{{ tipoMovimento() === 'sangria' ? '↑ Sangria (retirar dinheiro)' : '↓ Suprimento (colocar dinheiro)' }}</h2>
+        <button type="button" class="fechar" (click)="dlgMovimento.close()">✕</button>
+      </header>
+      <div class="corpo">
+        @if (tipoMovimento() === 'sangria') {
+          <p class="dica">Na gaveta agora: <b>{{ cx.dinheiroEsperado | currency: 'BRL' }}</b>. Retirar dinheiro evita acumular muito no caixa.</p>
+        }
+        <label>Valor (R$)<input name="valor" [(ngModel)]="textoMovimento" inputmode="decimal" autofocus /></label>
+        <label>Motivo<input name="motivo" [(ngModel)]="motivoMovimento" maxlength="150" /></label>
+        @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+      </div>
+      <footer>
+        <button type="button" class="botao" (click)="dlgMovimento.close()">Cancelar</button>
+        <button type="submit" class="botao primario">Registrar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <!-- ======================= FECHAMENTO ======================= -->
+  <dialog #dlgFechar class="janela" (close)="fechamento() ? concluirFechamento() : erro.set(null)">
+    <header><h2>🔒 Fechar caixa {{ cx.numeroCaixa }}</h2><button type="button" class="fechar" (click)="dlgFechar.close()">✕</button></header>
+    @if (!fechamento()) {
+      <form (ngSubmit)="confirmarFechamento()">
+        <div class="corpo">
+          <div class="resumo-fechar">
+            <div><span>Vendas</span><b>{{ cx.quantidadeVendas }}</b></div>
+            <div><span>Total vendido</span><b>{{ cx.totalVendido | currency: 'BRL' }}</b></div>
+            <div><span>Pix</span><b>{{ valorForma(cx, 'Pix') | currency: 'BRL' }}</b></div>
+            <div><span>Débito</span><b>{{ valorForma(cx, 'Debito') | currency: 'BRL' }}</b></div>
+            <div><span>Crédito</span><b>{{ valorForma(cx, 'Credito') | currency: 'BRL' }}</b></div>
+            <div><span>Canceladas</span><b>{{ cx.vendasCanceladas }}</b></div>
+          </div>
+          <p class="dica">
+            <b>Conferência "cega":</b> conte o dinheiro da gaveta e digite o valor. O sistema só mostra quanto
+            deveria haver <i>depois</i> — assim ninguém "ajusta" a contagem para bater.
+          </p>
+          <label>Dinheiro contado na gaveta (R$)<input name="contado" [(ngModel)]="textoContado" inputmode="decimal" autofocus /></label>
+          <label>Observação<input name="obs" [(ngModel)]="observacaoFechamento" maxlength="300" placeholder="Opcional" /></label>
+          @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+        </div>
+        <footer>
+          <button type="button" class="botao" (click)="dlgFechar.close()">Voltar</button>
+          <button type="submit" class="botao primario">Fechar caixa</button>
+        </footer>
+      </form>
+    } @else {
+      @let f = fechamento()!;
+      <div class="corpo">
+        <div class="resultado" [class.ok]="f.diferenca === 0" [class.sobra]="(f.diferenca ?? 0) > 0" [class.falta-dinheiro]="(f.diferenca ?? 0) < 0">
+          @if (f.diferenca === 0) { ✅ Caixa conferido: bateu certinho! }
+          @else if ((f.diferenca ?? 0) > 0) { ⚠️ Sobrou {{ f.diferenca | currency: 'BRL' }} }
+          @else { ❌ Faltou {{ -(f.diferenca ?? 0) | currency: 'BRL' }} }
+        </div>
+        <div class="resumo-fechar">
+          <div><span>Troco inicial</span><b>{{ f.valorAbertura | currency: 'BRL' }}</b></div>
+          <div><span>Dinheiro das vendas</span><b>{{ valorForma(f, 'Dinheiro') | currency: 'BRL' }}</b></div>
+          <div><span>Suprimentos</span><b>+{{ f.suprimentos | currency: 'BRL' }}</b></div>
+          <div><span>Sangrias</span><b>−{{ f.sangrias | currency: 'BRL' }}</b></div>
+          <div><span>Esperado na gaveta</span><b>{{ f.dinheiroEsperado | currency: 'BRL' }}</b></div>
+          <div><span>Contado</span><b>{{ f.valorContado | currency: 'BRL' }}</b></div>
+        </div>
+      </div>
+      <footer><button type="button" class="botao primario" (click)="concluirFechamento()">Concluir</button></footer>
+    }
+  </dialog>
+}

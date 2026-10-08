@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { Lote } from '../../core/api/estoque.api';
 import { Pagina, Produto } from '../../core/api/produtos.api';
+import { ResumoCaixa, ResumoVendas } from '../../core/api/pdv.api';
 
 // Dashboard: boas-vindas + indicadores. Os de estoque já são reais;
 // "Vendas hoje" e "Ticket médio" ganham números quando o PDV existir.
@@ -34,6 +35,19 @@ export class Dashboard {
   protected readonly validades = httpResource<Lote[]>(() =>
     this.veEstoque() ? { url: '/api/estoque/validades', params: { dias: 7 } } : undefined,
   );
+
+  // Vendas: a gerência vê o dia inteiro (todos os caixas); o operador de caixa vê o caixa dele.
+  protected readonly vendasDia = httpResource<ResumoVendas>(() => (this.veEstoque() ? '/api/vendas/resumo' : undefined));
+  protected readonly meuCaixa = httpResource<ResumoCaixa | null>(() => (this.veEstoque() ? undefined : '/api/caixa/atual'));
+
+  protected readonly vendas = computed(() => {
+    if (this.veEstoque()) {
+      const r = this.vendasDia.value();
+      return r ? { total: r.totalVendido, quantidade: r.quantidadeVendas, ticket: r.ticketMedio, lucro: r.lucroBruto as number | null, rotulo: 'todos os caixas' } : null;
+    }
+    const c = this.meuCaixa.value();
+    return c ? { total: c.totalVendido, quantidade: c.quantidadeVendas, ticket: c.ticketMedio, lucro: null, rotulo: `seu caixa (${c.numeroCaixa})` } : null;
+  });
 
   protected readonly resumoValidade = computed(() => {
     const lotes = this.validades.value() ?? [];

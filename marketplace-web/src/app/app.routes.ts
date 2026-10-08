@@ -30,6 +30,10 @@ export const routes: Routes = [
         ],
       },
       {
+        path: 'pdv',
+        loadComponent: () => import('./pages/pdv/pdv').then((m) => m.Pdv),
+      },
+      {
         path: 'estoque',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/estoque/estoque').then((m) => m.Estoque),
