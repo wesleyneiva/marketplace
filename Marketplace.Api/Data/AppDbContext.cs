@@ -7,16 +7,54 @@ namespace Marketplace.Api.Data;
 
 // O DbContext é a "ponte" entre o C# e o banco de dados.
 // Herdando de IdentityDbContext, ganhamos prontas as tabelas de usuários, perfis e vínculos.
-// As tabelas do mercado (Produtos, Vendas...) vão virar propriedades DbSet<...> aqui.
+// Cada DbSet<...> abaixo vira uma tabela.
 public class AppDbContext(DbContextOptions<AppDbContext> options)
     : IdentityDbContext<Usuario, IdentityRole, string>(options)
 {
+    // Ordem alfabética do português (Açúcar, Água, Alface, Arroz), em vez da ordem "de computador".
+    private const string OrdemPortugues = "pt-BR-x-icu";
+
+    public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<Produto> Produtos => Set<Produto>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
+        // unaccent: permite buscar "acucar" e achar "Açúcar".
+        builder.HasPostgresExtension("unaccent");
+
         builder.Entity<Usuario>()
             .Property(u => u.NomeCompleto)
             .HasMaxLength(150);
+
+        builder.Entity<Categoria>(e =>
+        {
+            e.Property(c => c.Nome).HasMaxLength(60).UseCollation(OrdemPortugues);
+            e.HasIndex(c => c.Nome).IsUnique();
+        });
+
+        builder.Entity<Produto>(e =>
+        {
+            e.Property(p => p.Nome).HasMaxLength(150).UseCollation(OrdemPortugues);
+            e.Property(p => p.CodigoBarras).HasMaxLength(14);
+            e.Property(p => p.Unidade).HasMaxLength(3);
+
+            // Dinheiro: 2 casas decimais. Estoque: 3 casas (gramas, no caso do quilo).
+            e.Property(p => p.PrecoCusto).HasPrecision(10, 2);
+            e.Property(p => p.PrecoVenda).HasPrecision(10, 2);
+            e.Property(p => p.EstoqueAtual).HasPrecision(12, 3);
+            e.Property(p => p.EstoqueMinimo).HasPrecision(12, 3);
+
+            // Dois produtos não podem ter o mesmo código de barras (mas vários podem não ter nenhum).
+            e.HasIndex(p => p.CodigoBarras).IsUnique();
+            e.HasIndex(p => p.Nome);
+
+            // Não deixa apagar uma categoria que ainda tem produtos.
+            e.HasOne(p => p.Categoria)
+                .WithMany(c => c.Produtos)
+                .HasForeignKey(p => p.CategoriaId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

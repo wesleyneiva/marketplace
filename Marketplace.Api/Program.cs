@@ -52,6 +52,7 @@ builder.Services.AddOpenApi();
 var app = builder.Build();
 
 await SeedInicial.ExecutarAsync(app.Services);
+await SeedCatalogo.ExecutarAsync(app.Services);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
