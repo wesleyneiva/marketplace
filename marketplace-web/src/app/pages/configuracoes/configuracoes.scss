@@ -1,0 +1,67 @@
+.aviso {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+}
+
+.erro-caixa {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+}
+
+.secao {
+  padding: 18px;
+  margin-bottom: 14px;
+
+  h2 { margin: 0 0 6px; font-size: 17px; }
+  .explica { margin: 0 0 14px; color: var(--cor-texto-suave); font-size: 14px; }
+  .dica { margin: 10px 0 0; color: var(--cor-texto-suave); font-size: 13px; }
+}
+
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+
+  label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
+}
+
+.exemplo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--cor-fundo);
+  margin-bottom: 12px;
+
+  .barras { width: 180px; height: 70px; background: #fff; padding: 6px; border-radius: 6px; }
+  p { margin: 0; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+  small { color: var(--cor-texto-suave); }
+}
+
+.botoes { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.escolhido { font-size: 14px; margin: 0 0 10px; }
+
+.etiqueta-teste {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 12px 12px 8px 0;
+  padding: 12px 16px;
+  border: 1px dashed #999;
+  border-radius: 6px;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+
+  .barras-grande { width: 260px; height: 90px; }
+}

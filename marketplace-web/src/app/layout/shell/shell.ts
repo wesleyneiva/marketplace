@@ -36,6 +36,7 @@ export class Shell {
     { rotulo: 'Contas a pagar', icone: '💸', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Configurações', icone: '⚙️', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Empresas', icone: '🏢', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },
   ];
 

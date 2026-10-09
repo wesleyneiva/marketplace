@@ -66,6 +66,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
+        path: 'configuracoes',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/configuracoes/configuracoes').then((m) => m.Configuracoes),
+      },
+      {
         path: 'contas',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),

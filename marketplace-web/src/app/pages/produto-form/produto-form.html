@@ -25,6 +25,16 @@
     </div>
 
     <div class="campo">
+      <label for="codigoBalanca">Código na balança (PLU)</label>
+      <div class="com-botao">
+        <input id="codigoBalanca" type="number" min="1" max="99999" formControlName="codigoBalanca" placeholder="Opcional" />
+        <button type="button" class="botao pequeno" (click)="sugerirCodigoBalanca()">Próximo livre</button>
+      </div>
+      @if (erroDe('codigoBalanca'); as msg) { <small class="erro">{{ msg }}</small> }
+      @else { <small class="dica">Para pesar no açougue/hortifrúti: o mesmo número cadastrado na balança.</small> }
+    </div>
+
+    <div class="campo">
       <label for="categoriaId">Categoria *</label>
       <select id="categoriaId" formControlName="categoriaId">
         <option [ngValue]="0" disabled>Escolha…</option>

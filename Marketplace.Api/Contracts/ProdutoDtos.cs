@@ -32,7 +32,11 @@ public record ProdutoRequest(
     bool ControlaValidade,
 
     // Fornecedor principal (opcional): de quem a sugestão de compra pede este produto.
-    int? FornecedorId = null);
+    int? FornecedorId = null,
+
+    // Código na balança (PLU), para a etiqueta do açougue/hortifrúti. Opcional.
+    [Range(1, 99999, ErrorMessage = "Código da balança: de 1 a 99999.")]
+    int? CodigoBalanca = null);
 
 // O que a API devolve: já com o nome da categoria e a margem calculada.
 public record ProdutoResponse(
@@ -51,7 +55,8 @@ public record ProdutoResponse(
     bool ControlaValidade,
     bool Ativo,
     int? FornecedorId,
-    string? Fornecedor);
+    string? Fornecedor,
+    int? CodigoBalanca);
 
 // Resultado paginado: uma "página" de itens + o total (para a tela montar a paginação).
 public record Pagina<T>(IReadOnlyList<T> Itens, int Total, int PaginaAtual, int TamanhoPagina);
@@ -66,3 +71,13 @@ public record CategoriaResponse(int Id, string Nome, bool Ativa, int QuantidadeP
 // Etiqueta de gôndola (preço na prateleira).
 public record EtiquetaResponse(
     int Id, string Nome, string? CodigoBarras, string Unidade, decimal PrecoVenda, string Categoria, DateTimeOffset? PrecoAlteradoEm);
+
+// Etiqueta da balança lida no PDV: o produto e a quantidade (o peso; se a etiqueta traz o preço, o peso é calculado).
+public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidade, decimal? PrecoEtiqueta, decimal? PesoEtiqueta);
+
+// Configuração da empresa usada pelas telas (por enquanto, o formato da etiqueta da balança).
+public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta);
+
+public record ConfiguracaoEmpresaRequest(
+    [Range(4, 5, ErrorMessage = "O código do produto na etiqueta tem 4 ou 5 dígitos.")] int BalancaDigitosCodigo,
+    [Required] string BalancaEtiqueta);

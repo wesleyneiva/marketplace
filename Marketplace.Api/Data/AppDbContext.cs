@@ -52,6 +52,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.Nome).HasMaxLength(120);
             e.Property(x => x.Subdominio).HasMaxLength(40);
             e.HasIndex(x => x.Subdominio).IsUnique();
+            e.Property(x => x.BalancaEtiqueta).HasMaxLength(10).HasDefaultValue(EtiquetaBalancaTipos.Preco);
+            e.Property(x => x.BalancaDigitosCodigo).HasDefaultValue(4);
         });
 
         builder.Entity<Usuario>()
@@ -78,6 +80,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
 
             // Dois produtos não podem ter o mesmo código de barras (mas vários podem não ter nenhum).
             e.HasIndex(p => new { p.EmpresaId, p.CodigoBarras }).IsUnique();
+            // Um PLU por produto na loja (vários podem não ter balança).
+            e.HasIndex(p => new { p.EmpresaId, p.CodigoBalanca }).IsUnique().HasFilter("\"CodigoBalanca\" IS NOT NULL");
             e.HasIndex(p => new { p.EmpresaId, p.Nome });
 
             // xmin do PostgreSQL como "versão" da linha (controle de concorrência).

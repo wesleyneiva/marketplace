@@ -1,0 +1,77 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>⚙️ Configurações</h1>
+    <p>Balança, leitor e impressora.</p>
+  </div>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+@if (erro()) { <div class="erro-caixa" role="alert">{{ erro() }}</div> }
+
+<section class="painel secao">
+  <h2>🏷️ Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
+  <p class="explica">
+    A balança imprime uma etiqueta com código de barras começando com <b>2</b>. O caixa passa o leitor e o produto entra com o
+    peso certo. Configure aqui o <b>mesmo formato</b> escolhido no programa da balança.
+  </p>
+
+  @if (config.value(); as c) {
+    @if (formulario(c)) {
+      <div class="grade">
+        <label>Dígitos do código do produto
+          <select [(ngModel)]="digitos" [disabled]="!ehAdmin()">
+            <option [ngValue]="4">4 dígitos (até 9999 produtos) — o mais comum</option>
+            <option [ngValue]="5">5 dígitos (até 99999)</option>
+          </select>
+        </label>
+        <label>O que a etiqueta traz
+          <select [(ngModel)]="tipo" [disabled]="!ehAdmin()">
+            <option ngValue="Preco">Preço total (R$) — o mais comum</option>
+            <option ngValue="Peso">Peso (kg)</option>
+          </select>
+        </label>
+      </div>
+      <div class="exemplo">
+        <app-codigo-barras class="barras" [codigo]="c.exemploEtiqueta" />
+        <p>
+          Exemplo salvo: <code>{{ c.exemploEtiqueta }}</code> = produto <b>42</b>,
+          {{ c.balancaEtiqueta === 'Peso' ? '1,235 kg' : 'R$ 15,99' }}.<br />
+          <small>2 · código ({{ c.balancaDigitosCodigo }} dígitos){{ c.balancaDigitosCodigo === 4 ? ' · 0' : '' }} · {{ c.balancaEtiqueta === 'Peso' ? 'peso em gramas' : 'preço em centavos' }} (6 dígitos) · dígito verificador</small>
+        </p>
+      </div>
+      <div class="botoes">
+        @if (ehAdmin()) { <button type="button" class="botao primario" (click)="salvar()">Salvar formato</button> }
+        <a class="botao" href="/api/produtos/balanca/exportar" download>⬇️ Exportar produtos para a balança (.csv)</a>
+      </div>
+      <p class="dica">A exportação traz os produtos com <b>código na balança (PLU)</b>: código, nome e preço do quilo — para cadastrar
+        (ou conferir) no programa da balança. O PLU de cada produto fica no cadastro do produto.</p>
+    }
+  }
+</section>
+
+<section class="painel secao">
+  <h2>🧪 Etiqueta de teste (sem balança)</h2>
+  <p class="explica">Escolha um produto com PLU e um peso: o sistema desenha a etiqueta como a balança faria. Bipe na tela com o
+    leitor ou copie o número e cole no campo do PDV.</p>
+  <div class="grade">
+    <label>Produto
+      <app-produto-busca placeholder="Produto com código de balança…" (selecionado)="escolherProdutoTeste($event)" />
+    </label>
+    <label>Peso (kg)
+      <input type="number" min="0.005" step="0.005" [(ngModel)]="pesoTeste" />
+    </label>
+  </div>
+  @if (produtoTeste(); as p) {
+    <p class="escolhido"><b>{{ p.nome }}</b> · PLU {{ p.codigoBalanca ?? '—' }} · {{ p.precoVenda | currency: 'BRL' }}/{{ p.unidade }}
+      → {{ pesoTeste }} kg = <b>{{ valorTeste() | currency: 'BRL' }}</b></p>
+    <button type="button" class="botao" [disabled]="!p.codigoBalanca" (click)="gerarEtiqueta()">Gerar etiqueta</button>
+  }
+  @if (etiquetaTeste(); as e) {
+    <div class="etiqueta-teste">
+      <strong>{{ produtoTeste()?.nome }}</strong>
+      <span>{{ pesoTeste }} kg · {{ valorTeste() | currency: 'BRL' }}</span>
+      <app-codigo-barras class="barras-grande" [codigo]="e" />
+    </div>
+    <button type="button" class="botao pequeno" (click)="copiar(e)">📋 Copiar {{ e }}</button>
+  }
+</section>

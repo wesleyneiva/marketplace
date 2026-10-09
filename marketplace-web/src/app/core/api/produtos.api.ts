@@ -20,6 +20,7 @@ export interface Produto {
   ativo: boolean;
   fornecedorId: number | null;
   fornecedor: string | null;
+  codigoBalanca: number | null; // PLU: código do produto na balança (etiqueta do açougue/hortifrúti)
 }
 
 export interface ProdutoRequest {
@@ -32,6 +33,7 @@ export interface ProdutoRequest {
   estoqueMinimo: number;
   controlaValidade: boolean;
   fornecedorId: number | null;
+  codigoBalanca: number | null;
 }
 
 export interface Categoria {
@@ -120,6 +122,10 @@ export class ProdutosApi {
 
   desativar(id: number): Promise<unknown> {
     return firstValueFrom(this.http.delete(`/api/produtos/${id}`));
+  }
+
+  proximoCodigoBalanca(): Promise<number> {
+    return firstValueFrom(this.http.get<number>('/api/produtos/balanca/proximo-codigo'));
   }
 
   reativar(id: number): Promise<unknown> {

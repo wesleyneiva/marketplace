@@ -40,6 +40,7 @@ export class ProdutoForm {
     estoqueMinimo: [0, [Validators.required, Validators.min(0)]],
     controlaValidade: [false],
     fornecedorId: [null as number | null],
+    codigoBalanca: [null as number | null, [Validators.min(1), Validators.max(99999)]],
   });
 
   protected readonly produto = signal<Produto | null>(null);
@@ -96,6 +97,7 @@ export class ProdutoForm {
         estoqueMinimo: p.estoqueMinimo,
         controlaValidade: p.controlaValidade,
         fornecedorId: p.fornecedorId,
+        codigoBalanca: p.codigoBalanca,
       });
     } catch {
       this.erroGeral.set('Produto não encontrado.');
@@ -113,6 +115,11 @@ export class ProdutoForm {
     this.historico.reload();
   }
 
+  // Próximo código de balança livre (o PLU que vai ser cadastrado também na balança).
+  async sugerirCodigoBalanca(): Promise<void> {
+    this.form.controls.codigoBalanca.setValue(await this.api.proximoCodigoBalanca());
+  }
+
   async salvar(): Promise<void> {
     this.errosApi.set({});
     this.erroGeral.set(null);
@@ -126,6 +133,7 @@ export class ProdutoForm {
       ...v,
       codigoBarras: v.codigoBarras.trim() || null,
       categoriaId: Number(v.categoriaId),
+      codigoBalanca: v.codigoBalanca ? Number(v.codigoBalanca) : null,
     };
 
     this.salvando.set(true);
@@ -155,7 +163,8 @@ export class ProdutoForm {
       }
       this.errosApi.set(erros);
     } else if (e.status === 409) {
-      this.errosApi.set({ codigoBarras: e.error?.mensagem ?? 'Código de barras já usado.' });
+      const mensagem: string = e.error?.mensagem ?? 'Código já usado.';
+      this.errosApi.set(mensagem.includes('balança') ? { codigoBalanca: mensagem } : { codigoBarras: mensagem });
     } else if (e.status === 403) {
       this.erroGeral.set('Seu perfil não tem permissão para alterar produtos.');
     } else {
@@ -178,6 +187,7 @@ export class ProdutoForm {
       precoVenda: 'O preço de venda deve ser maior que zero.',
       precoCusto: 'Preço de custo inválido.',
       estoqueMinimo: 'Estoque mínimo inválido.',
+      codigoBalanca: 'Código da balança: de 1 a 99999.',
     };
     return mensagens[campo] ?? 'Valor inválido.';
   }

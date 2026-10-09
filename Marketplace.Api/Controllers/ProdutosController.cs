@@ -83,6 +83,58 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             .ToListAsync();
     }
 
+    // GET /api/produtos/balanca/etiqueta/2004200015997 → o PDV bipou a etiqueta da balança: qual produto e quanto.
+    // Todos os perfis (o caixa usa). A regra do formato fica aqui, no servidor (uma só, para todas as telas).
+    [HttpGet("balanca/etiqueta/{codigo}")]
+    public async Task<ActionResult<EtiquetaBalancaResponse>> LerEtiquetaBalanca(string codigo, [FromServices] Seguranca.ContextoEmpresa contexto)
+    {
+        var empresa = await db.Empresas.AsNoTracking().FirstAsync(e => e.Id == contexto.EmpresaId);
+        var leitura = Services.EtiquetaBalanca.Ler(codigo, empresa.BalancaDigitosCodigo, empresa.BalancaEtiqueta, out var erro);
+        if (leitura is null) return BadRequest(new { mensagem = erro });
+
+        var produto = await db.Produtos.AsNoTracking().Where(p => p.CodigoBalanca == leitura.CodigoProduto).Select(ParaResposta).FirstOrDefaultAsync();
+        if (produto is null) return NotFound(new { mensagem = $"Nenhum produto com o código de balança {leitura.CodigoProduto}." });
+        if (!produto.Ativo) return BadRequest(new { mensagem = $"\"{produto.Nome}\" está desativado." });
+        if (leitura.Valor <= 0) return BadRequest(new { mensagem = "Etiqueta com valor zero." });
+
+        if (empresa.BalancaEtiqueta == EtiquetaBalancaTipos.Peso)
+            return new EtiquetaBalancaResponse(produto, leitura.Valor, null, leitura.Valor);
+
+        // Etiqueta com o PREÇO: o peso é o preço ÷ preço do quilo (3 casas). Produto por unidade: tem que dar inteiro.
+        if (produto.PrecoVenda <= 0) return BadRequest(new { mensagem = $"\"{produto.Nome}\" está sem preço de venda." });
+        var quantidade = Math.Round(leitura.Valor / produto.PrecoVenda, 3);
+        if (produto.Unidade is not (Unidades.Quilo or Unidades.Litro))
+        {
+            if (quantidade % 1 != 0)
+                return BadRequest(new { mensagem = $"A etiqueta (R$ {leitura.Valor:N2}) não bate com o preço de \"{produto.Nome}\" (R$ {produto.PrecoVenda:N2} a unidade). Confira o preço na balança." });
+        }
+        return new EtiquetaBalancaResponse(produto, quantidade, leitura.Valor, null);
+    }
+
+    // GET /api/produtos/balanca/exportar → lista para cadastrar na balança (PLU; descrição; preço por kg).
+    // Arquivo .csv separado por ";" (o programa da balança importa ou serve de conferência).
+    [HttpGet("balanca/exportar")]
+    [Authorize(Roles = PodeEditar)]
+    public async Task<IActionResult> ExportarBalanca()
+    {
+        var itens = await db.Produtos.AsNoTracking().Where(p => p.Ativo && p.CodigoBalanca != null).OrderBy(p => p.CodigoBalanca)
+            .Select(p => new { p.CodigoBalanca, p.Nome, p.Unidade, p.PrecoVenda, Categoria = p.Categoria!.Nome }).ToListAsync();
+        var linhas = new List<string> { "PLU;Descricao;Unidade;Preco;Categoria" };
+        linhas.AddRange(itens.Select(i => string.Join(';', i.CodigoBalanca, Csv(i.Nome), i.Unidade == Unidades.Quilo ? "KG" : "UN",
+            i.PrecoVenda.ToString("0.00", System.Globalization.CultureInfo.GetCultureInfo("pt-BR")), Csv(i.Categoria))));
+        // Windows-1252: o programa das balanças (Windows) abre acentos certinho.
+        System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
+        var bytes = System.Text.Encoding.GetEncoding(1252).GetBytes(string.Join("\r\n", linhas) + "\r\n");
+        return File(bytes, "text/csv", $"balanca-produtos-{Services.Relogio.HojeBrasilia:yyyy-MM-dd}.csv");
+    }
+
+    // GET /api/produtos/balanca/proximo-codigo → sugere o próximo PLU livre (no formulário do produto)
+    [HttpGet("balanca/proximo-codigo")]
+    [Authorize(Roles = PodeEditar)]
+    public async Task<int> ProximoCodigoBalanca() => (await db.Produtos.MaxAsync(p => p.CodigoBalanca) ?? 0) + 1;
+
+    private static string Csv(string texto) => texto.Replace(";", ",").Replace("\"", "'");
+
     // GET /api/produtos/5
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ProdutoResponse>> Obter(int id)
@@ -181,6 +233,10 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             await db.Produtos.AnyAsync(p => p.CodigoBarras == request.CodigoBarras && p.Id != idAtual))
             return Conflict(new { mensagem = "Já existe um produto com este código de barras." });
 
+        if (request.CodigoBalanca is int plu &&
+            await db.Produtos.Where(p => p.CodigoBalanca == plu && p.Id != idAtual).Select(p => p.Nome).FirstOrDefaultAsync() is { } outro)
+            return Conflict(new { mensagem = $"O código de balança {plu} já é do produto \"{outro}\"." });
+
         return null;
     }
 
@@ -195,6 +251,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         produto.EstoqueMinimo = request.EstoqueMinimo;
         produto.ControlaValidade = request.ControlaValidade;
         produto.FornecedorId = request.FornecedorId;
+        produto.CodigoBalanca = request.CodigoBalanca;
     }
 
     private async Task<ProdutoResponse> ObterResposta(int id) =>
@@ -219,5 +276,6 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             p.ControlaValidade,
             p.Ativo,
             p.FornecedorId,
-            p.Fornecedor != null ? p.Fornecedor.Nome : null);
+            p.Fornecedor != null ? p.Fornecedor.Nome : null,
+            p.CodigoBalanca);
 }

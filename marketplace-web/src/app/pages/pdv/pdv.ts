@@ -148,6 +148,7 @@ export class Pdv {
 
   protected async buscar(): Promise<void> {
     this.erro.set(null);
+    this.avisoBalanca = null;
 
     // Lista aberta → Enter escolhe o item destacado.
     if (this.resultados().length) {
@@ -164,6 +165,9 @@ export class Pdv {
 
     this.buscando.set(true);
     try {
+      // Etiqueta da balança (açougue/hortifrúti): 13 dígitos começando com 2 → o servidor diz o produto e o peso.
+      if (/^2\d{12}$/.test(termo) && (await this.lerEtiquetaBalanca(termo))) return;
+
       const pagina = await firstValueFrom(
         this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }),
       );
@@ -171,7 +175,7 @@ export class Pdv {
       if (exato || pagina.itens.length === 1) {
         this.escolher(exato ?? pagina.itens[0]);
       } else if (pagina.itens.length === 0) {
-        this.erro.set(`Produto não encontrado: "${termo}"`);
+        this.erro.set(this.avisoBalanca ?? `Produto não encontrado: "${termo}"`);
         this.textoBusca = '';
       } else {
         this.resultados.set(pagina.itens);
@@ -179,6 +183,37 @@ export class Pdv {
       }
     } finally {
       this.buscando.set(false);
+    }
+  }
+
+  // true = era etiqueta de balança (lançou o item ou mostrou o erro). false = não é: segue a busca normal
+  // (pode ser um produto com código interno começando com 2).
+  private avisoBalanca: string | null = null;
+
+  private async lerEtiquetaBalanca(codigo: string): Promise<boolean> {
+    this.avisoBalanca = null;
+    try {
+      const r = await firstValueFrom(this.http.get<{ produto: Produto; quantidade: number; precoEtiqueta: number | null }>(
+        `/api/produtos/balanca/etiqueta/${codigo}`));
+      this.textoBusca = '';
+      this.quantidadeDaBusca = null;
+      this.adicionar(r.produto, r.quantidade);
+      if (r.precoEtiqueta !== null) {
+        const calculado = arredondar(r.quantidade * r.produto.precoVenda);
+        if (calculado !== r.precoEtiqueta)
+          this.mostrarAviso(`Etiqueta R$ ${r.precoEtiqueta.toFixed(2)} → ${r.quantidade} ${r.produto.unidade} (no caixa R$ ${calculado.toFixed(2)}: arredondamento do peso).`);
+      }
+      return true;
+    } catch (e) {
+      if (e instanceof HttpErrorResponse && e.status === 404) {
+        // PLU que não existe: pode ser um produto com código de barras "2…" de verdade → busca normal
+        // (se ela também não achar, o caixa vê a mensagem da balança).
+        this.avisoBalanca = e.error?.mensagem ?? null;
+        return false;
+      }
+      this.erro.set((e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível ler a etiqueta da balança.');
+      this.textoBusca = '';
+      return true;
     }
   }
 

@@ -21,6 +21,18 @@ public class Empresa
     public bool Ativa { get; set; } = true;
 
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
+
+    // Formato da etiqueta da balança (igual em todas as balanças da loja; configurado no programa da balança):
+    //   2 + código do produto (4 ou 5 dígitos) + [0 se 4 dígitos] + valor (6 dígitos) + dígito verificador.
+    public int BalancaDigitosCodigo { get; set; } = 4;
+    // "Preco" = os 6 dígitos são o preço total em centavos (o mais comum); "Peso" = o peso em gramas.
+    public string BalancaEtiqueta { get; set; } = EtiquetaBalancaTipos.Preco;
+}
+
+public static class EtiquetaBalancaTipos
+{
+    public const string Preco = "Preco";
+    public const string Peso = "Peso";
 }
 
 // "Etiqueta" das tabelas que pertencem a uma empresa. O AppDbContext procura todas as classes com

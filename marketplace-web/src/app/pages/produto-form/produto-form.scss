@@ -246,3 +246,10 @@
   font-weight: 600;
   text-decoration: none;
 }
+
+.com-botao {
+  display: flex;
+  gap: 6px;
+
+  input { flex: 1; min-width: 0; }
+}

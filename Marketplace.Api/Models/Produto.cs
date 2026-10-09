@@ -49,6 +49,10 @@ public class Produto : IDaEmpresa
     // Quando o PREÇO DE VENDA mudou pela última vez (preenchido sozinho pelo AppDbContext).
     // Serve para imprimir as etiquetas de gôndola só do que mudou.
     public DateTimeOffset? PrecoAlteradoEm { get; set; }
+
+    // Código do produto na BALANÇA (PLU): a balança do açougue/hortifrúti imprime uma etiqueta com código de barras
+    // começando com "2", com este número e o preço (ou o peso) dentro. O PDV lê e lança sozinho.
+    public int? CodigoBalanca { get; set; }
 }
 
 public static class Unidades
