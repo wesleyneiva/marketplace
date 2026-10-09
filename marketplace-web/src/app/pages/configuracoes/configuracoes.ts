@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
-import { CurrencyPipe } from '@angular/common';
+import { CurrencyPipe, DecimalPipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -21,7 +22,7 @@ interface Configuracao {
 // Configurações da loja e dos equipamentos: balança (etiqueta e caixa) e impressora.
 @Component({
   selector: 'app-configuracoes',
-  imports: [FormsModule, CurrencyPipe, CodigoBarras, ProdutoBusca],
+  imports: [FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca],
   templateUrl: './configuracoes.html',
   styleUrl: './configuracoes.scss',
 })
@@ -89,8 +90,7 @@ export class Configuracoes {
   escolherProdutoTeste(p: Produto): void {
     this.produtoTeste.set(p);
     this.etiquetaTeste.set(null);
-    if (!p.codigoBalanca) this.erro.set(`"${p.nome}" não tem código de balança (PLU). Cadastre no produto.`);
-    else this.erro.set(null);
+    this.erro.set(null); // o aviso de "sem PLU" aparece logo abaixo do produto
   }
 
   // Mesmo formato que o servidor lê (Services/EtiquetaBalanca.cs → Montar).
