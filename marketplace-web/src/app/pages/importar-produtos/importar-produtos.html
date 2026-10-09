@@ -25,6 +25,7 @@
       </ul>
       <div class="botoes">
         <a class="botao primario" routerLink="/produtos">Ver produtos</a>
+        <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }">🏷️ Etiquetas dos preços de hoje</a>
         <button type="button" class="botao" (click)="recomecar()">Importar outra planilha</button>
       </div>
     </div>

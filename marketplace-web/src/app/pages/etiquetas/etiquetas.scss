@@ -1,0 +1,159 @@
+.voltar {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--cor-texto-suave);
+  text-decoration: none;
+  font-size: 14px;
+
+  &:hover { color: var(--cor-primaria); }
+}
+
+.ferramentas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  padding: 16px;
+  margin-bottom: 14px;
+
+  h2 { margin: 0 0 8px; font-size: 14px; }
+  small { display: block; margin-top: 6px; color: var(--cor-texto-suave); font-size: 12px; }
+  .linha { display: flex; gap: 8px; }
+  .linha input, .linha select { flex: 1; min-width: 0; }
+}
+
+.aviso {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+}
+
+.escolhidos {
+  margin-bottom: 14px;
+
+  > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+
+    h2 { margin: 0; font-size: 15px; }
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 12px; text-align: left; border-top: 1px solid var(--cor-borda); }
+  th { font-size: 12px; text-transform: uppercase; color: var(--cor-texto-suave); background: var(--cor-fundo); }
+  .num { text-align: right; white-space: nowrap; }
+  .codigo { display: block; color: var(--cor-texto-suave); font-size: 12px; }
+  .copias { width: 64px; text-align: right; }
+}
+
+.tabela-rolagem { overflow-x: auto; }
+
+.imprimir {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--cor-texto-suave); }
+  small { flex-basis: 100%; color: var(--cor-texto-suave); }
+}
+
+.vazio { color: var(--cor-texto-suave); }
+.titulo-previa { font-size: 15px; margin: 18px 0 8px; }
+
+// ---------- As folhas (medidas reais em milímetros) ----------
+.previa {
+  overflow-x: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.folha {
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  display: grid;
+  align-content: start;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+
+  &.gondola { grid-template-columns: repeat(3, 70mm); grid-auto-rows: 37mm; padding-top: 0.5mm; }
+  &.pequena { grid-template-columns: repeat(4, 52.5mm); grid-auto-rows: 29.7mm; font-size: 80%; }
+}
+
+.etiqueta {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 2.5mm 3mm 2mm;
+  overflow: hidden;
+  outline: 1px dashed #ccc; // só aparece na tela (na impressão some)
+
+  .nome {
+    font-size: 9pt;
+    font-weight: 700;
+    line-height: 1.15;
+    text-transform: uppercase;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .preco {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    line-height: 1;
+
+    .rs { font-size: 10pt; font-weight: 700; margin-right: 1mm; align-self: flex-start; margin-top: 2mm; }
+    .reais { font-size: 28pt; font-weight: 800; letter-spacing: -0.5pt; }
+    .centavos { font-size: 14pt; font-weight: 800; align-self: flex-start; margin-top: 1.5mm; }
+  }
+
+  .rodape { display: flex; align-items: flex-end; justify-content: space-between; gap: 2mm; height: 9mm; }
+  .barras { width: 30mm; height: 9mm; }
+  .info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 6.5pt;
+    line-height: 1.2;
+    min-width: 0;
+
+    .loja { font-weight: 700; max-width: 30mm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
+}
+
+.pequena .etiqueta {
+  padding: 1.8mm 2.2mm 1.5mm;
+
+  .nome { font-size: 7.5pt; }
+  .preco .reais { font-size: 20pt; }
+  .preco .centavos { font-size: 10pt; }
+  .preco .rs { font-size: 8pt; }
+  .rodape { height: 7mm; }
+  .barras { width: 24mm; height: 7mm; }
+}
+
+// Na tela, a folha aparece menor (a impressão usa o tamanho real).
+@media screen {
+  .previa .folha { zoom: 0.62; box-shadow: var(--sombra); border: 1px solid var(--cor-borda); }
+}
+
+@media print {
+  @page { size: A4; margin: 0; }
+  .previa { display: block; overflow: visible; }
+  .folha { break-after: page; }
+  .folha:last-child { break-after: auto; }
+  .etiqueta { outline: none; }
+}

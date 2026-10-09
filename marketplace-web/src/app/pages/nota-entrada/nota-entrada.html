@@ -21,6 +21,9 @@
       </ul>
       <div class="botoes">
         <a class="botao primario" routerLink="/estoque">Ver estoque</a>
+        @if (r.produtosCriados) {
+          <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }">🏷️ Etiquetas dos produtos novos</a>
+        }
         <button type="button" class="botao" (click)="recomecar()">Lançar outra nota</button>
       </div>
     </div>

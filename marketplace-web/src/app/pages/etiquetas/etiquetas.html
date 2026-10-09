@@ -1,0 +1,99 @@
+<div class="nao-imprimir">
+  <a routerLink="/produtos" class="voltar">← Produtos</a>
+  <header class="titulo-pagina">
+    <div>
+      <h1>🏷️ Etiquetas de preço</h1>
+      <p>Escolha os produtos, confira a prévia e imprima em folha A4 de etiquetas adesivas.</p>
+    </div>
+  </header>
+
+  <section class="painel ferramentas">
+    <div class="bloco">
+      <h2>Preço alterado desde</h2>
+      <div class="linha">
+        <input type="date" [(ngModel)]="dataAlteracao" [max]="hoje" />
+        <button type="button" class="botao" (click)="adicionarAlterados()" [disabled]="carregando()">+ Adicionar</button>
+      </div>
+      <small>Produtos novos ou com preço trocado (tela, planilha ou nota).</small>
+    </div>
+    <div class="bloco">
+      <h2>Uma categoria inteira</h2>
+      <div class="linha">
+        <select [(ngModel)]="categoriaId">
+          <option [ngValue]="null">Escolha…</option>
+          @for (c of categorias.value() ?? []; track c.id) { <option [ngValue]="c.id">{{ c.nome }} ({{ c.quantidadeProdutos }})</option> }
+        </select>
+        <button type="button" class="botao" (click)="adicionarCategoria()" [disabled]="!categoriaId || carregando()">+ Adicionar</button>
+      </div>
+    </div>
+    <div class="bloco">
+      <h2>Um produto</h2>
+      <app-produto-busca placeholder="Nome ou código de barras…" (selecionado)="adicionarProduto($event)" />
+    </div>
+  </section>
+
+  @if (aviso()) { <div class="aviso" role="status">{{ aviso() }}</div> }
+
+  @if (linhas().length) {
+    <section class="painel escolhidos">
+      <header>
+        <h2>{{ linhas().length }} {{ linhas().length === 1 ? 'produto' : 'produtos' }} · {{ totalEtiquetas() }} etiquetas · {{ folhas().length }} {{ folhas().length === 1 ? 'folha' : 'folhas' }}</h2>
+        <button type="button" class="botao pequeno" (click)="limpar()">Limpar lista</button>
+      </header>
+      <div class="tabela-rolagem">
+        <table>
+          <thead><tr><th>Produto</th><th>Categoria</th><th class="num">Preço</th><th class="num">Cópias</th><th></th></tr></thead>
+          <tbody>
+            @for (l of linhas(); track l.etiqueta.id) {
+              <tr>
+                <td><strong>{{ l.etiqueta.nome }}</strong><small class="codigo">{{ l.etiqueta.codigoBarras ?? 'sem código de barras' }}</small></td>
+                <td>{{ l.etiqueta.categoria }}</td>
+                <td class="num">R$ {{ preco(l.etiqueta.precoVenda).reais }},{{ preco(l.etiqueta.precoVenda).centavos }}@if (l.etiqueta.unidade === 'KG') {/kg}</td>
+                <td class="num"><input type="number" min="0" max="99" class="copias" [ngModel]="l.copias" (ngModelChange)="l.copias = $event; mexeu()" /></td>
+                <td><button type="button" class="botao pequeno perigo" (click)="remover(l)" aria-label="Tirar da lista">✕</button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="painel imprimir">
+      <label>Tamanho da etiqueta
+        <select [ngModel]="formatoAtual()" (ngModelChange)="formatoAtual.set($event)">
+          @for (f of formatos | keyvalue; track f.key) { <option [ngValue]="f.key">{{ f.value.nome }}</option> }
+        </select>
+      </label>
+      <button type="button" class="botao primario" (click)="imprimir()" [disabled]="!totalEtiquetas()">🖨️ Imprimir {{ totalEtiquetas() }} etiquetas</button>
+      <small>Na janela de impressão: papel <b>A4</b>, margens <b>nenhuma</b>, escala <b>100%</b>. Teste antes numa folha comum.</small>
+    </section>
+  } @else {
+    <p class="vazio">Nenhum produto escolhido ainda. Use uma das opções acima.</p>
+  }
+</div>
+
+@if (totalEtiquetas()) {
+  <h2 class="nao-imprimir titulo-previa">Prévia</h2>
+  <div class="previa">
+    @for (folha of folhas(); track $index) {
+      <div class="folha" [class]="formatoAtual()">
+        @for (e of folha; track $index) {
+          <div class="etiqueta">
+            <div class="nome">{{ e.nome }}</div>
+            <div class="preco">
+              <span class="rs">R$</span><span class="reais">{{ preco(e.precoVenda).reais }}</span><span class="centavos">,{{ preco(e.precoVenda).centavos }}</span>
+            </div>
+            <div class="rodape">
+              @if (e.codigoBarras) { <app-codigo-barras class="barras" [codigo]="e.codigoBarras" /> } @else { <span class="barras"></span> }
+              <div class="info">
+                <span>{{ sufixo(e.unidade) }}</span>
+                <span>{{ dataImpressao }}</span>
+                <span class="loja">{{ empresa() }}</span>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}

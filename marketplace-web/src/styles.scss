@@ -241,3 +241,10 @@ app-mapa-calor {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+
+// ---------- Impressão (etiquetas, relatórios): só o conteúdo da página, sem menu nem topo ----------
+@media print {
+  .lateral, .topo, .faixa-demo, .fundo-menu, .nao-imprimir { display: none !important; }
+  .layout, .principal, .conteudo { display: block !important; margin: 0 !important; padding: 0 !important; }
+  body { background: #fff !important; }
+}

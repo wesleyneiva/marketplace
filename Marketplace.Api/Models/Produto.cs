@@ -45,6 +45,10 @@ public class Produto : IDaEmpresa
 
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset AtualizadoEm { get; set; } = DateTimeOffset.UtcNow;
+
+    // Quando o PREÇO DE VENDA mudou pela última vez (preenchido sozinho pelo AppDbContext).
+    // Serve para imprimir as etiquetas de gôndola só do que mudou.
+    public DateTimeOffset? PrecoAlteradoEm { get; set; }
 }
 
 public static class Unidades

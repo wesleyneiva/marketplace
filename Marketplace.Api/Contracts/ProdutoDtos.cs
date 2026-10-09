@@ -62,3 +62,7 @@ public record CategoriaRequest(
     string Nome);
 
 public record CategoriaResponse(int Id, string Nome, bool Ativa, int QuantidadeProdutos);
+
+// Etiqueta de gôndola (preço na prateleira).
+public record EtiquetaResponse(
+    int Id, string Nome, string? CodigoBarras, string Unidade, decimal PrecoVenda, string Categoria, DateTimeOffset? PrecoAlteradoEm);

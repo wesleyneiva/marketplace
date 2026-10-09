@@ -19,6 +19,7 @@ export class ImportarProdutos {
   private readonly api = inject(ProdutosApi);
 
   protected readonly urlModelo = URL_MODELO_IMPORTACAO;
+  protected readonly hoje = new Date().toLocaleDateString('sv-SE');
   protected readonly enviando = signal(false);
   protected readonly arrastando = signal(false);
   protected readonly erro = signal<string | null>(null);

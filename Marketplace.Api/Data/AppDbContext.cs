@@ -283,13 +283,27 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         CarimbarEmpresa();
+        MarcarPrecosAlterados();
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         CarimbarEmpresa();
+        MarcarPrecosAlterados();
         return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    // Produto novo ou com preço de venda trocado (por qualquer tela, planilha ou nota) → anota a hora.
+    private void MarcarPrecosAlterados()
+    {
+        foreach (var e in ChangeTracker.Entries<Produto>())
+        {
+            if (e.State == EntityState.Added
+                || (e.State == EntityState.Modified && e.Property(p => p.PrecoVenda).IsModified
+                    && e.Property(p => p.PrecoVenda).OriginalValue != e.Entity.PrecoVenda))
+                e.Entity.PrecoAlteradoEm = DateTimeOffset.UtcNow;
+        }
     }
 
     private void CarimbarEmpresa()

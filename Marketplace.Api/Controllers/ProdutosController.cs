@@ -59,6 +59,30 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         return new Pagina<ProdutoResponse>(itens, total, pagina, tamanho);
     }
 
+    // GET /api/produtos/etiquetas?precoAlteradoDesde=2026-10-09&categoriaId=3&ids=1,2,3
+    // Produtos para imprimir etiqueta de gôndola: os escolhidos (ids) e/ou os que mudaram de preço desde o dia.
+    [HttpGet("etiquetas")]
+    [Authorize(Roles = PodeEditar)]
+    public async Task<List<EtiquetaResponse>> Etiquetas(DateOnly? precoAlteradoDesde, int? categoriaId, string? ids)
+    {
+        var consulta = db.Produtos.AsNoTracking().Where(p => p.Ativo);
+        var lista = (ids ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(t => int.TryParse(t, out var n) ? n : 0).Where(n => n > 0).Take(2000).ToList();
+
+        if (lista.Count > 0) consulta = consulta.Where(p => lista.Contains(p.Id));
+        else if (precoAlteradoDesde is null && categoriaId is null) return [];
+        if (precoAlteradoDesde is DateOnly dia)
+        {
+            var inicio = Services.Relogio.InicioDoDiaUtc(dia);
+            consulta = consulta.Where(p => p.PrecoAlteradoEm >= inicio);
+        }
+        if (categoriaId is int c) consulta = consulta.Where(p => p.CategoriaId == c);
+
+        return await consulta.OrderBy(p => p.Categoria!.Nome).ThenBy(p => p.Nome).Take(2000)
+            .Select(p => new EtiquetaResponse(p.Id, p.Nome, p.CodigoBarras, p.Unidade, p.PrecoVenda, p.Categoria!.Nome, p.PrecoAlteradoEm))
+            .ToListAsync();
+    }
+
     // GET /api/produtos/5
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ProdutoResponse>> Obter(int id)
