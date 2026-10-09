@@ -39,7 +39,7 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
   simulador vende. Pela internet (Cloudflare Tunnel, cabeçalho `CF-Connecting-IP`): `/api/integracao` fechado,
-  login com senha desligado (`Publico__LoginComSenha`), limite de 10 tentativas/min no login e 300 pedidos/min por IP.
+  login com senha só no endereço dos clientes (`Publico__HostClientes`, padrão app.wnlabs.com.br) e nunca para usuários da empresa de demonstração, limite de 10 tentativas/min no login e 300 pedidos/min por IP.
 - **Regras importantes**
   - o preço sempre vem do banco (nunca da tela);
   - produto vencido não é vendido;

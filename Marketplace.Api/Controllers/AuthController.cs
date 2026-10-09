@@ -17,9 +17,12 @@ namespace Marketplace.Api.Controllers;
 public class AuthController(
     SignInManager<Usuario> signInManager, UserManager<Usuario> userManager, AppDbContext db, IConfiguration config) : ControllerBase
 {
-    // Pela internet (demo.wnlabs.com.br), por enquanto, só o modo demonstração: o login com senha
-    // (o seu de administrador, por exemplo) continua só pelo Tailscale. Liga com Publico__LoginComSenha=true.
-    private bool LoginComSenhaLiberado => !HttpContext.VeioDaInternet() || config.GetValue("Publico:LoginComSenha", false);
+    // Pela internet, login com senha SÓ no endereço dos clientes (app.wnlabs.com.br). Na vitrine
+    // (demo.wnlabs.com.br) só existe o botão da demonstração. Pelo Tailscale, tudo liberado.
+    // Para testar em casa: Publico__HostClientes=oracle-a1 (e um cabeçalho CF-Connecting-IP de mentira).
+    private bool LoginComSenhaLiberado => !HttpContext.VeioDaInternet() || EnderecoDosClientes;
+    private bool EnderecoDosClientes =>
+        string.Equals(Request.Host.Host, config["Publico:HostClientes"] ?? "app.wnlabs.com.br", StringComparison.OrdinalIgnoreCase);
     // O botão "Ver demonstração" só existe no endereço da vitrine (demo.wnlabs.com.br). Pelo Tailscale
     // (oracle-a1:5100) e nos endereços dos clientes, o login é o normal. Para testar em casa:
     // Demonstracao__Host=oracle-a1.
@@ -54,6 +57,11 @@ public class AuthController(
 
         if (!resultado.Succeeded)
             return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
+
+        // Usuários da empresa de demonstração (o seu administrador, por exemplo) não entram pela internet,
+        // nem com a senha certa: o acesso de dono do sistema continua só pelo Tailscale.
+        if (HttpContext.VeioDaInternet() && await db.Empresas.AnyAsync(e => e.Id == usuario.EmpresaId && e.Demonstracao))
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Este usuário só entra pela rede interna." });
 
         // Só depois da senha certa dizemos que a conta está desativada (senão qualquer um descobriria quem existe).
         if (!usuario.Ativo)
