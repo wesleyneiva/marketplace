@@ -55,6 +55,7 @@ public partial class ImportacaoProdutosService
                 if (l.PrecoCusto is decimal custo) p.PrecoCusto = custo;
                 if (l.EstoqueMinimo is decimal minimo) p.EstoqueMinimo = minimo;
                 if (l.ControlaValidade is bool controla) p.ControlaValidade = controla;
+                if (l.Ncm is not null) p.Ncm = l.Ncm;
                 p.Ativo = true;
                 p.AtualizadoEm = agora;
                 atualizados++;
@@ -71,6 +72,7 @@ public partial class ImportacaoProdutosService
                 PrecoVenda = l.PrecoVenda!.Value,
                 EstoqueMinimo = l.EstoqueMinimo ?? 0,
                 ControlaValidade = l.ControlaValidade ?? false,
+                Ncm = l.Ncm,
             };
             db.Produtos.Add(produto);
             novos++;

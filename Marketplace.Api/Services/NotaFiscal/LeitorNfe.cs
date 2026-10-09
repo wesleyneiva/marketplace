@@ -20,6 +20,7 @@ public static partial class LeitorNfe
         string? EanTributavel,       // cEANTrib: código de barras da unidade tributável (muitas vezes a unidade de venda)
         string Descricao,
         string? Ncm,
+        string? Cest,
         string? Cfop,
         string UnidadeComercial,     // uCom: como o fornecedor vendeu (CX, FD, UN, KG...)
         decimal QuantidadeComercial, // qCom
@@ -139,6 +140,7 @@ public static partial class LeitorNfe
             CodigoDeBarras(Texto(prod, "cEANTrib")),
             Texto(prod, "xProd") ?? "(sem descrição)",
             Texto(prod, "NCM"),
+            Texto(prod, "CEST"),
             Texto(prod, "CFOP"),
             (Texto(prod, "uCom") ?? "UN").ToUpperInvariant(),
             Decimal(prod, "qCom"),

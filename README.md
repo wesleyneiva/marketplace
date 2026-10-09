@@ -58,6 +58,15 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
 - **Etiquetas de gôndola** (Produtos → 🏷️ Etiquetas) — `Produto.PrecoAlteradoEm` é preenchido sozinho pelo
   `AppDbContext` quando o preço de venda muda; a tela junta os produtos alterados desde um dia, uma categoria ou um
   a um, e imprime em folha A4 (3×8 de 70×37 mm ou 4×10 de 52×29 mm) com código de barras EAN-13/EAN-8 em SVG próprio.
+- **Balança e impressora** (⚙️ Configurações) — *etiqueta da balança* do açougue/hortifrúti: produto com **código na
+  balança (PLU)**; o PDV lê o EAN-13 "2…" (2 + código 4/5 dígitos + preço em centavos ou peso em gramas + DV; formato por
+  empresa) em `GET /api/produtos/balanca/etiqueta/{codigo}`; exportação .csv para cadastrar na balança; gerador de etiqueta
+  de teste. *Balança do caixa*: Web Serial (Chrome/Edge, só em https/localhost), protocolo Toledo/Filizola (ENQ → STX peso
+  ETX), lida ao abrir a janela de peso e com F4; balança simulada para testes. *Impressora térmica*: cupom 80/58 mm impresso
+  por iframe (1–2 vias, automático ao finalizar; `--kiosk-printing` no atalho do Chrome imprime sem janela). Configurações
+  de balança do caixa e impressora ficam em cada computador (localStorage).
+- **Dados fiscais do produto** (preparação da NFC-e, que será por serviço fiscal pronto quando houver CNPJ): NCM, CEST,
+  CFOP (padrão 5102), origem e CSOSN/CST; NCM e CEST vêm sozinhos da NF-e de compra; coluna NCM na planilha de importação.
 - **Empresas** (🏢, só o dono da plataforma = Administrador da empresa `Plataforma:EmpresaId`, padrão 1, e só pela
   rede interna) — clientes com plano, uso e último acesso; cadastrar (mesmo código do `nova-empresa.sh`), editar
   plano, suspender (troca o carimbo de segurança: as sessões caem em até 1 min) e "Senha nova" para quem esqueceu.

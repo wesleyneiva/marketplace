@@ -41,6 +41,11 @@ export class ProdutoForm {
     controlaValidade: [false],
     fornecedorId: [null as number | null],
     codigoBalanca: [null as number | null, [Validators.min(1), Validators.max(99999)]],
+    ncm: ['', [Validators.pattern(/^\d{8}$/)]],
+    cest: ['', [Validators.pattern(/^\d{7}$/)]],
+    cfop: ['5102', [Validators.pattern(/^\d{4}$/)]],
+    origem: [0],
+    situacaoTributaria: ['', [Validators.pattern(/^\d{2,3}$/)]],
   });
 
   protected readonly produto = signal<Produto | null>(null);
@@ -98,6 +103,11 @@ export class ProdutoForm {
         controlaValidade: p.controlaValidade,
         fornecedorId: p.fornecedorId,
         codigoBalanca: p.codigoBalanca,
+        ncm: p.ncm ?? '',
+        cest: p.cest ?? '',
+        cfop: p.cfop,
+        origem: p.origem,
+        situacaoTributaria: p.situacaoTributaria ?? '',
       });
     } catch {
       this.erroGeral.set('Produto não encontrado.');
@@ -134,6 +144,11 @@ export class ProdutoForm {
       codigoBarras: v.codigoBarras.trim() || null,
       categoriaId: Number(v.categoriaId),
       codigoBalanca: v.codigoBalanca ? Number(v.codigoBalanca) : null,
+      ncm: v.ncm.trim() || null,
+      cest: v.cest.trim() || null,
+      cfop: v.cfop.trim() || null,
+      origem: Number(v.origem),
+      situacaoTributaria: v.situacaoTributaria.trim() || null,
     };
 
     this.salvando.set(true);
@@ -188,6 +203,10 @@ export class ProdutoForm {
       precoCusto: 'Preço de custo inválido.',
       estoqueMinimo: 'Estoque mínimo inválido.',
       codigoBalanca: 'Código da balança: de 1 a 99999.',
+      ncm: 'NCM: 8 dígitos (ex.: 10063021).',
+      cest: 'CEST: 7 dígitos.',
+      cfop: 'CFOP: 4 dígitos (venda normal: 5102).',
+      situacaoTributaria: 'CSOSN/CST: 2 ou 3 dígitos.',
     };
     return mensagens[campo] ?? 'Valor inválido.';
   }

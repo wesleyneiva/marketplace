@@ -29,6 +29,8 @@ public partial class ImportacaoProdutosService(AppDbContext db)
             "Só vale para produto novo; para corrigir o estoque de um produto que já existe, use a tela de Estoque.", "40"),
         new("Validade", false, "Data de validade do estoque inicial (dd/mm/aaaa). Obrigatória quando \"Controla validade\" = Sim e há " +
             "estoque inicial.", "20/03/2027"),
+        new("NCM", false, "Classificação fiscal do produto (8 dígitos). Opcional agora; necessária para emitir o cupom fiscal (NFC-e). " +
+            "Está na nota fiscal de compra do fornecedor — ou pergunte ao seu contador.", "10063021"),
     ];
 
     public const string AbaProdutos = "Produtos";
@@ -82,8 +84,9 @@ public partial class ImportacaoProdutosService(AppDbContext db)
         aba.Column(7).Style.NumberFormat.Format = "#,##0.###";
         aba.Column(9).Style.NumberFormat.Format = "#,##0.###";
         aba.Column(10).Style.NumberFormat.Format = "dd/mm/yyyy";
+        aba.Column(11).Style.NumberFormat.Format = "@"; // NCM como texto (zeros à esquerda)
 
-        int[] larguras = [18, 42, 20, 10, 15, 15, 15, 18, 15, 13];
+        int[] larguras = [18, 42, 20, 10, 15, 15, 15, 18, 15, 13, 12];
         for (var i = 0; i < larguras.Length; i++)
             aba.Column(i + 1).Width = larguras[i];
 
@@ -126,10 +129,10 @@ public partial class ImportacaoProdutosService(AppDbContext db)
     {
         object?[][] linhas =
         [
-            ["7891234567895", "Arroz Branco Tipo 1 5kg", "Mercearia", "UN", 22.90m, 29.90m, 10m, "Não", 40m, null],
-            ["7899876543210", "Iogurte Natural 170g", "Frios e Laticínios", "UN", 2.10m, 3.49m, 12m, "Sim", 24m, new DateTime(2027, 3, 20)],
-            [null, "Banana Prata", "Hortifrúti", "KG", 3.20m, 6.99m, 5m, "Sim", 18.5m, new DateTime(2026, 10, 16)],
-            [null, "Pão Francês", "Padaria", "KG", 7.50m, 15.90m, 0m, "Não", null, null],
+            ["7891234567895", "Arroz Branco Tipo 1 5kg", "Mercearia", "UN", 22.90m, 29.90m, 10m, "Não", 40m, null, "10063021"],
+            ["7899876543210", "Iogurte Natural 170g", "Frios e Laticínios", "UN", 2.10m, 3.49m, 12m, "Sim", 24m, new DateTime(2027, 3, 20), "04032000"],
+            [null, "Banana Prata", "Hortifrúti", "KG", 3.20m, 6.99m, 5m, "Sim", 18.5m, new DateTime(2026, 10, 16), "08039000"],
+            [null, "Pão Francês", "Padaria", "KG", 7.50m, 15.90m, 0m, "Não", null, null, "19059090"],
         ];
         for (var l = 0; l < linhas.Length; l++)
             for (var c = 0; c < linhas[l].Length; c++)

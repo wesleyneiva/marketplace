@@ -53,6 +53,13 @@ public class Produto : IDaEmpresa
     // Código do produto na BALANÇA (PLU): a balança do açougue/hortifrúti imprime uma etiqueta com código de barras
     // começando com "2", com este número e o preço (ou o peso) dentro. O PDV lê e lança sozinho.
     public int? CodigoBalanca { get; set; }
+
+    // ----- Dados fiscais (para emitir a NFC-e, o cupom fiscal) — o contador confirma a tributação -----
+    public string? Ncm { get; set; }                 // classificação do produto (8 dígitos); vem na NF-e de compra
+    public string? Cest { get; set; }                // código da substituição tributária (7 dígitos), quando houver
+    public string Cfop { get; set; } = "5102";       // operação: 5102 = venda de mercadoria comprada de terceiros, no estado
+    public int Origem { get; set; }                  // 0 = nacional; 1/2 = importado...
+    public string? SituacaoTributaria { get; set; }  // CSOSN (Simples Nacional, ex.: 102) ou CST (ex.: 00, 60)
 }
 
 public static class Unidades

@@ -71,6 +71,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(p => p.Nome).HasMaxLength(150).UseCollation(OrdemPortugues);
             e.Property(p => p.CodigoBarras).HasMaxLength(14);
             e.Property(p => p.Unidade).HasMaxLength(3);
+            e.Property(p => p.Ncm).HasMaxLength(8);
+            e.Property(p => p.Cest).HasMaxLength(7);
+            e.Property(p => p.Cfop).HasMaxLength(4).HasDefaultValue("5102");
+            e.Property(p => p.SituacaoTributaria).HasMaxLength(3);
 
             // Dinheiro: 2 casas decimais. Estoque: 3 casas (gramas, no caso do quilo).
             e.Property(p => p.PrecoCusto).HasPrecision(10, 2);

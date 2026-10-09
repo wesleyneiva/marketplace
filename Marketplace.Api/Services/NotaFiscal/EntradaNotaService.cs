@@ -195,6 +195,8 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
 
             var p = await db.Produtos.FirstAsync(x => x.Id == produtoId);
             p.FornecedorId ??= fornecedor.Id; // a sugestão de compra passa a saber de quem comprar
+            p.Ncm ??= NcmValido(item.Ncm);    // dados fiscais da nota do fornecedor (prepara a NFC-e)
+            p.Cest ??= CestValido(item.Cest);
 
             if (!string.IsNullOrWhiteSpace(item.CodigoFornecedor))
             {
@@ -333,6 +335,7 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         {
             Nome = nome, CodigoBarras = codigo, CategoriaId = novo.CategoriaId, Unidade = novo.Unidade,
             PrecoVenda = decimal.Round(novo.PrecoVenda, 2), ControlaValidade = novo.ControlaValidade, FornecedorId = fornecedorId,
+            Ncm = NcmValido(item.Ncm), Cest = CestValido(item.Cest),
         };
         db.Produtos.Add(produto);
         await db.SaveChangesAsync();
@@ -427,6 +430,9 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
             .Select((p, i) => i > 0 && pequenas.Contains(p) || char.IsDigit(p[0]) ? p : char.ToUpper(p[0]) + p[1..]);
         return Cortar(string.Join(' ', palavras), 150);
     }
+
+    private static string? NcmValido(string? ncm) => ncm is not null && Regex.IsMatch(ncm, @"^\d{8}$") && ncm != "00000000" ? ncm : null;
+    private static string? CestValido(string? cest) => cest is not null && Regex.IsMatch(cest, @"^\d{7}$") ? cest : null;
 
     private static string NomeDoFornecedor(LeitorNfe.Nota nota) =>
         string.IsNullOrWhiteSpace(nota.EmitenteFantasia) ? nota.EmitenteNome : nota.EmitenteFantasia;

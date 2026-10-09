@@ -16,7 +16,7 @@ public partial class ImportacaoProdutosService
 
     // Posição de cada campo no array Colunas (e no array de valores de cada linha).
     private const int CodigoBarras = 0, Nome = 1, Categoria = 2, Unidade = 3, PrecoCusto = 4, PrecoVenda = 5,
-        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9;
+        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10;
 
     // Outros nomes aceitos no cabeçalho (planilha exportada de outro sistema). Comparados sem acento e sem maiúsculas.
     private static readonly Dictionary<string, int> NomesDasColunas = new()
@@ -33,6 +33,7 @@ public partial class ImportacaoProdutosService
         ["estoque inicial"] = EstoqueInicial, ["estoque"] = EstoqueInicial, ["quantidade"] = EstoqueInicial,
         ["qtd"] = EstoqueInicial, ["estoque atual"] = EstoqueInicial,
         ["validade"] = Validade, ["data de validade"] = Validade, ["vencimento"] = Validade,
+        ["ncm"] = Ncm, ["classificacao fiscal"] = Ncm, ["cod ncm"] = Ncm,
     };
 
     // O que a análise descobriu sobre uma linha (a prévia mostra; a gravação usa).
@@ -49,6 +50,7 @@ public partial class ImportacaoProdutosService
         public bool? ControlaValidade { get; set; }
         public decimal? EstoqueInicial { get; set; }
         public DateOnly? Validade { get; set; }
+        public string? Ncm { get; set; }
         public int? ProdutoExistenteId { get; set; } // preenchido = atualiza esse produto
         public List<string> Erros { get; } = [];
         public List<string> Avisos { get; } = [];
@@ -165,6 +167,14 @@ public partial class ImportacaoProdutosService
             a.ControlaValidade = LerSimNao(Valor(ControlaValidade), a.Erros);
             a.EstoqueInicial = LerQuantidade(Valor(EstoqueInicial), "Estoque inicial", a.Unidade, a.Erros);
             a.Validade = LerData(Valor(Validade), a.Erros);
+
+            var ncm = Valor(Ncm);
+            if (!ncm.EstaVazia)
+            {
+                var texto = ncm.Numero is double nn ? Math.Round(nn).ToString("00000000", CultureInfo.InvariantCulture) : ncm.Texto!.Replace(".", "").Trim();
+                if (Regex.IsMatch(texto, @"^\d{8}$")) a.Ncm = texto;
+                else a.Erros.Add("NCM deve ter 8 dígitos (ex.: 10063021).");
+            }
 
             if (a.Validade is DateOnly v)
             {

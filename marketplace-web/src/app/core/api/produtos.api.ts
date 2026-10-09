@@ -21,6 +21,12 @@ export interface Produto {
   fornecedorId: number | null;
   fornecedor: string | null;
   codigoBalanca: number | null; // PLU: código do produto na balança (etiqueta do açougue/hortifrúti)
+  // Dados fiscais (para a NFC-e)
+  ncm: string | null;
+  cest: string | null;
+  cfop: string;
+  origem: number;
+  situacaoTributaria: string | null;
 }
 
 export interface ProdutoRequest {
@@ -34,6 +40,11 @@ export interface ProdutoRequest {
   controlaValidade: boolean;
   fornecedorId: number | null;
   codigoBalanca: number | null;
+  ncm: string | null;
+  cest: string | null;
+  cfop: string | null;
+  origem: number;
+  situacaoTributaria: string | null;
 }
 
 export interface Categoria {

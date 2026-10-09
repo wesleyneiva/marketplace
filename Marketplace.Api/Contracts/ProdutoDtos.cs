@@ -36,7 +36,14 @@ public record ProdutoRequest(
 
     // Código na balança (PLU), para a etiqueta do açougue/hortifrúti. Opcional.
     [Range(1, 99999, ErrorMessage = "Código da balança: de 1 a 99999.")]
-    int? CodigoBalanca = null);
+    int? CodigoBalanca = null,
+
+    // Dados fiscais (opcionais por enquanto; obrigatórios quando a loja emitir NFC-e).
+    [RegularExpression(@"^\d{8}$", ErrorMessage = "NCM: 8 dígitos.")] string? Ncm = null,
+    [RegularExpression(@"^\d{7}$", ErrorMessage = "CEST: 7 dígitos.")] string? Cest = null,
+    [RegularExpression(@"^\d{4}$", ErrorMessage = "CFOP: 4 dígitos.")] string? Cfop = null,
+    [Range(0, 8, ErrorMessage = "Origem: de 0 a 8.")] int Origem = 0,
+    [RegularExpression(@"^\d{2,3}$", ErrorMessage = "CSOSN/CST: 2 ou 3 dígitos.")] string? SituacaoTributaria = null);
 
 // O que a API devolve: já com o nome da categoria e a margem calculada.
 public record ProdutoResponse(
@@ -56,7 +63,12 @@ public record ProdutoResponse(
     bool Ativo,
     int? FornecedorId,
     string? Fornecedor,
-    int? CodigoBalanca);
+    int? CodigoBalanca,
+    string? Ncm,
+    string? Cest,
+    string Cfop,
+    int Origem,
+    string? SituacaoTributaria);
 
 // Resultado paginado: uma "página" de itens + o total (para a tela montar a paginação).
 public record Pagina<T>(IReadOnlyList<T> Itens, int Total, int PaginaAtual, int TamanhoPagina);

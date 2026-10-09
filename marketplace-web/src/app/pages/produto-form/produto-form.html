@@ -106,6 +106,54 @@
     </label>
   </div>
 
+  <details class="fiscal" [open]="!!form.controls.ncm.value">
+    <summary>🧾 Dados fiscais <small>(para o cupom fiscal NFC-e — confirme com o seu contador)</small></summary>
+    <div class="grade">
+      <div class="campo">
+        <label for="ncm">NCM</label>
+        <input id="ncm" formControlName="ncm" inputmode="numeric" maxlength="8" placeholder="8 dígitos" />
+        @if (erroDe('ncm'); as msg) { <small class="erro">{{ msg }}</small> }
+        @else { <small class="dica">Vem sozinho da nota fiscal de compra.</small> }
+      </div>
+      <div class="campo">
+        <label for="cest">CEST</label>
+        <input id="cest" formControlName="cest" inputmode="numeric" maxlength="7" placeholder="Se tiver (7 dígitos)" />
+        @if (erroDe('cest'); as msg) { <small class="erro">{{ msg }}</small> }
+      </div>
+      <div class="campo">
+        <label for="cfop">CFOP</label>
+        <input id="cfop" formControlName="cfop" inputmode="numeric" maxlength="4" list="cfops" />
+        <datalist id="cfops">
+          <option value="5102">Venda de mercadoria de terceiros</option>
+          <option value="5405">Venda com ICMS já pago por substituição tributária</option>
+        </datalist>
+        @if (erroDe('cfop'); as msg) { <small class="erro">{{ msg }}</small> } @else { <small class="dica">5102 = venda comum.</small> }
+      </div>
+      <div class="campo">
+        <label for="origem">Origem</label>
+        <select id="origem" formControlName="origem">
+          <option [ngValue]="0">0 · Nacional</option>
+          <option [ngValue]="1">1 · Estrangeira (importação direta)</option>
+          <option [ngValue]="2">2 · Estrangeira (comprada no Brasil)</option>
+          <option [ngValue]="3">3 · Nacional, mais de 40% importado</option>
+          <option [ngValue]="5">5 · Nacional, até 40% importado</option>
+        </select>
+      </div>
+      <div class="campo">
+        <label for="situacaoTributaria">CSOSN / CST</label>
+        <input id="situacaoTributaria" formControlName="situacaoTributaria" inputmode="numeric" maxlength="3" list="csosns" placeholder="Ex.: 102" />
+        <datalist id="csosns">
+          <option value="102">Simples Nacional — sem crédito</option>
+          <option value="500">Simples Nacional — ICMS já pago (subst. tributária)</option>
+          <option value="00">Regime normal — tributada integralmente</option>
+          <option value="60">Regime normal — ICMS já pago (subst. tributária)</option>
+          <option value="40">Isenta</option>
+        </datalist>
+        @if (erroDe('situacaoTributaria'); as msg) { <small class="erro">{{ msg }}</small> }
+      </div>
+    </div>
+  </details>
+
   <footer class="rodape">
     <a class="botao" routerLink="/produtos">Cancelar</a>
     <button type="submit" class="botao primario" [disabled]="salvando() || carregando()">

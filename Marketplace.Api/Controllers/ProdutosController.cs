@@ -252,7 +252,14 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         produto.ControlaValidade = request.ControlaValidade;
         produto.FornecedorId = request.FornecedorId;
         produto.CodigoBalanca = request.CodigoBalanca;
+        produto.Ncm = Vazio(request.Ncm);
+        produto.Cest = Vazio(request.Cest);
+        produto.Cfop = Vazio(request.Cfop) ?? "5102";
+        produto.Origem = request.Origem;
+        produto.SituacaoTributaria = Vazio(request.SituacaoTributaria);
     }
+
+    private static string? Vazio(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
 
     private async Task<ProdutoResponse> ObterResposta(int id) =>
         await db.Produtos.AsNoTracking().Where(p => p.Id == id).Select(ParaResposta).FirstAsync();
@@ -277,5 +284,10 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             p.Ativo,
             p.FornecedorId,
             p.Fornecedor != null ? p.Fornecedor.Nome : null,
-            p.CodigoBalanca);
+            p.CodigoBalanca,
+            p.Ncm,
+            p.Cest,
+            p.Cfop,
+            p.Origem,
+            p.SituacaoTributaria);
 }
