@@ -8,6 +8,7 @@ interface ItemMenu {
   icone: string;
   rota: string;
   perfis: string[];  // quem pode ver este item
+  soDono?: boolean;  // só o dono da plataforma (administra os clientes)
   pronto: boolean;   // false = aparece como "em breve"
 }
 
@@ -34,11 +35,12 @@ export class Shell {
     { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Empresas', icone: '🏢', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },
   ];
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.
   protected readonly itensVisiveis = computed(() =>
-    this.menu.filter((item) => this.auth.temPerfil(...item.perfis)),
+    this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma)),
   );
 
   protected readonly iniciais = computed(() =>

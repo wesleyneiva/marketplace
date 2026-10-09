@@ -153,8 +153,10 @@ public class AuthController(
     {
         var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == usuario.EmpresaId)
             .Select(e => new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao)).FirstAsync();
-        return new(usuario.Id, usuario.NomeCompleto, usuario.Email!, await userManager.GetRolesAsync(usuario), usuario.TrocarSenha,
-            empresa, usuario.SomenteLeitura);
+        var perfis = await userManager.GetRolesAsync(usuario);
+        var dono = !usuario.SomenteLeitura && perfis.Contains(Perfis.Administrador)
+                   && usuario.EmpresaId == Plataforma.EmpresaDona(config) && !HttpContext.VeioDaInternet();
+        return new(usuario.Id, usuario.NomeCompleto, usuario.Email!, perfis, usuario.TrocarSenha, empresa, usuario.SomenteLeitura, dono);
     }
 
     private Task<bool> EmpresaAtivaAsync(int empresaId) => db.Empresas.AnyAsync(e => e.Id == empresaId && e.Ativa);

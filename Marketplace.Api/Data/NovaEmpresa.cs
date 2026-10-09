@@ -24,30 +24,67 @@ public static partial class NovaEmpresa
     [GeneratedRegex("^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$")]
     private static partial Regex SubdominioValido();
 
+    public class NovaEmpresaException(string mensagem) : Exception(mensagem);
+
+    // Pela linha de comando (nova-empresa.sh).
     public static async Task<int> ExecutarAsync(IServiceProvider services, IConfiguration args)
     {
         var nome = args["nome"]?.Trim();
         var subdominio = args["subdominio"]?.Trim().ToLowerInvariant();
-        var caixas = args.GetValue("caixas", 2);
         var email = args["admin-email"]?.Trim();
         var nomeAdmin = args["admin-nome"]?.Trim();
-
         if (string.IsNullOrEmpty(nome) || string.IsNullOrEmpty(subdominio) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(nomeAdmin))
             return Erro("Uso: nova-empresa --nome \"Mercado do Zé\" --subdominio mercadoze --caixas 2 --admin-email ze@exemplo.com --admin-nome \"José\"");
+
+        try
+        {
+            var caixas = args.GetValue("caixas", 2);
+            var (empresaId, senha) = await CriarAsync(services, nome, subdominio, caixas, email, nomeAdmin);
+            Console.WriteLine($"""
+
+                ✅ Empresa criada: #{empresaId} {nome}
+                   Apelido interno: {subdominio}
+                   Caixas: {caixas}
+                   Categorias padrão: {CategoriasPadrao.Length}
+
+                   Administrador: {nomeAdmin} <{email}>
+                   Senha provisória: {senha}   ← anote e passe ao cliente (troca no 1º acesso)
+                   Endereço: https://app.wnlabs.com.br
+
+                """);
+            return 0;
+        }
+        catch (NovaEmpresaException e)
+        {
+            return Erro(e.Message);
+        }
+    }
+
+    // O cadastro em si (usado pelo comando e pela tela "Empresas" do dono da plataforma).
+    // Devolve o id da empresa e a senha provisória do administrador (mostrada uma vez só).
+    public static async Task<(int EmpresaId, string Senha)> CriarAsync(
+        IServiceProvider services, string nome, string subdominio, int caixas, string email, string nomeAdmin)
+    {
+        nome = nome.Trim();
+        subdominio = subdominio.Trim().ToLowerInvariant();
+        email = email.Trim();
+        nomeAdmin = nomeAdmin.Trim();
+        if (nome.Length is < 2 or > 100) throw new NovaEmpresaException("Nome da empresa: de 2 a 100 letras.");
         if (!SubdominioValido().IsMatch(subdominio))
-            return Erro("Subdomínio: só letras minúsculas, números e hífen (ex.: mercadoze).");
-        if (caixas is < 1 or > 999)
-            return Erro("Caixas: de 1 a 999.");
+            throw new NovaEmpresaException("Apelido: só letras minúsculas, números e hífen (ex.: mercadoze).");
+        if (caixas is < 1 or > 999) throw new NovaEmpresaException("Caixas: de 1 a 999.");
+        if (nomeAdmin.Length < 2) throw new NovaEmpresaException("Informe o nome do administrador.");
+        if (!email.Contains('@') || email.Length > 150) throw new NovaEmpresaException("E-mail do administrador inválido.");
 
         int empresaId;
-        using (var scope = services.CreateScope())
+        using (var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             if (await db.Empresas.AnyAsync(e => e.Subdominio == subdominio))
-                return Erro($"Já existe uma empresa com o subdomínio \"{subdominio}\".");
+                throw new NovaEmpresaException($"Já existe uma empresa com o apelido \"{subdominio}\".");
             var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
             if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.NormalizedEmail == usuarios.NormalizeEmail(email)))
-                return Erro($"O e-mail {email} já é usuário do sistema.");
+                throw new NovaEmpresaException($"O e-mail {email} já é usuário do sistema.");
 
             var empresa = new Empresa { Nome = nome, Subdominio = subdominio, LimiteCaixas = caixas };
             db.Empresas.Add(empresa);
@@ -70,22 +107,18 @@ public static partial class NovaEmpresa
             };
             var criado = await usuarios.CreateAsync(admin, senha);
             if (!criado.Succeeded)
-                return Erro("Empresa criada, mas o administrador não: " + string.Join(" ", criado.Errors.Select(AuthController.TraduzirErro)));
+                throw new NovaEmpresaException("Empresa criada, mas o administrador não: " + string.Join(" ", criado.Errors.Select(AuthController.TraduzirErro)));
             await usuarios.AddToRoleAsync(admin, Perfis.Administrador);
-
-            Console.WriteLine($"""
-
-                ✅ Empresa criada: #{empresaId} {nome}
-                   Subdomínio (futuro): {subdominio}.wnlabs.com.br
-                   Caixas: {caixas}
-                   Categorias padrão: {CategoriasPadrao.Length}
-
-                   Administrador: {nomeAdmin} <{email}>
-                   Senha provisória: {senha}   ← anote e passe ao cliente (troca no 1º acesso)
-
-                """);
+            return (empresaId, senha);
         }
-        return 0;
+    }
+
+    // "Mercado do Zé" → "mercado-do-ze" (sugestão de apelido na tela).
+    public static string Apelido(string nome)
+    {
+        var semAcento = Services.ImportacaoProdutosService.Normalizar(nome);
+        var apelido = Regex.Replace(semAcento, "[^a-z0-9]+", "-").Trim('-');
+        return apelido.Length > 40 ? apelido[..40].Trim('-') : apelido;
     }
 
     private static int Erro(string mensagem)

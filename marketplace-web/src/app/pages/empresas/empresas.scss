@@ -1,0 +1,89 @@
+@use '../usuarios/usuarios.scss';
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.empresa {
+  padding: 16px;
+
+  &.suspensa { opacity: 0.75; border-style: dashed; }
+
+  > header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  h2 { margin: 0; font-size: 17px; }
+  .nome small { color: var(--cor-texto-suave); font-size: 13px; }
+  .selos { display: flex; gap: 6px; }
+}
+
+.selo.ativa { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.suspensa { background: #fee2e2; color: var(--cor-erro); }
+.selo.demo { background: #ede9fe; color: #5b21b6; }
+
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px 16px;
+  margin: 14px 0;
+
+  div { min-width: 0; }
+  dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
+  dd { margin: 2px 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  small { font-weight: 400; color: var(--cor-texto-suave); }
+}
+
+.acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.usuarios {
+  margin-top: 14px;
+  border-top: 1px solid var(--cor-borda);
+  padding-top: 10px;
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--cor-borda); white-space: nowrap; }
+  th { font-size: 12px; text-transform: uppercase; color: var(--cor-texto-suave); }
+  .email { display: block; color: var(--cor-texto-suave); font-size: 12px; }
+}
+
+.tabela-rolagem { overflow-x: auto; }
+
+.vazio { padding: 16px; text-align: center; color: var(--cor-texto-suave); }
+
+.janela {
+  fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 10px;
+    padding: 10px 12px;
+
+    legend { font-weight: 600; font-size: 14px; padding: 0 4px; }
+    label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
+  }
+
+  label small { font-weight: 400; color: var(--cor-texto-suave); }
+
+  .mensagem {
+    margin: 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--cor-fundo);
+    font-family: inherit;
+    font-size: 14px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+}

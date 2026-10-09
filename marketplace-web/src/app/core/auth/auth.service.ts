@@ -11,6 +11,7 @@ export interface UsuarioLogado {
   trocarSenha: boolean; // senha provisória: precisa trocar antes de usar o sistema
   empresa: Empresa;      // o mercado onde a pessoa trabalha (multi-tenant)
   somenteLeitura: boolean; // visitante da demonstração: só olha
+  donoDaPlataforma: boolean; // administra os clientes do SaaS (tela "Empresas")
 }
 
 export interface Empresa {

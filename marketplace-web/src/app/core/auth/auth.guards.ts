@@ -37,3 +37,11 @@ export const precisaPerfil =
     if (auth.usuario()?.trocarSenha) return router.createUrlTree(['/trocar-senha']);
     return auth.temPerfil(...perfis) ? true : router.createUrlTree(['/dashboard']);
   };
+
+// Telas da plataforma (clientes do SaaS): só o dono, pela rede interna (a API confere de novo).
+export const precisaSerDono: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
+  return auth.usuario()?.donoDaPlataforma ? true : router.createUrlTree(['/dashboard']);
+};

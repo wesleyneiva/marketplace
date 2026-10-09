@@ -1,0 +1,126 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>🏢 Empresas</h1>
+    <p>Os clientes do sistema. Todos entram pelo mesmo endereço: <strong>app.wnlabs.com.br</strong></p>
+  </div>
+  <button type="button" class="botao primario" (click)="abrirNova()">+ Novo cliente</button>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+
+@if (empresas.error()) {
+  <p class="vazio">Não foi possível carregar. <button class="botao pequeno" (click)="empresas.reload()">Tentar de novo</button></p>
+}
+
+<section class="lista">
+  @for (e of empresas.value() ?? []; track e.id) {
+    <article class="painel empresa" [class.suspensa]="!e.ativa">
+      <header>
+        <div class="nome">
+          <h2>{{ e.nome }}</h2>
+          <small>#{{ e.id }} · {{ e.subdominio }} · cliente desde {{ e.criadoEm | date: 'dd/MM/yyyy' }}</small>
+        </div>
+        <div class="selos">
+          @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
+          @if (e.ativa) { <span class="selo ativa">ativa</span> } @else { <span class="selo suspensa">suspensa</span> }
+        </div>
+      </header>
+
+      <dl class="numeros">
+        <div><dt>Plano</dt><dd>{{ e.limiteCaixas }} {{ e.limiteCaixas === 1 ? 'caixa' : 'caixas' }}
+          @if (e.caixasAbertos) { <small>({{ e.caixasAbertos }} aberto{{ e.caixasAbertos > 1 ? 's' : '' }} agora)</small> }</dd></div>
+        <div><dt>Usuários</dt><dd>{{ e.usuariosAtivos }}<small> / {{ e.usuarios }}</small></dd></div>
+        <div><dt>Produtos</dt><dd>{{ e.produtos }}</dd></div>
+        <div><dt>Vendas (30 dias)</dt><dd>{{ e.vendas30Dias }} <small>· {{ e.faturamento30Dias | currency: 'BRL' }}</small></dd></div>
+        <div><dt>Último acesso</dt><dd [title]="e.ultimoAcesso | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(e.ultimoAcesso) }}</dd></div>
+        <div><dt>Última venda</dt><dd [title]="e.ultimaVenda | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(e.ultimaVenda) }}</dd></div>
+      </dl>
+
+      <div class="acoes">
+        <button type="button" class="botao pequeno" (click)="alternarUsuarios(e)">👥 Usuários {{ aberta() === e.id ? '▲' : '▼' }}</button>
+        <button type="button" class="botao pequeno" (click)="abrirEdicao(e)">✏️ Editar / plano</button>
+        <button type="button" class="botao pequeno" [class.perigo]="e.ativa" [disabled]="processando() === e.id" (click)="alternarSituacao(e)">
+          {{ e.ativa ? '⏸️ Suspender' : '▶️ Reativar' }}
+        </button>
+      </div>
+
+      @if (aberta() === e.id) {
+        <div class="usuarios tabela-rolagem">
+          <table>
+            <thead><tr><th>Nome</th><th>Perfil</th><th>Situação</th><th>Último acesso</th><th></th></tr></thead>
+            <tbody>
+              @for (u of usuarios(); track u.id) {
+                <tr>
+                  <td><strong>{{ u.nome }}</strong><small class="email">{{ u.email }}</small></td>
+                  <td>{{ u.perfis.join(', ') }}</td>
+                  <td>
+                    @if (!u.ativo) { <span class="selo suspensa">desativado</span> }
+                    @else if (u.bloqueado) { <span class="selo alerta">bloqueado (errou a senha)</span> }
+                    @else if (u.trocarSenha) { <span class="selo alerta">senha provisória</span> }
+                    @else { <span class="selo ativa">ok</span> }
+                  </td>
+                  <td>{{ tempoDesde(u.ultimoAcesso) }}</td>
+                  <td><button type="button" class="botao pequeno" (click)="redefinirSenha(e, u)">🔑 Senha nova</button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="5" class="vazio">Carregando…</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </article>
+  }
+</section>
+
+<!-- Cadastro / edição -->
+<dialog #dlgEmpresa class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header>
+      <h2>{{ editando() ? 'Editar empresa' : 'Novo cliente' }}</h2>
+      <button type="button" class="fechar" (click)="dlgEmpresa.close()">✕</button>
+    </header>
+    <div class="corpo">
+      <label>Nome do mercado<input name="nome" [(ngModel)]="nome" required minlength="2" maxlength="100" /></label>
+      @if (!editando()) {
+        <label>Apelido interno <small>(opcional: identifica a empresa; não muda o endereço)</small>
+          <input name="subdominio" [(ngModel)]="subdominio" maxlength="40" pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?" [placeholder]="apelidoSugerido() || 'mercado-do-ze'" />
+        </label>
+      }
+      <label>Plano: quantos caixas (PDVs)<input name="caixas" type="number" min="1" max="999" [(ngModel)]="limiteCaixas" required /></label>
+      @if (!editando()) {
+        <fieldset>
+          <legend>Administrador do cliente</legend>
+          <label>Nome<input name="adminNome" [(ngModel)]="adminNome" required minlength="2" maxlength="100" /></label>
+          <label>E-mail (usado para entrar)<input name="adminEmail" type="email" [(ngModel)]="adminEmail" required maxlength="150" /></label>
+        </fieldset>
+        <p class="dica">O sistema cria a empresa com as categorias padrão e gera uma <b>senha provisória</b> para o administrador.</p>
+      } @else if (limiteCaixas < editando()!.caixasAbertos) {
+        <p class="dica">⚠️ Há {{ editando()!.caixasAbertos }} caixas abertos agora; os que passarem do plano somem da lista ao serem fechados.</p>
+      }
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgEmpresa.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">
+        {{ salvando() ? 'Salvando…' : editando() ? 'Salvar' : 'Cadastrar cliente' }}
+      </button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Senha provisória: mostrada UMA vez -->
+<dialog #dlgSenha class="janela" (close)="credencial.set(null)">
+  @if (credencial(); as c) {
+    <header><h2>🔑 {{ c.titulo }}</h2></header>
+    <div class="corpo">
+      <p>Mande para <b>{{ c.nome }}</b> (de preferência a senha numa mensagem separada):</p>
+      <pre class="mensagem">{{ mensagemCliente(c) }}</pre>
+      <p class="dica">⚠️ A senha <b>não aparece de novo</b>. Se o cliente perder, gere outra em "Usuários → Senha nova".</p>
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="copiar()">{{ copiado() ? '✓ Copiada' : '📋 Copiar mensagem' }}</button>
+      <button type="button" class="botao primario" (click)="dlgSenha.close()">Pronto</button>
+    </footer>
+  }
+</dialog>

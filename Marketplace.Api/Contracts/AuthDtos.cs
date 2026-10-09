@@ -7,7 +7,8 @@ public record LoginRequest(string Email, string Senha);
 
 public record UsuarioLogadoResponse(
     string Id, string Nome, string Email, IList<string> Perfis, bool TrocarSenha,
-    EmpresaResponse Empresa, bool SomenteLeitura);
+    EmpresaResponse Empresa, bool SomenteLeitura,
+    bool DonoDaPlataforma); // vê a tela "Empresas" (administra os clientes do SaaS)
 
 // A empresa (mercado) de quem está logado: o nome aparece no menu; o limite de caixas, no PDV.
 public record EmpresaResponse(int Id, string Nome, int LimiteCaixas, bool Demonstracao);

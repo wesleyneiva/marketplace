@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, somenteDeslogado } from './core/auth/auth.guards';
+import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, precisaSerDono, somenteDeslogado } from './core/auth/auth.guards';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
 export const routes: Routes = [
@@ -63,6 +63,12 @@ export const routes: Routes = [
         path: 'usuarios',
         canActivate: [precisaPerfil('Administrador')],
         loadComponent: () => import('./pages/usuarios/usuarios').then((m) => m.Usuarios),
+      },
+      {
+        // Clientes do SaaS (só o dono da plataforma).
+        path: 'empresas',
+        canActivate: [precisaSerDono],
+        loadComponent: () => import('./pages/empresas/empresas').then((m) => m.Empresas),
       },
       {
         path: 'estoque',
