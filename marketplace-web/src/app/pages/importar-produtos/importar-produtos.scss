@@ -1,0 +1,266 @@
+.voltar {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: var(--cor-texto-suave);
+  text-decoration: none;
+  font-size: 14px;
+
+  &:hover {
+    color: var(--cor-primaria);
+  }
+}
+
+.passos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.passo {
+  display: flex;
+  gap: 14px;
+  padding: 18px;
+
+  h2 {
+    margin: 2px 0 4px;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 0 0 12px;
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+  }
+}
+
+.numero {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+  font-weight: 700;
+}
+
+.area-envio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 36px 16px;
+  margin-bottom: 14px;
+  border: 2px dashed var(--cor-borda);
+  border-radius: 12px;
+  background: var(--cor-superficie);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  strong {
+    font-size: 16px;
+  }
+
+  span {
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+  }
+
+  &:hover,
+  &.arrastando {
+    border-color: var(--cor-primaria);
+    background: var(--cor-primaria-clara);
+  }
+
+  &.enviando {
+    cursor: progress;
+  }
+}
+
+.mensagem-erro {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--cor-erro-fundo);
+  color: var(--cor-erro);
+}
+
+.resumo {
+  padding: 16px;
+  margin-bottom: 14px;
+
+  .arquivo {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+
+.contadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.contador {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: var(--cor-superficie);
+  color: var(--cor-texto-suave);
+  font-size: 14px;
+  cursor: pointer;
+
+  strong {
+    font-size: 18px;
+    color: var(--cor-texto);
+  }
+
+  &.novo strong { color: var(--cor-primaria); }
+  &.atualizar strong { color: #1d4ed8; }
+  &.erro strong { color: var(--cor-erro); }
+  &.aviso strong { color: #92400e; }
+
+  &.ligado {
+    border-color: var(--cor-primaria);
+    box-shadow: inset 0 0 0 1px var(--cor-primaria);
+  }
+}
+
+.nota {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--cor-texto-suave);
+
+  &.rodape {
+    margin: 0;
+    padding: 10px 14px;
+  }
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+  margin-bottom: 14px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 9px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--cor-borda);
+  vertical-align: top;
+}
+
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--cor-texto-suave);
+  background: var(--cor-fundo);
+  white-space: nowrap;
+}
+
+tr.erro {
+  background: var(--cor-erro-fundo);
+}
+
+tr.aviso {
+  background: #fffbeb;
+}
+
+.num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.forte {
+  font-weight: 600;
+}
+
+.suave {
+  color: var(--cor-texto-suave);
+}
+
+.nome {
+  display: block;
+  font-weight: 600;
+}
+
+.codigo {
+  color: var(--cor-texto-suave);
+  font-size: 12px;
+}
+
+.produto {
+  min-width: 260px;
+
+  @media (max-width: 600px) {
+    min-width: 200px;
+  }
+}
+
+.mensagens {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.msg-erro {
+  color: var(--cor-erro);
+}
+
+.msg-aviso {
+  color: #92400e;
+}
+
+.selo.novo {
+  background: var(--cor-primaria-clara);
+  color: var(--cor-primaria-escura);
+}
+
+.selo.atualizar {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.selo.erro {
+  background: #fee2e2;
+  color: var(--cor-erro);
+}
+
+.vazio {
+  padding: 24px;
+  text-align: center;
+  color: var(--cor-texto-suave);
+}
+
+.confirmar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 16px;
+
+  p {
+    margin: 4px 0 0;
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+  }
+}

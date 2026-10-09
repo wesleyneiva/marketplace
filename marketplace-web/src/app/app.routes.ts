@@ -31,6 +31,7 @@ export const routes: Routes = [
         children: [
           { path: '', loadComponent: () => import('./pages/produtos/produtos').then((m) => m.Produtos) },
           // "novo" e ":id" usam a mesma tela de formulário. O :id chega no componente como input().
+          { path: 'importar', loadComponent: () => import('./pages/importar-produtos/importar-produtos').then((m) => m.ImportarProdutos) },
           { path: 'novo', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
           { path: ':id', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
         ],

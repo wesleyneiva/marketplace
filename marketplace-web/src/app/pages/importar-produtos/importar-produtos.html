@@ -1,0 +1,156 @@
+<a routerLink="/produtos" class="voltar">← Produtos</a>
+<header class="titulo-pagina">
+  <div>
+    <h1>📥 Importar produtos</h1>
+    <p>Cadastre ou atualize muitos produtos de uma vez com uma planilha do Excel.</p>
+  </div>
+</header>
+
+@if (!previa()) {
+  <section class="passos">
+    <div class="painel passo">
+      <span class="numero">1</span>
+      <div>
+        <h2>Baixe o modelo</h2>
+        <p>Planilha pronta com as colunas certas, um exemplo e as instruções. As suas categorias já vêm no menu.</p>
+        <a class="botao" [href]="urlModelo" download>⬇️ Baixar modelo (.xlsx)</a>
+      </div>
+    </div>
+
+    <div class="painel passo">
+      <span class="numero">2</span>
+      <div>
+        <h2>Preencha e envie</h2>
+        <p>Uma linha por produto. Também serve a planilha exportada do seu sistema antigo (.xlsx ou .csv).</p>
+      </div>
+    </div>
+  </section>
+
+  <label class="area-envio" [class.arrastando]="arrastando()" [class.enviando]="enviando()"
+         (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
+    <input type="file" accept=".xlsx,.csv" (change)="escolherArquivo($event)" [disabled]="enviando()" class="sr-only" />
+    @if (enviando()) {
+      <strong>⏳ Lendo a planilha…</strong>
+      <span>Conferindo cada linha. Nada é gravado ainda.</span>
+    } @else {
+      <strong>📄 Clique para escolher a planilha</strong>
+      <span>ou arraste o arquivo para cá · .xlsx ou .csv · até 5 MB</span>
+    }
+  </label>
+
+  @if (erro()) {
+    <div class="mensagem-erro" role="alert">{{ erro() }}</div>
+  }
+} @else {
+  @let p = previa()!;
+
+  <section class="painel resumo">
+    <div class="arquivo">
+      <span>📄 <strong>{{ p.arquivo }}</strong> · {{ p.totalLinhas }} {{ p.totalLinhas === 1 ? 'linha' : 'linhas' }}</span>
+      <button type="button" class="botao pequeno" (click)="recomecar()">Enviar outra planilha</button>
+    </div>
+
+    @for (e of p.errosGerais; track e) {
+      <div class="mensagem-erro" role="alert">{{ e }}</div>
+    }
+
+    @if (p.totalLinhas > 0) {
+      <div class="contadores">
+        <button type="button" class="contador" [class.ligado]="filtro() === 'todas'" (click)="filtro.set('todas')">
+          <strong>{{ p.totalLinhas }}</strong> todas
+        </button>
+        <button type="button" class="contador novo" [class.ligado]="filtro() === 'novo'" (click)="filtro.set('novo')">
+          <strong>{{ p.novos }}</strong> {{ p.novos === 1 ? 'novo' : 'novos' }}
+        </button>
+        <button type="button" class="contador atualizar" [class.ligado]="filtro() === 'atualizar'" (click)="filtro.set('atualizar')">
+          <strong>{{ p.atualizados }}</strong> para atualizar
+        </button>
+        <button type="button" class="contador erro" [class.ligado]="filtro() === 'erro'" (click)="filtro.set('erro')">
+          <strong>{{ p.comErro }}</strong> com erro
+        </button>
+        <button type="button" class="contador aviso" [class.ligado]="filtro() === 'aviso'" (click)="filtro.set('aviso')">
+          <strong>{{ p.comAviso }}</strong> com aviso
+        </button>
+      </div>
+    }
+
+    @if (p.categoriasNovas.length) {
+      <p class="nota">🆕 Categorias novas que serão criadas: <strong>{{ p.categoriasNovas.join(', ') }}</strong></p>
+    }
+    @for (a of p.avisosGerais; track a) {
+      <p class="nota">⚠️ {{ a }}</p>
+    }
+  </section>
+
+  @if (p.totalLinhas > 0) {
+    <section class="painel tabela-rolagem">
+      <table>
+        <thead>
+          <tr>
+            <th class="num">Linha</th>
+            <th></th>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th class="num">Custo</th>
+            <th class="num">Venda</th>
+            <th class="num">Estoque inicial</th>
+            <th>Validade</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (l of linhasFiltradas().visiveis; track l.linha) {
+            <tr [class]="classeDaLinha(l)">
+              <td class="num suave">{{ l.linha }}</td>
+              <td>
+                @switch (l.acao) {
+                  @case ('Novo') { <span class="selo novo">novo</span> }
+                  @case ('Atualizar') { <span class="selo atualizar">atualizar</span> }
+                  @default { <span class="selo erro">erro</span> }
+                }
+              </td>
+              <td class="produto">
+                <span class="nome">{{ l.nome || '—' }}</span>
+                <small class="codigo">{{ l.codigoBarras ?? 'sem código de barras' }} · {{ l.unidade ?? '?' }}</small>
+                @if (l.erros.length || l.avisos.length) {
+                  <div class="mensagens">
+                    @for (e of l.erros; track e) { <div class="msg-erro">❌ {{ e }}</div> }
+                    @for (a of l.avisos; track a) { <div class="msg-aviso">⚠️ {{ a }}</div> }
+                  </div>
+                }
+              </td>
+              <td>{{ l.categoria || '—' }}</td>
+              <td class="num">{{ l.precoCusto === null ? '—' : (l.precoCusto | currency: 'BRL') }}</td>
+              <td class="num forte">{{ l.precoVenda === null ? '—' : (l.precoVenda | currency: 'BRL') }}</td>
+              <td class="num">{{ l.estoqueInicial === null ? '—' : (l.estoqueInicial | quantidade: l.unidade ?? 'UN') }}</td>
+              <td>{{ l.controlaValidade ? (l.validade | dia) : '—' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="8" class="vazio">Nenhuma linha neste filtro. 👍</td></tr>
+          }
+        </tbody>
+      </table>
+      @if (linhasFiltradas().total > limiteNaTela) {
+        <p class="nota rodape">Mostrando as primeiras {{ limiteNaTela }} de {{ linhasFiltradas().total }} linhas deste filtro.</p>
+      }
+    </section>
+
+    <section class="painel confirmar">
+      <div>
+        @if (aproveitaveis() > 0) {
+          <strong>{{ p.novos }} {{ p.novos === 1 ? 'produto novo' : 'produtos novos' }} e {{ p.atualizados }} para atualizar.</strong>
+          @if (p.comErro > 0) {
+            <p>As {{ p.comErro }} linhas com erro serão <strong>ignoradas</strong>. Se preferir, corrija a planilha e envie de novo.</p>
+          } @else {
+            <p>Tudo certo com a planilha.</p>
+          }
+        } @else {
+          <strong>Nenhuma linha pode ser importada.</strong>
+          <p>Corrija os erros na planilha e envie de novo.</p>
+        }
+      </div>
+      <button type="button" class="botao primario" disabled title="Chega no próximo passo">
+        ✅ Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }}
+      </button>
+    </section>
+  }
+}

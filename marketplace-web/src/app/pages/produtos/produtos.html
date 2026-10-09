@@ -5,7 +5,10 @@
       @if (produtos.value(); as p) { {{ p.total }} {{ p.total === 1 ? 'produto' : 'produtos' }} } @else { Carregando… }
     </p>
   </div>
-  <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
+  <div class="botoes-topo">
+    <a class="botao" routerLink="/produtos/importar">📥 Importar planilha</a>
+    <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
+  </div>
 </header>
 
 <section class="filtros">
