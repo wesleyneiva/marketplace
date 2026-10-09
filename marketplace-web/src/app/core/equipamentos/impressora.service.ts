@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { Cupom, FORMAS_PAGAMENTO } from '../api/pdv.api';
+import { Cupom, FORMAS_PAGAMENTO, ResumoCaixa } from '../api/pdv.api';
 
 // Impressora TÉRMICA de cupom (Elgin i9, Epson TM-T20, Bematech MP-4200, Daruma…), instalada no Windows como
 // impressora comum. O sistema monta o cupom no tamanho da bobina e manda imprimir por um quadro escondido.
@@ -37,7 +37,6 @@ export class ImpressoraService {
   // O cupom em HTML (também usado na prévia da tela de Configurações).
   htmlCupom(c: Cupom, loja: string): string {
     const cfg = this.config();
-    const dinheiro = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const qtd = (v: number, un: string) =>
       un === 'KG' || un === 'L' ? v.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 }) : String(v);
     const data = new Date(c.dataHora).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
@@ -45,7 +44,7 @@ export class ImpressoraService {
     const itens = c.itens.map((i, n) => `
       <div class="item"><span>${String(n + 1).padStart(3, '0')} ${esc(i.descricao)}</span></div>
       <div class="linha"><span>${qtd(i.quantidade, i.unidade)} ${esc(i.unidade)} x ${dinheiro(i.precoUnitario)}</span><span>${dinheiro(i.total)}</span></div>`).join('');
-    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(FORMAS_PAGAMENTO.find((f) => f.valor === p.forma)?.rotulo ?? p.forma)}</span><span>${dinheiro(p.valor)}</span></div>`).join('');
+    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}</span><span>${dinheiro(p.valor)}</span></div>`).join('');
 
     const via = (n: number) => `
       <section class="via">
@@ -69,8 +68,70 @@ export class ImpressoraService {
         <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
       </section>`;
 
+    return this.envelope(`Cupom ${c.id}`, Array.from({ length: Math.max(1, Math.min(3, cfg.vias)) }, (_, i) => via(i + 1)).join(''));
+  }
+
+  // Fechamento do caixa: o papel que vai junto com o dinheiro para quem confere.
+  htmlFechamento(r: ResumoCaixa, loja: string): string {
+    const linha = (rotulo: string, valor: string, classe = '') => `<div class="linha ${classe}"><span>${rotulo}</span><span>${valor}</span></div>`;
+    const formas = r.porForma.map((f) => linha(esc(rotuloForma(f.forma)), dinheiro(f.valor))).join('');
+    const diferenca = r.diferenca ?? 0;
+    const corpo = `
+      <section class="via">
+        <div class="centro forte grande">${esc(loja)}</div>
+        <div class="centro forte">FECHAMENTO DE CAIXA</div>
+        <div class="tracos"></div>
+        ${linha(`Caixa ${r.numeroCaixa}`, esc(r.operador))}
+        ${linha('Abertura', dataHora(r.abertaEm))}
+        ${linha('Fechamento', r.fechadaEm ? dataHora(r.fechadaEm) : '—')}
+        <div class="tracos"></div>
+        ${linha(`Vendas (${r.quantidadeVendas})`, dinheiro(r.totalVendido), 'forte')}
+        ${linha('Ticket médio', dinheiro(r.ticketMedio))}
+        ${r.vendasCanceladas ? linha(`Canceladas (${r.vendasCanceladas})`, dinheiro(r.valorCancelado)) : ''}
+        <div class="tracos"></div>
+        <div class="forte">Por forma de pagamento</div>
+        ${formas || linha('(nenhuma venda)', '')}
+        <div class="tracos"></div>
+        <div class="forte">Dinheiro na gaveta</div>
+        ${linha('Troco inicial', dinheiro(r.valorAbertura))}
+        ${linha('+ Recebido em dinheiro', dinheiro((r.porForma.find((f) => f.forma === 'Dinheiro')?.valor ?? 0) + r.trocoDado))}
+        ${linha('− Troco dado', dinheiro(r.trocoDado))}
+        ${linha('+ Suprimentos', dinheiro(r.suprimentos))}
+        ${linha('− Sangrias', dinheiro(r.sangrias))}
+        ${linha('= Esperado', dinheiro(r.dinheiroEsperado), 'forte')}
+        ${linha('Contado', r.valorContado === null ? '—' : dinheiro(r.valorContado), 'forte')}
+        ${linha(diferenca === 0 ? 'Diferença' : diferenca > 0 ? 'SOBRA' : 'FALTA', dinheiro(Math.abs(diferenca)), 'forte grande')}
+        ${r.observacaoFechamento ? `<div class="tracos"></div><div>Obs.: ${esc(r.observacaoFechamento)}</div>` : ''}
+        <div class="assinatura">Operador</div>
+        <div class="assinatura">Conferido por</div>
+        <div class="centro pequeno">Impresso em ${dataHora(new Date().toISOString())}</div>
+      </section>`;
+    return this.envelope(`Fechamento do caixa ${r.numeroCaixa}`, corpo);
+  }
+
+  // Comprovante de sangria (dinheiro que sai da gaveta para o cofre) ou suprimento (troco que entra).
+  htmlMovimento(tipo: 'sangria' | 'suprimento', valor: number, motivo: string, caixa: ResumoCaixa, loja: string): string {
+    const corpo = `
+      <section class="via">
+        <div class="centro forte grande">${esc(loja)}</div>
+        <div class="centro forte">${tipo === 'sangria' ? 'SANGRIA (retirada de dinheiro)' : 'SUPRIMENTO (entrada de troco)'}</div>
+        <div class="tracos"></div>
+        <div class="linha"><span>Caixa ${caixa.numeroCaixa}</span><span>${esc(caixa.operador)}</span></div>
+        <div class="linha"><span>Data</span><span>${dataHora(new Date().toISOString())}</span></div>
+        <div class="tracos"></div>
+        <div class="linha forte grande"><span>VALOR R$</span><span>${dinheiro(valor)}</span></div>
+        <div>Motivo: ${esc(motivo || '—')}</div>
+        <div class="assinatura">Operador do caixa</div>
+        <div class="assinatura">${tipo === 'sangria' ? 'Recebido por' : 'Entregue por'}</div>
+      </section>`;
+    return this.envelope(tipo === 'sangria' ? 'Sangria' : 'Suprimento', corpo);
+  }
+
+  // A "bobina": largura, fonte de cupom, margens zeradas. Todos os documentos usam.
+  private envelope(titulo: string, corpo: string): string {
+    const cfg = this.config();
     const largura = cfg.largura === 58 ? 48 : 72; // área que a cabeça de impressão alcança (mm)
-    return `<!doctype html><html><head><meta charset="utf-8"><title>Cupom ${c.id}</title><style>
+    return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(titulo)}</title><style>
       @page { size: ${cfg.largura}mm auto; margin: 0; }
       * { box-sizing: border-box; }
       body { margin: 0; color: #000; background: #fff; }
@@ -84,7 +145,8 @@ export class ImpressoraService {
       .grande { font-size: 1.25em; }
       .pequeno { font-size: 0.85em; margin-top: 1mm; }
       .tracos { border-top: 1px dashed #000; margin: 1.5mm 0; }
-    </style></head><body>${Array.from({ length: Math.max(1, Math.min(3, cfg.vias)) }, (_, i) => via(i + 1)).join('')}</body></html>`;
+      .assinatura { margin-top: 10mm; border-top: 1px solid #000; text-align: center; font-size: 0.9em; padding-top: 0.5mm; }
+    </style></head><body>${corpo}</body></html>`;
   }
 
   // Imprime um HTML num quadro invisível (a tela do caixa não muda).
@@ -111,6 +173,18 @@ export class ImpressoraService {
       return PADRAO;
     }
   }
+}
+
+function dinheiro(v: number): string {
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function dataHora(iso: string): string {
+  return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function rotuloForma(forma: string): string {
+  return FORMAS_PAGAMENTO.find((f) => f.valor === forma)?.rotulo ?? forma;
 }
 
 function esc(texto: string): string {

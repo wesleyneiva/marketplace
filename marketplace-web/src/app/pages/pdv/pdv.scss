@@ -603,3 +603,11 @@ kbd {
   color: var(--cor-texto-suave);
   font-size: 14px;
 }
+
+// "Imprimir comprovante" (caixinha na janela de sangria/suprimento)
+.janela label.marcar {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}

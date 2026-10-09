@@ -31,6 +31,9 @@
       <span>{{ cx.operador }}</span>
       <span class="pilula">{{ cx.quantidadeVendas }} {{ cx.quantidadeVendas === 1 ? 'venda' : 'vendas' }} · {{ cx.totalVendido | currency: 'BRL' }}</span>
       <span class="espaco"></span>
+      @if (ultimoCupom(); as u) {
+        <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda">🧾 Último cupom (#{{ u.id }})</button>
+      }
       <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')">↑ Sangria</button>
       <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')">↓ Suprimento</button>
       <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>
@@ -231,6 +234,7 @@
         }
         <label>Valor (R$)<input name="valor" [(ngModel)]="textoMovimento" inputmode="decimal" autofocus /></label>
         <label>Motivo<input name="motivo" [(ngModel)]="motivoMovimento" maxlength="150" /></label>
+        <label class="marcar"><input type="checkbox" name="comprovante" [(ngModel)]="imprimirComprovante" /> Imprimir comprovante para assinar</label>
         @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
       </div>
       <footer>
@@ -284,7 +288,10 @@
           <div><span>Contado</span><b>{{ f.valorContado | currency: 'BRL' }}</b></div>
         </div>
       </div>
-      <footer><button type="button" class="botao primario" (click)="concluirFechamento()">Concluir</button></footer>
+      <footer>
+        <button type="button" class="botao" (click)="imprimirFechamento()">🖨️ Imprimir fechamento</button>
+        <button type="button" class="botao primario" (click)="concluirFechamento()">Concluir</button>
+      </footer>
     }
   </dialog>
 }

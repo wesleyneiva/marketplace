@@ -84,6 +84,7 @@ export class Pdv {
 
   // ----- Resultado / mensagens -----
   protected readonly cupom = signal<Cupom | null>(null);
+  protected readonly ultimoCupom = signal<Cupom | null>(null); // para reimprimir depois que a janela fechou
   protected readonly erro = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
 
@@ -91,6 +92,7 @@ export class Pdv {
   protected readonly tipoMovimento = signal<'sangria' | 'suprimento'>('sangria');
   protected textoMovimento = '';
   protected motivoMovimento = '';
+  protected imprimirComprovante = true; // papel assinado que vai junto com o dinheiro
   protected textoContado = '';
   protected observacaoFechamento = '';
   protected readonly fechamento = signal<ResumoCaixa | null>(null);
@@ -438,6 +440,7 @@ export class Pdv {
       });
       this.dlgPagamento()?.nativeElement.close();
       this.cupom.set(cupom);
+      this.ultimoCupom.set(cupom);
       this.dlgCupom()?.nativeElement.showModal();
       if (this.impressora.config().automatica) this.imprimirCupom();
       // O botão só existe depois que o Angular desenha o cupom → foca no próximo "tique".
@@ -474,8 +477,11 @@ export class Pdv {
       return;
     }
     await this.executar(async () => {
-      this.caixa.set(await this.api.movimentar(this.tipoMovimento(), valor, this.motivoMovimento));
+      const resumo = await this.api.movimentar(this.tipoMovimento(), valor, this.motivoMovimento);
+      this.caixa.set(resumo);
       this.dlgMovimento()?.nativeElement.close();
+      if (this.imprimirComprovante)
+        this.impressora.imprimirHtml(this.impressora.htmlMovimento(this.tipoMovimento(), valor, this.motivoMovimento, resumo, this.loja()));
       this.mostrarAviso(`${this.tipoMovimento() === 'sangria' ? 'Sangria' : 'Suprimento'} de ${valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} registrado.`);
       this.focarBusca();
     });
@@ -501,6 +507,7 @@ export class Pdv {
     }
     await this.executar(async () => {
       this.fechamento.set(await this.api.fechar(contado, this.observacaoFechamento.trim() || null));
+      if (this.impressora.config().automatica) this.imprimirFechamento();
     });
   }
 
@@ -539,8 +546,24 @@ export class Pdv {
 
   protected imprimirCupom(): void {
     const c = this.cupom();
-    if (c) this.impressora.imprimirCupom(c, this.auth.usuario()?.empresa.nome ?? 'Marketplace');
+    if (c) this.impressora.imprimirCupom(c, this.loja());
     setTimeout(() => this.btnNovaVenda()?.nativeElement.focus(), 300);
+  }
+
+  // "Moço, me dá o cupom?" — depois que a janela da venda já fechou.
+  protected reimprimirUltimo(): void {
+    const c = this.ultimoCupom();
+    if (c) this.impressora.imprimirCupom(c, this.loja());
+    this.focarBusca();
+  }
+
+  protected imprimirFechamento(): void {
+    const f = this.fechamento();
+    if (f) this.impressora.imprimirHtml(this.impressora.htmlFechamento(f, this.loja()));
+  }
+
+  private loja(): string {
+    return this.auth.usuario()?.empresa.nome ?? 'Marketplace';
   }
 
   protected rotuloForma(forma: string): string {
