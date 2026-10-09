@@ -1,0 +1,221 @@
+<a routerLink="/compras" class="voltar">← Compras</a>
+<header class="titulo-pagina">
+  <div>
+    <h1>📄 Entrada por nota fiscal (XML)</h1>
+    <p>Envie o XML da NF-e do fornecedor: o sistema reconhece os produtos, calcula o custo e dá entrada no estoque.</p>
+  </div>
+</header>
+
+@if (resultado(); as r) {
+  <section class="painel sucesso" role="status">
+    <span class="icone">✅</span>
+    <div>
+      <h2>Nota lançada no estoque</h2>
+      <ul>
+        <li><strong>{{ r.itensLancados }}</strong> {{ r.itensLancados === 1 ? 'item entrou' : 'itens entraram' }} no estoque
+          @if (r.itensIgnorados) { · {{ r.itensIgnorados }} ignorado(s) }</li>
+        @if (r.produtosCriados) { <li><strong>{{ r.produtosCriados }}</strong> produto(s) novo(s) cadastrado(s)</li> }
+        @if (r.fornecedorCriado) { <li>Fornecedor <strong>{{ r.fornecedor }}</strong> cadastrado pelo CNPJ da nota</li> }
+        @if (r.pedidoRecebidoId) { <li>Pedido de compra <strong>#{{ r.pedidoRecebidoId }}</strong> marcado como recebido</li> }
+        <li>Na próxima nota deste fornecedor, os itens serão reconhecidos sozinhos.</li>
+      </ul>
+      <div class="botoes">
+        <a class="botao primario" routerLink="/estoque">Ver estoque</a>
+        <button type="button" class="botao" (click)="recomecar()">Lançar outra nota</button>
+      </div>
+    </div>
+  </section>
+} @else if (!conferencia()) {
+  <label class="area-envio" [class.arrastando]="arrastando()" [class.enviando]="lendo()"
+         (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
+    <input type="file" accept=".xml,text/xml,application/xml" (change)="escolherArquivo($event)" [disabled]="lendo()" class="sr-only" />
+    @if (lendo()) {
+      <strong>⏳ Lendo a nota…</strong>
+      <span>Procurando os produtos. Nada é gravado ainda.</span>
+    } @else {
+      <strong>📄 Clique para escolher o XML da nota</strong>
+      <span>ou arraste o arquivo para cá · o .xml que o fornecedor manda por e-mail (não o PDF)</span>
+    }
+  </label>
+  @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }
+
+  <section class="painel historico">
+    <h2>Últimas notas lançadas</h2>
+    @if (historico.value()?.length) {
+      <div class="tabela-rolagem">
+        <table>
+          <thead>
+            <tr><th>Nota</th><th>Fornecedor</th><th>Emissão</th><th class="num">Itens</th><th class="num">Valor</th><th>Lançada</th><th></th></tr>
+          </thead>
+          <tbody>
+            @for (n of historico.value(); track n.id) {
+              <tr>
+                <td><strong>{{ n.numero }}</strong> <small class="suave">série {{ n.serie }}</small>
+                  @if (n.pedidoCompraId) { <small class="selo">pedido #{{ n.pedidoCompraId }}</small> }</td>
+                <td>{{ n.fornecedor }}</td>
+                <td>{{ n.dataEmissao | date: 'dd/MM/yyyy' }}</td>
+                <td class="num">{{ n.quantidadeItens }}</td>
+                <td class="num">{{ n.valorTotal | currency: 'BRL' }}</td>
+                <td><small>{{ n.registradaEm | date: 'dd/MM HH:mm' }} · {{ n.registradaPor }}</small></td>
+                <td><a class="botao pequeno" [href]="urlNotas + '/' + n.id + '/xml'" download>⬇️ XML</a></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else if (!historico.isLoading()) {
+      <p class="suave">Nenhuma nota lançada ainda.</p>
+    }
+  </section>
+} @else {
+  @let c = conferencia()!;
+
+  <section class="painel cabecalho-nota">
+    <div class="linha">
+      <div>
+        <span class="rotulo">Fornecedor</span>
+        <strong>{{ c.fornecedor.nome }}</strong>
+        @if (c.fornecedor.novo) { <span class="selo novo">novo · será cadastrado</span> }
+        <small class="suave">{{ c.fornecedor.razaoSocial }} · CNPJ {{ c.fornecedor.cnpj }}</small>
+      </div>
+      <div><span class="rotulo">NF-e</span><strong>{{ c.numero }}</strong> <small class="suave">série {{ c.serie }}</small></div>
+      <div><span class="rotulo">Emissão</span><strong>{{ c.dataEmissao | date: 'dd/MM/yyyy' }}</strong></div>
+      <div><span class="rotulo">Total da nota</span><strong>{{ c.valorTotal | currency: 'BRL' }}</strong></div>
+    </div>
+    <small class="chave">Chave {{ chaveFormatada(c.chave) }}</small>
+
+    @if (c.bloqueio) { <div class="mensagem-erro" role="alert">🚫 {{ c.bloqueio }}</div> }
+    @for (a of c.avisos; track a) { <p class="nota-aviso">⚠️ {{ a }}</p> }
+
+    @if (c.pedidosAbertos.length) {
+      <label class="pedido">
+        <span>Esta nota é a entrega de um pedido de compra?</span>
+        <select [(ngModel)]="pedidoId">
+          <option [ngValue]="null">Não vincular a pedido</option>
+          @for (p of c.pedidosAbertos; track p.id) {
+            <option [ngValue]="p.id">Pedido #{{ p.id }} · {{ p.quantidadeItens }} itens · {{ p.valorEstimado | currency: 'BRL' }}
+              @if (p.previsaoEntrega) { · previsto {{ p.previsaoEntrega | dia }} }</option>
+          }
+        </select>
+      </label>
+    }
+    <div class="acoes-topo">
+      <button type="button" class="botao pequeno" (click)="recomecar()" [disabled]="gravando()">Enviar outra nota</button>
+    </div>
+  </section>
+
+  @for (i of itens(); track i.base.numeroItem) {
+    <article class="painel item" [class.pendente]="pendencia(i)" [class.ignorado]="i.acao === 'ignorar'">
+      <header>
+        <div>
+          <span class="numero">{{ i.base.numeroItem }}</span>
+          <strong>{{ i.base.descricao }}</strong>
+          <small class="suave">cód. fornecedor {{ i.base.codigoFornecedor }} · {{ i.base.codigoBarras ?? 'sem código de barras' }}</small>
+        </div>
+        <div class="valor-nota">
+          <strong>{{ i.base.quantidadeNota | quantidade: i.base.unidadeNota }}</strong>
+          <small>{{ i.base.custoTotal | currency: 'BRL' }}</small>
+        </div>
+      </header>
+
+      <div class="escolha" role="radiogroup">
+        <button type="button" [class.ligado]="i.acao === 'existente'" (click)="mudarAcao(i, 'existente')">📦 Produto cadastrado</button>
+        <button type="button" [class.ligado]="i.acao === 'novo'" (click)="mudarAcao(i, 'novo')">➕ Cadastrar novo</button>
+        <button type="button" [class.ligado]="i.acao === 'ignorar'" (click)="mudarAcao(i, 'ignorar')">🚫 Ignorar</button>
+      </div>
+
+      @if (i.acao === 'existente') {
+        @if (i.produto && !i.trocando) {
+          <div class="produto-achado">
+            <div>
+              <strong>{{ i.produto.nome }}</strong>
+              <small class="suave">
+                {{ i.produto.codigoBarras ?? 'sem código' }} · venda {{ i.produto.precoVenda | currency: 'BRL' }} · custo atual {{ i.produto.precoCusto | currency: 'BRL' }}
+              </small>
+              @if (i.base.produto?.id === i.produto.id && i.base.comoAchou) {
+                <small class="achado">✔ reconhecido pelo {{ i.base.comoAchou }}</small>
+              }
+            </div>
+            <button type="button" class="botao pequeno" (click)="i.trocando = true; mexeu()">Trocar</button>
+          </div>
+        } @else {
+          <div class="busca">
+            <app-produto-busca placeholder="Procure o produto cadastrado (nome ou código)…" (selecionado)="escolherProduto(i, $event)" />
+            @if (i.trocando) { <button type="button" class="botao pequeno" (click)="i.trocando = false; mexeu()">Cancelar</button> }
+          </div>
+        }
+      }
+
+      @if (i.acao === 'novo') {
+        <div class="grade-novo">
+          <label class="largo">Nome do produto
+            <input [ngModel]="i.novo.nome" (ngModelChange)="i.novo.nome = $event; mexeu()" maxlength="150" />
+          </label>
+          <label>Código de barras
+            <input [ngModel]="i.novo.codigoBarras" (ngModelChange)="i.novo.codigoBarras = $event; mexeu()" inputmode="numeric" maxlength="14" placeholder="opcional" />
+          </label>
+          <label>Categoria
+            <select [ngModel]="i.novo.categoriaId" (ngModelChange)="i.novo.categoriaId = $event; mexeu()">
+              <option [ngValue]="null">Escolha…</option>
+              @for (cat of categoriasAtivas(); track cat.id) { <option [ngValue]="cat.id">{{ cat.nome }}</option> }
+            </select>
+          </label>
+          <label>Unidade de venda
+            <select [ngModel]="i.novo.unidade" (ngModelChange)="i.novo.unidade = $event; mexeu()">
+              @for (u of unidades; track u.sigla) { <option [ngValue]="u.sigla">{{ u.sigla }} · {{ u.nome }}</option> }
+            </select>
+          </label>
+          <label>Preço de venda (R$)
+            <input type="number" min="0.01" step="0.01" [ngModel]="i.novo.precoVenda" (ngModelChange)="i.novo.precoVenda = $event; mexeu()" />
+          </label>
+          <label class="marcar">
+            <input type="checkbox" [ngModel]="i.novo.controlaValidade" (ngModelChange)="i.novo.controlaValidade = $event; mexeu()" />
+            Controla validade
+          </label>
+        </div>
+      }
+
+      @if (i.acao !== 'ignorar') {
+        <div class="conta">
+          <label class="fator">1 {{ i.base.unidadeNota }} =
+            <input type="number" min="0.001" step="any" [ngModel]="i.fator" (ngModelChange)="i.fator = $event; mexeu()" />
+            {{ unidadeFinal(i) }}
+            @if (i.base.fatorVeioDaNota && i.fator == i.base.fator && i.fator != 1) { <small class="suave">(pela nota)</small> }
+          </label>
+          <span class="seta">→</span>
+          <span>Entram <strong>{{ quantidade(i) | quantidade: unidadeFinal(i) }}</strong></span>
+          <span>custo <strong>{{ custoUnitario(i) | currency: 'BRL' }}</strong>/{{ unidadeFinal(i) }}</span>
+          @if (margem(i); as m) {
+            <span [class.alerta]="m < 10">margem {{ m.toFixed(0) }}%</span>
+          }
+          @if (precisaValidade(i)) {
+            <label class="validade">Validade
+              <input type="date" [min]="hoje" [ngModel]="i.validade" (ngModelChange)="i.validade = $event || null; mexeu()" />
+            </label>
+          }
+        </div>
+      }
+
+      @for (a of i.base.avisos; track a) { <p class="nota-aviso">⚠️ {{ a }}</p> }
+      @if (pendencia(i); as p) { <p class="falta">✋ {{ p }}</p> }
+    </article>
+  }
+
+  <section class="painel confirmar">
+    <div>
+      <strong>{{ resumo().existentes }} cadastrado(s) · {{ resumo().novos }} novo(s) · {{ resumo().ignorados }} ignorado(s)</strong>
+      @if (c.bloqueio) {
+        <p>Esta nota não pode ser lançada.</p>
+      } @else if (resumo().pendentes) {
+        <p>Falta resolver <strong>{{ resumo().pendentes }}</strong> {{ resumo().pendentes === 1 ? 'item' : 'itens' }} (marcados com ✋).</p>
+      } @else {
+        <p>Tudo conferido. O estoque e o custo dos produtos serão atualizados.</p>
+      }
+    </div>
+    <button type="button" class="botao primario" (click)="darEntrada()"
+            [disabled]="!!c.bloqueio || resumo().pendentes > 0 || resumo().existentes + resumo().novos === 0 || gravando()">
+      @if (gravando()) { ⏳ Gravando… } @else { ✅ Dar entrada no estoque }
+    </button>
+  </section>
+  @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }
+}

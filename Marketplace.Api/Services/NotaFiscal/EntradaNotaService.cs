@@ -51,6 +51,9 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
 
         var categorias = await db.Categorias.AsNoTracking().Where(c => c.Ativa).ToListAsync();
         var margens = await MargensPorCategoriaAsync();
+        // Para avisar "já existe um produto com esse nome" (evita cadastrar o mesmo produto duas vezes).
+        var nomes = (await db.Produtos.AsNoTracking().Where(p => p.Ativo).Select(p => p.Nome).ToListAsync())
+            .GroupBy(ImportacaoProdutosService.Normalizar).ToDictionary(g => g.Key, g => g.First());
 
         var itens = new List<ItemConferenciaResponse>();
         foreach (var item in nota.Itens)
@@ -86,14 +89,18 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
                     avisosItem.Add($"O custo ({Reais(custoNovo)}) ficou igual ou maior que o preço de venda ({Reais(produto.PrecoVenda)}).");
             }
 
+            var sugestao = Sugerir(item, fator, categorias, margens);
+            if (produto is null && (nomes.TryGetValue(ImportacaoProdutosService.Normalizar(sugestao.Nome), out var mesmoNome)
+                                    || nomes.TryGetValue(ImportacaoProdutosService.Normalizar(NomeBonito(item.Descricao)), out mesmoNome)))
+                avisosItem.Add($"Já existe \"{mesmoNome}\" cadastrado. Se for o mesmo, escolha \"Produto cadastrado\" (assim não duplica).");
+
             var validade = item.Lotes.Where(l => l.Validade is not null).Select(l => l.Validade).Min();
             itens.Add(new ItemConferenciaResponse(
                 item.NumeroItem, item.CodigoFornecedor, item.EanTributavel ?? item.Ean, item.Descricao, item.Ncm,
                 item.UnidadeComercial, item.QuantidadeComercial, item.CustoTotal,
                 produto is null ? null : new ProdutoConferenciaResponse(produto.Id, produto.Nome, produto.CodigoBarras,
                     produto.Unidade, produto.ControlaValidade, produto.Ativo, produto.PrecoCusto, produto.PrecoVenda),
-                comoAchou, fator, fatorDaNota, validade,
-                Sugerir(item, fator, categorias, margens), avisosItem));
+                comoAchou, fator, fatorDaNota, validade, sugestao, avisosItem));
         }
 
         var pedidos = fornecedor is null ? [] : await db.PedidosCompra.AsNoTracking()
@@ -332,7 +339,9 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
 
         // Só sugere como código de barras do produto o da UNIDADE (o da caixa não é o que passa no caixa).
         var codigo = fator > 1 ? item.EanTributavel : item.EanTributavel ?? item.Ean;
-        return new NovoProdutoSugestao(NomeBonito(item.Descricao), codigo, categoria?.Id, unidade, perecivel, preco);
+        var nome = NomeBonito(item.Descricao);
+        if (unidade == Unidades.Quilo && nome.EndsWith(" Kg") && nome.Length > 5) nome = nome[..^3]; // "Banana Prata Kg" → "Banana Prata"
+        return new NovoProdutoSugestao(nome, codigo, categoria?.Id, unidade, perecivel, preco);
     }
 
     // Margem média (venda ÷ custo) de cada categoria, para sugerir o preço de venda de produto novo.

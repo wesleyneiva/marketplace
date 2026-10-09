@@ -3,7 +3,10 @@
     <h1>🛍️ Compras</h1>
     <p>O que comprar, de quem, e a conferência quando a mercadoria chega.</p>
   </div>
-  <a class="botao" routerLink="/fornecedores">🚚 Fornecedores</a>
+  <div class="botoes-topo">
+    <a class="botao primario" routerLink="/compras/nota">📄 Entrada por NF-e (XML)</a>
+    <a class="botao" routerLink="/fornecedores">🚚 Fornecedores</a>
+  </div>
 </header>
 
 @if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }

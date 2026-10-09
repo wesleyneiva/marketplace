@@ -53,7 +53,11 @@ export const routes: Routes = [
       {
         path: 'compras',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
-        loadComponent: () => import('./pages/compras/compras').then((m) => m.Compras),
+        children: [
+          { path: '', loadComponent: () => import('./pages/compras/compras').then((m) => m.Compras) },
+          // Entrada de mercadoria pelo XML da nota fiscal (NF-e).
+          { path: 'nota', loadComponent: () => import('./pages/nota-entrada/nota-entrada').then((m) => m.NotaEntradaPagina) },
+        ],
       },
       {
         path: 'usuarios',

@@ -1,5 +1,11 @@
 @use '../usuarios/usuarios.scss';
 
+.botoes-topo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .abas {
   display: flex;
   gap: 4px;
