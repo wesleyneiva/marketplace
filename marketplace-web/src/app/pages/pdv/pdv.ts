@@ -10,6 +10,8 @@ import {
 } from '../../core/api/pdv.api';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
+import { BalancaService } from '../../core/equipamentos/balanca.service';
+import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -31,6 +33,8 @@ export class Pdv {
   private readonly api = inject(PdvApi);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  protected readonly balanca = inject(BalancaService);
+  protected readonly impressora = inject(ImpressoraService);
 
   protected readonly formas = FORMAS_PAGAMENTO;
   protected readonly ehGerencia = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
@@ -67,6 +71,7 @@ export class Pdv {
   // ----- Peso (produto por KG/L) -----
   protected readonly produtoPeso = signal<Produto | null>(null);
   protected textoPeso = '';
+  protected readonly lendoBalanca = signal(false);
 
   // ----- Pagamento -----
   protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number }[]>([]);
@@ -235,6 +240,7 @@ export class Pdv {
       this.produtoPeso.set(produto);
       this.textoPeso = '';
       setTimeout(() => this.campoPeso()?.nativeElement.focus());
+      if (this.balanca.ativa()) void this.lerBalanca(); // balança no caixa: o peso já vem
       return;
     }
     this.adicionar(produto, quantidade ?? 1);
@@ -250,6 +256,26 @@ export class Pdv {
     }
     this.produtoPeso.set(null);
     this.adicionar(produto, peso);
+  }
+
+  // Pede o peso à balança do caixa e preenche o campo (a pessoa confere e aperta Enter).
+  protected async lerBalanca(): Promise<void> {
+    if (this.lendoBalanca()) return;
+    this.lendoBalanca.set(true);
+    this.erro.set(null);
+    try {
+      const r = await this.balanca.lerPeso();
+      if (!this.produtoPeso()) return;
+      if (r.tipo === 'peso' && r.kg > 0) this.textoPeso = r.kg.toLocaleString('pt-BR', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+      else if (r.tipo === 'peso') this.erro.set('Balança vazia: coloque o produto e leia de novo (F4).');
+      else if (r.tipo === 'instavel' || r.tipo === 'incompleto') this.erro.set('O peso não estabilizou (ou a balança não respondeu). Tente de novo (F4).');
+      else if (r.tipo === 'negativo') this.erro.set('Peso negativo: zere (tare) a balança.');
+      else if (r.tipo === 'sobrecarga') this.erro.set('Acima do limite da balança.');
+      else this.erro.set(`Resposta estranha da balança: ${r.recebido}`);
+    } finally {
+      this.lendoBalanca.set(false);
+      setTimeout(() => this.campoPeso()?.nativeElement.select());
+    }
   }
 
   protected cancelarPeso(): void {
@@ -377,6 +403,7 @@ export class Pdv {
       this.dlgPagamento()?.nativeElement.close();
       this.cupom.set(cupom);
       this.dlgCupom()?.nativeElement.showModal();
+      if (this.impressora.config().automatica) this.imprimirCupom();
       // O botão só existe depois que o Angular desenha o cupom → foca no próximo "tique".
       setTimeout(() => this.btnNovaVenda()?.nativeElement.focus());
       this.limparVenda(false);
@@ -470,6 +497,12 @@ export class Pdv {
 
   protected fracionado(p: Produto): boolean {
     return p.unidade === 'KG' || p.unidade === 'L';
+  }
+
+  protected imprimirCupom(): void {
+    const c = this.cupom();
+    if (c) this.impressora.imprimirCupom(c, this.auth.usuario()?.empresa.nome ?? 'Marketplace');
+    setTimeout(() => this.btnNovaVenda()?.nativeElement.focus(), 300);
   }
 
   protected rotuloForma(forma: string): string {

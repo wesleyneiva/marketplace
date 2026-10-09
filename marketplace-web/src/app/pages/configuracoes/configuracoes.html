@@ -75,3 +75,91 @@
     <button type="button" class="botao pequeno" (click)="copiar(e)">📋 Copiar {{ e }}</button>
   }
 </section>
+
+<section class="painel secao">
+  <h2>⚖️ Balança do caixa <small class="neste">neste computador</small></h2>
+  <p class="explica">Balança ligada no computador do caixa (cabo USB-serial ou serial). Ao bater um produto vendido por quilo,
+    o peso entra sozinho (ou aperte <kbd>F4</kbd> na janela do peso). Protocolo Toledo/Filizola, o padrão das balanças de caixa.</p>
+
+  <div class="grade">
+    <label>Balança
+      <select [ngModel]="balanca.config().modo" (ngModelChange)="$event === 'serial' ? balanca.escolherPorta() : balanca.salvarConfig({ modo: $event })">
+        <option ngValue="nenhuma">Sem balança (digitar o peso)</option>
+        <option ngValue="serial" [disabled]="!balanca.serialDisponivel">Balança ligada neste computador</option>
+        <option ngValue="simulada">Balança simulada (para testes)</option>
+      </select>
+    </label>
+    <label>Velocidade (baud) <small>(está no manual da balança)</small>
+      <select [ngModel]="balanca.config().velocidade" (ngModelChange)="balanca.salvarConfig({ velocidade: $event })">
+        <option [ngValue]="2400">2400</option>
+        <option [ngValue]="4800">4800</option>
+        <option [ngValue]="9600">9600</option>
+      </select>
+    </label>
+    @if (balanca.config().modo === 'simulada') {
+      <label>Peso "em cima" da balança simulada (kg)
+        <input type="number" min="0" step="0.005" [ngModel]="balanca.config().pesoSimulado" (ngModelChange)="balanca.salvarConfig({ pesoSimulado: $event })" />
+      </label>
+    }
+  </div>
+
+  <div class="botoes">
+    @if (balanca.serialDisponivel) {
+      <button type="button" class="botao" (click)="balanca.escolherPorta()">🔌 Escolher a porta da balança…</button>
+      @if (balanca.conectada()) { <button type="button" class="botao" (click)="balanca.desconectar()">Desligar</button> }
+    }
+    <button type="button" class="botao primario" (click)="testarBalanca()" [disabled]="!balanca.ativa()">Ler peso agora</button>
+    @if (leituraTeste()) { <span class="leitura">{{ leituraTeste() }}</span> }
+  </div>
+  <p class="dica">
+    Situação: <b>{{ balanca.config().modo === 'serial' ? (balanca.conectada() ? 'ligada' : 'desligada (escolha a porta)') : balanca.config().modo === 'simulada' ? 'simulada' : 'sem balança' }}</b>.
+    @if (balanca.ultimoErro()) { <span class="txt-erro">{{ balanca.ultimoErro() }}</span> }
+    @if (!balanca.serialDisponivel) {
+      <br />⚠️ Para usar a balança de verdade, abra o sistema no <b>Chrome ou Edge</b> pelo endereço seguro <b>https://app.wnlabs.com.br</b>
+      (o navegador só libera a porta serial em endereço https).
+    }
+  </p>
+</section>
+
+<section class="painel secao">
+  <h2>🖨️ Impressora de cupom <small class="neste">neste computador</small></h2>
+  <p class="explica">Impressora térmica instalada no Windows como impressora comum (Elgin, Epson, Bematech, Daruma…).
+    Escolha ela como padrão na janela de impressão.</p>
+  <div class="impressora">
+    <div class="opcoes">
+      <label>Largura da bobina
+        <select [ngModel]="impressora.config().largura" (ngModelChange)="impressora.salvarConfig({ largura: $event })">
+          <option [ngValue]="80">80 mm (a mais comum)</option>
+          <option [ngValue]="58">58 mm</option>
+        </select>
+      </label>
+      <label>Vias
+        <select [ngModel]="impressora.config().vias" (ngModelChange)="impressora.salvarConfig({ vias: $event })">
+          <option [ngValue]="1">1 (cliente)</option>
+          <option [ngValue]="2">2 (cliente + loja)</option>
+        </select>
+      </label>
+      <label>Mensagem no rodapé
+        <input maxlength="80" [ngModel]="impressora.config().rodape" (ngModelChange)="impressora.salvarConfig({ rodape: $event })" />
+      </label>
+      <label class="marcar">
+        <input type="checkbox" [ngModel]="impressora.config().automatica" (ngModelChange)="impressora.salvarConfig({ automatica: $event })" />
+        Imprimir sozinho ao finalizar a venda
+      </label>
+      <button type="button" class="botao" (click)="imprimirTeste()">🖨️ Imprimir cupom de teste</button>
+      <details class="dica">
+        <summary>Imprimir direto, sem a janela de impressão</summary>
+        <ol>
+          <li>Deixe a impressora térmica como <b>padrão</b> no Windows.</li>
+          <li>Crie um atalho do Chrome na área de trabalho e, em Propriedades → Destino, acrescente no fim:
+            <code>--kiosk-printing</code></li>
+          <li>Abra o sistema por esse atalho: o cupom sai direto na impressora.</li>
+        </ol>
+      </details>
+    </div>
+    <div class="previa">
+      <span class="rotulo">Prévia ({{ impressora.config().largura }} mm)</span>
+      <iframe title="Prévia do cupom" [srcdoc]="previaCupom()" [style.width.mm]="impressora.config().largura + 4"></iframe>
+    </div>
+  </div>
+</section>

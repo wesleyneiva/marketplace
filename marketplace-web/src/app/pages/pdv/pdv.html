@@ -46,7 +46,12 @@
           <form class="peso" (ngSubmit)="confirmarPeso()">
             <span>⚖️ Peso de <b>{{ pp.nome }}</b> ({{ pp.precoVenda | currency: 'BRL' }}/{{ pp.unidade }})</span>
             <input #campoPeso name="peso" [(ngModel)]="textoPeso" inputmode="decimal" placeholder="Ex.: 1,235"
-                   (keydown.escape)="cancelarPeso()" />
+                   (keydown.escape)="cancelarPeso()" (keydown.f4)="$event.preventDefault(); lerBalanca()" />
+            @if (balanca.ativa()) {
+              <button type="button" class="botao" (click)="lerBalanca()" [disabled]="lendoBalanca()" title="Ler o peso da balança (F4)">
+                {{ lendoBalanca() ? '⏳' : '⚖️' }} Balança <kbd>F4</kbd>
+              </button>
+            }
             <button type="submit" class="botao primario">OK</button>
             <button type="button" class="botao" (click)="cancelarPeso()">Cancelar</button>
             @if (erro()) { <small class="erro-peso">{{ erro() }}</small> }
@@ -204,7 +209,10 @@
         </div>
         <small class="cupom-rodape">Obrigado pela preferência! · Não é documento fiscal</small>
       </div>
-      <footer><button #btnNovaVenda type="button" class="botao primario grande" (click)="novaVenda()">Nova venda <kbd>Enter</kbd></button></footer>
+      <footer>
+        <button type="button" class="botao grande" (click)="imprimirCupom()">🖨️ Imprimir</button>
+        <button #btnNovaVenda type="button" class="botao primario grande" (click)="novaVenda()">Nova venda <kbd>Enter</kbd></button>
+      </footer>
     }
   </dialog>
 

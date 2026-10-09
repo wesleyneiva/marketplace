@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
@@ -7,6 +8,9 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Produto } from '../../core/api/produtos.api';
 import { CodigoBarras } from '../../shared/codigo-barras';
 import { ProdutoBusca } from '../../shared/produto-busca';
+import { BalancaService } from '../../core/equipamentos/balanca.service';
+import { ImpressoraService } from '../../core/equipamentos/impressora.service';
+import { Cupom } from '../../core/api/pdv.api';
 
 interface Configuracao {
   balancaDigitosCodigo: number;
@@ -25,7 +29,28 @@ export class Configuracoes {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
 
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly balanca = inject(BalancaService);
+  protected readonly impressora = inject(ImpressoraService);
+
   protected readonly ehAdmin = computed(() => this.auth.temPerfil('Administrador'));
+  protected readonly leituraTeste = signal<string | null>(null);
+
+  // Cupom de exemplo para a prévia e para o teste de impressão.
+  private readonly cupomExemplo: Cupom = {
+    id: 1234, dataHora: new Date().toISOString(), numeroCaixa: 1, operador: 'Maria (exemplo)', status: 'Concluida',
+    subtotal: 47.4, desconto: 2, total: 45.4, valorPago: 50, troco: 4.6, motivoCancelamento: null,
+    itens: [
+      { produtoId: 1, descricao: 'Arroz Branco Tipo 1 5kg', unidade: 'UN', quantidade: 1, precoUnitario: 29.9, total: 29.9 },
+      { produtoId: 2, descricao: 'Banana Prata', unidade: 'KG', quantidade: 1.235, precoUnitario: 6.99, total: 8.63 },
+      { produtoId: 3, descricao: 'Refrigerante Cola 2L', unidade: 'UN', quantidade: 2, precoUnitario: 4.43, total: 8.87 },
+    ],
+    pagamentos: [{ forma: 'Dinheiro', valor: 50 }],
+  };
+  protected readonly previaCupom = computed(() => {
+    this.impressora.config(); // refaz quando a configuração muda
+    return this.sanitizer.bypassSecurityTrustHtml(this.impressora.htmlCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? 'Marketplace'));
+  });
   protected readonly config = httpResource<Configuracao>(() => '/api/empresa/configuracao');
   protected readonly aviso = signal<string | null>(null);
   protected readonly erro = signal<string | null>(null);
@@ -85,6 +110,20 @@ export class Configuracoes {
   protected valorTeste(): number {
     const p = this.produtoTeste();
     return p ? Math.round(this.pesoTeste * p.precoVenda * 100) / 100 : 0;
+  }
+
+  async testarBalanca(): Promise<void> {
+    this.leituraTeste.set('Lendo…');
+    const r = await this.balanca.lerPeso();
+    this.leituraTeste.set(
+      r.tipo === 'peso' ? `${r.kg.toLocaleString('pt-BR', { minimumFractionDigits: 3 })} kg`
+      : r.tipo === 'instavel' ? 'Peso instável (mexendo)'
+      : r.tipo === 'incompleto' ? 'A balança não respondeu: confira o cabo, a porta e a velocidade.'
+      : r.tipo === 'negativo' ? 'Negativo: zere a balança' : r.tipo === 'sobrecarga' ? 'Acima do limite' : `Resposta estranha: ${r.recebido}`);
+  }
+
+  imprimirTeste(): void {
+    this.impressora.imprimirCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? 'Marketplace');
   }
 
   async copiar(texto: string): Promise<void> {
