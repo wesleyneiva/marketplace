@@ -264,3 +264,41 @@ tr.aviso {
     font-size: 14px;
   }
 }
+
+.confirmar {
+  margin-bottom: 14px;
+}
+
+.sucesso {
+  display: flex;
+  gap: 14px;
+  padding: 20px;
+  border-color: var(--cor-primaria);
+
+  .icone {
+    font-size: 28px;
+  }
+
+  h2 {
+    margin: 2px 0 8px;
+    font-size: 18px;
+  }
+
+  ul {
+    margin: 0 0 14px;
+    padding-left: 18px;
+    color: var(--cor-texto-suave);
+    font-size: 14px;
+    line-height: 1.7;
+  }
+
+  .ignorados {
+    color: #92400e;
+  }
+
+  .botoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}

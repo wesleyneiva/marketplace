@@ -2,7 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
-import { LinhaPrevia, PreviaImportacao, ProdutosApi, URL_MODELO_IMPORTACAO } from '../../core/api/produtos.api';
+import { LinhaPrevia, PreviaImportacao, ProdutosApi, ResultadoImportacao, URL_MODELO_IMPORTACAO } from '../../core/api/produtos.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 
@@ -24,6 +24,11 @@ export class ImportarProdutos {
   protected readonly erro = signal<string | null>(null);
   protected readonly previa = signal<PreviaImportacao | null>(null);
   protected readonly filtro = signal<Filtro>('todas');
+  protected readonly importando = signal(false);
+  protected readonly resultado = signal<ResultadoImportacao | null>(null);
+
+  // O arquivo da prévia: é ele que vai de novo ao servidor na hora de gravar.
+  private arquivo: File | null = null;
 
   // Mostra no máximo 500 linhas de uma vez (uma planilha de 5.000 linhas deixaria a tela pesada).
   protected readonly limiteNaTela = 500;
@@ -77,8 +82,10 @@ export class ImportarProdutos {
     this.enviando.set(true);
     this.erro.set(null);
     this.previa.set(null);
+    this.resultado.set(null);
     try {
       const previa = await this.api.previaImportacao(arquivo);
+      this.arquivo = arquivo;
       this.previa.set(previa);
       this.filtro.set(previa.comErro > 0 ? 'erro' : 'todas');
     } catch (e) {
@@ -89,9 +96,32 @@ export class ImportarProdutos {
     }
   }
 
+  async importar(): Promise<void> {
+    const p = this.previa();
+    if (!this.arquivo || !p) return;
+    const total = this.aproveitaveis();
+    const aviso = p.comErro > 0 ? `\n\nAs ${p.comErro} linhas com erro serão ignoradas.` : '';
+    if (!confirm(`Importar ${total} ${total === 1 ? 'produto' : 'produtos'} agora?${aviso}`)) return;
+
+    this.importando.set(true);
+    this.erro.set(null);
+    try {
+      this.resultado.set(await this.api.importar(this.arquivo));
+      this.previa.set(null);
+      this.arquivo = null;
+    } catch (e) {
+      const mensagem = e instanceof HttpErrorResponse ? e.error?.mensagem : null;
+      this.erro.set(mensagem ?? 'Não foi possível importar. Nada foi gravado; tente de novo.');
+    } finally {
+      this.importando.set(false);
+    }
+  }
+
   recomecar(): void {
     this.previa.set(null);
+    this.resultado.set(null);
     this.erro.set(null);
+    this.arquivo = null;
   }
 
   protected classeDaLinha(l: LinhaPrevia): string {

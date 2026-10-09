@@ -29,3 +29,11 @@ public record LinhaPreviaResponse(
     DateOnly? Validade,
     List<string> Erros,
     List<string> Avisos);
+
+// Resultado da importação (depois de gravar).
+public record ResultadoImportacaoResponse(
+    int Novos,
+    int Atualizados,
+    int Ignorados,              // linhas com erro (não gravadas)
+    List<string> CategoriasCriadas,
+    int ProdutosComEstoqueInicial);

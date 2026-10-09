@@ -6,7 +6,30 @@
   </div>
 </header>
 
-@if (!previa()) {
+@if (resultado(); as r) {
+  <section class="painel sucesso" role="status">
+    <span class="icone">✅</span>
+    <div>
+      <h2>{{ r.novos + r.atualizados }} {{ r.novos + r.atualizados === 1 ? 'produto importado' : 'produtos importados' }}</h2>
+      <ul>
+        <li><strong>{{ r.novos }}</strong> {{ r.novos === 1 ? 'novo' : 'novos' }} · <strong>{{ r.atualizados }}</strong> {{ r.atualizados === 1 ? 'atualizado' : 'atualizados' }}</li>
+        @if (r.produtosComEstoqueInicial) {
+          <li><strong>{{ r.produtosComEstoqueInicial }}</strong> com estoque inicial lançado (aparece no histórico como "Inventário")</li>
+        }
+        @if (r.categoriasCriadas.length) {
+          <li>Categorias criadas: <strong>{{ r.categoriasCriadas.join(', ') }}</strong></li>
+        }
+        @if (r.ignorados) {
+          <li class="ignorados"><strong>{{ r.ignorados }}</strong> {{ r.ignorados === 1 ? 'linha com erro foi ignorada' : 'linhas com erro foram ignoradas' }}: corrija e importe de novo (o que já entrou é atualizado, não duplica)</li>
+        }
+      </ul>
+      <div class="botoes">
+        <a class="botao primario" routerLink="/produtos">Ver produtos</a>
+        <button type="button" class="botao" (click)="recomecar()">Importar outra planilha</button>
+      </div>
+    </div>
+  </section>
+} @else if (!previa()) {
   <section class="passos">
     <div class="painel passo">
       <span class="numero">1</span>
@@ -47,7 +70,7 @@
   <section class="painel resumo">
     <div class="arquivo">
       <span>📄 <strong>{{ p.arquivo }}</strong> · {{ p.totalLinhas }} {{ p.totalLinhas === 1 ? 'linha' : 'linhas' }}</span>
-      <button type="button" class="botao pequeno" (click)="recomecar()">Enviar outra planilha</button>
+      <button type="button" class="botao pequeno" (click)="recomecar()" [disabled]="importando()">Enviar outra planilha</button>
     </div>
 
     @for (e of p.errosGerais; track e) {
@@ -148,9 +171,12 @@
           <p>Corrija os erros na planilha e envie de novo.</p>
         }
       </div>
-      <button type="button" class="botao primario" disabled title="Chega no próximo passo">
-        ✅ Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }}
+      <button type="button" class="botao primario" [disabled]="aproveitaveis() === 0 || importando()" (click)="importar()">
+        @if (importando()) { ⏳ Importando… } @else { ✅ Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }} }
       </button>
     </section>
+    @if (erro()) {
+      <div class="mensagem-erro" role="alert">{{ erro() }}</div>
+    }
   }
 }

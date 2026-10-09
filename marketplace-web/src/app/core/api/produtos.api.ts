@@ -90,6 +90,14 @@ export interface PreviaImportacao {
   linhas: LinhaPrevia[];
 }
 
+export interface ResultadoImportacao {
+  novos: number;
+  atualizados: number;
+  ignorados: number;
+  categoriasCriadas: string[];
+  produtosComEstoqueInicial: number;
+}
+
 export const URL_MODELO_IMPORTACAO = '/api/produtos/importacao/modelo';
 
 // As LEITURAS da lista são feitas com httpResource (direto na tela, reagindo aos filtros).
@@ -123,5 +131,12 @@ export class ProdutosApi {
     const formulario = new FormData();
     formulario.append('arquivo', arquivo, arquivo.name);
     return firstValueFrom(this.http.post<PreviaImportacao>('/api/produtos/importacao/previa', formulario));
+  }
+
+  // GRAVA: o servidor confere a planilha de novo e grava só as linhas sem erro.
+  importar(arquivo: File): Promise<ResultadoImportacao> {
+    const formulario = new FormData();
+    formulario.append('arquivo', arquivo, arquivo.name);
+    return firstValueFrom(this.http.post<ResultadoImportacao>('/api/produtos/importacao', formulario));
   }
 }

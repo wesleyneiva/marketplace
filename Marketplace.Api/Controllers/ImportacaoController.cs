@@ -2,6 +2,7 @@ using Marketplace.Api.Contracts;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 using Marketplace.Api.Services;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -37,5 +38,26 @@ public class ImportacaoController(AppDbContext db, ImportacaoProdutosService imp
             return BadRequest(new { mensagem = "Escolha a planilha (.xlsx ou .csv)." });
         await using var conteudo = arquivo.OpenReadStream();
         return await importacao.GerarPreviaAsync(conteudo, Path.GetFileName(arquivo.FileName));
+    }
+
+    // POST /api/produtos/importacao  (multipart, campo "arquivo") → GRAVA as linhas sem erro.
+    // O servidor confere a planilha de novo aqui (não confia na prévia que ficou na tela).
+    [HttpPost]
+    [RequestSizeLimit(TamanhoMaximo)]
+    [RequestFormLimits(MultipartBodyLengthLimit = TamanhoMaximo)]
+    public async Task<ActionResult<ResultadoImportacaoResponse>> Importar(IFormFile? arquivo)
+    {
+        if (arquivo is null || arquivo.Length == 0)
+            return BadRequest(new { mensagem = "Escolha a planilha (.xlsx ou .csv)." });
+        try
+        {
+            await using var conteudo = arquivo.OpenReadStream();
+            return await importacao.ImportarAsync(conteudo, Path.GetFileName(arquivo.FileName),
+                User.FindFirstValue(ClaimTypes.NameIdentifier));
+        }
+        catch (ImportacaoException e)
+        {
+            return BadRequest(new { mensagem = e.Message });
+        }
     }
 }
