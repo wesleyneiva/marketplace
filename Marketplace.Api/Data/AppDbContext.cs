@@ -36,6 +36,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<PedidoCompra> PedidosCompra => Set<PedidoCompra>();
     public DbSet<ItemPedidoCompra> ItensPedidoCompra => Set<ItemPedidoCompra>();
+    public DbSet<NotaEntrada> NotasEntrada => Set<NotaEntrada>();
+    public DbSet<VinculoFornecedorProduto> VinculosFornecedor => Set<VinculoFornecedorProduto>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -158,6 +160,31 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(i => i.CustoUnitario).HasPrecision(10, 2);
             e.HasOne(i => i.PedidoCompra).WithMany(p => p.Itens).HasForeignKey(i => i.PedidoCompraId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(i => i.Produto).WithMany().HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- Entrada por XML da NF-e -----
+        builder.Entity<NotaEntrada>(e =>
+        {
+            e.ToTable("NotasEntrada");
+            e.Property(n => n.Chave).HasMaxLength(44).IsFixedLength();
+            e.Property(n => n.Numero).HasMaxLength(9);
+            e.Property(n => n.Serie).HasMaxLength(3);
+            e.Property(n => n.ValorTotal).HasPrecision(12, 2);
+            e.HasIndex(n => new { n.EmpresaId, n.Chave }).IsUnique(); // a mesma nota não entra duas vezes
+            e.HasIndex(n => n.DataEmissao);
+            e.HasOne(n => n.Fornecedor).WithMany().HasForeignKey(n => n.FornecedorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(n => n.PedidoCompra).WithMany().HasForeignKey(n => n.PedidoCompraId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(n => n.RegistradaPor).WithMany().HasForeignKey(n => n.RegistradaPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<VinculoFornecedorProduto>(e =>
+        {
+            e.ToTable("VinculosFornecedor");
+            e.Property(v => v.CodigoFornecedor).HasMaxLength(60);
+            e.Property(v => v.Fator).HasPrecision(12, 4);
+            e.HasIndex(v => new { v.EmpresaId, v.FornecedorId, v.CodigoFornecedor }).IsUnique();
+            e.HasOne(v => v.Fornecedor).WithMany().HasForeignKey(v => v.FornecedorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(v => v.Produto).WithMany().HasForeignKey(v => v.ProdutoId).OnDelete(DeleteBehavior.Cascade);
         });
 
         // ----- PDV -----

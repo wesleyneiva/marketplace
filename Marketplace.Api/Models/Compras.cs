@@ -62,3 +62,49 @@ public class ItemPedidoCompra : IDaEmpresa
     public decimal? QuantidadeRecebida { get; set; } // conferida na entrega (pode vir menos)
     public DateOnly? Validade { get; set; }          // informada na entrega (perecíveis)
 }
+
+// Nota fiscal (NF-e) de compra que já deu entrada no estoque. A chave de acesso é única: a mesma nota
+// nunca entra duas vezes. O XML fica guardado (o comerciante precisa guardar as notas por 5 anos).
+public class NotaEntrada : IDaEmpresa
+{
+    public int Id { get; set; }
+    public int EmpresaId { get; set; }
+
+    public string Chave { get; set; } = "";       // 44 dígitos
+    public string Numero { get; set; } = "";
+    public string Serie { get; set; } = "";
+    public DateTimeOffset DataEmissao { get; set; }
+    public decimal ValorTotal { get; set; }
+    public int QuantidadeItens { get; set; }
+
+    public int FornecedorId { get; set; }
+    public Fornecedor? Fornecedor { get; set; }
+
+    // Pedido de compra que esta nota recebeu (opcional).
+    public int? PedidoCompraId { get; set; }
+    public PedidoCompra? PedidoCompra { get; set; }
+
+    public string Xml { get; set; } = "";
+
+    public DateTimeOffset RegistradaEm { get; set; } = DateTimeOffset.UtcNow;
+    public string RegistradaPorId { get; set; } = "";
+    public Usuario? RegistradaPor { get; set; }
+}
+
+// "O item X do fornecedor Y é o meu produto Z, e 1 embalagem dele = Fator unidades minhas."
+// Criado na primeira nota (quando a pessoa escolhe o produto) e usado sozinho nas próximas.
+public class VinculoFornecedorProduto : IDaEmpresa
+{
+    public int Id { get; set; }
+    public int EmpresaId { get; set; }
+
+    public int FornecedorId { get; set; }
+    public Fornecedor? Fornecedor { get; set; }
+    public string CodigoFornecedor { get; set; } = ""; // cProd da nota
+
+    public int ProdutoId { get; set; }
+    public Produto? Produto { get; set; }
+
+    public decimal Fator { get; set; } = 1;           // ex.: CX com 12 → 12
+    public DateTimeOffset AtualizadoEm { get; set; } = DateTimeOffset.UtcNow;
+}
