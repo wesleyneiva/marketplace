@@ -54,6 +54,8 @@ export class NotaEntradaPagina {
   protected readonly itens = signal<ItemEstado[]>([]);
   protected readonly resultado = signal<RegistroNota | null>(null);
   protected pedidoId: number | null = null;
+  protected gerarContas = true;
+  protected jaPaga = false;
   private arquivo: File | null = null;
 
   protected readonly hoje = new Date().toLocaleDateString('sv-SE'); // "2026-10-09" no fuso do navegador
@@ -93,6 +95,10 @@ export class NotaEntradaPagina {
       const c = await this.api.conferir(arquivo);
       this.arquivo = arquivo;
       this.pedidoId = c.pedidoSugeridoId;
+      this.gerarContas = true;
+      // Sem parcelas e pago na hora (dinheiro, PIX, cartão): a conta já entra paga.
+      this.jaPaga = c.pagamento.parcelas.length === 0
+        && c.pagamento.formas.some((f) => ['Dinheiro', 'PIX', 'Cartão de débito', 'Cartão de crédito', 'Transferência', 'Depósito'].includes(f));
       this.itens.set(c.itens.map((base) => ({
         base,
         acao: base.produto ? 'existente' : 'novo',
@@ -223,7 +229,7 @@ export class NotaEntradaPagina {
     this.gravando.set(true);
     this.erro.set(null);
     try {
-      this.resultado.set(await this.api.registrar(this.arquivo, this.pedidoId, decisoes));
+      this.resultado.set(await this.api.registrar(this.arquivo, this.pedidoId, decisoes, this.gerarContas, this.jaPaga));
       this.conferencia.set(null);
       this.itens.set([]);
       this.arquivo = null;

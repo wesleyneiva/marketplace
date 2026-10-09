@@ -1,0 +1,154 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>💸 Contas a pagar</h1>
+    <p>As parcelas das notas de fornecedor entram sozinhas; aluguel, luz e outras você lança aqui.</p>
+  </div>
+  <button type="button" class="botao primario" (click)="abrirNova()">+ Lançar conta</button>
+</header>
+
+@if (resumo.value(); as r) {
+  <section class="resumo">
+    <button type="button" class="cartao" [class.perigo]="r.vencidas" (click)="mudarFiltro('vencidas')">
+      <span>Vencidas</span><strong>{{ r.valorVencidas | currency: 'BRL' }}</strong><small>{{ r.vencidas }} conta(s)</small>
+    </button>
+    <button type="button" class="cartao" [class.alerta]="r.vencemHoje" (click)="mudarFiltro('abertas')">
+      <span>Vencem hoje</span><strong>{{ r.valorHoje | currency: 'BRL' }}</strong><small>{{ r.vencemHoje }} conta(s)</small>
+    </button>
+    <button type="button" class="cartao" (click)="mudarFiltro('abertas')">
+      <span>Próximos 7 dias</span><strong>{{ r.valorProximos7Dias | currency: 'BRL' }}</strong><small>{{ r.proximos7Dias }} conta(s)</small>
+    </button>
+    <button type="button" class="cartao" (click)="mudarFiltro('abertas')">
+      <span>Total em aberto</span><strong>{{ r.valorAbertas | currency: 'BRL' }}</strong><small>{{ r.abertas }} conta(s)</small>
+    </button>
+    <button type="button" class="cartao" (click)="mudarFiltro('pagas')">
+      <span>Pago neste mês</span><strong>{{ r.pagoNoMes | currency: 'BRL' }}</strong><small>ver pagas</small>
+    </button>
+  </section>
+}
+
+@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+
+<nav class="abas" role="tablist">
+  <button role="tab" [class.ativa]="filtro() === 'abertas'" (click)="mudarFiltro('abertas')">Em aberto</button>
+  <button role="tab" [class.ativa]="filtro() === 'vencidas'" (click)="mudarFiltro('vencidas')">Vencidas</button>
+  <button role="tab" [class.ativa]="filtro() === 'pagas'" (click)="mudarFiltro('pagas')">Pagas (90 dias)</button>
+  <button role="tab" [class.ativa]="filtro() === 'todas'" (click)="mudarFiltro('todas')">Todas</button>
+</nav>
+
+<section class="painel tabela-rolagem" [class.carregando]="contas.isLoading()">
+  <table>
+    <thead>
+      <tr><th>Vencimento</th><th>Conta</th><th class="num">Valor</th><th>Situação</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (c of contas.value() ?? []; track c.id) {
+        <tr [class]="c.situacao.toLowerCase()">
+          <td class="data"><strong>{{ c.vencimento | dia }}</strong><small>{{ quando(c) }}</small></td>
+          <td>
+            <span class="descricao">{{ c.descricao }}</span>
+            <small class="detalhe">
+              @if (c.fornecedor) { {{ c.fornecedor }} · }
+              @if (c.documento) { doc. {{ c.documento }} · }
+              @if (c.notaEntradaId) { <a routerLink="/compras/nota">NF-e {{ c.notaNumero }}</a> } @else { lançada à mão }
+              @if (c.observacao) { · {{ c.observacao }} }
+            </small>
+          </td>
+          <td class="num forte">{{ c.valor | currency: 'BRL' }}</td>
+          <td>
+            @switch (c.situacao) {
+              @case ('Paga') {
+                <span class="selo paga">paga {{ c.pagaEm | dia }}</span>
+                <small class="detalhe">{{ c.valorPago | currency: 'BRL' }}{{ c.formaPagamento ? ' · ' + c.formaPagamento : '' }}{{ c.pagaPor ? ' · ' + c.pagaPor : '' }}</small>
+              }
+              @case ('Vencida') { <span class="selo vencida">vencida</span> }
+              @case ('VenceHoje') { <span class="selo hoje">vence hoje</span> }
+              @default { <span class="selo">em aberto</span> }
+            }
+          </td>
+          <td class="acoes">
+            @if (c.situacao === 'Paga') {
+              <button type="button" class="botao pequeno" (click)="desfazer(c)">Desfazer</button>
+            } @else {
+              <button type="button" class="botao pequeno primario" (click)="abrirPagamento(c)">✅ Pagar</button>
+              <button type="button" class="botao pequeno" (click)="abrirEdicao(c)" aria-label="Editar">✏️</button>
+              <button type="button" class="botao pequeno perigo" (click)="excluir(c)" aria-label="Excluir">🗑️</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        @if (!contas.isLoading()) {
+          <tr><td colspan="5" class="vazio">
+            @switch (filtro()) {
+              @case ('vencidas') { Nenhuma conta vencida. 👍 }
+              @case ('pagas') { Nenhuma conta paga nos últimos 90 dias. }
+              @default { Nenhuma conta em aberto. }
+            }
+          </td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</section>
+
+<!-- Lançar / editar -->
+<dialog #dlgConta class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ editando() ? 'Editar conta' : 'Lançar conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()">✕</button></header>
+    <div class="corpo">
+      <label>Descrição<input name="descricao" [(ngModel)]="form.descricao" required minlength="2" maxlength="200" placeholder="Ex.: Aluguel da loja, Energia elétrica…" /></label>
+      <div class="duas">
+        <label>Vencimento<input name="vencimento" type="date" [(ngModel)]="form.vencimento" required /></label>
+        <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" required /></label>
+      </div>
+      <div class="duas">
+        <label>Fornecedor <small>(opcional)</small>
+          <select name="fornecedor" [(ngModel)]="form.fornecedorId">
+            <option [ngValue]="null">—</option>
+            @for (fo of fornecedores.value() ?? []; track fo.id) { <option [ngValue]="fo.id">{{ fo.nome }}</option> }
+          </select>
+        </label>
+        <label>Documento <small>(opcional)</small><input name="documento" [(ngModel)]="form.documento" maxlength="60" placeholder="nº do boleto" /></label>
+      </div>
+      <label>Observação <small>(opcional)</small><input name="observacao" [(ngModel)]="form.observacao" maxlength="300" /></label>
+      @if (!editando()) {
+        <label>Repetir todo mês <small>(aluguel, internet… 1 = só esta)</small>
+          <input name="repetir" type="number" min="1" max="36" [(ngModel)]="form.repetirMeses" required />
+        </label>
+      }
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgConta.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : editando() ? 'Salvar' : 'Lançar' }}</button>
+    </footer>
+  </form>
+</dialog>
+
+<!-- Pagar -->
+<dialog #dlgPagar class="janela" (close)="erro.set(null)">
+  @if (pagando(); as c) {
+    <form (ngSubmit)="pagar()" #fp="ngForm">
+      <header><h2>✅ Pagar conta</h2><button type="button" class="fechar" (click)="dlgPagar.close()">✕</button></header>
+      <div class="corpo">
+        <p><b>{{ c.descricao }}</b><br /><small>Vencimento {{ c.vencimento | dia }} · {{ c.valor | currency: 'BRL' }}</small></p>
+        <div class="duas">
+          <label>Pago em<input name="pagaEm" type="date" [max]="hoje" [(ngModel)]="pagamento.pagaEm" required /></label>
+          <label>Valor pago (R$)<input name="valorPago" type="number" min="0.01" step="0.01" [(ngModel)]="pagamento.valorPago" required /></label>
+        </div>
+        @if (pagamento.valorPago && pagamento.valorPago !== c.valor) {
+          <p class="dica">{{ pagamento.valorPago > c.valor ? 'Pago a mais (juros/multa)' : 'Pago a menos (desconto)' }}: {{ pagamento.valorPago - c.valor | currency: 'BRL' }}</p>
+        }
+        <label>Forma de pagamento
+          <select name="forma" [(ngModel)]="pagamento.formaPagamento">
+            @for (fo of formas; track fo) { <option [ngValue]="fo">{{ fo }}</option> }
+          </select>
+        </label>
+        @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+      </div>
+      <footer>
+        <button type="button" class="botao" (click)="dlgPagar.close()">Cancelar</button>
+        <button type="submit" class="botao primario" [disabled]="fp.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Confirmar pagamento' }}</button>
+      </footer>
+    </form>
+  }
+</dialog>

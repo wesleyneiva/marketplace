@@ -38,6 +38,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<ItemPedidoCompra> ItensPedidoCompra => Set<ItemPedidoCompra>();
     public DbSet<NotaEntrada> NotasEntrada => Set<NotaEntrada>();
     public DbSet<VinculoFornecedorProduto> VinculosFornecedor => Set<VinculoFornecedorProduto>();
+    public DbSet<ContaPagar> ContasPagar => Set<ContaPagar>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -185,6 +186,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasIndex(v => new { v.EmpresaId, v.FornecedorId, v.CodigoFornecedor }).IsUnique();
             e.HasOne(v => v.Fornecedor).WithMany().HasForeignKey(v => v.FornecedorId).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(v => v.Produto).WithMany().HasForeignKey(v => v.ProdutoId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ----- Contas a pagar -----
+        builder.Entity<ContaPagar>(e =>
+        {
+            e.ToTable("ContasPagar");
+            e.Property(c => c.Descricao).HasMaxLength(200);
+            e.Property(c => c.Documento).HasMaxLength(60);
+            e.Property(c => c.Valor).HasPrecision(12, 2);
+            e.Property(c => c.ValorPago).HasPrecision(12, 2);
+            e.Property(c => c.FormaPagamento).HasMaxLength(40);
+            e.Property(c => c.Observacao).HasMaxLength(300);
+            e.HasIndex(c => new { c.EmpresaId, c.PagaEm, c.Vencimento }); // "abertas por vencimento" é a consulta mais comum
+            e.HasOne(c => c.Fornecedor).WithMany().HasForeignKey(c => c.FornecedorId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.NotaEntrada).WithMany().HasForeignKey(c => c.NotaEntradaId).OnDelete(DeleteBehavior.SetNull);
+            e.HasOne(c => c.PagaPor).WithMany().HasForeignKey(c => c.PagaPorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.CriadaPor).WithMany().HasForeignKey(c => c.CriadaPorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- PDV -----

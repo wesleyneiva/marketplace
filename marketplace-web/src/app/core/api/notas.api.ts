@@ -62,6 +62,7 @@ export interface ConferenciaNota {
   pedidosAbertos: PedidoAberto[];
   pedidoSugeridoId: number | null;
   itens: ItemConferencia[];
+  pagamento: { parcelas: { numero: string | null; vencimento: string; valor: number }[]; formas: string[] };
 }
 
 export interface NovoProdutoNota {
@@ -90,6 +91,7 @@ export interface RegistroNota {
   fornecedorCriado: boolean;
   fornecedor: string;
   pedidoRecebidoId: number | null;
+  contasCriadas: number;
 }
 
 export interface NotaEntrada {
@@ -120,10 +122,10 @@ export class NotasApi {
   }
 
   // Grava: o XML vai de novo (o servidor confere tudo outra vez) junto com as decisões de cada item.
-  registrar(arquivo: File, pedidoCompraId: number | null, itens: DecisaoItemNota[]): Promise<RegistroNota> {
+  registrar(arquivo: File, pedidoCompraId: number | null, itens: DecisaoItemNota[], gerarContas: boolean, jaPaga: boolean): Promise<RegistroNota> {
     const formulario = new FormData();
     formulario.append('arquivo', arquivo, arquivo.name);
-    formulario.append('dados', JSON.stringify({ pedidoCompraId, itens }));
+    formulario.append('dados', JSON.stringify({ pedidoCompraId, itens, gerarContas, jaPaga }));
     return firstValueFrom(this.http.post<RegistroNota>(URL_NOTAS, formulario));
   }
 }

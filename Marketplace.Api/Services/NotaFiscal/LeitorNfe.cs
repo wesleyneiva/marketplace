@@ -35,6 +35,8 @@ public static partial class LeitorNfe
         public decimal CustoTotal => ValorProdutos - Desconto + Acrescimos;
     }
 
+    public record Duplicata(string? Numero, DateOnly Vencimento, decimal Valor);
+
     public record Nota(
         string Chave,                // 44 dígitos
         int Modelo,                  // 55 = NF-e; 65 = NFC-e (cupom)
@@ -50,7 +52,9 @@ public static partial class LeitorNfe
         decimal ValorTotal,          // vNF
         bool Autorizada,             // protNFe com cStat 100 (ou 150)
         int TipoOperacao,            // tpNF: 0 = entrada, 1 = saída (do ponto de vista do emitente)
-        List<Item> Itens);
+        List<Item> Itens,
+        List<Duplicata> Duplicatas,  // <cobr><dup>: as parcelas a pagar (boleto). Vazio = à vista / sem cobrança
+        List<string> FormasPagamento); // <pag><detPag><tPag> em português ("Boleto", "PIX"...)
 
     public class NotaInvalidaException(string mensagem) : Exception(mensagem);
 
@@ -107,7 +111,12 @@ public static partial class LeitorNfe
             Decimal(total, "vNF"),
             protocolo is "100" or "150",
             int.TryParse(Texto(ide, "tpNF"), out var tipo) ? tipo : 1,
-            itens);
+            itens,
+            infNFe.Element(Ns + "cobr")?.Elements(Ns + "dup")
+                .Select(d => (Numero: Texto(d, "nDup"), Vencimento: Data(Texto(d, "dVenc")), Valor: Decimal(d, "vDup")))
+                .Where(d => d.Vencimento is not null && d.Valor > 0)
+                .Select(d => new Duplicata(d.Numero, d.Vencimento!.Value, d.Valor)).OrderBy(d => d.Vencimento).ToList() ?? [],
+            infNFe.Element(Ns + "pag")?.Elements(Ns + "detPag").Select(p => FormaPagamento(Texto(p, "tPag"))).Distinct().ToList() ?? []);
     }
 
     private static Item LerItem(XElement det)
@@ -141,6 +150,14 @@ public static partial class LeitorNfe
             acrescimos,
             lotes);
     }
+
+    // Tabela "tPag" da SEFAZ.
+    private static string FormaPagamento(string? codigo) => codigo switch
+    {
+        "01" => "Dinheiro", "02" => "Cheque", "03" => "Cartão de crédito", "04" => "Cartão de débito",
+        "05" => "Crédito na loja", "15" => "Boleto", "16" => "Depósito", "17" => "PIX", "18" => "Transferência",
+        "90" => "Sem pagamento", _ => "Outros",
+    };
 
     // "SEM GTIN", vazio ou com letras → sem código de barras. GTIN-14 com zero na frente ("0789…") = o EAN-13 de sempre.
     private static string? CodigoDeBarras(string? valor) =>

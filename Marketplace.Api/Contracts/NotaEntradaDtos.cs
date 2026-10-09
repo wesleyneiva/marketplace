@@ -13,7 +13,13 @@ public record ConferenciaNotaResponse(
     List<string> Avisos,
     List<PedidoAbertoResponse> PedidosAbertos,
     int? PedidoSugeridoId,
-    List<ItemConferenciaResponse> Itens);
+    List<ItemConferenciaResponse> Itens,
+    PagamentoNotaResponse Pagamento);
+
+// Como a nota vai ser paga: as parcelas (duplicatas do boleto) e a forma de pagamento informada pelo fornecedor.
+public record PagamentoNotaResponse(List<ParcelaNotaResponse> Parcelas, List<string> Formas);
+
+public record ParcelaNotaResponse(string? Numero, DateOnly Vencimento, decimal Valor);
 
 public record FornecedorNotaResponse(int? Id, string Nome, string RazaoSocial, string Cnpj, bool Novo);
 
@@ -45,7 +51,8 @@ public record NovoProdutoSugestao(
 
 // ---------- Gravação: as decisões da pessoa, item a item ----------
 
-public record RegistrarNotaRequest(int? PedidoCompraId, List<DecisaoItemNota> Itens);
+// GerarContas: lança as parcelas em Contas a pagar. JaPaga (nota sem parcelas, paga na entrega): a conta já entra paga.
+public record RegistrarNotaRequest(int? PedidoCompraId, List<DecisaoItemNota> Itens, bool GerarContas = true, bool JaPaga = false);
 
 // Acao: "existente" (ProdutoId), "novo" (Novo) ou "ignorar" (ex.: brinde, item que não é revenda).
 public record DecisaoItemNota(int NumeroItem, string Acao, int? ProdutoId, NovoProdutoNota? Novo, decimal Fator, DateOnly? Validade);
@@ -54,7 +61,8 @@ public record NovoProdutoNota(string Nome, string? CodigoBarras, int CategoriaId
 
 public record RegistroNotaResponse(
     int NotaId, int ItensLancados, int ItensIgnorados, int ProdutosCriados, bool FornecedorCriado, string Fornecedor,
-    int? PedidoRecebidoId);
+    int? PedidoRecebidoId,
+    int ContasCriadas);
 
 // ---------- Histórico ----------
 

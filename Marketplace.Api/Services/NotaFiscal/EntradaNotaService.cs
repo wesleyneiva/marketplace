@@ -113,7 +113,9 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         return new ConferenciaNotaResponse(nota.Chave, nota.Numero, nota.Serie, nota.DataEmissao, nota.ValorTotal,
             new FornecedorNotaResponse(fornecedor?.Id, fornecedor?.Nome ?? NomeDoFornecedor(nota), nota.EmitenteNome,
                 FormatarCnpj(nota.EmitenteCnpj), fornecedor is null),
-            bloqueio, avisos, pedidos, pedidos.Count == 1 ? pedidos[0].Id : null, itens);
+            bloqueio, avisos, pedidos, pedidos.Count == 1 ? pedidos[0].Id : null, itens,
+            new PagamentoNotaResponse(nota.Duplicatas.Select(d => new ParcelaNotaResponse(d.Numero, d.Vencimento, d.Valor)).ToList(),
+                nota.FormasPagamento));
     }
 
     // ===================================================================== gravação
@@ -241,6 +243,42 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         };
         db.NotasEntrada.Add(registro);
 
+        // 6) Contas a pagar: uma por parcela (duplicata); sem parcelas, uma só com o total (à vista).
+        var contas = new List<ContaPagar>();
+        if (pedido.GerarContas && nota.ValorTotal > 0)
+        {
+            var titulo = Cortar($"NF-e {nota.Numero} — {fornecedor.Nome}", 170);
+            if (nota.Duplicatas.Count > 0)
+            {
+                var n = nota.Duplicatas.Count;
+                contas.AddRange(nota.Duplicatas.Select((d, i) => new ContaPagar
+                {
+                    Descricao = n > 1 ? $"{titulo} · parcela {i + 1}/{n}" : titulo,
+                    Documento = Cortar(d.Numero ?? $"{nota.Numero}/{i + 1}", 60), Vencimento = d.Vencimento, Valor = d.Valor,
+                }));
+            }
+            else
+            {
+                var emissao = Relogio.DiaBrasilia(nota.DataEmissao);
+                var conta = new ContaPagar { Descricao = titulo + " · à vista", Documento = nota.Numero, Vencimento = emissao, Valor = nota.ValorTotal };
+                if (pedido.JaPaga)
+                {
+                    conta.PagaEm = emissao;
+                    conta.ValorPago = nota.ValorTotal;
+                    conta.FormaPagamento = nota.FormasPagamento.FirstOrDefault();
+                    conta.PagaPorId = usuarioId;
+                }
+                contas.Add(conta);
+            }
+            foreach (var c in contas)
+            {
+                c.Fornecedor = fornecedor;
+                c.NotaEntrada = registro;
+                c.CriadaPorId = usuarioId;
+            }
+            db.ContasPagar.AddRange(contas);
+        }
+
         try
         {
             await db.SaveChangesAsync();
@@ -253,7 +291,7 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         }
 
         return new RegistroNotaResponse(registro.Id, produtoDoItem.Count, nota.Itens.Count - produtoDoItem.Count, criados,
-            fornecedorCriado, fornecedor.Nome, pedidoRecebido);
+            fornecedorCriado, fornecedor.Nome, pedidoRecebido, contas.Count);
     }
 
     // ===================================================================== histórico

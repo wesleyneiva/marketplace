@@ -127,7 +127,14 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
             .Select(s => new { s.NumeroCaixa, Operador = s.Usuario!.NomeCompleto, s.Diferenca })
             .ToListAsync();
 
-        var total = baixo.Count + validade.Count + diferencas.Count;
+        // Contas a pagar vencidas, de hoje e de amanhã (dá tempo de separar o dinheiro).
+        var contas = await db.ContasPagar.AsNoTracking()
+            .Where(c => c.PagaEm == null && c.Vencimento <= amanha)
+            .OrderBy(c => c.Vencimento)
+            .Select(c => new { c.Descricao, c.Vencimento, c.Valor })
+            .ToListAsync();
+
+        var total = baixo.Count + validade.Count + diferencas.Count + contas.Count;
         string? mensagem = null;
         if (total > 0)
         {
@@ -156,10 +163,21 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
                 foreach (var d in diferencas)
                     m.AppendLine($"• Caixa {d.NumeroCaixa} ({d.Operador}): " + (d.Diferenca > 0 ? $"sobrou {d.Diferenca:C}" : $"faltou {-d.Diferenca:C}"));
             }
+            if (contas.Count > 0)
+            {
+                m.AppendLine($"\n💸 Contas a pagar ({contas.Count} · {contas.Sum(c => c.Valor):C}):");
+                foreach (var c in contas.Take(10))
+                {
+                    var dias = c.Vencimento.DayNumber - hoje.DayNumber;
+                    var quando = dias < 0 ? $"🔴 venceu em {c.Vencimento:dd/MM}" : dias == 0 ? "🟠 vence hoje" : "🟡 vence amanhã";
+                    m.AppendLine($"• {c.Descricao}: {c.Valor:C} {quando}");
+                }
+                if (contas.Count > 10) m.AppendLine($"… e mais {contas.Count - 10}");
+            }
             mensagem = m.ToString().TrimEnd();
         }
 
-        return new { temAlerta = total > 0, total, estoqueBaixo = baixo, validade, diferencasCaixa = diferencas, mensagem };
+        return new { temAlerta = total > 0, total, estoqueBaixo = baixo, validade, diferencasCaixa = diferencas, contasPagar = contas, mensagem };
     }
 
     // GET /api/integracao/estoque?busca=arroz → para o comando /estoque do bot

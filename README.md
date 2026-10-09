@@ -51,6 +51,17 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   fornecedor pelo CNPJ (cadastra se não existe), produtos novos (sugestão de categoria pelo NCM e preço pela margem
   média da categoria), entrada no estoque com lote/validade, vínculos atualizados e baixa opcional do pedido de compra.
   A chave de acesso é única por empresa (a mesma nota não entra duas vezes) e o XML fica guardado (`GET …/notas/{id}/xml`).
+- **Contas a pagar** (💸 no menu) — as duplicatas da NF-e (`<cobr><dup>`) viram uma conta por parcela; nota sem
+  parcelas vira uma conta "à vista" (que pode entrar já paga). Contas lançadas à mão (aluguel, luz) com repetição
+  mensal; pagar (data, valor com juros/desconto, forma), desfazer, editar e excluir só em aberto. Resumo no topo e
+  no dashboard; vencidas, de hoje e de amanhã entram no `/api/integracao/alertas` (Telegram às 08:00 e 15:00).
+- **Etiquetas de gôndola** (Produtos → 🏷️ Etiquetas) — `Produto.PrecoAlteradoEm` é preenchido sozinho pelo
+  `AppDbContext` quando o preço de venda muda; a tela junta os produtos alterados desde um dia, uma categoria ou um
+  a um, e imprime em folha A4 (3×8 de 70×37 mm ou 4×10 de 52×29 mm) com código de barras EAN-13/EAN-8 em SVG próprio.
+- **Empresas** (🏢, só o dono da plataforma = Administrador da empresa `Plataforma:EmpresaId`, padrão 1, e só pela
+  rede interna) — clientes com plano, uso e último acesso; cadastrar (mesmo código do `nova-empresa.sh`), editar
+  plano, suspender (troca o carimbo de segurança: as sessões caem em até 1 min) e "Senha nova" para quem esqueceu.
+  Gravação em usuário de outra empresa só por `CriarEscopo(id)` (o carimbo de empresa recusa o resto).
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
   simulador vende. Pela internet (Cloudflare Tunnel, cabeçalho `CF-Connecting-IP`): `/api/integracao` fechado,

@@ -41,6 +41,8 @@ export class Dashboard {
 
   // Vendas: a gerência vê o dia inteiro (todos os caixas); o operador de caixa vê o caixa dele.
   protected readonly vendasDia = httpResource<ResumoVendas>(() => (this.veEstoque() ? '/api/vendas/resumo' : undefined));
+  protected readonly contas = httpResource<{ vencidas: number; valorVencidas: number; vencemHoje: number; valorHoje: number; proximos7Dias: number; valorProximos7Dias: number }>(
+    () => (this.veEstoque() ? '/api/contas/resumo' : undefined));
   protected readonly meuCaixa = httpResource<ResumoCaixa | null>(() => (this.veEstoque() ? undefined : '/api/caixa/atual'));
 
   protected readonly vendas = computed(() => {

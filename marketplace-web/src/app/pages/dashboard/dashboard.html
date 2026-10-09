@@ -70,6 +70,22 @@
         {{ resumoValidade().valor | currency: 'BRL' }} em risco
       </small>
     </a>
+
+    <a class="cartao clicavel" routerLink="/contas">
+      <div class="topo-cartao"><span>Contas a pagar (7 dias)</span><span class="icone" aria-hidden="true">💸</span></div>
+      @if (contas.value(); as c) {
+        <strong class="valor" [class.perigo]="c.vencidas > 0" [class.alerta]="!c.vencidas && c.vencemHoje > 0">
+          {{ c.valorVencidas + c.valorHoje + c.valorProximos7Dias | currency: 'BRL' }}
+        </strong>
+        <small>
+          @if (c.vencidas) { <b class="txt-perigo">{{ c.vencidas }} vencida(s)</b> · }
+          @if (c.vencemHoje) { <b class="txt-alerta">{{ c.vencemHoje }} hoje</b> · }
+          {{ c.proximos7Dias }} nos próximos 7 dias
+        </small>
+      } @else {
+        <strong class="valor apagado">…</strong><small>Carregando…</small>
+      }
+    </a>
   }
 </section>
 

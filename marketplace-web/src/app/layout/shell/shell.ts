@@ -33,6 +33,7 @@ export class Shell {
     { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Compras', icone: '🛍️', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Contas a pagar', icone: '💸', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Empresas', icone: '🏢', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },

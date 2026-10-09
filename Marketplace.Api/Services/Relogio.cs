@@ -9,6 +9,9 @@ public static class Relogio
 
     public static DateOnly HojeBrasilia => DateOnly.FromDateTime(AgoraBrasilia.DateTime);
 
+    // Em que DIA (no calendário de Brasília) aconteceu um momento qualquer (ex.: a emissão de uma nota).
+    public static DateOnly DiaBrasilia(DateTimeOffset momento) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(momento, Brasilia).DateTime);
+
     // Meia-noite de Brasília daquele dia, convertida para UTC (o PostgreSQL/Npgsql só aceita UTC).
     // Ex.: 08/10 00:00 em Brasília = 08/10 03:00 UTC.
     public static DateTimeOffset InicioDoDiaUtc(DateOnly dia)

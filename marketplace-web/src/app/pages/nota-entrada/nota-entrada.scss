@@ -123,6 +123,18 @@ th {
   }
 
   .acoes-topo { margin-top: 12px; }
+
+  .pagamento {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--cor-borda);
+    font-size: 14px;
+
+    .rotulo { display: block; margin-bottom: 4px; }
+    p { margin: 0 0 6px; }
+    .parcelas { margin: 0 0 6px; padding-left: 18px; }
+    .marcar { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+  }
 }
 
 .nota-aviso {

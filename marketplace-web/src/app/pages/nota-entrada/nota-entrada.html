@@ -17,6 +17,7 @@
         @if (r.produtosCriados) { <li><strong>{{ r.produtosCriados }}</strong> produto(s) novo(s) cadastrado(s)</li> }
         @if (r.fornecedorCriado) { <li>Fornecedor <strong>{{ r.fornecedor }}</strong> cadastrado pelo CNPJ da nota</li> }
         @if (r.pedidoRecebidoId) { <li>Pedido de compra <strong>#{{ r.pedidoRecebidoId }}</strong> marcado como recebido</li> }
+        @if (r.contasCriadas) { <li><strong>{{ r.contasCriadas }}</strong> conta(s) lançada(s) em <a routerLink="/contas">Contas a pagar</a></li> }
         <li>Na próxima nota deste fornecedor, os itens serão reconhecidos sozinhos.</li>
       </ul>
       <div class="botoes">
@@ -102,6 +103,24 @@
         </select>
       </label>
     }
+    <div class="pagamento">
+      <span class="rotulo">Pagamento</span>
+      @if (c.pagamento.parcelas.length) {
+        <ul class="parcelas">
+          @for (p of c.pagamento.parcelas; track $index) {
+            <li><strong>{{ p.vencimento | dia }}</strong> · {{ p.valor | currency: 'BRL' }} @if (p.numero) { <small class="suave">(dup. {{ p.numero }})</small> }</li>
+          }
+        </ul>
+      } @else {
+        <p class="suave">À vista{{ c.pagamento.formas.length ? ' · ' + c.pagamento.formas.join(', ') : '' }} · {{ c.valorTotal | currency: 'BRL' }}</p>
+      }
+      <label class="marcar"><input type="checkbox" [(ngModel)]="gerarContas" /> Lançar em <b>Contas a pagar</b>
+        @if (c.pagamento.parcelas.length > 1) { ({{ c.pagamento.parcelas.length }} parcelas) }</label>
+      @if (gerarContas && !c.pagamento.parcelas.length) {
+        <label class="marcar"><input type="checkbox" [(ngModel)]="jaPaga" /> Já foi paga na entrega</label>
+      }
+    </div>
+
     <div class="acoes-topo">
       <button type="button" class="botao pequeno" (click)="recomecar()" [disabled]="gravando()">Enviar outra nota</button>
     </div>

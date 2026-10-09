@@ -66,6 +66,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/usuarios/usuarios').then((m) => m.Usuarios),
       },
       {
+        path: 'contas',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),
+      },
+      {
         // Clientes do SaaS (só o dono da plataforma).
         path: 'empresas',
         canActivate: [precisaSerDono],

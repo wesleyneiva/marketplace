@@ -1,0 +1,64 @@
+@use '../compras/compras.scss';
+
+.resumo {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+
+  .cartao {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 12px;
+    background: var(--cor-superficie);
+    text-align: left;
+    cursor: pointer;
+
+    span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
+    strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+    small { color: var(--cor-texto-suave); font-size: 12px; }
+
+    &:hover { border-color: var(--cor-primaria); }
+    &.perigo strong { color: var(--cor-erro); }
+    &.alerta strong { color: #b45309; }
+  }
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+  transition: opacity 0.15s;
+
+  &.carregando { opacity: 0.6; }
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--cor-borda); vertical-align: middle; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); background: var(--cor-fundo); }
+tbody tr:last-child td { border-bottom: 0; }
+
+tr.vencida { background: var(--cor-erro-fundo); }
+tr.vencehoje { background: #fffbeb; }
+tr.paga { color: var(--cor-texto-suave); }
+
+.data { white-space: nowrap; small { display: block; font-size: 12px; color: var(--cor-texto-suave); } }
+.vencida .data small { color: var(--cor-erro); font-weight: 600; }
+.descricao { display: block; font-weight: 600; }
+.detalhe { display: block; font-size: 12px; color: var(--cor-texto-suave); a { color: inherit; } }
+.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.forte { font-weight: 700; }
+.acoes { white-space: nowrap; text-align: right; display: table-cell; button + button { margin-left: 4px; } }
+
+.selo.paga { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.vencida { background: #fee2e2; color: var(--cor-erro); }
+.selo.hoje { background: #fef3c7; color: #92400e; }
+
+.vazio { padding: 24px; text-align: center; color: var(--cor-texto-suave); }
+
+.janela {
+  .duas { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .duas label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
+  label small { font-weight: 400; color: var(--cor-texto-suave); }
+}
