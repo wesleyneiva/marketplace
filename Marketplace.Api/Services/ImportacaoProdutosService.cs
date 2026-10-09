@@ -1,11 +1,12 @@
 using ClosedXML.Excel;
+using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 
 namespace Marketplace.Api.Services;
 
 // Importação de produtos por planilha (para o cliente novo não cadastrar 1.000 produtos um por um).
 // Passo 1: o MODELO que o cliente baixa e preenche. A leitura/prévia usa as mesmas colunas (Colunas).
-public class ImportacaoProdutosService
+public partial class ImportacaoProdutosService(AppDbContext db)
 {
     // Uma coluna da planilha: título (como aparece no Excel), se é obrigatória e a explicação da aba "Instruções".
     public record Coluna(string Titulo, bool Obrigatoria, string Explicacao, string Exemplo);
