@@ -20,7 +20,12 @@ public class AuthController(
     // Pela internet (demo.wnlabs.com.br), por enquanto, só o modo demonstração: o login com senha
     // (o seu de administrador, por exemplo) continua só pelo Tailscale. Liga com Publico__LoginComSenha=true.
     private bool LoginComSenhaLiberado => !HttpContext.VeioDaInternet() || config.GetValue("Publico:LoginComSenha", false);
-    private bool DemonstracaoLigada => config.GetValue("Demonstracao:Ativa", false);
+    // O botão "Ver demonstração" só existe no endereço da vitrine (demo.wnlabs.com.br). Pelo Tailscale
+    // (oracle-a1:5100) e nos endereços dos clientes, o login é o normal. Para testar em casa:
+    // Demonstracao__Host=oracle-a1.
+    private bool DemonstracaoLigada =>
+        config.GetValue("Demonstracao:Ativa", false)
+        && string.Equals(Request.Host.Host, config["Demonstracao:Host"] ?? "demo.wnlabs.com.br", StringComparison.OrdinalIgnoreCase);
 
     // GET /api/auth/acesso → a tela de login pergunta o que mostrar
     [HttpGet("acesso")]

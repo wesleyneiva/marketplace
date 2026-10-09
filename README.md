@@ -36,7 +36,7 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   `"EmpresaId" = {db.EmpresaAtual}` vai escrito à mão. Cada empresa tem o seu **limite de caixas** (o "plano").
   Cliente novo: `./nova-empresa.sh --nome "Mercado do Zé" --subdominio mercadoze --caixas 2 --admin-email … --admin-nome …`
   (cria a empresa, as categorias padrão e o administrador com senha provisória).
-- **Demonstração pública** — com `Demonstracao__Ativa=true`, o login mostra **"Ver demonstração"**: entra como
+- **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
   simulador vende. Pela internet (Cloudflare Tunnel, cabeçalho `CF-Connecting-IP`): `/api/integracao` fechado,
   login com senha desligado (`Publico__LoginComSenha`), limite de 10 tentativas/min no login e 300 pedidos/min por IP.
