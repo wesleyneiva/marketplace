@@ -33,6 +33,7 @@ builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
+builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoProdutosService>();
 
 // Simulador de clientes (trabalhador em segundo plano) + clima real de Porto Alegre.
 // Só simula se "Simulador:Ativo" = true (ligado no serviço de produção, desligado no desenvolvimento).
