@@ -4,6 +4,7 @@ import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/htt
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { copiarTexto } from '../../shared/copiar';
 
 interface Usuario {
   id: string; nome: string; email: string; perfil: string; ativo: boolean; trocarSenha: boolean; sistema: boolean;
@@ -102,12 +103,7 @@ export class Usuarios {
   async copiarSenha(): Promise<void> {
     const s = this.senhaProvisoria();
     if (!s) return;
-    try {
-      await navigator.clipboard.writeText(s.senha);
-      this.copiado.set(true);
-    } catch {
-      this.copiado.set(false); // sem permissão de área de transferência: a pessoa copia na mão
-    }
+    this.copiado.set(await copiarTexto(s.senha)); // se falhar, a senha continua na tela para copiar na mão
   }
 
   fecharSenha(): void {

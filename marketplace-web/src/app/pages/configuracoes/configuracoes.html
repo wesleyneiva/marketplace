@@ -79,7 +79,11 @@
       <span>{{ pesoTeste | number: '1.3-3' }} kg · {{ valorTeste() | currency: 'BRL' }}</span>
       <app-codigo-barras class="barras-grande" [codigo]="e" />
     </div>
-    <button type="button" class="botao pequeno" (click)="copiar(e)">📋 Copiar {{ e }}</button>
+    <div class="copiar">
+      <button type="button" class="botao pequeno" (click)="copiar(e)">📋 Copiar {{ e }}</button>
+      @if (copiado() === true) { <span class="ok">✅ Copiado! Cole no campo do PDV (Ctrl+V) e aperte Enter.</span> }
+      @if (copiado() === false) { <span class="falhou">Não deu para copiar sozinho: selecione o número <b>{{ e }}</b> e use Ctrl+C.</span> }
+    </div>
   }
 </section>
 

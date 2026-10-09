@@ -111,3 +111,14 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
 
   a { color: inherit; font-weight: 700; }
 }
+
+.copiar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+
+  .ok { color: var(--cor-primaria-escura); font-weight: 600; }
+  .falhou { color: #92400e; }
+}

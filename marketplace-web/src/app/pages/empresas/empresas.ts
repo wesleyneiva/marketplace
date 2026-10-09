@@ -3,6 +3,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { copiarTexto } from '../../shared/copiar';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -181,12 +182,7 @@ export class Empresas {
   async copiar(): Promise<void> {
     const c = this.credencial();
     if (!c) return;
-    try {
-      await navigator.clipboard.writeText(this.mensagemCliente(c));
-      this.copiado.set(true);
-    } catch {
-      this.copiado.set(false);
-    }
+    this.copiado.set(await copiarTexto(this.mensagemCliente(c)));
   }
 
   protected tempoDesde(data: string | null): string {

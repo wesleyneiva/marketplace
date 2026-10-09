@@ -9,6 +9,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Produto } from '../../core/api/produtos.api';
 import { CodigoBarras } from '../../shared/codigo-barras';
 import { ProdutoBusca } from '../../shared/produto-busca';
+import { copiarTexto } from '../../shared/copiar';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Cupom } from '../../core/api/pdv.api';
@@ -64,6 +65,7 @@ export class Configuracoes {
   protected readonly produtoTeste = signal<Produto | null>(null);
   protected pesoTeste = 0.75;
   protected readonly etiquetaTeste = signal<string | null>(null);
+  protected readonly copiado = signal<boolean | null>(null); // null = ainda não tentou
 
   // Preenche o formulário quando a configuração chega (uma vez).
   protected formulario(c: Configuracao): boolean {
@@ -105,6 +107,7 @@ export class Configuracoes {
     let soma = 0;
     for (let i = 0; i < 12; i++) soma += Number(corpo[i]) * (i % 2 === 0 ? 1 : 3);
     this.etiquetaTeste.set(corpo + ((10 - (soma % 10)) % 10));
+    this.copiado.set(null);
   }
 
   protected valorTeste(): number {
@@ -127,11 +130,6 @@ export class Configuracoes {
   }
 
   async copiar(texto: string): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(texto);
-      this.aviso.set('Código copiado: cole no campo do PDV e aperte Enter.');
-    } catch {
-      /* sem permissão de área de transferência: o número está na tela */
-    }
+    this.copiado.set(await copiarTexto(texto));
   }
 }
