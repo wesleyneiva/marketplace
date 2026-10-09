@@ -31,14 +31,17 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         if (!incluirInativos)
             consulta = consulta.Where(p => p.Ativo);
 
-        if (!string.IsNullOrWhiteSpace(busca))
+        var termo = busca?.Trim() ?? "";
+        if (termo.Length > 0)
         {
-            var termo = busca.Trim();
-            // ILike = "contém", sem diferenciar maiúsculas/minúsculas; Unaccent = ignora acentos.
-            // (recursos do PostgreSQL). Ou o código de barras exato, vindo do leitor.
-            consulta = consulta.Where(p =>
-                EF.Functions.ILike(EF.Functions.Unaccent(p.Nome), EF.Functions.Unaccent($"%{termo}%"))
-                || p.CodigoBarras == termo);
+            // Cada PALAVRA precisa aparecer no nome, em qualquer ordem: "refri guar" acha "Refrigerante guaraná 2L".
+            // ILike = "contém", sem diferenciar maiúsculas/minúsculas; Unaccent = ignora acentos (recursos do PostgreSQL).
+            // Ou o código de barras exato, vindo do leitor.
+            var palavras = termo.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6).Select(SemCuringa).ToList();
+            var porNome = consulta;
+            foreach (var palavra in palavras)
+                porNome = porNome.Where(p => EF.Functions.ILike(EF.Functions.Unaccent(p.Nome), EF.Functions.Unaccent($"%{palavra}%")));
+            consulta = porNome.Union(consulta.Where(p => p.CodigoBarras == termo));
         }
 
         if (categoriaId is not null)
@@ -49,8 +52,12 @@ public class ProdutosController(AppDbContext db) : ControllerBase
 
         var total = await consulta.CountAsync();
 
-        var itens = await consulta
-            .OrderBy(p => p.Nome)
+        // Com busca: primeiro os nomes que COMEÇAM com o que foi digitado ("arroz" → "Arroz…" antes de "Biscoito de arroz").
+        var inicio = SemCuringa(termo.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "") + "%";
+        var ordenada = termo.Length > 0
+            ? consulta.OrderBy(p => !EF.Functions.ILike(EF.Functions.Unaccent(p.Nome), EF.Functions.Unaccent(inicio))).ThenBy(p => p.Nome)
+            : consulta.OrderBy(p => p.Nome);
+        var itens = await ordenada
             .Skip((pagina - 1) * tamanho)
             .Take(tamanho)
             .Select(ParaResposta)
@@ -132,6 +139,9 @@ public class ProdutosController(AppDbContext db) : ControllerBase
     [HttpGet("balanca/proximo-codigo")]
     [Authorize(Roles = PodeEditar)]
     public async Task<int> ProximoCodigoBalanca() => (await db.Produtos.MaxAsync(p => p.CodigoBalanca) ?? 0) + 1;
+
+    // "%" e "_" digitados pela pessoa são texto, não curinga do LIKE.
+    private static string SemCuringa(string texto) => texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     private static string Csv(string texto) => texto.Replace(";", ",").Replace("\"", "'");
 

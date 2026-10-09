@@ -155,18 +155,20 @@ export class Pdv {
     this.erro.set(null);
     this.avisoBalanca = null;
 
-    // Lista aberta → Enter escolhe o item destacado.
-    if (this.resultados().length) {
+    clearTimeout(this.esperaDigitacao);
+    const texto = this.textoBusca.trim();
+    const { quantidade, termo } = separarQuantidade(texto);
+
+    // Lista aberta (filtrada enquanto digitava) → Enter escolhe o item destacado.
+    // Exceto se o texto é só números (leitor de código de barras): aí vale o código exato.
+    if (this.resultados().length && this.termoDaLista === termo && !/^\d+$/.test(termo)) {
+      this.quantidadeDaBusca = quantidade;
       this.escolher(this.resultados()[this.indiceResultado()]);
       return;
     }
-
-    // "3*arroz" → quantidade 3, termo "arroz".
-    const texto = this.textoBusca.trim();
+    this.resultados.set([]);
     if (!texto) return;
-    const comQuantidade = /^(\d+(?:[.,]\d+)?)\s*\*\s*(.+)$/.exec(texto);
-    this.quantidadeDaBusca = comQuantidade ? lerNumero(comQuantidade[1]) : null;
-    const termo = (comQuantidade ? comQuantidade[2] : texto).trim();
+    this.quantidadeDaBusca = quantidade;
 
     this.buscando.set(true);
     try {
@@ -222,6 +224,38 @@ export class Pdv {
     }
   }
 
+  // Filtra enquanto digita (espera 200 ms sem teclar). Só números = código de barras: não filtra, espera o Enter
+  // (o leitor "digita" o código inteiro em milissegundos e aperta Enter sozinho).
+  private esperaDigitacao?: ReturnType<typeof setTimeout>;
+  private termoDaLista = '';
+  protected readonly semResultado = signal<string | null>(null);
+
+  protected digitar(): void {
+    clearTimeout(this.esperaDigitacao);
+    this.erro.set(null);
+    const { termo } = separarQuantidade(this.textoBusca.trim());
+    if (termo.length < 2 || /^\d+$/.test(termo)) {
+      this.resultados.set([]);
+      this.semResultado.set(null);
+      return;
+    }
+    this.esperaDigitacao = setTimeout(() => void this.filtrar(termo), 200);
+  }
+
+  private async filtrar(termo: string): Promise<void> {
+    try {
+      const pagina = await firstValueFrom(this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }));
+      // Se a pessoa continuou digitando (ou já apertou Enter), esta resposta ficou velha.
+      if (separarQuantidade(this.textoBusca.trim()).termo !== termo) return;
+      this.termoDaLista = termo;
+      this.resultados.set(pagina.itens);
+      this.indiceResultado.set(0);
+      this.semResultado.set(pagina.itens.length ? null : termo);
+    } catch {
+      /* falhou o filtro: o Enter ainda busca normalmente */
+    }
+  }
+
   protected moverSelecao(passo: number, evento: Event): void {
     if (!this.resultados().length) return;
     evento.preventDefault();
@@ -231,6 +265,8 @@ export class Pdv {
 
   protected escolher(produto: Produto): void {
     this.resultados.set([]);
+    this.semResultado.set(null);
+    clearTimeout(this.esperaDigitacao);
     this.textoBusca = '';
     const quantidade = this.quantidadeDaBusca;
     this.quantidadeDaBusca = null;
@@ -484,7 +520,9 @@ export class Pdv {
       e.preventDefault();
       this.abrirPagamento();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {
+      clearTimeout(this.esperaDigitacao);
       this.resultados.set([]);
+      this.semResultado.set(null);
       this.produtoPeso.set(null);
       this.erro.set(null);
       this.focarBusca();
@@ -550,4 +588,10 @@ export class Pdv {
     }
     return 'Não foi possível concluir. Tente de novo.';
   }
+}
+
+// "3*arroz" → { quantidade: 3, termo: "arroz" } · "arroz" → { quantidade: null, termo: "arroz" }
+function separarQuantidade(texto: string): { quantidade: number | null; termo: string } {
+  const m = /^(\d+(?:[.,]\d+)?)\s*\*\s*(.*)$/.exec(texto);
+  return m ? { quantidade: lerNumero(m[1]), termo: m[2].trim() } : { quantidade: null, termo: texto };
 }

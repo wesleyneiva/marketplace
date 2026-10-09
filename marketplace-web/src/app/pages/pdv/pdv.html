@@ -60,7 +60,7 @@
           <div class="busca">
             <input #campoBusca name="busca" [(ngModel)]="textoBusca" autocomplete="off"
                    placeholder="Bipe o código ou digite o nome · 3*arroz = 3 unidades"
-                   (keydown.enter)="buscar()" (keydown.arrowdown)="moverSelecao(1, $event)"
+                   (input)="digitar()" (keydown.enter)="buscar()" (keydown.arrowdown)="moverSelecao(1, $event)"
                    (keydown.arrowup)="moverSelecao(-1, $event)" aria-label="Buscar produto" />
             @if (buscando()) { <span class="girando">⏳</span> }
             @if (resultados().length) {
@@ -73,6 +73,8 @@
                   </li>
                 }
               </ul>
+            } @else if (semResultado()) {
+              <div class="resultados vazio-busca">Nenhum produto com "{{ semResultado() }}"</div>
             }
           </div>
         }
