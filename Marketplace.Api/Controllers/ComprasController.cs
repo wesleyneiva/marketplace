@@ -61,7 +61,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
 
     private async Task<List<PedidoResponse>> MontarAsync(List<int> ids)
     {
-        var hoje = Services.Relogio.HojeBrasilia;
+        var hoje = Services.Relogio.Hoje;
         var pedidos = await db.PedidosCompra.AsNoTracking()
             .Where(p => ids.Contains(p.Id))
             .Select(p => new

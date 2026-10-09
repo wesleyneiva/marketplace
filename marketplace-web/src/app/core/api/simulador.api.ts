@@ -10,6 +10,7 @@ export interface SimuladorStatus {
   ultimoErro: string | null;
   temperatura: number | null;
   tempo: string | null;
+  cidade: string | null; // cidade da loja (de onde vem o clima)
   climaReal: boolean;
   vendasHoje: number;
   faturamentoHoje: number;

@@ -65,6 +65,12 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   ETX), lida ao abrir a janela de peso e com F4; balança simulada para testes. *Impressora térmica*: cupom 80/58 mm impresso
   por iframe (1–2 vias, automático ao finalizar; `--kiosk-printing` no atalho do Chrome imprime sem janela). Configurações
   de balança do caixa e impressora ficam em cada computador (localStorage).
+- **Cidade da loja (sem fronteiras)** — cada empresa tem cidade/UF/coordenadas/**fuso** (busca de cidades do Brasil na
+  geocodificação da Open-Meteo, em ⚙️ Configurações ou no cadastro do cliente). O **relógio** (`Relogio.Hoje/Agora/
+  InicioDoDiaUtc`) usa o fuso da empresa da requisição (AsyncLocal definido pelo `ContextoEmpresa`; padrão Brasília) e os
+  relatórios usam `AT TIME ZONE {fuso}`. O **clima** é por lugar (tabela Clima com latitude/longitude): o `ColetorClima`
+  registra a cada 30 min o clima de cada cidade com loja ativa e, para cidade nova, os últimos 60 dias.
+- **PDV filtra enquanto digita** — busca por palavras em qualquer ordem; só números (leitor) espera o Enter.
 - **Dados fiscais do produto** (preparação da NFC-e, que será por serviço fiscal pronto quando houver CNPJ): NCM, CEST,
   CFOP (padrão 5102), origem e CSOSN/CST; NCM e CEST vêm sozinhos da NF-e de compra; coluna NCM na planilha de importação.
 - **Empresas** (🏢, só o dono da plataforma = Administrador da empresa `Plataforma:EmpresaId`, padrão 1, e só pela

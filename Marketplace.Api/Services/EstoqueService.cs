@@ -35,7 +35,7 @@ public class EstoqueService(AppDbContext db)
         {
             if (validade is null)
                 throw new EstoqueException("Produto perecível: informe a data de validade.");
-            if (validade < Relogio.HojeBrasilia)
+            if (validade < Relogio.Hoje)
                 throw new EstoqueException("A data de validade já passou.");
 
             // Mesma validade de um lote que ainda tem saldo → soma nele; senão, cria um lote novo.
@@ -143,7 +143,7 @@ public class EstoqueService(AppDbContext db)
 
         // Produto vencido NÃO pode ser vendido: só conta o que está dentro da validade.
         var vencido = produto.ControlaValidade
-            ? await db.Lotes.Where(l => l.ProdutoId == produto.Id && l.QuantidadeAtual > 0 && l.DataValidade < Relogio.HojeBrasilia)
+            ? await db.Lotes.Where(l => l.ProdutoId == produto.Id && l.QuantidadeAtual > 0 && l.DataValidade < Relogio.Hoje)
                 .SumAsync(l => (decimal?)l.QuantidadeAtual) ?? 0
             : 0;
         var disponivel = produto.EstoqueAtual - vencido;
@@ -186,7 +186,7 @@ public class EstoqueService(AppDbContext db)
         string? motivo = null, string? observacao = null, Venda? venda = null, bool ignorarVencidos = false)
     {
         var movs = new List<MovimentacaoEstoque>();
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var restante = quantidade;
 
         if (produto.ControlaValidade)

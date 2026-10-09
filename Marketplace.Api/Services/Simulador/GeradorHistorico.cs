@@ -11,14 +11,14 @@ public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas
 // Usa as mesmas regras do cliente ao vivo (ComportamentoCliente), mas:
 //  • NÃO mexe no estoque (as vendas são marcadas com Origem = Historico);
 //  • cria uma sessão do Caixa 9 por dia aberto (seg–sáb, 8h às 19h), já fechada.
-public class GeradorHistorico(AppDbContext db, ClimaService clima, UserManager<Usuario> usuarios, ILogger<GeradorHistorico> log)
+public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios, ILogger<GeradorHistorico> log)
 {
     public const string Marca = "Histórico gerado (simulador)";
 
     public async Task<ResultadoHistorico> GerarAsync(int dias, bool substituir, CancellationToken ct)
     {
         dias = Math.Clamp(dias, 1, 90);
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var (de, ate) = (hoje.AddDays(-dias), hoje.AddDays(-1));
         var (inicioUtc, fimUtc) = (Relogio.InicioDoDiaUtc(de), Relogio.InicioDoDiaUtc(hoje));
 
@@ -31,7 +31,9 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, UserManager<U
 
         var robo = await usuarios.FindByEmailAsync(SimuladorEstado.Email)
             ?? throw new InvalidOperationException("Usuário do simulador não existe.");
-        var climaPorHora = await clima.ObterHistoricoAsync(dias + 1, ct);
+        var local = locais.Local(db.EmpresaAtual)
+            ?? throw new InvalidOperationException("Cadastre a cidade da loja (Configurações) antes de gerar o histórico: o clima vem de lá.");
+        var climaPorHora = await clima.ObterHistoricoAsync(local, dias + 1, ct);
 
         var produtos = await db.Produtos.AsNoTracking().Where(p => p.Ativo).ToListAsync(ct);
         // No histórico não há limite de estoque: "Disponivel" bem alto.

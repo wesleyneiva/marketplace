@@ -9,6 +9,33 @@
 @if (erro()) { <div class="erro-caixa" role="alert">{{ erro() }}</div> }
 
 <section class="painel secao">
+  <h2>📍 Cidade da loja</h2>
+  <p class="explica">Define o <b>clima</b> (relatório "o clima influenciou?", previsão nos insights) e o <b>fuso horário</b>:
+    "hoje", vendas do dia e relatórios por hora seguem o relógio da cidade (em Manaus, 1 hora a menos que Brasília).</p>
+  @if (config.value(); as c) {
+    @if (c.cidade) {
+      <p class="cidade-atual">🏙️ <b>{{ c.cidade }}/{{ c.uf }}</b> · horário de {{ nomeDoFuso(c.fuso) }} · agora na loja: <b>{{ c.horaLocal }}</b></p>
+    } @else {
+      <p class="falta-plu">✋ A cidade da loja ainda não foi definida: sem ela não há clima nos relatórios e o horário usado é o de Brasília.</p>
+    }
+  }
+  @if (ehAdmin()) {
+    <div class="grade">
+      <label>{{ config.value()?.cidade ? 'Mudar para' : 'Cidade' }}
+        <app-cidade-busca (selecionada)="cidadeEscolhida.set($event)" />
+      </label>
+    </div>
+    @if (cidadeEscolhida(); as e) {
+      <div class="copiar">
+        <span>Escolhida: <b>{{ e.nome }}/{{ e.uf }}</b> · horário de {{ nomeDoFuso(e.fuso) }}</span>
+        <button type="button" class="botao primario" (click)="salvarCidade()" [disabled]="salvandoCidade()">Salvar cidade</button>
+      </div>
+    }
+    @if (avisoCidade()) { <p class="dica">{{ avisoCidade() }}</p> }
+  }
+</section>
+
+<section class="painel secao">
   <h2>🏷️ Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
   <p class="explica">
     A balança imprime uma etiqueta com código de barras começando com <b>2</b>. O caixa passa o leitor e o produto entra com o

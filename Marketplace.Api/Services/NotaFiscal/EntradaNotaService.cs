@@ -261,7 +261,7 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
             }
             else
             {
-                var emissao = Relogio.DiaBrasilia(nota.DataEmissao);
+                var emissao = Relogio.DiaLocal(nota.DataEmissao);
                 var conta = new ContaPagar { Descricao = titulo + " · à vista", Documento = nota.Numero, Vencimento = emissao, Valor = nota.ValorTotal };
                 if (pedido.JaPaga)
                 {

@@ -104,7 +104,7 @@ public partial class ImportacaoProdutosService
         var categorias = await db.Categorias.AsNoTracking().Select(c => new { c.Nome, c.Ativa }).ToListAsync();
         var categoriaPorNome = categorias.GroupBy(c => Normalizar(c.Nome)).ToDictionary(g => g.Key, g => g.First());
 
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var codigosVistos = new Dictionary<string, int>();
         var nomesSemCodigoVistos = new Dictionary<string, int>();
         var categoriasNovas = new Dictionary<string, string>(); // normalizado → como o cliente escreveu (a 1ª vez)

@@ -12,7 +12,7 @@
     <div class="info">
       <strong>Simulador de clientes {{ sim.ativo ? 'ativo' : 'pausado' }}</strong>
       <small>
-        @if (sim.temperatura !== null) { Porto Alegre {{ sim.temperatura }} °C, {{ sim.tempo }} · }
+        @if (sim.temperatura !== null) { {{ sim.cidade }} {{ sim.temperatura }} °C, {{ sim.tempo }} · }
         Caixa 9 {{ sim.caixaAberto ? 'aberto' : 'fechado' }} ·
         {{ sim.vendasHoje }} {{ sim.vendasHoje === 1 ? 'cliente' : 'clientes' }} hoje ({{ sim.faturamentoHoje | currency: 'BRL' }})
         @if (sim.ultimoErro) { · <b class="txt-perigo">erro: {{ sim.ultimoErro }}</b> }

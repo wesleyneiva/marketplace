@@ -105,7 +105,7 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
     [Authorize(Roles = Gerencia)]
     public async Task<ResumoVendasResponse> Resumo(DateOnly? data)
     {
-        var dia = data ?? Relogio.HojeBrasilia;
+        var dia = data ?? Relogio.Hoje;
         var (inicio, fim) = DiaEmUtc(dia);
         var doDia = db.Vendas.AsNoTracking()
             .Where(v => v.Status == StatusVenda.Concluida && v.DataHora >= inicio && v.DataHora < fim);

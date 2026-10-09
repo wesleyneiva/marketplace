@@ -88,7 +88,18 @@ public record EtiquetaResponse(
 public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidade, decimal? PrecoEtiqueta, decimal? PesoEtiqueta);
 
 // Configuração da empresa usada pelas telas (por enquanto, o formato da etiqueta da balança).
-public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta);
+public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
+    string? Cidade, string? Uf, string Fuso, string HoraLocal);
+
+// Cidade do Brasil (busca da Open-Meteo): define o clima e o fuso horário da loja.
+public record CidadeResponse(string Nome, string Uf, string Estado, decimal Latitude, decimal Longitude, string Fuso, int? Populacao);
+
+public record CidadeRequest(
+    [Required(ErrorMessage = "Informe a cidade.")][StringLength(80, MinimumLength = 2, ErrorMessage = "Nome da cidade: de 2 a 80 letras.")] string Nome,
+    [Required(ErrorMessage = "Informe o estado.")][StringLength(2, MinimumLength = 2, ErrorMessage = "Estado: a sigla (UF), ex.: AM.")] string Uf,
+    [Range(-34, 6, ErrorMessage = "Latitude fora do Brasil.")] decimal Latitude,
+    [Range(-74, -28, ErrorMessage = "Longitude fora do Brasil.")] decimal Longitude,
+    [Required(ErrorMessage = "Informe o fuso horário.")][StringLength(40)] string Fuso);
 
 public record ConfiguracaoEmpresaRequest(
     [Range(4, 5, ErrorMessage = "O código do produto na etiqueta tem 4 ou 5 dígitos.")] int BalancaDigitosCodigo,

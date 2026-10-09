@@ -18,7 +18,7 @@
       <header>
         <div class="nome">
           <h2>{{ e.nome }}</h2>
-          <small>#{{ e.id }} · {{ e.subdominio }} · cliente desde {{ e.criadoEm | date: 'dd/MM/yyyy' }}</small>
+          <small>#{{ e.id }} · {{ e.subdominio }} · {{ e.cidade ?? 'cidade não definida' }} · cliente desde {{ e.criadoEm | date: 'dd/MM/yyyy' }}</small>
         </div>
         <div class="selos">
           @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
@@ -85,6 +85,12 @@
       @if (!editando()) {
         <label>Apelido interno <small>(opcional: identifica a empresa; não muda o endereço)</small>
           <input name="subdominio" [(ngModel)]="subdominio" maxlength="40" pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?" [placeholder]="apelidoSugerido() || 'mercado-do-ze'" />
+        </label>
+      }
+      @if (!editando()) {
+        <label>Cidade da loja <small>(clima e fuso horário; o cliente pode mudar depois em Configurações)</small>
+          <app-cidade-busca (selecionada)="cidade.set($event)" />
+          @if (cidade(); as c) { <small>✔ {{ c.nome }}/{{ c.uf }} · horário de {{ nomeDoFuso(c.fuso) }}</small> }
         </label>
       }
       <label>Plano: quantos caixas (PDVs)<input name="caixas" type="number" min="1" max="999" [(ngModel)]="limiteCaixas" required /></label>

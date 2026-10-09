@@ -72,7 +72,7 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
     // GET /api/estoque/validades?dias=7 → lotes com saldo que vencem até daqui a N dias (inclui os vencidos).
     [HttpGet("validades")]
     public Task<List<LoteResponse>> Validades(int dias = 7) =>
-        ConsultarLotes(db.Lotes.Where(l => l.DataValidade <= Relogio.HojeBrasilia.AddDays(Math.Clamp(dias, 0, 365))));
+        ConsultarLotes(db.Lotes.Where(l => l.DataValidade <= Relogio.Hoje.AddDays(Math.Clamp(dias, 0, 365))));
 
     // GET /api/estoque/produtos/12/lotes → todos os lotes com saldo de um produto.
     [HttpGet("produtos/{produtoId:int}/lotes")]
@@ -81,7 +81,7 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
 
     private static async Task<List<LoteResponse>> ConsultarLotes(IQueryable<LoteValidade> consulta)
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var lotes = await consulta.AsNoTracking()
             .Where(l => l.QuantidadeAtual > 0 && l.Produto!.Ativo)
             .OrderBy(l => l.DataValidade).ThenBy(l => l.Produto!.Nome)

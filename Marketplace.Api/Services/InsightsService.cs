@@ -13,7 +13,7 @@ public record ResultadoIa(bool Ok, string? Texto, int Status, string? Mensagem);
 // Monta o "pedido" para a IA: um resumo COMPACTO do período + instruções. Quem fala com o Gemini é o n8n.
 // Usado pelo botão da tela de Relatórios e pelo relatório semanal (que o n8n busca às sextas/sábados).
 public class InsightsService(
-    AppDbContext db, RelatoriosService relatorios, ComprasService compras, ClimaService clima,
+    AppDbContext db, RelatoriosService relatorios, ComprasService compras, ClimaService clima, LocaisDasLojas locais,
     IHttpClientFactory http, IConfiguration config, ILogger<InsightsService> log)
 {
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -25,11 +25,16 @@ public class InsightsService(
         var produtos = await relatorios.Produtos(periodo.De, periodo.Ate);
         var efeitoClima = await relatorios.Clima(periodo.De, periodo.Ate);
 
-        List<PrevisaoDia> previsao;
-        try { previsao = await clima.PrevisaoAsync(7, ct); }
-        catch (Exception e) { log.LogWarning("Previsão indisponível: {Erro}", e.Message); previsao = []; }
+        var local = locais.Local(db.EmpresaAtual);
+        var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == db.EmpresaAtual).Select(e => new { e.Nome, e.Demonstracao }).FirstAsync(ct);
+        List<PrevisaoDia> previsao = [];
+        if (local is not null)
+        {
+            try { previsao = await clima.PrevisaoAsync(local, 7, ct); }
+            catch (Exception e) { log.LogWarning("Previsão indisponível: {Erro}", e.Message); }
+        }
 
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var estoqueBaixo = await db.Produtos.Where(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo).Select(p => p.Nome).ToListAsync(ct);
         var vencendo = await db.Lotes.Where(l => l.QuantidadeAtual > 0 && l.DataValidade <= hoje.AddDays(2) && l.Produto!.Ativo)
             .Select(l => l.Produto!.Nome).Distinct().ToListAsync(ct);
@@ -51,11 +56,13 @@ public class InsightsService(
             .Select(c => $"{NomesDias[c.DiaSemana]} {c.Hora}h ({c.MediaVendas} clientes)").ToList();
 
         // Dicionário com nomes EM PORTUGUÊS: a IA lê como texto e não copia nomes técnicos ("variacaoPct") na resposta.
-        var agora = Relogio.AgoraBrasilia;
+        var agora = Relogio.Agora;
         var hojeParcial = periodo.Ate == hoje && ComportamentoCliente.AbertoNaHora(hoje, agora.Hour);
         var dados = new Dictionary<string, object?>
         {
-            ["Mercado"] = "Mercadinho de bairro em Porto Alegre (dados FICTÍCIOS de estudo). Abre seg–sáb 8h–19h; domingo e feriado fechado.",
+            ["Mercado"] = empresa.Demonstracao
+                ? $"Mercadinho de bairro em {local?.Nome ?? "Porto Alegre/RS"} (dados FICTÍCIOS de estudo). Abre seg–sáb 8h–19h; domingo e feriado fechado."
+                : $"Mercado \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + ".",
             ["Período analisado"] = $"{periodo.De:dd/MM/yyyy} a {periodo.Ate:dd/MM/yyyy} ({periodo.Dias} dias)",
             ["Atenção"] = hojeParcial
                 ? $"O dia de hoje ({hoje:dd/MM}) ainda está em andamento (agora são {agora:HH:mm}): os números de hoje são PARCIAIS, não compare hoje com dias inteiros."

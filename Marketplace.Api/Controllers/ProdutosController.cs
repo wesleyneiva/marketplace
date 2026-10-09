@@ -132,7 +132,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         // Windows-1252: o programa das balanças (Windows) abre acentos certinho.
         System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
         var bytes = System.Text.Encoding.GetEncoding(1252).GetBytes(string.Join("\r\n", linhas) + "\r\n");
-        return File(bytes, "text/csv", $"balanca-produtos-{Services.Relogio.HojeBrasilia:yyyy-MM-dd}.csv");
+        return File(bytes, "text/csv", $"balanca-produtos-{Services.Relogio.Hoje:yyyy-MM-dd}.csv");
     }
 
     // GET /api/produtos/balanca/proximo-codigo → sugere o próximo PLU livre (no formulário do produto)

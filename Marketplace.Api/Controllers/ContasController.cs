@@ -21,7 +21,7 @@ public class ContasController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<List<ContaPagarResponse>> Listar(string situacao = "abertas")
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var consulta = db.ContasPagar.AsNoTracking();
         consulta = situacao switch
         {
@@ -39,7 +39,7 @@ public class ContasController(AppDbContext db) : ControllerBase
     [HttpGet("resumo")]
     public async Task<ResumoContasResponse> Resumo()
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var semana = hoje.AddDays(7);
         var inicioMes = new DateOnly(hoje.Year, hoje.Month, 1);
         var abertas = await db.ContasPagar.AsNoTracking().Where(c => c.PagaEm == null)
@@ -68,7 +68,7 @@ public class ContasController(AppDbContext db) : ControllerBase
         db.ContasPagar.AddRange(contas);
         await db.SaveChangesAsync();
         var ids = contas.Select(c => c.Id).ToList();
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         return (await Projetar(db.ContasPagar.AsNoTracking().Where(c => ids.Contains(c.Id)).OrderBy(c => c.Vencimento)).ToListAsync())
             .Select(c => Situar(c, hoje)).ToList();
     }
@@ -110,7 +110,7 @@ public class ContasController(AppDbContext db) : ControllerBase
         var conta = await db.ContasPagar.FirstOrDefaultAsync(c => c.Id == id);
         if (conta is null) return NotFound();
         if (conta.PagaEm is not null) return BadRequest(new { mensagem = "Esta conta já foi paga." });
-        if (r.PagaEm > Relogio.HojeBrasilia) return BadRequest(new { mensagem = "A data do pagamento não pode ser no futuro." });
+        if (r.PagaEm > Relogio.Hoje) return BadRequest(new { mensagem = "A data do pagamento não pode ser no futuro." });
         conta.PagaEm = r.PagaEm;
         conta.ValorPago = r.ValorPago;
         conta.FormaPagamento = Limpo(r.FormaPagamento);
@@ -136,7 +136,7 @@ public class ContasController(AppDbContext db) : ControllerBase
     // ------------------------------------------------------------------ apoio
 
     private async Task<ContaPagarResponse> UmaAsync(int id) =>
-        Situar(await Projetar(db.ContasPagar.AsNoTracking().Where(c => c.Id == id)).FirstAsync(), Relogio.HojeBrasilia);
+        Situar(await Projetar(db.ContasPagar.AsNoTracking().Where(c => c.Id == id)).FirstAsync(), Relogio.Hoje);
 
     private static IQueryable<ContaPagarResponse> Projetar(IQueryable<ContaPagar> q) =>
         q.Select(c => new ContaPagarResponse(c.Id, c.Descricao, c.Documento, c.Vencimento, c.Valor, "", 0,

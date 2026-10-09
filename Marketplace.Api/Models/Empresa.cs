@@ -27,6 +27,14 @@ public class Empresa
     public int BalancaDigitosCodigo { get; set; } = 4;
     // "Preco" = os 6 dígitos são o preço total em centavos (o mais comum); "Peso" = o peso em gramas.
     public string BalancaEtiqueta { get; set; } = EtiquetaBalancaTipos.Preco;
+
+    // Onde fica a loja: define o CLIMA (simulador, relatório do clima, previsão dos insights) e o FUSO HORÁRIO
+    // ("hoje", vendas do dia, relatórios por hora). O Brasil tem 4 fusos: Manaus é 1 h a menos que Brasília.
+    public string? Cidade { get; set; }
+    public string? Uf { get; set; }
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string Fuso { get; set; } = "America/Sao_Paulo"; // nome IANA (ex.: America/Manaus)
 }
 
 public static class EtiquetaBalancaTipos

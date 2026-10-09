@@ -15,13 +15,13 @@ namespace Marketplace.Api.Controllers;
 [Route("api/integracao")]
 [AllowAnonymous]
 [ChaveApi]
-public class IntegracaoController(AppDbContext db, RelatoriosService relatorios, InsightsService insights) : ControllerBase
+public class IntegracaoController(AppDbContext db, RelatoriosService relatorios, InsightsService insights, LocaisDasLojas locais) : ControllerBase
 {
     // GET /api/integracao/resumo?data=2026-10-08 → fechamento do dia (padrão: hoje)
     [HttpGet("resumo")]
     public async Task<object> Resumo(DateOnly? data)
     {
-        var dia = data ?? Relogio.HojeBrasilia;
+        var dia = data ?? Relogio.Hoje;
         var (inicio, fim) = (Relogio.InicioDoDiaUtc(dia), Relogio.InicioDoDiaUtc(dia.AddDays(1)));
         var doDia = db.Vendas.AsNoTracking().Where(v => v.DataHora >= inicio && v.DataHora < fim);
         var concluidas = doDia.Where(v => v.Status == StatusVenda.Concluida);
@@ -53,13 +53,16 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
             .Select(s => new { s.NumeroCaixa, Operador = s.Usuario!.NomeCompleto, Status = s.Status.ToString(), s.Diferenca })
             .ToListAsync();
 
-        var clima = await db.Clima.AsNoTracking().Where(c => c.DataHora >= inicio && c.DataHora < fim)
+        // Clima do dia na cidade da loja (sem cidade cadastrada: coordenadas impossíveis = sem clima no resumo).
+        var local = locais.Local(db.EmpresaAtual);
+        var (lat, lon) = local is null ? (999m, 999m) : (local.LatitudeClima, local.LongitudeClima);
+        var clima = await db.Clima.AsNoTracking().Where(c => c.Latitude == lat && c.Longitude == lon && c.DataHora >= inicio && c.DataHora < fim)
             .GroupBy(_ => 1)
             .Select(g => new { Minima = g.Min(c => c.Temperatura), Maxima = g.Max(c => c.Temperatura), Chuva = g.Sum(c => c.Chuva) })
             .FirstOrDefaultAsync();
 
         var estoqueBaixo = await db.Produtos.CountAsync(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo);
-        var limite = Relogio.HojeBrasilia.AddDays(2);
+        var limite = Relogio.Hoje.AddDays(2);
         var vencendo = await db.Lotes.CountAsync(l => l.QuantidadeAtual > 0 && l.DataValidade <= limite && l.Produto!.Ativo);
 
         // ----- Mensagem pronta -----
@@ -106,7 +109,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
     [HttpGet("alertas")]
     public async Task<object> Alertas()
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var inicio = Relogio.InicioDoDiaUtc(hoje);
 
         var baixo = await db.Produtos.AsNoTracking()
@@ -221,7 +224,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
     [HttpGet("semana")]
     public async Task<object> Semana(CancellationToken ct)
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         if (hoje.DayOfWeek == DayOfWeek.Sunday) hoje = hoje.AddDays(-1); // domingo (fechado): fala da semana que passou
         var segunda = hoje.AddDays(-(((int)hoje.DayOfWeek + 6) % 7));
         var periodo = RelatoriosService.Ler(segunda, hoje);

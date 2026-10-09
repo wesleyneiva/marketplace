@@ -32,7 +32,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         var apelido = string.IsNullOrWhiteSpace(r.Subdominio) ? NovaEmpresa.Apelido(r.Nome) : r.Subdominio.Trim().ToLowerInvariant();
         try
         {
-            var (id, senha) = await NovaEmpresa.CriarAsync(services, r.Nome, apelido, r.LimiteCaixas, r.AdminEmail, r.AdminNome);
+            var (id, senha) = await NovaEmpresa.CriarAsync(services, r.Nome, apelido, r.LimiteCaixas, r.AdminEmail, r.AdminNome, r.Cidade);
             var empresa = await db.Empresas.AsNoTracking().FirstAsync(e => e.Id == id);
             return new EmpresaCriadaResponse((await ResumirAsync([empresa]))[0], r.AdminEmail.Trim(), senha);
         }
@@ -153,7 +153,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             var v = vendas.GetValueOrDefault(e.Id);
             return new EmpresaResumoResponse(e.Id, e.Nome, e.Subdominio, e.LimiteCaixas, e.Ativa, e.Demonstracao, e.CriadoEm,
                 u?.Total ?? 0, u?.Ativos ?? 0, produtos.GetValueOrDefault(e.Id), v?.Quantidade ?? 0, v?.Total ?? 0,
-                u?.UltimoAcesso, v?.Ultima, caixas.GetValueOrDefault(e.Id));
+                u?.UltimoAcesso, v?.Ultima, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}");
         }).ToList();
     }
 }

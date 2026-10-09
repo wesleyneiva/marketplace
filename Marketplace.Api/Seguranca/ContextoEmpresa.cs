@@ -1,3 +1,4 @@
+using Marketplace.Api.Services;
 using System.Security.Claims;
 using Marketplace.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace Marketplace.Api.Seguranca;
 //  • Trabalhos em segundo plano (simulador, sementes): definida no código, com Definir().
 // Sem empresa definida, as consultas às tabelas da empresa voltam VAZIAS e gravar dá erro:
 // na dúvida, o sistema fecha a porta (em vez de mostrar dados de todo mundo).
-public class ContextoEmpresa
+public class ContextoEmpresa(LocaisDasLojas locais)
 {
     public const string Claim = "empresa";
 
@@ -21,6 +22,8 @@ public class ContextoEmpresa
         if (EmpresaId is not null && EmpresaId != empresaId)
             throw new InvalidOperationException("A empresa desta requisição já foi definida (e é outra).");
         EmpresaId = empresaId;
+        // O relógio passa a usar o fuso da cidade da loja (Manaus, Acre…) até o fim desta requisição/trabalho.
+        Relogio.UsarFuso(locais.Fuso(empresaId));
     }
 
     // Depois do login (UseAuthentication): lê a empresa do cookie. Cookies antigos (de antes do

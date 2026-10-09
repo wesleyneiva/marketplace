@@ -63,7 +63,8 @@ public static partial class NovaEmpresa
     // O cadastro em si (usado pelo comando e pela tela "Empresas" do dono da plataforma).
     // Devolve o id da empresa e a senha provisória do administrador (mostrada uma vez só).
     public static async Task<(int EmpresaId, string Senha)> CriarAsync(
-        IServiceProvider services, string nome, string subdominio, int caixas, string email, string nomeAdmin)
+        IServiceProvider services, string nome, string subdominio, int caixas, string email, string nomeAdmin,
+        Contracts.CidadeRequest? cidade = null)
     {
         nome = nome.Trim();
         subdominio = subdominio.Trim().ToLowerInvariant();
@@ -87,6 +88,11 @@ public static partial class NovaEmpresa
                 throw new NovaEmpresaException($"O e-mail {email} já é usuário do sistema.");
 
             var empresa = new Empresa { Nome = nome, Subdominio = subdominio, LimiteCaixas = caixas };
+            if (cidade is not null && Services.Geografia.FusoValido(cidade.Fuso))
+            {
+                (empresa.Cidade, empresa.Uf, empresa.Latitude, empresa.Longitude, empresa.Fuso) =
+                    (cidade.Nome.Trim(), cidade.Uf.Trim().ToUpperInvariant(), Math.Round(cidade.Latitude, 5), Math.Round(cidade.Longitude, 5), cidade.Fuso);
+            }
             db.Empresas.Add(empresa);
             await db.SaveChangesAsync();
             empresaId = empresa.Id;

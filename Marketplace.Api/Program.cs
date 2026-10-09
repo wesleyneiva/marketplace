@@ -21,6 +21,7 @@ builder.Services.AddControllers();
 // A string de conexão (com a senha) NÃO fica no código: vem do "user-secrets" em desenvolvimento
 // e, no serviço (produção), da variável ConnectionStrings__Marketplace em /etc/marketplace/marketplace.env.
 // Multi-tenant: "de qual empresa é este pedido?" (um por requisição; o AppDbContext usa para filtrar tudo).
+builder.Services.AddSingleton<Marketplace.Api.Services.LocaisDasLojas>();
 builder.Services.AddScoped<ContextoEmpresa>();
 
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -40,6 +41,8 @@ builder.Services.AddScoped<Marketplace.Api.Services.NotaFiscal.EntradaNotaServic
 // Só simula se "Simulador:Ativo" = true (ligado no serviço de produção, desligado no desenvolvimento).
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<Marketplace.Api.Services.ClimaService>();
+builder.Services.AddSingleton<Marketplace.Api.Services.ColetorClima>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.ColetorClima>()); // clima de cada cidade com loja
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistorico>();

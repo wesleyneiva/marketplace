@@ -52,7 +52,7 @@ public static class SeedEstoque
         if (await db.Movimentacoes.AnyAsync())
             return;
 
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var produtos = await db.Produtos.Where(p => p.EstoqueAtual > 0).ToListAsync();
         var totalLotes = 0;
 

@@ -19,7 +19,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
     // Se o estoque (+ o que já foi pedido) não aguenta até o pedido chegar, sugere comprar.
     public async Task<List<SugestaoFornecedor>> SugestaoAsync(CancellationToken ct = default)
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var inicio = Relogio.InicioDoDiaUtc(hoje.AddDays(-DiasDeHistorico));
         var fim = Relogio.InicioDoDiaUtc(hoje);
         var diasAbertos = Enumerable.Range(1, DiasDeHistorico).Count(i => ComportamentoCliente.AbertoNoDia(hoje.AddDays(-i)));
@@ -162,7 +162,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         pedido.Status = StatusPedido.Enviado;
         pedido.EnviadoEm = DateTimeOffset.UtcNow;
         // Entrega: hoje + prazo; se cair em dia fechado (domingo/feriado), vai para o próximo dia aberto.
-        var entrega = Relogio.HojeBrasilia.AddDays(fornecedor.PrazoEntregaDias);
+        var entrega = Relogio.Hoje.AddDays(fornecedor.PrazoEntregaDias);
         while (!ComportamentoCliente.AbertoNoDia(entrega)) entrega = entrega.AddDays(1);
         pedido.PrevisaoEntrega = entrega;
     }

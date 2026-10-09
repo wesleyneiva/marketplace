@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { copiarTexto } from '../../shared/copiar';
+import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -22,6 +23,7 @@ interface EmpresaResumo {
   ultimoAcesso: string | null;
   ultimaVenda: string | null;
   caixasAbertos: number;
+  cidade: string | null;
 }
 
 interface UsuarioDaEmpresa {
@@ -49,7 +51,7 @@ export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
 // Clientes do SaaS: cadastrar, mudar o plano, suspender/reativar e gerar senha nova para quem esqueceu.
 @Component({
   selector: 'app-empresas',
-  imports: [FormsModule, CurrencyPipe, DatePipe],
+  imports: [FormsModule, CurrencyPipe, DatePipe, CidadeBusca],
   templateUrl: './empresas.html',
   styleUrl: './empresas.scss',
 })
@@ -74,6 +76,8 @@ export class Empresas {
   protected limiteCaixas = 2;
   protected adminNome = '';
   protected adminEmail = '';
+  protected readonly cidade = signal<Cidade | null>(null);
+  protected readonly nomeDoFuso = nomeDoFuso;
 
   // Senha provisória: mostrada uma vez, já com a mensagem pronta para mandar ao cliente.
   private readonly dlgSenha = viewChild<ElementRef<HTMLDialogElement>>('dlgSenha');
@@ -87,6 +91,7 @@ export class Empresas {
     this.limiteCaixas = 2;
     this.adminNome = '';
     this.adminEmail = '';
+    this.cidade.set(null);
     this.erro.set(null);
     this.dlgEmpresa()?.nativeElement.showModal();
   }
@@ -117,6 +122,7 @@ export class Empresas {
         const r = await firstValueFrom(this.http.post<{ empresa: EmpresaResumo; adminEmail: string; senhaProvisoria: string }>(URL, {
           nome: this.nome, subdominio: this.subdominio || null, limiteCaixas: this.limiteCaixas,
           adminNome: this.adminNome, adminEmail: this.adminEmail,
+          cidade: this.cidade() ? { nome: this.cidade()!.nome, uf: this.cidade()!.uf, latitude: this.cidade()!.latitude, longitude: this.cidade()!.longitude, fuso: this.cidade()!.fuso } : null,
         }));
         this.mostrarSenha({ titulo: 'Cliente cadastrado', empresa: r.empresa.nome, nome: this.adminNome, email: r.adminEmail, senha: r.senhaProvisoria });
         this.aviso.set(`Cliente "${r.empresa.nome}" cadastrado.`);

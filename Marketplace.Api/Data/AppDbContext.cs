@@ -54,6 +54,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasIndex(x => x.Subdominio).IsUnique();
             e.Property(x => x.BalancaEtiqueta).HasMaxLength(10).HasDefaultValue(EtiquetaBalancaTipos.Preco);
             e.Property(x => x.BalancaDigitosCodigo).HasDefaultValue(4);
+            e.Property(x => x.Cidade).HasMaxLength(80);
+            e.Property(x => x.Uf).HasMaxLength(2);
+            e.Property(x => x.Latitude).HasPrecision(8, 5);
+            e.Property(x => x.Longitude).HasPrecision(8, 5);
+            e.Property(x => x.Fuso).HasMaxLength(40).HasDefaultValue("America/Sao_Paulo");
         });
 
         builder.Entity<Usuario>()
@@ -134,7 +139,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.ToTable("Clima");
             e.Property(c => c.Temperatura).HasPrecision(4, 1);
             e.Property(c => c.Chuva).HasPrecision(5, 1);
-            e.HasIndex(c => c.DataHora).IsUnique(); // uma linha por hora
+            e.Property(c => c.Latitude).HasPrecision(6, 2);
+            e.Property(c => c.Longitude).HasPrecision(6, 2);
+            e.HasIndex(c => new { c.Latitude, c.Longitude, c.DataHora }).IsUnique(); // uma linha por hora, por lugar
         });
 
         // ----- Compras -----

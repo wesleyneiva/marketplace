@@ -30,7 +30,7 @@ public class SimuladorEstado(IConfiguration config)
 // "Trabalhador em segundo plano" (BackgroundService): roda junto com a API, a cada minuto,
 // fazendo os clientes chegarem, comprarem e pagarem — sempre pelas MESMAS regras da tela do caixa.
 public class SimuladorClientes(
-    IServiceScopeFactory escopos, SimuladorEstado estado, ClimaService clima, ILogger<SimuladorClientes> log)
+    IServiceScopeFactory escopos, SimuladorEstado estado, ClimaService clima, LocaisDasLojas locais, ILogger<SimuladorClientes> log)
     : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken parar)
@@ -59,7 +59,7 @@ public class SimuladorClientes(
     // Uma "rodada" = um minuto do mercado.
     private async Task RodadaAsync(CancellationToken ct)
     {
-        var agora = Relogio.AgoraBrasilia;
+        var agora = Relogio.Agora;
         estado.UltimaRodada = agora;
         var aberto = ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour);
         var usuarioId = await UsuarioIdAsync();
@@ -82,12 +82,16 @@ public class SimuladorClientes(
             }
         }
 
-        var tempo = await clima.ObterAsync(ct);
+        var tempo = await ClimaDaLojaAsync(ct);
         var porMinuto = ComportamentoCliente.ClientesNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour, tempo, estado.Intensidade) / 60;
         var clientes = ComportamentoCliente.Poisson(porMinuto);
         for (var i = 0; i < clientes; i++)
             await AtenderClienteAsync(usuarioId, tempo, agora, ct);
     }
+
+    // O clima da cidade da loja simulada (sem cidade cadastrada: um dia "neutro").
+    private async Task<ClimaAgora> ClimaDaLojaAsync(CancellationToken ct) =>
+        locais.Local(estado.EmpresaId) is { } local ? await clima.ObterAsync(local, ct) : ClimaAgora.Neutro;
 
     // Usado pelo botão "atender clientes agora" (testes e demonstrações).
     public async Task<int> AtenderAgoraAsync(int quantidade, CancellationToken ct)
@@ -99,10 +103,10 @@ public class SimuladorClientes(
             if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null)
                 await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m);
         }
-        var tempo = await clima.ObterAsync(ct);
+        var tempo = await ClimaDaLojaAsync(ct);
         var vendidos = 0;
         for (var i = 0; i < quantidade; i++)
-            if (await AtenderClienteAsync(usuarioId, tempo, Relogio.AgoraBrasilia, ct)) vendidos++;
+            if (await AtenderClienteAsync(usuarioId, tempo, Relogio.Agora, ct)) vendidos++;
         return vendidos;
     }
 
@@ -115,7 +119,7 @@ public class SimuladorClientes(
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var vendas = scope.ServiceProvider.GetRequiredService<VendaService>();
 
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         var produtos = await db.Produtos.AsNoTracking().Where(p => p.Ativo && p.EstoqueAtual > 0).ToListAsync(ct);
         var vencido = await db.Lotes.AsNoTracking()
             .Where(l => l.QuantidadeAtual > 0 && l.DataValidade < hoje)
@@ -155,7 +159,7 @@ public class SimuladorClientes(
     // Nada de estoque "mágico": se o pedido demora, o produto pode faltar — como num mercado de verdade.
     private async Task RotinaDaManhaAsync(string usuarioId, CancellationToken ct)
     {
-        var hoje = Relogio.HojeBrasilia;
+        var hoje = Relogio.Hoje;
         if (estado.UltimaRotinaDaManha == hoje) return;
 
         using var scope = escopos.CriarEscopo(estado.EmpresaId);

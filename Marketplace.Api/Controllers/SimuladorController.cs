@@ -10,26 +10,27 @@ namespace Marketplace.Api.Controllers;
 
 public record SimuladorStatus(
     bool Ativo, double Intensidade, bool CaixaAberto, DateTimeOffset? UltimaRodada, string? UltimoErro,
-    decimal? Temperatura, string? Tempo, bool ClimaReal, int VendasHoje, decimal FaturamentoHoje);
+    decimal? Temperatura, string? Tempo, bool ClimaReal, string? Cidade, int VendasHoje, decimal FaturamentoHoje);
 
 [ApiController]
 [Route("api/simulador")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class SimuladorController(SimuladorEstado estado, SimuladorClientes simulador, ClimaService clima, AppDbContext db, GeradorHistorico gerador)
+public class SimuladorController(SimuladorEstado estado, SimuladorClientes simulador, ClimaService clima, LocaisDasLojas locais, AppDbContext db, GeradorHistorico gerador)
     : ControllerBase
 {
     // GET /api/simulador → situação + vendas simuladas de hoje
     [HttpGet]
     public async Task<SimuladorStatus> Status()
     {
-        var inicio = Relogio.InicioDoDiaUtc(Relogio.HojeBrasilia);
+        var inicio = Relogio.InicioDoDiaUtc(Relogio.Hoje);
         var deHoje = db.Vendas.AsNoTracking().Where(v =>
             v.Usuario!.Email == SimuladorEstado.Email && v.Status == StatusVenda.Concluida && v.DataHora >= inicio);
         var aberto = await db.SessoesCaixa.AnyAsync(s => s.Usuario!.Email == SimuladorEstado.Email && s.Status == StatusSessao.Aberta);
-        var tempo = clima.Ultimo ?? await clima.ObterAsync(HttpContext.RequestAborted);
+        var local = locais.Local(estado.EmpresaId);
+        var tempo = local is null ? null : clima.Ultimo(local) ?? await clima.ObterAsync(local, HttpContext.RequestAborted);
 
         return new SimuladorStatus(estado.Ativo, estado.Intensidade, aberto, estado.UltimaRodada, estado.UltimoErro,
-            tempo.Temperatura, tempo.Descricao, tempo.Real,
+            tempo?.Temperatura, tempo?.Descricao, tempo?.Real ?? false, local?.Nome,
             await deHoje.CountAsync(), await deHoje.SumAsync(v => (decimal?)v.Total) ?? 0);
     }
 

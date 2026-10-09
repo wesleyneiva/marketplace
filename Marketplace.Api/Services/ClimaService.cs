@@ -17,56 +17,59 @@ public record ClimaAgora(decimal Temperatura, decimal Chuva, int Codigo, string 
     public static readonly ClimaAgora Neutro = new(22, 0, 1, "sem dados (clima neutro)", false);
 }
 
-// Busca o clima atual de Porto Alegre na Open-Meteo (a mesma do Briefing do n8n), guarda 30 min
-// em memória e registra uma linha por hora no banco.
+// Clima de uma CIDADE na Open-Meteo (a mesma do Briefing do n8n): o atual (guardado 30 min em memória, por lugar,
+// e registrado uma linha por hora no banco), o histórico hora a hora e a previsão dos próximos dias.
+// Cada empresa usa o da cidade da sua loja (LocaisDasLojas).
 public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos, ILogger<ClimaService> log)
 {
-    private const string Url = "https://api.open-meteo.com/v1/forecast?latitude=-30.03&longitude=-51.23"
-        + "&current=temperature_2m,precipitation,weather_code&timezone=America%2FSao_Paulo";
+    private record Cache(ClimaAgora Clima, DateTimeOffset BuscadoEm);
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<(decimal, decimal), Cache> _ultimos = new();
 
-    private ClimaAgora? _ultimo;
-    private DateTimeOffset _buscadoEm;
+    // Último clima já buscado desse lugar (sem ir à internet), para telas rápidas.
+    public ClimaAgora? Ultimo(LocalLoja local) => _ultimos.TryGetValue(Chave(local), out var c) ? c.Clima : null;
 
-    public ClimaAgora? Ultimo => _ultimo;
-
-    public async Task<ClimaAgora> ObterAsync(CancellationToken ct = default)
+    public async Task<ClimaAgora> ObterAsync(LocalLoja local, CancellationToken ct = default)
     {
-        if (_ultimo is not null && DateTimeOffset.UtcNow - _buscadoEm < TimeSpan.FromMinutes(30))
-            return _ultimo;
+        var chave = Chave(local);
+        if (_ultimos.TryGetValue(chave, out var c) && DateTimeOffset.UtcNow - c.BuscadoEm < TimeSpan.FromMinutes(30))
+            return c.Clima;
 
         try
         {
-            using var resposta = await http.CreateClient().GetAsync(Url, ct);
+            var url = $"https://api.open-meteo.com/v1/forecast?{Lugar(local)}&current=temperature_2m,precipitation,weather_code";
+            using var resposta = await http.CreateClient().GetAsync(url, ct);
             resposta.EnsureSuccessStatusCode();
             using var json = await JsonDocument.ParseAsync(await resposta.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var atual = json.RootElement.GetProperty("current");
             var codigo = atual.GetProperty("weather_code").GetInt32();
-            _ultimo = new ClimaAgora(
+            var clima = new ClimaAgora(
                 Math.Round(atual.GetProperty("temperature_2m").GetDecimal(), 1),
                 Math.Round(atual.GetProperty("precipitation").GetDecimal(), 1),
                 codigo, Descrever(codigo), Real: true);
-            _buscadoEm = DateTimeOffset.UtcNow;
-            await RegistrarHoraAsync(_ultimo, ct);
+            _ultimos[chave] = new Cache(clima, DateTimeOffset.UtcNow);
+            await RegistrarHoraAsync(local, clima, ct);
+            return clima;
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            log.LogWarning("Não foi possível obter o clima: {Erro}", e.Message);
-            _ultimo ??= ClimaAgora.Neutro;
-            _buscadoEm = DateTimeOffset.UtcNow.AddMinutes(-25); // tenta de novo em ~5 min
+            log.LogWarning("Não foi possível obter o clima de {Cidade}: {Erro}", local.Nome, e.Message);
+            var anterior = c?.Clima ?? ClimaAgora.Neutro;
+            _ultimos[chave] = new Cache(anterior, DateTimeOffset.UtcNow.AddMinutes(-25)); // tenta de novo em ~5 min
+            return anterior;
         }
-        return _ultimo;
     }
 
-    private async Task RegistrarHoraAsync(ClimaAgora clima, CancellationToken ct)
+    private async Task RegistrarHoraAsync(LocalLoja local, ClimaAgora clima, CancellationToken ct)
     {
         var agora = DateTimeOffset.UtcNow;
         var hora = new DateTimeOffset(agora.Year, agora.Month, agora.Day, agora.Hour, 0, 0, TimeSpan.Zero);
+        var (lat, lon) = Chave(local);
 
         using var scope = escopos.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        if (await db.Clima.AnyAsync(c => c.DataHora == hora, ct))
+        if (await db.Clima.AnyAsync(c => c.Latitude == lat && c.Longitude == lon && c.DataHora == hora, ct))
             return;
-        db.Clima.Add(new ClimaRegistro { DataHora = hora, Temperatura = clima.Temperatura, Chuva = clima.Chuva, CodigoTempo = clima.Codigo });
+        db.Clima.Add(new ClimaRegistro { Latitude = lat, Longitude = lon, DataHora = hora, Temperatura = clima.Temperatura, Chuva = clima.Chuva, CodigoTempo = clima.Codigo });
         await db.SaveChangesAsync(ct);
     }
 
@@ -74,23 +77,25 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
     //  • archive-api: o histórico "oficial" (completo, mas com alguns dias de atraso);
     //  • forecast com past_days: cobre os últimos dias que o arquivo ainda não tem.
     // Grava na tabela Clima as horas que faltam e devolve tudo por hora (UTC).
-    public async Task<Dictionary<DateTimeOffset, ClimaAgora>> ObterHistoricoAsync(int dias, CancellationToken ct = default)
+    public async Task<Dictionary<DateTimeOffset, ClimaAgora>> ObterHistoricoAsync(LocalLoja local, int dias, CancellationToken ct = default)
     {
-        const string local = "latitude=-30.03&longitude=-51.23&hourly=temperature_2m,precipitation,weather_code&timezone=America%2FSao_Paulo";
-        var hoje = Relogio.HojeBrasilia;
+        var lugar = $"{Lugar(local)}&hourly=temperature_2m,precipitation,weather_code";
+        var hoje = Relogio.Hoje;
         var inicio = hoje.AddDays(-Math.Clamp(dias, 1, 90));
 
         var porHora = await LerHorasAsync(
-            $"https://archive-api.open-meteo.com/v1/archive?{local}&start_date={inicio:yyyy-MM-dd}&end_date={hoje.AddDays(-1):yyyy-MM-dd}", ct);
-        foreach (var (hora, c) in await LerHorasAsync($"https://api.open-meteo.com/v1/forecast?{local}&past_days=14&forecast_days=1", ct))
+            $"https://archive-api.open-meteo.com/v1/archive?{lugar}&start_date={inicio:yyyy-MM-dd}&end_date={hoje.AddDays(-1):yyyy-MM-dd}", ct);
+        foreach (var (hora, c) in await LerHorasAsync($"https://api.open-meteo.com/v1/forecast?{lugar}&past_days=14&forecast_days=1", ct))
             porHora.TryAdd(hora, c); // só preenche as horas que o arquivo ainda não tem
 
+        var (lat, lon) = Chave(local);
         using var scope = escopos.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var primeira = porHora.Keys.Min();
-        var existentes = (await db.Clima.Where(c => c.DataHora >= primeira).Select(c => c.DataHora).ToListAsync(ct)).ToHashSet();
+        var existentes = (await db.Clima.Where(c => c.Latitude == lat && c.Longitude == lon && c.DataHora >= primeira)
+            .Select(c => c.DataHora).ToListAsync(ct)).ToHashSet();
         foreach (var (hora, c) in porHora.Where(x => x.Key <= DateTimeOffset.UtcNow && !existentes.Contains(x.Key)))
-            db.Clima.Add(new ClimaRegistro { DataHora = hora, Temperatura = c.Temperatura, Chuva = c.Chuva, CodigoTempo = c.Codigo });
+            db.Clima.Add(new ClimaRegistro { Latitude = lat, Longitude = lon, DataHora = hora, Temperatura = c.Temperatura, Chuva = c.Chuva, CodigoTempo = c.Codigo });
         await db.SaveChangesAsync(ct);
         return porHora;
     }
@@ -122,9 +127,9 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
     }
 
     // Previsão dos próximos dias (máx/mín, chuva) — usada pelos insights da IA ("sábado quente: reforce bebidas").
-    public async Task<List<PrevisaoDia>> PrevisaoAsync(int dias, CancellationToken ct = default)
+    public async Task<List<PrevisaoDia>> PrevisaoAsync(LocalLoja local, int dias, CancellationToken ct = default)
     {
-        var url = "https://api.open-meteo.com/v1/forecast?latitude=-30.03&longitude=-51.23&timezone=America%2FSao_Paulo"
+        var url = $"https://api.open-meteo.com/v1/forecast?{Lugar(local)}"
             + "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,weather_code"
             + $"&forecast_days={Math.Clamp(dias, 1, 14)}";
         using var resposta = await http.CreateClient().GetAsync(url, ct);
@@ -144,6 +149,13 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
         }
         return lista;
     }
+
+    private static (decimal, decimal) Chave(LocalLoja l) => (l.LatitudeClima, l.LongitudeClima);
+
+    // "latitude=-3.10&longitude=-60.02&timezone=America%2FManaus" (ponto decimal, sempre).
+    private static string Lugar(LocalLoja l) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"latitude={l.LatitudeClima}&longitude={l.LongitudeClima}")
+        + "&timezone=" + Uri.EscapeDataString(l.Fuso);
 
     // Códigos WMO (os mesmos explicados na ferramenta de clima do seu /pergunta).
     private static string Descrever(int codigo) => codigo switch

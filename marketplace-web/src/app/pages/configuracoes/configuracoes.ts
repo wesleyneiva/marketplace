@@ -10,6 +10,7 @@ import { Produto } from '../../core/api/produtos.api';
 import { CodigoBarras } from '../../shared/codigo-barras';
 import { ProdutoBusca } from '../../shared/produto-busca';
 import { copiarTexto } from '../../shared/copiar';
+import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Cupom } from '../../core/api/pdv.api';
@@ -18,12 +19,16 @@ interface Configuracao {
   balancaDigitosCodigo: number;
   balancaEtiqueta: 'Preco' | 'Peso';
   exemploEtiqueta: string;
+  cidade: string | null;
+  uf: string | null;
+  fuso: string;
+  horaLocal: string;
 }
 
 // Configurações da loja e dos equipamentos: balança (etiqueta e caixa) e impressora.
 @Component({
   selector: 'app-configuracoes',
-  imports: [FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca],
+  imports: [FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
   templateUrl: './configuracoes.html',
   styleUrl: './configuracoes.scss',
 })
@@ -66,6 +71,29 @@ export class Configuracoes {
   protected pesoTeste = 0.75;
   protected readonly etiquetaTeste = signal<string | null>(null);
   protected readonly copiado = signal<boolean | null>(null); // null = ainda não tentou
+
+  // ----- Cidade da loja (clima + fuso horário) -----
+  protected readonly nomeDoFuso = nomeDoFuso;
+  protected readonly cidadeEscolhida = signal<Cidade | null>(null);
+  protected readonly salvandoCidade = signal(false);
+  protected readonly avisoCidade = signal<string | null>(null);
+
+  async salvarCidade(): Promise<void> {
+    const c = this.cidadeEscolhida();
+    if (!c) return;
+    this.salvandoCidade.set(true);
+    this.avisoCidade.set(null);
+    try {
+      await firstValueFrom(this.http.put('/api/empresa/configuracao/cidade', { nome: c.nome, uf: c.uf, latitude: c.latitude, longitude: c.longitude, fuso: c.fuso }));
+      this.cidadeEscolhida.set(null);
+      this.config.reload();
+      this.avisoCidade.set(`✅ Cidade salva: ${c.nome}/${c.uf}. Clima e horário da loja já seguem a cidade nova.`);
+    } catch (e) {
+      this.avisoCidade.set((e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a cidade.');
+    } finally {
+      this.salvandoCidade.set(false);
+    }
+  }
 
   // Preenche o formulário quando a configuração chega (uma vez).
   protected formulario(c: Configuracao): boolean {

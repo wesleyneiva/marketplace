@@ -12,7 +12,7 @@ namespace Marketplace.Api.Services;
 // SQL) — isso evita "SQL injection". Considera só vendas CONCLUÍDAS, de todas as origens.
 // ATENÇÃO (multi-tenant): o filtro automático por empresa do EF NÃO vale para SQL puro. Por isso toda consulta
 // aqui tem  "EmpresaId" = {db.EmpresaAtual}  escrito à mão. SQL novo → lembrar disso!
-public class RelatoriosService(AppDbContext db)
+public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
 {
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     private const decimal Quente = 24m, Frio = 15m; // °C: "hora quente" ≥ 24, "hora fria" < 15
@@ -29,8 +29,8 @@ public class RelatoriosService(AppDbContext db)
 
         var (ini, fim) = Utc(periodo);
         var horas = await db.Database.SqlQuery<LinhaHora>($"""
-            SELECT extract(dow  FROM v."DataHora" AT TIME ZONE 'America/Sao_Paulo')::int AS "DiaSemana",
-                   extract(hour FROM v."DataHora" AT TIME ZONE 'America/Sao_Paulo')::int AS "Hora",
+            SELECT extract(dow  FROM v."DataHora" AT TIME ZONE {Relogio.FusoId})::int AS "DiaSemana",
+                   extract(hour FROM v."DataHora" AT TIME ZONE {Relogio.FusoId})::int AS "Hora",
                    count(*)::int AS "Vendas"
             FROM "Vendas" v
             WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
@@ -128,6 +128,9 @@ public class RelatoriosService(AppDbContext db)
     {
         var periodo = Ler(de, ate);
         var (ini, fim) = Utc(periodo);
+        // O clima é o da CIDADE da loja (sem cidade cadastrada, não há o que cruzar: coordenadas impossíveis = nenhuma linha).
+        var (lat, lon) = CoordenadasDoClima();
+        var demonstracao = await db.Empresas.AsNoTracking().AnyAsync(e => e.Id == db.EmpresaAtual && e.Demonstracao);
 
         // Cada hora do período, com o clima e quantas vendas houve nela.
         var horas = await db.Database.SqlQuery<LinhaClimaHora>($"""
@@ -135,14 +138,16 @@ public class RelatoriosService(AppDbContext db)
                    c."CodigoTempo" AS "CodigoTempo", count(v."Id")::int AS "Vendas"
             FROM "Clima" c
             LEFT JOIN "Vendas" v ON date_trunc('hour', v."DataHora") = c."DataHora" AND v."Status" = 'Concluida' AND v."EmpresaId" = {db.EmpresaAtual}
-            WHERE c."DataHora" >= {ini} AND c."DataHora" < {fim}
+            WHERE c."DataHora" >= {ini} AND c."DataHora" < {fim} AND c."Latitude" = {lat} AND c."Longitude" = {lon}
             GROUP BY c."DataHora", c."Temperatura", c."Chuva", c."CodigoTempo"
             """).ToListAsync();
 
-        // Só interessam as horas em que o mercado estava ABERTO.
+        // Só interessam as horas em que o mercado estava ABERTO. Na demonstração, o horário do simulador;
+        // numa loja de verdade (cada uma tem o seu horário), as horas em que houve pelo menos uma venda.
         var abertas = horas.Where(h =>
         {
-            var local = h.Hora.ToOffset(TimeSpan.FromHours(-3));
+            if (!demonstracao) return h.Vendas > 0;
+            var local = TimeZoneInfo.ConvertTime(h.Hora, Relogio.Fuso);
             return ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(local.DateTime), local.Hour);
         }).ToList();
 
@@ -183,7 +188,7 @@ public class RelatoriosService(AppDbContext db)
             FROM "ItensVenda" i
             JOIN "Vendas" v ON v."Id" = i."VendaId"
             JOIN "Produtos" p ON p."Id" = i."ProdutoId"
-            JOIN "Clima" c ON c."DataHora" = date_trunc('hour', v."DataHora")
+            JOIN "Clima" c ON c."DataHora" = date_trunc('hour', v."DataHora") AND c."Latitude" = {lat} AND c."Longitude" = {lon}
             WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY p."Nome"
             """).ToListAsync();
@@ -227,21 +232,22 @@ public class RelatoriosService(AppDbContext db)
     private async Task<List<LinhaDia>> PorDiaAsync(DateOnly de, DateOnly ate)
     {
         var (ini, fim) = (Relogio.InicioDoDiaUtc(de), Relogio.InicioDoDiaUtc(ate.AddDays(1)));
+        var (lat, lon) = CoordenadasDoClima();
         // generate_series cria TODOS os dias do período: dia sem venda aparece com zero (e não "some" do gráfico).
         return await db.Database.SqlQuery<LinhaDia>($"""
             WITH dias AS (
                 SELECT generate_series({de}::date, {ate}::date, interval '1 day')::date AS d
             ), vendas AS (
-                SELECT (v."DataHora" AT TIME ZONE 'America/Sao_Paulo')::date AS d,
+                SELECT (v."DataHora" AT TIME ZONE {Relogio.FusoId})::date AS d,
                        count(*) AS qtd, sum(v."Total") AS total,
                        sum((SELECT sum(i."Quantidade" * i."CustoUnitario") FROM "ItensVenda" i WHERE i."VendaId" = v."Id")) AS custo
                 FROM "Vendas" v
                 WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
                 GROUP BY 1
             ), clima AS (
-                SELECT ("DataHora" AT TIME ZONE 'America/Sao_Paulo')::date AS d,
+                SELECT ("DataHora" AT TIME ZONE {Relogio.FusoId})::date AS d,
                        max("Temperatura") AS tmax, min("Temperatura") AS tmin, sum("Chuva") AS chuva
-                FROM "Clima" WHERE "DataHora" >= {ini} AND "DataHora" < {fim}
+                FROM "Clima" WHERE "DataHora" >= {ini} AND "DataHora" < {fim} AND "Latitude" = {lat} AND "Longitude" = {lon}
                 GROUP BY 1
             )
             SELECT dias.d AS "Data", coalesce(vendas.qtd, 0)::int AS "Vendas",
@@ -281,7 +287,7 @@ public class RelatoriosService(AppDbContext db)
 
     public static Periodo Ler(DateOnly? de, DateOnly? ate)
     {
-        var fim = ate ?? Relogio.HojeBrasilia;
+        var fim = ate ?? Relogio.Hoje;
         var inicio = de ?? fim.AddDays(-29);
         if (inicio > fim) (inicio, fim) = (fim, inicio);
         if (fim.DayNumber - inicio.DayNumber > 366) inicio = fim.AddDays(-366); // limite: 1 ano
@@ -293,6 +299,9 @@ public class RelatoriosService(AppDbContext db)
 
     private static decimal Margem(decimal faturamento, decimal custo) =>
         faturamento == 0 ? 0 : Math.Round((faturamento - custo) / faturamento * 100, 1);
+
+    private (decimal Lat, decimal Lon) CoordenadasDoClima() =>
+        locais.Local(db.EmpresaAtual) is { } l ? (l.LatitudeClima, l.LongitudeClima) : (999m, 999m);
 
     private static bool Chovendo(LinhaClimaHora h) =>
         h.Chuva > 0.2m || h.CodigoTempo is >= 51 and <= 67 or >= 80 and <= 82 or >= 95;
