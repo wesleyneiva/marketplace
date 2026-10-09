@@ -17,6 +17,11 @@ public class MarcaSenhaProvisoria(UserManager<Usuario> usuarios, RoleManager<Ide
         var identidade = await base.GenerateClaimsAsync(usuario);
         if (usuario.TrocarSenha)
             identidade.AddClaim(new Claim(Claim, "1"));
+
+        // De qual empresa é a pessoa (multi-tenant) e se é visitante da demonstração (só olha).
+        identidade.AddClaim(new Claim(ContextoEmpresa.Claim, usuario.EmpresaId.ToString()));
+        if (usuario.SomenteLeitura)
+            identidade.AddClaim(new Claim(SomenteLeitura.Claim, "1"));
         return identidade;
     }
 

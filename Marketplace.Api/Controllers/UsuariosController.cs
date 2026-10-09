@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Marketplace.Api.Contracts;
+using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 using Marketplace.Api.Services.Simulador;
 using Microsoft.AspNetCore.Authorization;
@@ -15,7 +16,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/usuarios")]
 [Authorize(Roles = Perfis.Administrador)]
-public class UsuariosController(UserManager<Usuario> usuarios) : ControllerBase
+public class UsuariosController(UserManager<Usuario> usuarios, AppDbContext db) : ControllerBase
 {
     private string MeuId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -37,6 +38,12 @@ public class UsuariosController(UserManager<Usuario> usuarios) : ControllerBase
     {
         if (!Perfis.Todos.Contains(r.Perfil))
             return BadRequest(new { mensagem = "Perfil inválido." });
+
+        // O e-mail é o login: precisa ser único no sistema INTEIRO (não só nesta empresa) — senão, no login,
+        // não daria para saber de qual empresa é a pessoa. (Sem dizer de qual empresa ele é, claro.)
+        var normalizado = usuarios.NormalizeEmail(r.Email.Trim());
+        if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.NormalizedEmail == normalizado))
+            return BadRequest(new { mensagem = "Já existe um usuário com este e-mail." });
 
         var senha = GerarSenhaProvisoria();
         var usuario = new Usuario
@@ -126,11 +133,13 @@ public class UsuariosController(UserManager<Usuario> usuarios) : ControllerBase
 
     // ---------------------------------------------------------------- apoio
 
-    // O usuário "robô" do simulador não pode ser mexido por aqui.
+    // Usuários "do sistema" (o robô do simulador e o visitante da demonstração) não podem ser mexidos por aqui.
+    private static bool DoSistema(Usuario u) => u.Email == SimuladorEstado.Email || u.SomenteLeitura;
+
     private async Task<Usuario?> CarregarAsync(string id)
     {
         var u = await usuarios.FindByIdAsync(id);
-        return u is null || u.Email == SimuladorEstado.Email ? null : u;
+        return u is null || DoSistema(u) ? null : u;
     }
 
     private async Task<int> AdminsAtivosAsync() =>
@@ -138,13 +147,13 @@ public class UsuariosController(UserManager<Usuario> usuarios) : ControllerBase
 
     private async Task<UsuarioResponse> ParaResposta(Usuario u) => new(
         u.Id, u.NomeCompleto, u.Email!, (await usuarios.GetRolesAsync(u)).FirstOrDefault() ?? "—",
-        u.Ativo, u.TrocarSenha, u.Email == SimuladorEstado.Email, u.CriadoEm, u.UltimoAcessoEm);
+        u.Ativo, u.TrocarSenha, DoSistema(u), u.CriadoEm, u.UltimoAcessoEm);
 
     // Senha provisória legível e dentro das regras: ex. "Caju-4827-Mesa".
     private static readonly string[] Palavras =
         ["Arroz", "Feijao", "Caju", "Mesa", "Pera", "Milho", "Cesta", "Balcao", "Banana", "Limao", "Uva", "Trigo"];
 
-    private static string GerarSenhaProvisoria() =>
+    public static string GerarSenhaProvisoria() =>
         $"{Palavras[RandomNumberGenerator.GetInt32(Palavras.Length)]}-{RandomNumberGenerator.GetInt32(1000, 10000)}-" +
         $"{Palavras[RandomNumberGenerator.GetInt32(Palavras.Length)]}";
 }

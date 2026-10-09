@@ -4,7 +4,7 @@ namespace Marketplace.Api.Contracts;
 
 // ----- Caixa -----
 public record AbrirCaixaRequest(
-    [Range(1, 20, ErrorMessage = "Número do caixa inválido (1 a 20).")] int NumeroCaixa,
+    [Range(1, 999, ErrorMessage = "Número do caixa inválido.")] int NumeroCaixa, // o limite real é o da empresa
     [Range(0, 10000, ErrorMessage = "Troco inicial inválido.")] decimal ValorAbertura);
 
 public record MovimentoCaixaRequest(
@@ -15,6 +15,9 @@ public record MovimentoCaixaRequest(
 public record FecharCaixaRequest(
     [Range(0, 1000000, ErrorMessage = "Valor contado inválido.")] decimal ValorContado,
     [StringLength(300)] string? Observacao);
+
+// Os caixas da empresa (1 até o limite do plano) e quem está em cada um agora.
+public record CaixaDisponivel(int Numero, string? OcupadoPor);
 
 public record TotalPorForma(string Forma, decimal Valor);
 

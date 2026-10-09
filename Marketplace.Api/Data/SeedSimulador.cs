@@ -1,4 +1,5 @@
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Marketplace.Api.Services.Simulador;
 using Microsoft.AspNetCore.Identity;
 
@@ -10,7 +11,7 @@ public static class SeedSimulador
 {
     public static async Task ExecutarAsync(IServiceProvider services)
     {
-        using var scope = services.CreateScope();
+        using var scope = services.CriarEscopo(SeedDemonstracao.EmpresaId);
         var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         if (await usuarios.FindByEmailAsync(SimuladorEstado.Email) is not null)
             return;

@@ -10,6 +10,8 @@ namespace Marketplace.Api.Services;
 // SQL "puro" (db.Database.SqlQuery): para agrupar por dia/hora no fuso de Brasília, preencher dias sem venda e
 // cruzar com o clima, o SQL é mais claro que o LINQ. Os valores entre { } viram PARÂMETROS (nunca texto colado no
 // SQL) — isso evita "SQL injection". Considera só vendas CONCLUÍDAS, de todas as origens.
+// ATENÇÃO (multi-tenant): o filtro automático por empresa do EF NÃO vale para SQL puro. Por isso toda consulta
+// aqui tem  "EmpresaId" = {db.EmpresaAtual}  escrito à mão. SQL novo → lembrar disso!
 public class RelatoriosService(AppDbContext db)
 {
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -31,7 +33,7 @@ public class RelatoriosService(AppDbContext db)
                    extract(hour FROM v."DataHora" AT TIME ZONE 'America/Sao_Paulo')::int AS "Hora",
                    count(*)::int AS "Vendas"
             FROM "Vendas" v
-            WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+            WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY 1, 2
             """).ToListAsync();
 
@@ -40,10 +42,10 @@ public class RelatoriosService(AppDbContext db)
             SELECT p."Forma" AS "Forma",
                    sum(p."Valor") - CASE WHEN p."Forma" = 'Dinheiro'
                        THEN (SELECT coalesce(sum(v2."Troco"), 0) FROM "Vendas" v2
-                             WHERE v2."Status" = 'Concluida' AND v2."DataHora" >= {ini} AND v2."DataHora" < {fim})
+                             WHERE v2."EmpresaId" = {db.EmpresaAtual} AND v2."Status" = 'Concluida' AND v2."DataHora" >= {ini} AND v2."DataHora" < {fim})
                        ELSE 0 END AS "Valor"
             FROM "PagamentosVenda" p JOIN "Vendas" v ON v."Id" = p."VendaId"
-            WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+            WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY p."Forma" ORDER BY 2 DESC
             """).ToListAsync();
 
@@ -88,7 +90,7 @@ public class RelatoriosService(AppDbContext db)
             JOIN "Vendas" v ON v."Id" = i."VendaId"
             JOIN "Produtos" p ON p."Id" = i."ProdutoId"
             JOIN "Categorias" c ON c."Id" = p."CategoriaId"
-            WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+            WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY p."Id", p."Nome", c."Nome", p."Unidade"
             ORDER BY sum(i."Total") DESC
             """).ToListAsync();
@@ -132,7 +134,7 @@ public class RelatoriosService(AppDbContext db)
             SELECT c."DataHora" AS "Hora", c."Temperatura" AS "Temperatura", c."Chuva" AS "Chuva",
                    c."CodigoTempo" AS "CodigoTempo", count(v."Id")::int AS "Vendas"
             FROM "Clima" c
-            LEFT JOIN "Vendas" v ON date_trunc('hour', v."DataHora") = c."DataHora" AND v."Status" = 'Concluida'
+            LEFT JOIN "Vendas" v ON date_trunc('hour', v."DataHora") = c."DataHora" AND v."Status" = 'Concluida' AND v."EmpresaId" = {db.EmpresaAtual}
             WHERE c."DataHora" >= {ini} AND c."DataHora" < {fim}
             GROUP BY c."DataHora", c."Temperatura", c."Chuva", c."CodigoTempo"
             """).ToListAsync();
@@ -182,7 +184,7 @@ public class RelatoriosService(AppDbContext db)
             JOIN "Vendas" v ON v."Id" = i."VendaId"
             JOIN "Produtos" p ON p."Id" = i."ProdutoId"
             JOIN "Clima" c ON c."DataHora" = date_trunc('hour', v."DataHora")
-            WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+            WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY p."Nome"
             """).ToListAsync();
 
@@ -234,7 +236,7 @@ public class RelatoriosService(AppDbContext db)
                        count(*) AS qtd, sum(v."Total") AS total,
                        sum((SELECT sum(i."Quantidade" * i."CustoUnitario") FROM "ItensVenda" i WHERE i."VendaId" = v."Id")) AS custo
                 FROM "Vendas" v
-                WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+                WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
                 GROUP BY 1
             ), clima AS (
                 SELECT ("DataHora" AT TIME ZONE 'America/Sao_Paulo')::date AS d,
@@ -257,7 +259,7 @@ public class RelatoriosService(AppDbContext db)
         var linhas = await db.Database.SqlQuery<LinhaValorHora>($"""
             SELECT date_trunc('hour', v."DataHora") AS "Hora", sum(v."Total") AS "Valor"
             FROM "Vendas" v
-            WHERE v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
+            WHERE v."EmpresaId" = {db.EmpresaAtual} AND v."Status" = 'Concluida' AND v."DataHora" >= {ini} AND v."DataHora" < {fim}
             GROUP BY 1
             """).ToListAsync();
         return linhas.ToDictionary(l => l.Hora, l => l.Valor);

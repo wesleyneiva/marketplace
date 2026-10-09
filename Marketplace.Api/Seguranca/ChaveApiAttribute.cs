@@ -26,6 +26,13 @@ public class ChaveApiAttribute : Attribute, IAuthorizationFilter
         // Comparação em "tempo constante": não dá pistas, pelo tempo de resposta, de quantas letras acertou.
         var iguais = CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(recebida), Encoding.UTF8.GetBytes(configurada));
         if (!iguais)
+        {
             context.Result = new UnauthorizedObjectResult(new { mensagem = "Chave de API inválida." });
+            return;
+        }
+
+        // A chave do n8n "pertence" a uma empresa: as consultas da integração enxergam só os dados dela.
+        var empresa = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>().GetValue("Integracao:EmpresaId", 1);
+        context.HttpContext.RequestServices.GetRequiredService<ContextoEmpresa>().Definir(empresa);
     }
 }

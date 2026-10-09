@@ -154,3 +154,39 @@ footer {
 .marca p b {
   color: var(--cor-texto);
 }
+
+// ----- Demonstração (vitrine pública) -----
+.demo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  small {
+    color: var(--cor-texto-suave);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: center;
+  }
+}
+
+.ou {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 22px 0 4px;
+  color: var(--cor-texto-suave);
+  font-size: 13px;
+
+  &::before,
+  &::after {
+    content: '';
+    flex: 1;
+    border-top: 1px solid var(--cor-borda);
+  }
+}
+
+.entrar.secundario {
+  background: var(--cor-superficie);
+  color: var(--cor-primaria);
+  border: 1px solid var(--cor-primaria);
+}

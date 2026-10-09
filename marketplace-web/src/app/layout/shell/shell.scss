@@ -201,3 +201,27 @@ nav {
     padding: 16px;
   }
 }
+
+// Nome da empresa (mercado) logo abaixo do logo — cada cliente vê o seu.
+.empresa {
+  margin: -4px 16px 12px;
+  padding: 6px 10px;
+  border-radius: var(--raio);
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(255 255 255 / 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+// Faixa do visitante da demonstração.
+.faixa-demo {
+  padding: 8px 16px;
+  background: #fef9c3;
+  color: #713f12;
+  border-bottom: 1px solid #fde68a;
+  font-size: 13px;
+  line-height: 1.4;
+}

@@ -5,7 +5,15 @@ namespace Marketplace.Api.Contracts;
 // DTOs = "formatos" dos dados que entram e saem da API (nunca expomos a entidade Usuario inteira).
 public record LoginRequest(string Email, string Senha);
 
-public record UsuarioLogadoResponse(string Id, string Nome, string Email, IList<string> Perfis, bool TrocarSenha);
+public record UsuarioLogadoResponse(
+    string Id, string Nome, string Email, IList<string> Perfis, bool TrocarSenha,
+    EmpresaResponse Empresa, bool SomenteLeitura);
+
+// A empresa (mercado) de quem está logado: o nome aparece no menu; o limite de caixas, no PDV.
+public record EmpresaResponse(int Id, string Nome, int LimiteCaixas, bool Demonstracao);
+
+// Para a tela de login, antes de logar: mostrar o botão "Ver demonstração"? Login com senha liberado?
+public record AcessoInfoResponse(bool Demonstracao, bool LoginComSenha);
 
 public record TrocarSenhaRequest(
     [Required(ErrorMessage = "Informe a senha atual.")] string SenhaAtual,

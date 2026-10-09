@@ -1,9 +1,10 @@
 namespace Marketplace.Api.Models;
 
 // Seção do mercado (Mercearia, Bebidas, Hortifrúti...).
-public class Categoria
+public class Categoria : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public string Nome { get; set; } = "";
     public bool Ativa { get; set; } = true;
 

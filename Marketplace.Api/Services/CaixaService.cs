@@ -14,8 +14,28 @@ public class CaixaService(AppDbContext db)
     public Task<SessaoCaixa?> ObterSessaoAbertaAsync(string usuarioId) =>
         db.SessoesCaixa.FirstOrDefaultAsync(s => s.UsuarioId == usuarioId && s.Status == StatusSessao.Aberta);
 
+    // Quantos caixas esta empresa pode usar (o "tamanho do plano": 2 no mercadinho, 20 no mercado grande).
+    public Task<int> LimiteCaixasAsync() =>
+        db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.LimiteCaixas).FirstAsync();
+
+    public async Task<List<CaixaDisponivel>> CaixasAsync()
+    {
+        var limite = await LimiteCaixasAsync();
+        var ocupados = await db.SessoesCaixa.AsNoTracking().Where(s => s.Status == StatusSessao.Aberta)
+            .Select(s => new { s.NumeroCaixa, s.Usuario!.NomeCompleto }).ToListAsync();
+        return Enumerable.Range(1, limite)
+            .Select(n => new CaixaDisponivel(n, ocupados.FirstOrDefault(o => o.NumeroCaixa == n)?.NomeCompleto))
+            .ToList();
+    }
+
     public async Task<SessaoCaixa> AbrirAsync(string usuarioId, int numeroCaixa, decimal valorAbertura)
     {
+        var limite = await LimiteCaixasAsync();
+        if (numeroCaixa < 1 || numeroCaixa > limite)
+            throw new CaixaException(limite == 1
+                ? "Este mercado tem só o Caixa 1."
+                : $"Este mercado tem {limite} caixas: escolha de 1 a {limite}.");
+
         if (await ObterSessaoAbertaAsync(usuarioId) is not null)
             throw new CaixaException("Você já tem um caixa aberto. Feche-o antes de abrir outro.");
 

@@ -67,6 +67,11 @@ export interface NovaVenda {
   pagamentos: { forma: FormaPagamento; valor: number }[];
 }
 
+export interface CaixaDisponivel {
+  numero: number;
+  ocupadoPor: string | null;
+}
+
 @Injectable({ providedIn: 'root' })
 export class PdvApi {
   private readonly http = inject(HttpClient);
@@ -74,6 +79,11 @@ export class PdvApi {
   // 204 (sem caixa aberto) chega como null.
   caixaAtual(): Promise<ResumoCaixa | null> {
     return firstValueFrom(this.http.get<ResumoCaixa | null>('/api/caixa/atual'));
+  }
+
+  // Os caixas da empresa (1 até o limite do plano) e quem está em cada um.
+  caixas(): Promise<CaixaDisponivel[]> {
+    return firstValueFrom(this.http.get<CaixaDisponivel[]>('/api/caixa/caixas'));
   }
 
   abrir(numeroCaixa: number, valorAbertura: number): Promise<ResumoCaixa> {

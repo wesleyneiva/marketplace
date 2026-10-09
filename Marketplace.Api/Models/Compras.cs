@@ -1,8 +1,9 @@
 namespace Marketplace.Api.Models;
 
-public class Fornecedor
+public class Fornecedor : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public string Nome { get; set; } = "";
     public string? Cnpj { get; set; }
     public string? Contato { get; set; }
@@ -18,9 +19,10 @@ public class Fornecedor
 }
 
 // Pedido de compra: Rascunho → Enviado (ao fornecedor) → Recebido (entra no estoque). Ou Cancelado.
-public class PedidoCompra
+public class PedidoCompra : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
 
     public int FornecedorId { get; set; }
     public Fornecedor? Fornecedor { get; set; }
@@ -45,9 +47,10 @@ public class PedidoCompra
 
 public enum StatusPedido { Rascunho, Enviado, Recebido, Cancelado }
 
-public class ItemPedidoCompra
+public class ItemPedidoCompra : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public int PedidoCompraId { get; set; }
     public PedidoCompra? PedidoCompra { get; set; }
 

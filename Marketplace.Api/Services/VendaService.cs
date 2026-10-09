@@ -37,7 +37,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         await using var transacao = await db.Database.BeginTransactionAsync();
         var ids = itensAgrupados.Select(i => i.ProdutoId).Distinct().ToArray();
         var produtos = await db.Produtos
-            .FromSql($"SELECT *, xmin FROM \"Produtos\" WHERE \"Id\" = ANY({ids}) ORDER BY \"Id\" FOR UPDATE")
+            .FromSql($"SELECT *, xmin FROM \"Produtos\" WHERE \"Id\" = ANY({ids}) AND \"EmpresaId\" = {db.EmpresaAtual} ORDER BY \"Id\" FOR UPDATE")
             .ToDictionaryAsync(p => p.Id);
 
         var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId, Origem = origem };

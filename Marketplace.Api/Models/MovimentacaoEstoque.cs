@@ -2,9 +2,10 @@ namespace Marketplace.Api.Models;
 
 // Cada mudança no estoque vira uma linha aqui: é o "extrato" do produto.
 // Nunca se edita nem se apaga uma movimentação — erros se corrigem com um ajuste.
-public class MovimentacaoEstoque
+public class MovimentacaoEstoque : IDaEmpresa
 {
     public long Id { get; set; }
+    public int EmpresaId { get; set; }
 
     public int ProdutoId { get; set; }
     public Produto? Produto { get; set; }

@@ -1,8 +1,9 @@
 namespace Marketplace.Api.Models;
 
-public class Venda
+public class Venda : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
 
     public int SessaoCaixaId { get; set; }
     public SessaoCaixa? SessaoCaixa { get; set; }
@@ -37,9 +38,10 @@ public enum OrigemVenda { Caixa, Simulador, Historico }
 
 // Item do cupom. Nome, preço e custo são COPIADOS do produto na hora da venda:
 // se o preço mudar amanhã, o cupom de hoje continua mostrando o que o cliente pagou.
-public class ItemVenda
+public class ItemVenda : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public int VendaId { get; set; }
     public Venda? Venda { get; set; }
 
@@ -54,9 +56,10 @@ public class ItemVenda
     public decimal Total { get; set; }
 }
 
-public class PagamentoVenda
+public class PagamentoVenda : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public int VendaId { get; set; }
     public Venda? Venda { get; set; }
 

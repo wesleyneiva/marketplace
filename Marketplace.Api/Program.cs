@@ -1,6 +1,9 @@
+using System.Threading.RateLimiting;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +20,9 @@ builder.Services.AddControllers();
 // Banco de dados: PostgreSQL via Entity Framework Core.
 // A string de conexão (com a senha) NÃO fica no código: vem do "user-secrets" em desenvolvimento
 // e, no serviço (produção), da variável ConnectionStrings__Marketplace em /etc/marketplace/marketplace.env.
+// Multi-tenant: "de qual empresa é este pedido?" (um por requisição; o AppDbContext usa para filtrar tudo).
+builder.Services.AddScoped<ContextoEmpresa>();
+
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Marketplace")));
 
@@ -82,6 +88,26 @@ builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo(pastaChaves))
     .SetApplicationName("Marketplace");
 
+// Pela internet (Cloudflare Tunnel): o cloudflared avisa no cabeçalho X-Forwarded-Proto que o visitante
+// usou HTTPS. Com isso o cookie de login sai marcado "Secure" (só trafega criptografado).
+builder.Services.Configure<ForwardedHeadersOptions>(o => o.ForwardedHeaders = ForwardedHeaders.XForwardedProto);
+
+// Limite de pedidos por pessoa (IP real), contra robôs tentando senhas ou derrubando o site:
+//  • login / demonstração: 10 por minuto;
+//  • qualquer pedido vindo da internet: 300 por minuto (pelo Tailscale, sem limite).
+builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.OnRejected = (ctx, _) => new ValueTask(ctx.HttpContext.Response.WriteAsJsonAsync(
+        new { mensagem = "Muitas tentativas seguidas. Espere um minuto e tente de novo." }));
+    o.AddPolicy("login", ctx => RateLimitPartition.GetFixedWindowLimiter(ctx.IpReal(),
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+    o.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx => ctx.VeioDaInternet()
+        ? RateLimitPartition.GetFixedWindowLimiter(ctx.IpReal(),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 300, Window = TimeSpan.FromMinutes(1) })
+        : RateLimitPartition.GetNoLimiter("interno"));
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
@@ -94,13 +120,25 @@ if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
+// Linha de comando: "nova-empresa ..." cadastra um cliente novo e sai (não liga o site). Ver Data/NovaEmpresa.cs.
+if (args.FirstOrDefault() == NovaEmpresa.Comando)
+{
+    await SeedInicial.ExecutarAsync(app.Services); // garante os perfis (Administrador, Gerente, Caixa)
+    Environment.Exit(await NovaEmpresa.ExecutarAsync(app.Services, app.Configuration));
+}
+
 await SeedInicial.ExecutarAsync(app.Services);
 await SeedCatalogo.ExecutarAsync(app.Services);
 await SeedEstoque.ExecutarAsync(app.Services);
 await SeedSimulador.ExecutarAsync(app.Services);
 await SeedFornecedores.ExecutarAsync(app.Services);
+await SeedDemonstracao.ExecutarAsync(app.Services);
 
 // Configure the HTTP request pipeline.
+app.UseForwardedHeaders();
+app.Use(AcessoPublico.Middleware);
+app.UseRateLimiter();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -123,7 +161,9 @@ app.UseDefaultFiles();
 app.UseStaticFiles(arquivosEstaticos);
 
 app.UseAuthentication();
-app.Use(Marketplace.Api.Seguranca.MarcaSenhaProvisoria.Middleware);
+app.Use(ContextoEmpresa.Middleware);      // de qual empresa é quem está logado
+app.Use(MarcaSenhaProvisoria.Middleware); // senha provisória: só deixa trocar a senha
+app.Use(SomenteLeitura.Middleware);       // visitante da demonstração: só olha
 app.UseAuthorization();
 
 app.MapControllers();

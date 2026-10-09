@@ -25,6 +25,10 @@ public class CaixaController(CaixaService caixa, AppDbContext db) : ControllerBa
         return sessao is null ? NoContent() : await caixa.ResumirAsync(sessao.Id);
     }
 
+    // GET /api/caixa/caixas → os caixas da empresa e quem está em cada um (para escolher na abertura)
+    [HttpGet("caixas")]
+    public Task<List<CaixaDisponivel>> Caixas() => caixa.CaixasAsync();
+
     [HttpPost("abrir")]
     public Task<ActionResult<ResumoCaixaResponse>> Abrir(AbrirCaixaRequest r) =>
         Executar(async () => await caixa.ResumirAsync((await caixa.AbrirAsync(UsuarioId, r.NumeroCaixa, r.ValorAbertura)).Id));

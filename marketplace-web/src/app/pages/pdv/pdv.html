@@ -8,7 +8,11 @@
     <form (ngSubmit)="abrirCaixa()">
       <label>Caixa nº
         <select name="numero" [(ngModel)]="numeroCaixa">
-          @for (n of [1, 2, 3, 4, 5]; track n) { <option [ngValue]="n">Caixa {{ n }}</option> }
+          @for (c of caixas(); track c.numero) {
+            <option [ngValue]="c.numero" [disabled]="!!c.ocupadoPor">
+              Caixa {{ c.numero }}{{ c.ocupadoPor ? ' — em uso: ' + c.ocupadoPor : '' }}
+            </option>
+          }
         </select>
       </label>
       <label>Troco inicial (R$)

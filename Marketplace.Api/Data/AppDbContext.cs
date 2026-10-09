@@ -1,4 +1,6 @@
+using System.Linq.Expressions;
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -8,12 +10,19 @@ namespace Marketplace.Api.Data;
 // O DbContext é a "ponte" entre o C# e o banco de dados.
 // Herdando de IdentityDbContext, ganhamos prontas as tabelas de usuários, perfis e vínculos.
 // Cada DbSet<...> abaixo vira uma tabela.
-public class AppDbContext(DbContextOptions<AppDbContext> options)
+public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpresa contexto)
     : IdentityDbContext<Usuario, IdentityRole, string>(options)
 {
+    // ----- Multi-tenant -----
+    // Empresa de quem está usando agora (0 = nenhuma → as consultas voltam vazias).
+    // O EF lê este valor A CADA consulta (não fica "congelado" no filtro).
+    public int EmpresaAtual => contexto.EmpresaId ?? 0;
+    public bool TemEmpresa => contexto.EmpresaId is not null;
+
     // Ordem alfabética do português (Açúcar, Água, Alface, Arroz), em vez da ordem "de computador".
     private const string OrdemPortugues = "pt-BR-x-icu";
 
+    public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
@@ -35,6 +44,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         // unaccent: permite buscar "acucar" e achar "Açúcar".
         builder.HasPostgresExtension("unaccent");
 
+        builder.Entity<Empresa>(e =>
+        {
+            e.Property(x => x.Nome).HasMaxLength(120);
+            e.Property(x => x.Subdominio).HasMaxLength(40);
+            e.HasIndex(x => x.Subdominio).IsUnique();
+        });
+
         builder.Entity<Usuario>()
             .Property(u => u.NomeCompleto)
             .HasMaxLength(150);
@@ -42,7 +58,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Categoria>(e =>
         {
             e.Property(c => c.Nome).HasMaxLength(60).UseCollation(OrdemPortugues);
-            e.HasIndex(c => c.Nome).IsUnique();
+            e.HasIndex(c => new { c.EmpresaId, c.Nome }).IsUnique(); // o mesmo nome pode existir em outra empresa
         });
 
         builder.Entity<Produto>(e =>
@@ -58,8 +74,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(p => p.EstoqueMinimo).HasPrecision(12, 3);
 
             // Dois produtos não podem ter o mesmo código de barras (mas vários podem não ter nenhum).
-            e.HasIndex(p => p.CodigoBarras).IsUnique();
-            e.HasIndex(p => p.Nome);
+            e.HasIndex(p => new { p.EmpresaId, p.CodigoBarras }).IsUnique();
+            e.HasIndex(p => new { p.EmpresaId, p.Nome });
 
             // xmin do PostgreSQL como "versão" da linha (controle de concorrência).
             e.Property(p => p.Versao).IsRowVersion();
@@ -83,7 +99,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(m => m.Observacao).HasMaxLength(300);
 
             e.HasIndex(m => new { m.ProdutoId, m.DataHora });
-            e.HasIndex(m => m.DataHora);
+            e.HasIndex(m => new { m.EmpresaId, m.DataHora });
 
             e.HasOne(m => m.Produto).WithMany().HasForeignKey(m => m.ProdutoId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.Lote).WithMany().HasForeignKey(m => m.LoteId).OnDelete(DeleteBehavior.Restrict);
@@ -114,7 +130,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         builder.Entity<Fornecedor>(e =>
         {
             e.Property(f => f.Nome).HasMaxLength(120).UseCollation(OrdemPortugues);
-            e.HasIndex(f => f.Nome).IsUnique();
+            e.HasIndex(f => new { f.EmpresaId, f.Nome }).IsUnique();
             e.Property(f => f.Cnpj).HasMaxLength(18);
             e.Property(f => f.Contato).HasMaxLength(100);
             e.Property(f => f.Telefone).HasMaxLength(30);
@@ -158,7 +174,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
 
             // Regra no próprio banco: no máximo UMA sessão aberta por caixa físico
             // (índice único "parcial": só vale para as linhas com Status = 'Aberta').
-            e.HasIndex(s => s.NumeroCaixa).IsUnique().HasFilter("\"Status\" = 'Aberta'")
+            e.HasIndex(s => new { s.EmpresaId, s.NumeroCaixa }).IsUnique().HasFilter("\"Status\" = 'Aberta'")
                 .HasDatabaseName("IX_SessoesCaixa_UmaAbertaPorCaixa");
 
             e.HasOne(s => s.Usuario).WithMany().HasForeignKey(s => s.UsuarioId).OnDelete(DeleteBehavior.Restrict);
@@ -177,14 +193,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
         {
             e.Property(v => v.Status).HasConversion<string>().HasMaxLength(10);
             e.Property(v => v.Origem).HasConversion<string>().HasMaxLength(10).HasDefaultValue(OrigemVenda.Caixa);
-            e.HasIndex(v => new { v.Origem, v.DataHora });
+            e.HasIndex(v => new { v.EmpresaId, v.Origem, v.DataHora });
             e.Property(v => v.Subtotal).HasPrecision(12, 2);
             e.Property(v => v.Desconto).HasPrecision(12, 2);
             e.Property(v => v.Total).HasPrecision(12, 2);
             e.Property(v => v.ValorPago).HasPrecision(12, 2);
             e.Property(v => v.Troco).HasPrecision(12, 2);
             e.Property(v => v.MotivoCancelamento).HasMaxLength(200);
-            e.HasIndex(v => v.DataHora);
+            e.HasIndex(v => new { v.EmpresaId, v.DataHora }); // relatórios: "vendas desta empresa no período"
             e.HasOne(v => v.SessaoCaixa).WithMany(s => s.Vendas).HasForeignKey(v => v.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(v => v.Usuario).WithMany().HasForeignKey(v => v.UsuarioId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(v => v.CanceladaPor).WithMany().HasForeignKey(v => v.CanceladaPorId).OnDelete(DeleteBehavior.Restrict);
@@ -208,5 +224,60 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             e.Property(p => p.Valor).HasPrecision(12, 2);
             e.HasOne(p => p.Venda).WithMany(v => v.Pagamentos).HasForeignKey(p => p.VendaId).OnDelete(DeleteBehavior.Cascade);
         });
+
+        // ----- Multi-tenant: para TODA tabela com a etiqueta IDaEmpresa -----
+        foreach (var tipo in builder.Model.GetEntityTypes().Where(t => typeof(IDaEmpresa).IsAssignableFrom(t.ClrType)).ToList())
+        {
+            // Chave estrangeira para Empresas: o banco não aceita EmpresaId que não existe.
+            builder.Entity(tipo.ClrType).HasOne(typeof(Empresa)).WithMany().HasForeignKey(nameof(IDaEmpresa.EmpresaId))
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // O FILTRO: toda consulta ganha "WHERE EmpresaId = <empresa atual>" sozinha.
+            builder.Entity(tipo.ClrType).HasQueryFilter(Filtro(tipo.ClrType));
+        }
+    }
+
+    // Monta  x => x.EmpresaId == EmpresaAtual  para o tipo da tabela.
+    // Exceção: Usuarios. O login precisa achar o usuário pelo e-mail ANTES de saber a empresa
+    // (então, sem empresa definida, a tabela de usuários fica visível — só para o login e para o
+    // Identity conferir o cookie). Com empresa definida, o filtro vale igual às outras tabelas.
+    private LambdaExpression Filtro(Type tipo)
+    {
+        var x = Expression.Parameter(tipo, "x");
+        var daLinha = Expression.Property(x, nameof(IDaEmpresa.EmpresaId));
+        var atual = Expression.Property(Expression.Constant(this), nameof(EmpresaAtual));
+        Expression corpo = Expression.Equal(daLinha, atual);
+        if (tipo == typeof(Usuario))
+            corpo = Expression.OrElse(Expression.Not(Expression.Property(Expression.Constant(this), nameof(TemEmpresa))), corpo);
+        return Expression.Lambda(corpo, x);
+    }
+
+    // Ao gravar: linha NOVA recebe a empresa atual sozinha; e nenhuma linha pode ir para outra empresa.
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        CarimbarEmpresa();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        CarimbarEmpresa();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    private void CarimbarEmpresa()
+    {
+        foreach (var e in ChangeTracker.Entries<IDaEmpresa>())
+        {
+            if (e.State == EntityState.Added && e.Entity.EmpresaId == 0)
+            {
+                e.Entity.EmpresaId = contexto.EmpresaId
+                    ?? throw new InvalidOperationException($"Gravando {e.Entity.GetType().Name} sem empresa definida.");
+            }
+            else if (e.State is EntityState.Added or EntityState.Modified && TemEmpresa && e.Entity.EmpresaId != EmpresaAtual)
+            {
+                throw new InvalidOperationException($"Tentativa de gravar {e.Entity.GetType().Name} de outra empresa.");
+            }
+        }
     }
 }

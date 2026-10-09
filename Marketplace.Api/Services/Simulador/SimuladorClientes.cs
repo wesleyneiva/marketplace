@@ -2,6 +2,7 @@ using Marketplace.Api.Contracts;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 using Microsoft.AspNetCore.Identity;
+using Marketplace.Api.Seguranca;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services.Simulador;
@@ -11,6 +12,9 @@ public class SimuladorEstado(IConfiguration config)
 {
     public const string Email = "simulador@marketplace.local";
     public const int NumeroCaixa = 9;
+
+    // Em qual empresa (mercado) o simulador trabalha. Padrão: 1 (o Marketplace de demonstração).
+    public int EmpresaId { get; } = config.GetValue("Simulador:EmpresaId", 1);
 
     // Liga/desliga em tempo real (o botão do dashboard). Ao reiniciar, volta ao valor da configuração.
     public bool Ativo { get; set; } = config.GetValue("Simulador:Ativo", false);
@@ -60,7 +64,7 @@ public class SimuladorClientes(
         var aberto = ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour);
         var usuarioId = await UsuarioIdAsync();
 
-        using (var scope = escopos.CreateScope())
+        using (var scope = escopos.CriarEscopo(estado.EmpresaId))
         {
             var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
             var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId);
@@ -89,7 +93,7 @@ public class SimuladorClientes(
     public async Task<int> AtenderAgoraAsync(int quantidade, CancellationToken ct)
     {
         var usuarioId = await UsuarioIdAsync();
-        using (var scope = escopos.CreateScope())
+        using (var scope = escopos.CriarEscopo(estado.EmpresaId))
         {
             var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
             if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null)
@@ -107,7 +111,7 @@ public class SimuladorClientes(
     private async Task<bool> AtenderClienteAsync(string usuarioId, ClimaAgora tempo, DateTimeOffset agora, CancellationToken ct)
     {
         // Um "escopo" por cliente: cada venda com o seu próprio DbContext, limpinho.
-        using var scope = escopos.CreateScope();
+        using var scope = escopos.CriarEscopo(estado.EmpresaId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var vendas = scope.ServiceProvider.GetRequiredService<VendaService>();
 
@@ -154,7 +158,7 @@ public class SimuladorClientes(
         var hoje = Relogio.HojeBrasilia;
         if (estado.UltimaRotinaDaManha == hoje) return;
 
-        using var scope = escopos.CreateScope();
+        using var scope = escopos.CriarEscopo(estado.EmpresaId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var estoque = scope.ServiceProvider.GetRequiredService<EstoqueService>();
         var compras = scope.ServiceProvider.GetRequiredService<ComprasService>();
@@ -228,7 +232,7 @@ public class SimuladorClientes(
     private async Task<string> UsuarioIdAsync()
     {
         if (_usuarioId is not null) return _usuarioId;
-        using var scope = escopos.CreateScope();
+        using var scope = escopos.CriarEscopo(estado.EmpresaId);
         var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         _usuarioId = (await usuarios.FindByEmailAsync(SimuladorEstado.Email))?.Id
             ?? throw new InvalidOperationException("Usuário do simulador não existe (SeedSimulador).");

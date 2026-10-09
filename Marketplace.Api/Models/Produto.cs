@@ -1,9 +1,10 @@
 namespace Marketplace.Api.Models;
 
 // Produto vendido no mercado.
-public class Produto
+public class Produto : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
 
     // EAN-13 (código de barras). Opcional: pão e frutas a granel normalmente não têm.
     public string? CodigoBarras { get; set; }

@@ -2,9 +2,10 @@ namespace Marketplace.Api.Models;
 
 // Sessão (turno) de caixa: começa na ABERTURA (com o troco inicial) e termina no FECHAMENTO
 // (quando o operador conta a gaveta). Toda venda pertence a uma sessão.
-public class SessaoCaixa
+public class SessaoCaixa : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
 
     // Qual caixa físico (Caixa 1, Caixa 2...). Só pode haver uma sessão aberta por caixa.
     public int NumeroCaixa { get; set; }
@@ -30,9 +31,10 @@ public class SessaoCaixa
 public enum StatusSessao { Aberta, Fechada }
 
 // Dinheiro que entra ou sai da gaveta SEM ser venda.
-public class MovimentoCaixa
+public class MovimentoCaixa : IDaEmpresa
 {
     public int Id { get; set; }
+    public int EmpresaId { get; set; }
     public int SessaoCaixaId { get; set; }
     public SessaoCaixa? SessaoCaixa { get; set; }
 

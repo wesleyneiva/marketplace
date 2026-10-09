@@ -1,4 +1,5 @@
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.Identity;
 
 namespace Marketplace.Api.Data;
@@ -9,7 +10,7 @@ public static class SeedInicial
 {
     public static async Task ExecutarAsync(IServiceProvider services)
     {
-        using var scope = services.CreateScope();
+        using var scope = services.CriarEscopo(SeedDemonstracao.EmpresaId);
         var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();

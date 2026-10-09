@@ -3,6 +3,9 @@
     <a class="marca" routerLink="/dashboard" aria-label="Marketplace — ir para o início">
       <app-logo [tamanho]="38" tema="escuro" />
     </a>
+    @if (usuario(); as u) {
+      <p class="empresa" title="Empresa">🏪 {{ u.empresa.nome }}</p>
+    }
 
     <nav>
       @for (item of itensVisiveis(); track item.rota) {
@@ -35,9 +38,18 @@
           </div>
         </div>
       }
+ @if (!usuario()?.somenteLeitura) {
       <a class="trocar-senha" routerLink="/trocar-senha" title="Trocar minha senha" aria-label="Trocar minha senha">🔑</a>
+      }
       <button type="button" class="sair" (click)="sair()">Sair</button>
     </header>
+
+    @if (usuario()?.somenteLeitura) {
+      <div class="faixa-demo" role="status">
+        👀 <strong>Modo demonstração</strong> — mercado fictício, o caixa automático vende sozinho.
+        Você pode olhar tudo; nada é gravado.
+      </div>
+    }
 
     <main class="conteudo">
       <router-outlet />

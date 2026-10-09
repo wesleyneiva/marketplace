@@ -1,8 +1,12 @@
 using Marketplace.Api.Contracts;
+using Marketplace.Api.Data;
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Controllers;
 
@@ -10,18 +14,35 @@ namespace Marketplace.Api.Controllers;
 // o navegador só o envia de volta). Assim não guardamos token nenhum no navegador.
 [ApiController]
 [Route("api/auth")]
-public class AuthController(SignInManager<Usuario> signInManager, UserManager<Usuario> userManager) : ControllerBase
+public class AuthController(
+    SignInManager<Usuario> signInManager, UserManager<Usuario> userManager, AppDbContext db, IConfiguration config) : ControllerBase
 {
+    // Pela internet (demo.wnlabs.com.br), por enquanto, só o modo demonstração: o login com senha
+    // (o seu de administrador, por exemplo) continua só pelo Tailscale. Liga com Publico__LoginComSenha=true.
+    private bool LoginComSenhaLiberado => !HttpContext.VeioDaInternet() || config.GetValue("Publico:LoginComSenha", false);
+    private bool DemonstracaoLigada => config.GetValue("Demonstracao:Ativa", false);
+
+    // GET /api/auth/acesso → a tela de login pergunta o que mostrar
+    [HttpGet("acesso")]
+    public AcessoInfoResponse Acesso() => new(DemonstracaoLigada, LoginComSenhaLiberado);
+
     // POST /api/auth/login   { "email": "...", "senha": "..." }
     [HttpPost("login")]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
+        if (!LoginComSenhaLiberado)
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Por este endereço, use o botão \"Ver demonstração\"." });
+
         var usuario = await userManager.FindByEmailAsync(request.Email);
         if (usuario is null)
             return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
 
         // Primeiro só CONFERE a senha (sem logar). lockoutOnFailure: 5 senhas erradas → bloqueio de 15 minutos.
         var resultado = await signInManager.CheckPasswordSignInAsync(usuario, request.Senha, lockoutOnFailure: true);
+
+        if (usuario.SomenteLeitura) // visitante não tem senha: entra só pelo botão da demonstração
+            return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
 
         if (resultado.IsLockedOut)
             return Unauthorized(new { mensagem = "Muitas tentativas erradas. Conta bloqueada por 15 minutos." });
@@ -33,11 +54,27 @@ public class AuthController(SignInManager<Usuario> signInManager, UserManager<Us
         if (!usuario.Ativo)
             return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Usuário desativado. Fale com o administrador." });
 
+        if (!await EmpresaAtivaAsync(usuario.EmpresaId))
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "O acesso desta empresa está suspenso." });
+
         await signInManager.SignInAsync(usuario, isPersistent: false);
         usuario.UltimoAcessoEm = DateTimeOffset.UtcNow;
         await userManager.UpdateAsync(usuario);
 
         return Ok(await MontarRespostaAsync(usuario));
+    }
+
+    // POST /api/auth/demonstracao → entra como VISITANTE (só olha; não grava nada). Sem senha.
+    [HttpPost("demonstracao")]
+    [EnableRateLimiting("login")]
+    public async Task<IActionResult> Demonstracao()
+    {
+        if (!DemonstracaoLigada) return NotFound();
+        var visitante = await userManager.FindByEmailAsync(config["Demonstracao:Email"] ?? SeedDemonstracao.EmailPadrao);
+        if (visitante is null || !visitante.SomenteLeitura || !visitante.Ativo) return NotFound();
+
+        await signInManager.SignInAsync(visitante, isPersistent: false);
+        return Ok(await MontarRespostaAsync(visitante));
     }
 
     // POST /api/auth/trocar-senha  { "senhaAtual": "...", "novaSenha": "..." }
@@ -99,6 +136,13 @@ public class AuthController(SignInManager<Usuario> signInManager, UserManager<Us
         return Ok(await MontarRespostaAsync(usuario));
     }
 
-    private async Task<UsuarioLogadoResponse> MontarRespostaAsync(Usuario usuario) =>
-        new(usuario.Id, usuario.NomeCompleto, usuario.Email!, await userManager.GetRolesAsync(usuario), usuario.TrocarSenha);
+    private async Task<UsuarioLogadoResponse> MontarRespostaAsync(Usuario usuario)
+    {
+        var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == usuario.EmpresaId)
+            .Select(e => new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao)).FirstAsync();
+        return new(usuario.Id, usuario.NomeCompleto, usuario.Email!, await userManager.GetRolesAsync(usuario), usuario.TrocarSenha,
+            empresa, usuario.SomenteLeitura);
+    }
+
+    private Task<bool> EmpresaAtivaAsync(int empresaId) => db.Empresas.AnyAsync(e => e.Id == empresaId && e.Ativa);
 }

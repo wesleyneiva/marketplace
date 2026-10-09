@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import {
-  Cupom, FORMAS_PAGAMENTO, FormaPagamento, PdvApi, ResumoCaixa, arredondar, lerNumero,
+  CaixaDisponivel, Cupom, FORMAS_PAGAMENTO, FormaPagamento, PdvApi, ResumoCaixa, arredondar, lerNumero,
 } from '../../core/api/pdv.api';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
@@ -39,6 +39,7 @@ export class Pdv {
   // undefined = carregando · null = sem caixa aberto · objeto = caixa aberto
   protected readonly caixa = signal<ResumoCaixa | null | undefined>(undefined);
   protected numeroCaixa = 1;
+  protected readonly caixas = signal<CaixaDisponivel[]>([]); // os caixas da empresa (limite do plano)
   protected trocoInicial = '100,00';
 
   // ----- Venda em andamento -----
@@ -101,6 +102,21 @@ export class Pdv {
 
   constructor() {
     void this.carregarCaixa();
+    // Sem caixa aberto (ao entrar ou depois de fechar): busca a lista de caixas e sugere o primeiro livre.
+    effect(() => {
+      if (this.caixa() === null) void this.carregarCaixas();
+    });
+  }
+
+  private async carregarCaixas(): Promise<void> {
+    try {
+      const lista = await this.api.caixas();
+      this.caixas.set(lista);
+      const atual = lista.find((c) => c.numero === this.numeroCaixa);
+      if (!atual || atual.ocupadoPor) this.numeroCaixa = lista.find((c) => !c.ocupadoPor)?.numero ?? 1;
+    } catch {
+      /* fica a lista vazia; o servidor confere o número na abertura */
+    }
   }
 
   // ================================================================ caixa

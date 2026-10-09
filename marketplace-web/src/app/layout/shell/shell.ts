@@ -44,7 +44,7 @@ export class Shell {
   protected readonly iniciais = computed(() =>
     (this.usuario()?.nome ?? '?')
       .split(' ')
-      .filter(Boolean)
+      .filter((p) => /^\p{L}/u.test(p)) // só palavras que começam com letra ("(demonstração)" fica de fora)
       .slice(0, 2)
       .map((p) => p[0].toUpperCase())
       .join(''),

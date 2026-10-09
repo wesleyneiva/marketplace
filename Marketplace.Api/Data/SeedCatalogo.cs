@@ -1,4 +1,5 @@
 using Marketplace.Api.Models;
+using Marketplace.Api.Seguranca;
 using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Data;
@@ -97,7 +98,7 @@ public static class SeedCatalogo
 
     public static async Task ExecutarAsync(IServiceProvider services)
     {
-        using var scope = services.CreateScope();
+        using var scope = services.CriarEscopo(SeedDemonstracao.EmpresaId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("SeedCatalogo");
 
