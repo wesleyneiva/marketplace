@@ -65,3 +65,32 @@ public record TransferenciaRequest(
     int DeContaId,
     int ParaContaId,
     [StringLength(200)] string? Descricao);
+
+// ----- Recebíveis (maquininha) -----
+
+public record RecebivelResponse(
+    int Id, int SessaoCaixaId, int NumeroCaixa, string Forma, DateOnly DataVenda, DateOnly Previsao,
+    decimal ValorBruto, decimal TaxaPercentual, decimal Taxa, decimal ValorLiquido, string Conta,
+    StatusRecebivel Status, DateOnly? RecebidoEm);
+
+// Valores LÍQUIDOS (o que cai na conta). Taxas e vendas do mês pela data da VENDA (quanto a maquininha custou neste mês).
+public record ResumoRecebiveisResponse(
+    decimal Hoje, decimal Amanha, decimal Proximos7Dias, decimal Proximos30Dias, decimal TotalPrevisto, int QuantidadePrevistos,
+    decimal VendasEletronicasNoMes, decimal TaxasNoMes, List<PrevisaoRecebimento> ProximosDias);
+
+public record PrevisaoRecebimento(DateOnly Data, decimal Liquido);
+
+public record ConfiguracaoRecebimentoResponse(
+    string Forma, decimal TaxaPercentual, int PrazoDias, bool DiasUteis, int ContaFinanceiraId, string Conta, DateOnly ExemploHoje);
+
+public record ConfiguracaoRecebimentoRequest(
+    [Required] string Forma,
+    [Range(0, 20, ErrorMessage = "Taxa: de 0 a 20%.")] decimal TaxaPercentual,
+    [Range(0, 120, ErrorMessage = "Prazo: de 0 a 120 dias.")] int PrazoDias,
+    bool DiasUteis,
+    int ContaFinanceiraId);
+
+// Caixa aberto agora: ainda não entrou no Financeiro (entra no fechamento).
+public record CaixaAbertoResponse(
+    int SessaoId, int NumeroCaixa, string Operador, DateTimeOffset AbertaEm, int Vendas, decimal Total,
+    decimal DinheiroNaGaveta, List<TotalPorForma> PorForma);

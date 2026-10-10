@@ -43,6 +43,8 @@ builder.Services.AddHttpClient();
 builder.Services.AddSingleton<Marketplace.Api.Services.ClimaService>();
 builder.Services.AddSingleton<Marketplace.Api.Services.ColetorClima>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.ColetorClima>()); // clima de cada cidade com loja
+builder.Services.AddSingleton<Marketplace.Api.Services.LiquidadorRecebiveis>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.LiquidadorRecebiveis>()); // caixas e maquininha → Financeiro, de hora em hora
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistorico>();

@@ -191,7 +191,7 @@ public class FinanceiroController(AppDbContext db) : ControllerBase
         }
 
         // Totais do filtro inteiro. Sem conta escolhida, transferência não conta (o dinheiro só mudou de lugar).
-        var paraTotais = contaId is null ? q.Where(m => m.Origem != OrigemMovimentoFinanceiro.Transferencia) : q;
+        var paraTotais = contaId is null ? q.Where(m => m.TransferenciaId == null) : q; // inclui sangria/suprimento do caixa
         var entradas = await paraTotais.Where(m => m.Tipo == TipoMovimentoFinanceiro.Entrada).SumAsync(m => (decimal?)m.Valor) ?? 0;
         var saidas = await paraTotais.Where(m => m.Tipo == TipoMovimentoFinanceiro.Saida).SumAsync(m => (decimal?)m.Valor) ?? 0;
 
@@ -373,6 +373,8 @@ public class FinanceiroController(AppDbContext db) : ControllerBase
     {
         OrigemMovimentoFinanceiro.ContaPagar => "Este lançamento é o pagamento de uma conta: desfaça o pagamento em Contas a pagar.",
         OrigemMovimentoFinanceiro.Transferencia => "Transferência não se edita: exclua e lance de novo.",
+        OrigemMovimentoFinanceiro.Caixa => "Este lançamento veio do fechamento do caixa (PDV) e não pode ser alterado aqui.",
+        OrigemMovimentoFinanceiro.Recebimento => "Este lançamento é um depósito da maquininha e não pode ser alterado aqui.",
         _ => "Este lançamento foi gerado pelo sistema e não pode ser alterado aqui.",
     };
 

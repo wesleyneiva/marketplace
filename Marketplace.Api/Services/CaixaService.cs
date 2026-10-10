@@ -82,6 +82,8 @@ public class CaixaService(AppDbContext db)
         sessao.ValorContado = valorContado;
         sessao.Diferenca = valorContado - resumo.DinheiroEsperado;
         sessao.ObservacaoFechamento = string.IsNullOrWhiteSpace(observacao) ? null : observacao.Trim();
+        // Vendas, sangrias e diferença do caixa entram no Financeiro no MESMO SaveChanges (tudo ou nada).
+        await FinanceiroCaixa.PrepararFechamentoAsync(db, sessao);
         await db.SaveChangesAsync();
 
         return await ResumirAsync(sessao.Id);
