@@ -48,6 +48,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Se
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistorico>();
+builder.Services.AddScoped<Marketplace.Api.Services.Simulador.FinanceiroDemonstracao>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Services.Simulador.SimuladorClientes>());
 
 // Login e perfis: ASP.NET Core Identity, guardando usuários no nosso banco.
@@ -141,6 +142,20 @@ await SeedSimulador.ExecutarAsync(app.Services);
 await SeedFornecedores.ExecutarAsync(app.Services);
 await SeedDemonstracao.ExecutarAsync(app.Services);
 await SeedFinanceiro.ExecutarAsync(app.Services); // plano de contas e contas financeiras de cada empresa
+
+// Linha de comando: "gerar-historico --dias 60 --substituir true" refaz o passado da DEMONSTRAÇÃO (vendas + financeiro)
+// e sai. Ver gerar-historico.sh. Mesmo código do botão da API, sem precisar de login.
+if (args.FirstOrDefault() == "gerar-historico")
+{
+    var empresaDemo = app.Configuration.GetValue("Simulador:EmpresaId", 1);
+    using var escopo = app.Services.CriarEscopo(empresaDemo);
+    var dbDemo = escopo.ServiceProvider.GetRequiredService<AppDbContext>();
+    Marketplace.Api.Services.Relogio.UsarFuso(await dbDemo.Empresas.Where(e => e.Id == empresaDemo).Select(e => e.Fuso).FirstAsync());
+    var r = await escopo.ServiceProvider.GetRequiredService<Marketplace.Api.Services.Simulador.GeradorHistorico>()
+        .GerarAsync(app.Configuration.GetValue("dias", 60), app.Configuration.GetValue("substituir", false), CancellationToken.None);
+    Console.WriteLine($"✅ Histórico {r.De:dd/MM/yyyy} a {r.Ate:dd/MM/yyyy}: {r.Vendas} vendas, {r.Faturamento:C}. Financeiro: {r.Financeiro}.");
+    Environment.Exit(0);
+}
 
 // Configure the HTTP request pipeline.
 app.UseForwardedHeaders();

@@ -5,13 +5,14 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services.Simulador;
 
-public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas, decimal Faturamento, int HorasDeClima);
+public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas, decimal Faturamento, int HorasDeClima, string Financeiro);
 
 // Gera o PASSADO do mercadinho: N dias de vendas, com o clima REAL de cada hora em Porto Alegre.
 // Usa as mesmas regras do cliente ao vivo (ComportamentoCliente), mas:
 //  • NÃO mexe no estoque (as vendas são marcadas com Origem = Historico);
 //  • cria uma sessão do Caixa 9 por dia aberto (seg–sáb, 8h às 19h), já fechada.
-public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios, ILogger<GeradorHistorico> log)
+public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios,
+    FinanceiroDemonstracao financeiro, ILogger<GeradorHistorico> log)
 {
     public const string Marca = "Histórico gerado (simulador)";
 
@@ -21,6 +22,12 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         var hoje = Relogio.Hoje;
         var (de, ate) = (hoje.AddDays(-dias), hoje.AddDays(-1));
         var (inicioUtc, fimUtc) = (Relogio.InicioDoDiaUtc(de), Relogio.InicioDoDiaUtc(hoje));
+
+        // Dias que já têm vendas de verdade (PDV ou simulador ao vivo) não ganham histórico: senão o dia teria venda em dobro.
+        var primeiraAoVivo = await db.Vendas.Where(v => v.Origem != OrigemVenda.Historico && v.DataHora >= inicioUtc && v.DataHora < fimUtc)
+            .MinAsync(v => (DateTimeOffset?)v.DataHora, ct);
+        if (primeiraAoVivo is { } primeira) ate = Relogio.DiaLocal(primeira).AddDays(-1);
+        if (ate < de) throw new InvalidOperationException("Não há dias livres para gerar histórico nesse período (já há vendas de verdade).");
 
         if (await db.Vendas.AnyAsync(v => v.Origem == OrigemVenda.Historico && v.DataHora >= inicioUtc && v.DataHora < fimUtc, ct))
         {
@@ -106,12 +113,25 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         }
 
         log.LogInformation("Histórico gerado: {De} a {Ate}, {Vendas} vendas, {Total:C}.", de, ate, totalVendas, faturamento);
-        return new ResultadoHistorico(de, ate, dias, totalVendas, faturamento, climaPorHora.Count);
+
+        // O dinheiro desse passado: caixas no Financeiro, depósitos, boletos, despesas fixas, pagamentos e maquininha.
+        db.ChangeTracker.AutoDetectChangesEnabled = true;
+        db.ChangeTracker.Clear();
+        await financeiro.ImplantarAsync(de);
+        var depositos = await financeiro.LancarCaixasEDepositarAsync(ct);
+        var boletos = await financeiro.BoletosDoHistoricoAsync(de, ate, robo.Id) + await financeiro.BoletosDosPedidosAsync(de, robo.Id);
+        var fixas = await financeiro.ContasFixasAsync(new DateOnly(de.Year, de.Month, 1), hoje.AddDays(35), robo.Id); // o mês inteiro (as de antes do 1º dia são pagas nele)
+        var pagas = await financeiro.PagarVencidasAsync(hoje, robo.Id);
+        var recebidos = await FinanceiroCaixa.LiquidarAsync(db, hoje);
+        var resumo = $"{depositos} depósitos, {boletos} boletos de fornecedor, {fixas} despesas fixas, {pagas} contas pagas, {recebidos} recebíveis depositados";
+        log.LogInformation("Financeiro do histórico: {Resumo}.", resumo);
+        return new ResultadoHistorico(de, ate, dias, totalVendas, faturamento, climaPorHora.Count, resumo);
     }
 
     // Apaga TODO o histórico gerado (vendas com Origem = Historico e as sessões marcadas). O resto fica intacto.
     public async Task<int> ApagarAsync(CancellationToken ct)
     {
+        await financeiro.ApagarAsync(ct); // antes: os lançamentos apontam para as sessões
         var vendas = await db.Vendas.Where(v => v.Origem == OrigemVenda.Historico).ExecuteDeleteAsync(ct); // itens e pagamentos vão junto (cascade)
         await db.SessoesCaixa.Where(s => s.ObservacaoFechamento == Marca && !s.Vendas.Any()).ExecuteDeleteAsync(ct);
         return vendas;

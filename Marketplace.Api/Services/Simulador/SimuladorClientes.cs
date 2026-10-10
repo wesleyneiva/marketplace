@@ -71,7 +71,14 @@ public class SimuladorClientes(
 
             if (!aberto)
             {
-                if (sessao is not null) await FecharCaixaAsync(caixa, usuarioId);
+                if (sessao is not null)
+                {
+                    await FecharCaixaAsync(caixa, usuarioId);
+                    // Fim do dia: o dinheiro da gaveta vai para o banco (fica o troco de amanhã).
+                    var financeiro = scope.ServiceProvider.GetRequiredService<FinanceiroDemonstracao>();
+                    if (await financeiro.DepositarAsync(sessao))
+                        await scope.ServiceProvider.GetRequiredService<AppDbContext>().SaveChangesAsync(ct);
+                }
                 return;
             }
             if (sessao is null)
@@ -196,9 +203,16 @@ public class SimuladorClientes(
             novos++;
         }
 
+        // 4. Escritório: boletos dos pedidos recebidos, contas fixas dos próximos 35 dias e pagamento do que venceu.
+        var financeiro = scope.ServiceProvider.GetRequiredService<FinanceiroDemonstracao>();
+        var boletos = await financeiro.BoletosDosPedidosAsync(hoje.AddDays(-7), usuarioId);
+        var fixas = await financeiro.ContasFixasAsync(hoje, hoje.AddDays(35), usuarioId);
+        var pagas = await financeiro.PagarVencidasAsync(hoje, usuarioId);
+
         estado.UltimaRotinaDaManha = hoje;
-        log.LogInformation("Rotina da manhã: {Recebidos} pedido(s) recebido(s), {Vencidos} lote(s) vencido(s) retirado(s), {Novos} pedido(s) novo(s).",
-            chegaram.Count, vencidos.Count, novos);
+        log.LogInformation("Rotina da manhã: {Recebidos} pedido(s) recebido(s), {Vencidos} lote(s) vencido(s) retirado(s), {Novos} pedido(s) novo(s); "
+            + "{Boletos} boleto(s), {Fixas} conta(s) fixa(s) nova(s), {Pagas} conta(s) paga(s).",
+            chegaram.Count, vencidos.Count, novos, boletos, fixas, pagas);
     }
 
     private static int DiasDeValidade(Produto p)
