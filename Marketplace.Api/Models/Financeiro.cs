@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Marketplace.Api.Models;
 
 // ===================== FINANCEIRO =====================
@@ -24,6 +26,7 @@ public class CategoriaFinanceira : IDaEmpresa
 }
 
 // A ordem (e o número) dos grupos é a ordem da DRE e do código das categorias.
+[JsonConverter(typeof(JsonStringEnumConverter<GrupoFinanceiro>))]
 public enum GrupoFinanceiro
 {
     ReceitaVendas = 1,      // vendas do PDV
@@ -38,6 +41,7 @@ public enum GrupoFinanceiro
     ForaDoResultado = 10,   // investimentos, empréstimos, sócios: mexem no caixa, não no lucro
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<NaturezaFinanceira>))]
 public enum NaturezaFinanceira { Entrada, Saida }
 
 // Onde o dinheiro está.
@@ -65,6 +69,7 @@ public class ContaFinanceira : IDaEmpresa
     public DateTimeOffset CriadaEm { get; set; } = DateTimeOffset.UtcNow;
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<TipoContaFinanceira>))]
 public enum TipoContaFinanceira
 {
     Dinheiro,    // gaveta dos caixas, cofre
@@ -106,8 +111,10 @@ public class MovimentoFinanceiro : IDaEmpresa
     public Usuario? CriadoPor { get; set; }
 }
 
+[JsonConverter(typeof(JsonStringEnumConverter<TipoMovimentoFinanceiro>))]
 public enum TipoMovimentoFinanceiro { Entrada, Saida }
 
+[JsonConverter(typeof(JsonStringEnumConverter<OrigemMovimentoFinanceiro>))]
 public enum OrigemMovimentoFinanceiro
 {
     Manual,        // receita/despesa avulsa lançada na tela

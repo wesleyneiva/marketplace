@@ -16,6 +16,56 @@ public static class Financeiro
         await db.ContasFinanceiras.Where(c => c.Chave == chave).Select(c => c.Id).FirstOrDefaultAsync() is var id and > 0
             ? id : throw new InvalidOperationException($"Conta do sistema \"{chave}\" não existe nesta empresa.");
 
+    // Os grupos do plano de contas: nome na tela, natureza fixa (nulo = escolhe na categoria) e para que serve.
+    public static readonly IReadOnlyList<(GrupoFinanceiro Grupo, string Nome, NaturezaFinanceira? Natureza, string Explicacao)> Grupos =
+    [
+        (GrupoFinanceiro.ReceitaVendas, "Receitas de vendas", NaturezaFinanceira.Entrada, "O que entra das vendas do PDV."),
+        (GrupoFinanceiro.OutrasReceitas, "Outras receitas", NaturezaFinanceira.Entrada, "Rendimentos, descontos obtidos e outras entradas que não são venda."),
+        (GrupoFinanceiro.ImpostosVendas, "Impostos sobre vendas", NaturezaFinanceira.Saida, "Simples Nacional e outros impostos calculados sobre o faturamento."),
+        (GrupoFinanceiro.ComprasMercadorias, "Compras de mercadorias", NaturezaFinanceira.Saida,
+            "Pagamento a fornecedores. Não é despesa: vira estoque. No resultado entra o custo do que foi VENDIDO (CMV)."),
+        (GrupoFinanceiro.Pessoal, "Despesas com pessoal", NaturezaFinanceira.Saida, "Salários, encargos, benefícios e pró-labore."),
+        (GrupoFinanceiro.Ocupacao, "Despesas de ocupação", NaturezaFinanceira.Saida, "Aluguel, energia, água, IPTU: o custo de manter a loja aberta."),
+        (GrupoFinanceiro.Administrativas, "Despesas administrativas", NaturezaFinanceira.Saida, "Contador, internet, sistemas, manutenção e outras."),
+        (GrupoFinanceiro.DespesasVendas, "Despesas com vendas", NaturezaFinanceira.Saida, "Taxas de cartão, sacolas, marketing."),
+        (GrupoFinanceiro.Financeiras, "Despesas financeiras", NaturezaFinanceira.Saida, "Juros, multas e tarifas bancárias."),
+        (GrupoFinanceiro.ForaDoResultado, "Fora do resultado", null,
+            "Investimentos, empréstimos e movimentos dos sócios: mexem no caixa, mas não são lucro nem prejuízo."),
+    ];
+
+    public static string NomeGrupo(GrupoFinanceiro g) => Grupos.First(x => x.Grupo == g).Nome;
+    public static NaturezaFinanceira? NaturezaDoGrupo(GrupoFinanceiro g) => Grupos.First(x => x.Grupo == g).Natureza;
+
+    // Saldo de cada conta no FIM do dia "ate" (nulo = tudo). Só contam movimentos a partir do saldo inicial.
+    public static async Task<Dictionary<int, decimal>> SaldosAsync(AppDbContext db, DateOnly? ate = null)
+    {
+        var contas = await db.ContasFinanceiras.AsNoTracking()
+            .Select(c => new
+            {
+                c.Id, c.SaldoInicialEm,
+                Inicial = ate == null || c.SaldoInicialEm <= ate ? c.SaldoInicial : 0m,
+                Movido = db.MovimentosFinanceiros
+                    .Where(m => m.ContaFinanceiraId == c.Id && m.Data >= c.SaldoInicialEm && (ate == null || m.Data <= ate))
+                    .Sum(m => m.Tipo == TipoMovimentoFinanceiro.Entrada ? m.Valor : -m.Valor),
+            }).ToListAsync();
+        return contas.ToDictionary(c => c.Id, c => c.Inicial + c.Movido);
+    }
+
+    // Dinheiro físico (gaveta, cofre) não fica negativo: se ficar, alguém lançou errado ou falta dinheiro.
+    // (Banco pode: cheque especial.) Devolve a mensagem de erro, ou nulo se pode tirar "valor" da conta.
+    // "devolvendo" = o que a própria operação devolve à conta antes de tirar (ex.: edição do mesmo lançamento).
+    public static async Task<string?> FaltaDinheiroAsync(AppDbContext db, int contaId, decimal valor, decimal devolvendo = 0)
+    {
+        var conta = await db.ContasFinanceiras.AsNoTracking().FirstOrDefaultAsync(c => c.Id == contaId);
+        if (conta is null || conta.Tipo != TipoContaFinanceira.Dinheiro) return null;
+        var saldo = (await SaldosAsync(db)).GetValueOrDefault(contaId);
+        var ficaria = saldo + devolvendo - valor;
+        if (ficaria >= 0) return null;
+        var pt = System.Globalization.CultureInfo.GetCultureInfo("pt-BR");
+        return $"\"{conta.Nome}\" ficaria negativo ({ficaria.ToString("C", pt)}); hoje tem {saldo.ToString("C", pt)}. "
+             + "Dinheiro em espécie não fica negativo: se o dinheiro veio de outro lugar, faça antes uma transferência para esta conta.";
+    }
+
     // Pagamento de uma conta a pagar → movimentos no livro (a conta já vem com PagaEm/ValorPago preenchidos).
     // Separa a diferença do valor original: pagou MAIS = juros e multas; pagou MENOS = desconto obtido.
     //   Boleto de R$ 100 pago por R$ 103 → saída 100 (categoria da conta) + saída 3 (Juros e multas).

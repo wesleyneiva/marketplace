@@ -6,7 +6,8 @@ namespace Marketplace.Api.Contracts;
 public record ContaPagarResponse(
     int Id, string Descricao, string? Documento, DateOnly Vencimento, decimal Valor, string Situacao, int DiasParaVencer,
     int? FornecedorId, string? Fornecedor, int? NotaEntradaId, string? NotaNumero,
-    DateOnly? PagaEm, decimal? ValorPago, string? FormaPagamento, string? PagaPor, string? Observacao);
+    DateOnly? PagaEm, decimal? ValorPago, string? FormaPagamento, string? PagaPor, string? Observacao,
+    int? CategoriaId, string? Categoria, int? ContaFinanceiraId, string? ContaFinanceira);
 
 public record ResumoContasResponse(
     int Vencidas, decimal ValorVencidas, int VencemHoje, decimal ValorHoje, int Proximos7Dias, decimal ValorProximos7Dias,
@@ -19,9 +20,11 @@ public record ContaPagarRequest(
     [Range(0.01, 9999999, ErrorMessage = "O valor deve ser maior que zero.")] decimal Valor,
     int? FornecedorId,
     [StringLength(300)] string? Observacao,
-    [Range(1, 36, ErrorMessage = "Repetir: de 1 a 36 meses.")] int RepetirMeses = 1);
+    [Range(1, 36, ErrorMessage = "Repetir: de 1 a 36 meses.")] int RepetirMeses = 1,
+    int? CategoriaId = null); // vazia = reconhece pela descrição (ou "Outras despesas")
 
 public record PagarContaRequest(
     DateOnly PagaEm,
     [Range(0.01, 9999999, ErrorMessage = "Valor pago inválido.")] decimal ValorPago,
-    [StringLength(40)] string? FormaPagamento);
+    [StringLength(40)] string? FormaPagamento,
+    [Range(1, int.MaxValue, ErrorMessage = "Escolha de qual conta saiu o dinheiro.")] int ContaFinanceiraId);

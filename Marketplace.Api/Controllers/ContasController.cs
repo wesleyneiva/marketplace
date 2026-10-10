@@ -59,8 +59,11 @@ public class ContasController(AppDbContext db) : ControllerBase
     public async Task<ActionResult<List<ContaPagarResponse>>> Criar(ContaPagarRequest r)
     {
         if (await FornecedorInvalidoAsync(r.FornecedorId)) return BadRequest(new { mensagem = "Fornecedor não encontrado." });
+        var (categoria, erro) = await CategoriaAsync(r.CategoriaId, r.Descricao, null);
+        if (erro is not null) return BadRequest(new { mensagem = erro });
         var contas = Enumerable.Range(0, r.RepetirMeses).Select(i => new ContaPagar
         {
+            CategoriaFinanceiraId = categoria,
             Descricao = r.RepetirMeses > 1 ? $"{r.Descricao.Trim()} ({i + 1}/{r.RepetirMeses})" : r.Descricao.Trim(),
             Documento = Limpo(r.Documento), Vencimento = r.Vencimento.AddMonths(i), Valor = r.Valor,
             FornecedorId = r.FornecedorId, Observacao = Limpo(r.Observacao), CriadaPorId = UsuarioId,
@@ -81,6 +84,9 @@ public class ContasController(AppDbContext db) : ControllerBase
         if (conta is null) return NotFound();
         if (conta.PagaEm is not null) return BadRequest(new { mensagem = "Conta já paga: desfaça o pagamento para editar." });
         if (await FornecedorInvalidoAsync(r.FornecedorId)) return BadRequest(new { mensagem = "Fornecedor não encontrado." });
+        var (categoria, erro) = await CategoriaAsync(r.CategoriaId, r.Descricao, conta.CategoriaFinanceiraId);
+        if (erro is not null) return BadRequest(new { mensagem = erro });
+        conta.CategoriaFinanceiraId = categoria;
         conta.Descricao = r.Descricao.Trim();
         conta.Documento = Limpo(r.Documento);
         conta.Vencimento = r.Vencimento;
@@ -111,11 +117,20 @@ public class ContasController(AppDbContext db) : ControllerBase
         if (conta is null) return NotFound();
         if (conta.PagaEm is not null) return BadRequest(new { mensagem = "Esta conta já foi paga." });
         if (r.PagaEm > Relogio.Hoje) return BadRequest(new { mensagem = "A data do pagamento não pode ser no futuro." });
+        var deOnde = await db.ContasFinanceiras.AsNoTracking().FirstOrDefaultAsync(c => c.Id == r.ContaFinanceiraId);
+        if (deOnde is null || !deOnde.Ativa) return BadRequest(new { mensagem = "Escolha de qual conta saiu o dinheiro." });
+        if (r.PagaEm < deOnde.SaldoInicialEm)
+            return BadRequest(new { mensagem = $"A data é anterior ao saldo inicial de \"{deOnde.Nome}\" ({deOnde.SaldoInicialEm:dd/MM/yyyy})." });
+        if (await Financeiro.FaltaDinheiroAsync(db, deOnde.Id, r.ValorPago) is { } falta) return BadRequest(new { mensagem = falta });
         conta.PagaEm = r.PagaEm;
         conta.ValorPago = r.ValorPago;
         conta.FormaPagamento = Limpo(r.FormaPagamento);
         conta.PagaPorId = UsuarioId;
+        // Conta + movimentos no livro juntos (tudo ou nada).
+        await using var transacao = await db.Database.BeginTransactionAsync();
+        await Financeiro.RegistrarPagamentoAsync(db, conta, deOnde.Id, UsuarioId);
         await db.SaveChangesAsync();
+        await transacao.CommitAsync();
         return await UmaAsync(id);
     }
 
@@ -125,11 +140,17 @@ public class ContasController(AppDbContext db) : ControllerBase
     {
         var conta = await db.ContasPagar.FirstOrDefaultAsync(c => c.Id == id);
         if (conta is null) return NotFound();
+        if (await db.MovimentosFinanceiros.AnyAsync(m => m.ContaPagarId == id && m.Conciliado))
+            return BadRequest(new { mensagem = "Este pagamento já foi conferido com o extrato do banco: desfaça a conciliação antes." });
+        await using var transacao = await db.Database.BeginTransactionAsync();
+        await Financeiro.DesfazerPagamentoAsync(db, id);
         conta.PagaEm = null;
         conta.ValorPago = null;
         conta.FormaPagamento = null;
         conta.PagaPorId = null;
+        conta.ContaFinanceiraId = null;
         await db.SaveChangesAsync();
+        await transacao.CommitAsync();
         return await UmaAsync(id);
     }
 
@@ -141,13 +162,31 @@ public class ContasController(AppDbContext db) : ControllerBase
     private static IQueryable<ContaPagarResponse> Projetar(IQueryable<ContaPagar> q) =>
         q.Select(c => new ContaPagarResponse(c.Id, c.Descricao, c.Documento, c.Vencimento, c.Valor, "", 0,
             c.FornecedorId, c.Fornecedor!.Nome, c.NotaEntradaId, c.NotaEntrada!.Numero,
-            c.PagaEm, c.ValorPago, c.FormaPagamento, c.PagaPor!.NomeCompleto, c.Observacao));
+            c.PagaEm, c.ValorPago, c.FormaPagamento, c.PagaPor!.NomeCompleto, c.Observacao,
+            c.CategoriaFinanceiraId, c.CategoriaFinanceira!.Nome, c.ContaFinanceiraId, c.ContaFinanceira!.Nome));
 
     private static ContaPagarResponse Situar(ContaPagarResponse c, DateOnly hoje)
     {
         var dias = c.Vencimento.DayNumber - hoje.DayNumber;
         var situacao = c.PagaEm is not null ? "Paga" : dias < 0 ? "Vencida" : dias == 0 ? "VenceHoje" : "Aberta";
         return c with { Situacao = situacao, DiasParaVencer = dias };
+    }
+
+    // Categoria da conta: a escolhida (tem de ser de SAÍDA e ativa) ou, vazia, reconhecida pela descrição.
+    // "atual" = a que a conta já tinha (pode continuar mesmo se tiver sido desativada depois).
+    private async Task<(int? Id, string? Erro)> CategoriaAsync(int? escolhida, string descricao, int? atual)
+    {
+        if (escolhida is null)
+        {
+            var categorias = await db.CategoriasFinanceiras.AsNoTracking().ToListAsync();
+            return (Financeiro.SugerirCategoria(descricao, categorias, NaturezaFinanceira.Saida)
+                    ?? await Financeiro.CategoriaAsync(db, ChavesFinanceiras.OutrasDespesas), null);
+        }
+        var c = await db.CategoriasFinanceiras.AsNoTracking().FirstOrDefaultAsync(x => x.Id == escolhida);
+        if (c is null) return (null, "Categoria não encontrada.");
+        if (c.Natureza != NaturezaFinanceira.Saida) return (null, $"\"{c.Nome}\" é categoria de entrada: conta a pagar precisa de categoria de saída.");
+        if (!c.Ativa && c.Id != atual) return (null, $"A categoria \"{c.Nome}\" está desativada.");
+        return (c.Id, null);
     }
 
     private async Task<bool> FornecedorInvalidoAsync(int? id) => id is int f && !await db.Fornecedores.AnyAsync(x => x.Id == f);
