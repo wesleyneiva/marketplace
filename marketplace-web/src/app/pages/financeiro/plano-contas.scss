@@ -1,0 +1,42 @@
+.sem-margem { margin: 0; max-width: 760px; }
+.mostrar { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--cor-texto-suave); cursor: pointer; }
+
+.grupo {
+  margin-bottom: 12px; overflow: hidden; transition: opacity 0.15s;
+  &.carregando { opacity: 0.6; }
+
+  > header {
+    padding: 12px 16px; border-bottom: 1px solid var(--cor-borda); background: var(--cor-fundo);
+    h2 { margin: 0; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    p { margin: 2px 0 0; font-size: 13px; color: var(--cor-texto-suave); }
+  }
+  .numero {
+    display: inline-grid; place-items: center; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 99px;
+    background: var(--cor-primaria); color: #fff; font-size: 13px;
+  }
+
+  // Larguras fixas: as colunas ficam alinhadas de um grupo para o outro.
+  table { table-layout: fixed; }
+  td { padding: 8px 16px; overflow-wrap: anywhere; }
+  .acoes { width: 190px; }
+  .codigo { width: 64px; font-variant-numeric: tabular-nums; color: var(--cor-texto-suave); }
+  .nome { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .usos { width: 130px; font-size: 12px; color: var(--cor-texto-suave); white-space: nowrap; }
+
+  .edicao { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; input { flex: 1; min-width: 160px; padding: 5px 8px; } select { padding: 5px 8px; } }
+
+  .nova {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 10px 16px; border-top: 1px dashed var(--cor-borda);
+    input { flex: 1; min-width: 180px; max-width: 360px; padding: 6px 9px; }
+    select { padding: 6px 9px; }
+  }
+  .nota { margin: 0; padding: 10px 16px; border-top: 1px dashed var(--cor-borda); font-size: 13px; color: var(--cor-texto-suave); }
+  .retorno { display: block; margin-top: 4px; font-size: 13px; }
+  .nova .retorno { display: inline; margin: 0; }
+}
+
+@media (max-width: 640px) {
+  .grupo .usos { display: none; }
+  .grupo .codigo { width: 52px; padding-right: 0; }
+  .grupo .acoes { width: 130px; }
+}

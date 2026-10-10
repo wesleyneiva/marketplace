@@ -1,10 +1,13 @@
-import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
+import {
+  CategoriaFinanceira, ContaFinanceira, ICONE_CONTA, URL_FINANCEIRO, categoriasPorGrupo,
+} from '../../core/api/financeiro.api';
 
 // Formatos iguais a Contracts/ContasDtos.cs.
 interface Conta {
@@ -24,6 +27,10 @@ interface Conta {
   formaPagamento: string | null;
   pagaPor: string | null;
   observacao: string | null;
+  categoriaId: number | null;
+  categoria: string | null;
+  contaFinanceiraId: number | null;
+  contaFinanceira: string | null;
 }
 
 interface Resumo {
@@ -58,6 +65,13 @@ export class Contas {
   protected readonly contas = httpResource<Conta[]>(() => ({ url: URL, params: { situacao: this.filtro() } }));
   protected readonly resumo = httpResource<Resumo>(() => `${URL}/resumo`);
   protected readonly fornecedores = httpResource<{ id: number; nome: string; ativo: boolean }[]>(() => '/api/fornecedores');
+  protected readonly categorias = httpResource<CategoriaFinanceira[]>(() => ({ url: `${URL_FINANCEIRO}/categorias`, params: { incluirInativas: true } }));
+  protected readonly contasFinanceiras = httpResource<ContaFinanceira[]>(() => `${URL_FINANCEIRO}/contas`);
+  protected readonly grupos = computed(() => categoriasPorGrupo(this.categorias.value() ?? [], 'Saida', this.editando()?.categoriaId));
+  protected readonly icone = ICONE_CONTA;
+
+  // ?situacao=pagas (ex.: veio do "Ver conta" do Financeiro).
+  readonly situacao = input<string>();
 
   protected readonly aviso = signal<string | null>(null);
   protected readonly erro = signal<string | null>(null);
@@ -66,12 +80,23 @@ export class Contas {
   // Janela de lançar / editar.
   private readonly dlgConta = viewChild<ElementRef<HTMLDialogElement>>('dlgConta');
   protected readonly editando = signal<Conta | null>(null);
-  protected form = { descricao: '', documento: '', vencimento: '', valor: null as number | null, fornecedorId: null as number | null, observacao: '', repetirMeses: 1 };
+  protected form = this.formVazio();
+  protected readonly sugerida = signal(false);
+  protected readonly escolheuCategoria = signal(false); // escolheu à mão: a sugestão pela descrição não mexe mais
+  private espera?: ReturnType<typeof setTimeout>;
 
   // Janela de pagar.
   private readonly dlgPagar = viewChild<ElementRef<HTMLDialogElement>>('dlgPagar');
   protected readonly pagando = signal<Conta | null>(null);
-  protected pagamento = { pagaEm: '', valorPago: null as number | null, formaPagamento: 'PIX' };
+  protected pagamento = { pagaEm: '', valorPago: null as number | null, formaPagamento: 'PIX', contaFinanceiraId: 0 };
+  private escolheuConta = false; // escolheu "saiu de" à mão: trocar a forma não muda mais a conta
+
+  constructor() {
+    effect(() => {
+      const s = this.situacao();
+      if (s === 'abertas' || s === 'vencidas' || s === 'pagas' || s === 'todas') untracked(() => this.filtro.set(s));
+    });
+  }
 
   mudarFiltro(f: Filtro): void {
     this.filtro.set(f);
@@ -80,16 +105,40 @@ export class Contas {
 
   abrirNova(): void {
     this.editando.set(null);
-    this.form = { descricao: '', documento: '', vencimento: this.hoje, valor: null, fornecedorId: null, observacao: '', repetirMeses: 1 };
+    this.form = this.formVazio();
+    this.sugerida.set(false);
+    this.escolheuCategoria.set(false);
     this.erro.set(null);
     this.dlgConta()?.nativeElement.showModal();
   }
 
   abrirEdicao(c: Conta): void {
     this.editando.set(c);
-    this.form = { descricao: c.descricao, documento: c.documento ?? '', vencimento: c.vencimento, valor: c.valor, fornecedorId: c.fornecedorId, observacao: c.observacao ?? '', repetirMeses: 1 };
+    this.form = {
+      descricao: c.descricao, documento: c.documento ?? '', vencimento: c.vencimento, valor: c.valor, fornecedorId: c.fornecedorId,
+      observacao: c.observacao ?? '', repetirMeses: 1, categoriaId: c.categoriaId,
+    };
+    this.sugerida.set(false);
+    this.escolheuCategoria.set(true);
     this.erro.set(null);
     this.dlgConta()?.nativeElement.showModal();
+  }
+
+  // Enquanto digita a descrição: 0,4 s parado → a API sugere a categoria ("Conta de luz" → Energia elétrica).
+  protected aoDigitar(): void {
+    if (this.escolheuCategoria()) return;
+    clearTimeout(this.espera);
+    this.espera = setTimeout(async () => {
+      const descricao = this.form.descricao.trim();
+      if (descricao.length < 3) return;
+      const r = await firstValueFrom(this.http.get<{ categoriaId: number | null }>(`${URL_FINANCEIRO}/categorias/sugerir`,
+        { params: { descricao, natureza: 'Saida' } })).catch(() => null);
+      if (r?.categoriaId && !this.escolheuCategoria()) {
+        this.form.categoriaId = r.categoriaId;
+        this.sugerida.set(false); // desliga e liga: redesenha mesmo se já estava "sugerida"
+        this.sugerida.set(true);
+      }
+    }, 400);
   }
 
   async salvar(): Promise<void> {
@@ -116,9 +165,24 @@ export class Contas {
 
   abrirPagamento(c: Conta): void {
     this.pagando.set(c);
-    this.pagamento = { pagaEm: this.hoje, valorPago: c.valor, formaPagamento: c.notaEntradaId ? 'Boleto' : 'PIX' };
+    this.pagamento = { pagaEm: this.hoje, valorPago: c.valor, formaPagamento: c.notaEntradaId ? 'Boleto' : 'PIX', contaFinanceiraId: 0 };
+    this.escolheuConta = false;
+    this.contaPelaForma();
     this.erro.set(null);
+    this.contasFinanceiras.reload(); // saldos atualizados na janela
     this.dlgPagar()?.nativeElement.showModal();
+  }
+
+  // Forma "Dinheiro" → sai da gaveta; as outras → do banco (a pessoa pode trocar).
+  protected contaPelaForma(): void {
+    if (this.escolheuConta) return;
+    const contas = this.contasFinanceiras.value() ?? [];
+    const tipo = this.pagamento.formaPagamento === 'Dinheiro' ? 'Dinheiro' : 'Banco';
+    this.pagamento.contaFinanceiraId = (contas.find((c) => c.tipo === tipo) ?? contas[0])?.id ?? 0;
+  }
+
+  protected escolheuContaManual(): void {
+    this.escolheuConta = true;
   }
 
   async pagar(): Promise<void> {
@@ -170,6 +234,14 @@ export class Contas {
   private recarregar(): void {
     this.contas.reload();
     this.resumo.reload();
+    this.contasFinanceiras.reload();
+  }
+
+  private formVazio() {
+    return {
+      descricao: '', documento: '', vencimento: this.hoje, valor: null as number | null, fornecedorId: null as number | null,
+      observacao: '', repetirMeses: 1, categoriaId: null as number | null,
+    };
   }
 
   private mensagem(e: unknown): string {

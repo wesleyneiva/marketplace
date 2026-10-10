@@ -71,6 +71,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/configuracoes/configuracoes').then((m) => m.Configuracoes),
       },
       {
+        // Financeiro: saldos das contas, lançamentos (o livro) e plano de contas. ?aba=lancamentos&conta=3
+        path: 'financeiro',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/financeiro/financeiro').then((m) => m.Financeiro),
+      },
+      {
         path: 'contas',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),

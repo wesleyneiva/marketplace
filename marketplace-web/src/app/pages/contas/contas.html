@@ -47,6 +47,7 @@
           <td>
             <span class="descricao">{{ c.descricao }}</span>
             <small class="detalhe">
+              @if (c.categoria) { <span class="categoria">{{ c.categoria }}</span> · }
               @if (c.fornecedor) { {{ c.fornecedor }} · }
               @if (c.documento) { doc. {{ c.documento }} · }
               @if (c.notaEntradaId) { <a routerLink="/compras/nota">NF-e {{ c.notaNumero }}</a> } @else { lançada à mão }
@@ -58,7 +59,7 @@
             @switch (c.situacao) {
               @case ('Paga') {
                 <span class="selo paga">paga {{ c.pagaEm | dia }}</span>
-                <small class="detalhe">{{ c.valorPago | currency: 'BRL' }}{{ c.formaPagamento ? ' · ' + c.formaPagamento : '' }}{{ c.pagaPor ? ' · ' + c.pagaPor : '' }}</small>
+                <small class="detalhe">{{ c.valorPago | currency: 'BRL' }}{{ c.formaPagamento ? ' · ' + c.formaPagamento : '' }}{{ c.contaFinanceira ? ' · saiu de ' + c.contaFinanceira : '' }}{{ c.pagaPor ? ' · ' + c.pagaPor : '' }}</small>
               }
               @case ('Vencida') { <span class="selo vencida">vencida</span> }
               @case ('VenceHoje') { <span class="selo hoje">vence hoje</span> }
@@ -95,7 +96,18 @@
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar conta' : 'Lançar conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()">✕</button></header>
     <div class="corpo">
-      <label>Descrição<input name="descricao" [(ngModel)]="form.descricao" required minlength="2" maxlength="200" placeholder="Ex.: Aluguel da loja, Energia elétrica…" /></label>
+      <label>Descrição<input name="descricao" [(ngModel)]="form.descricao" (ngModelChange)="aoDigitar()" required minlength="2" maxlength="200" placeholder="Ex.: Aluguel da loja, Energia elétrica…" /></label>
+      <label>Categoria
+        <select name="categoria" [(ngModel)]="form.categoriaId" (ngModelChange)="escolheuCategoria.set(true)" required>
+          <option [ngValue]="null" disabled>Escolha… (ou digite a descrição que o sistema sugere)</option>
+          @for (g of grupos(); track g.grupo) {
+            <optgroup [label]="g.grupo">
+              @for (cat of g.itens; track cat.id) { <option [ngValue]="cat.id">{{ cat.codigo }} · {{ cat.nome }}</option> }
+            </optgroup>
+          }
+        </select>
+        @if (sugerida()) { <small class="sugerida">💡 Sugerida pela descrição. Pode trocar.</small> }
+      </label>
       <div class="duas">
         <label>Vencimento<input name="vencimento" type="date" [(ngModel)]="form.vencimento" required /></label>
         <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" required /></label>
@@ -139,9 +151,18 @@
           <p class="dica">{{ pagamento.valorPago > c.valor ? 'Pago a mais (juros/multa)' : 'Pago a menos (desconto)' }}: {{ pagamento.valorPago - c.valor | currency: 'BRL' }}</p>
         }
         <label>Forma de pagamento
-          <select name="forma" [(ngModel)]="pagamento.formaPagamento">
+          <select name="forma" [(ngModel)]="pagamento.formaPagamento" (ngModelChange)="contaPelaForma()">
             @for (fo of formas; track fo) { <option [ngValue]="fo">{{ fo }}</option> }
           </select>
+        </label>
+        <label>Saiu de
+          <select name="conta" [(ngModel)]="pagamento.contaFinanceiraId" (ngModelChange)="escolheuContaManual()" required>
+            <option [ngValue]="0" disabled>Escolha a conta…</option>
+            @for (cf of contasFinanceiras.value() ?? []; track cf.id) {
+              <option [ngValue]="cf.id">{{ icone[cf.tipo] }} {{ cf.nome }} ({{ cf.saldo | currency: 'BRL' }})</option>
+            }
+          </select>
+          <small class="ajuda">O pagamento entra no Financeiro, nesta conta.</small>
         </label>
         @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
       </div>

@@ -1,0 +1,139 @@
+import { HttpErrorResponse } from '@angular/common/http';
+
+// Formatos iguais a Contracts/FinanceiroDtos.cs.
+
+export type TipoConta = 'Dinheiro' | 'Banco' | 'Maquininha';
+export type Natureza = 'Entrada' | 'Saida';
+export type TipoMovimento = 'Entrada' | 'Saida';
+export type OrigemMovimento = 'Manual' | 'ContaPagar' | 'Transferencia' | 'Importacao';
+export type Grupo =
+  | 'ReceitaVendas' | 'OutrasReceitas' | 'ImpostosVendas' | 'ComprasMercadorias' | 'Pessoal'
+  | 'Ocupacao' | 'Administrativas' | 'DespesasVendas' | 'Financeiras' | 'ForaDoResultado';
+
+export interface ContaFinanceira {
+  id: number;
+  nome: string;
+  tipo: TipoConta;
+  banco: string | null;
+  agencia: string | null;
+  numero: string | null;
+  saldoInicial: number;
+  saldoInicialEm: string;
+  saldo: number;
+  movimentos: number;
+  doSistema: boolean;
+  ativa: boolean;
+}
+
+export interface GrupoFinanceiro {
+  grupo: Grupo;
+  numero: number;
+  nome: string;
+  natureza: Natureza | null; // nulo = "Fora do resultado" (cada categoria diz se é entrada ou saída)
+  explicacao: string;
+}
+
+export interface CategoriaFinanceira {
+  id: number;
+  codigo: string;
+  nome: string;
+  grupo: Grupo;
+  nomeGrupo: string;
+  natureza: Natureza;
+  doSistema: boolean;
+  ativa: boolean;
+  usos: number;
+}
+
+export interface Movimento {
+  id: number;
+  data: string;
+  tipo: TipoMovimento;
+  valor: number;
+  contaId: number;
+  conta: string;
+  categoriaId: number | null;
+  categoria: string | null;
+  codigoCategoria: string | null;
+  descricao: string;
+  documento: string | null;
+  origem: OrigemMovimento;
+  contaPagarId: number | null;
+  transferenciaId: string | null;
+  conciliado: boolean;
+  criadoPor: string | null;
+  saldoApos: number | null;
+}
+
+export interface Extrato {
+  de: string;
+  ate: string;
+  entradas: number;
+  saidas: number;
+  saldoAnterior: number | null;
+  saldoFinal: number | null;
+  cortado: boolean;
+  movimentos: Movimento[];
+  implantacao: { data: string; valor: number } | null;
+}
+
+export const URL_FINANCEIRO = '/api/financeiro';
+
+export const ICONE_CONTA: Record<TipoConta, string> = { Dinheiro: '💵', Banco: '🏦', Maquininha: '💳' };
+
+export const NOME_TIPO_CONTA: Record<TipoConta, string> = {
+  Dinheiro: 'Dinheiro (gaveta, cofre)',
+  Banco: 'Banco (conta corrente, digital, poupança)',
+  Maquininha: 'Maquininha (recebíveis de cartão)',
+};
+
+export const NOME_ORIGEM: Record<OrigemMovimento, string> = {
+  Manual: 'lançamento',
+  ContaPagar: 'conta paga',
+  Transferencia: 'transferência',
+  Importacao: 'importado',
+};
+
+// Categorias agrupadas para o <select> com <optgroup> (só ativas e da natureza pedida).
+export function categoriasPorGrupo(
+  categorias: CategoriaFinanceira[], natureza: Natureza, manterId?: number | null,
+): { grupo: string; itens: CategoriaFinanceira[] }[] {
+  const grupos = new Map<string, CategoriaFinanceira[]>();
+  for (const c of categorias) {
+    if (c.natureza !== natureza || c.grupo === 'ReceitaVendas') continue;
+    if (!c.ativa && c.id !== manterId) continue;
+    const lista = grupos.get(c.nomeGrupo) ?? [];
+    lista.push(c);
+    grupos.set(c.nomeGrupo, lista);
+  }
+  return [...grupos].map(([grupo, itens]) => ({ grupo, itens }));
+}
+
+// A mensagem que a API mandou (ou uma genérica).
+export function mensagemDeErro(e: unknown): string {
+  if (e instanceof HttpErrorResponse) {
+    if (e.status === 403) return 'Sem permissão para esta ação.';
+    if (e.error?.mensagem) return e.error.mensagem;
+    const erros = e.error?.errors as Record<string, string[]> | undefined;
+    if (erros) return Object.values(erros).flat().join(' ');
+  }
+  return 'Não foi possível concluir. Tente de novo.';
+}
+
+// "Hoje" no calendário do navegador, no formato do <input type="date"> (AAAA-MM-DD).
+export function hojeIso(): string {
+  return new Date().toLocaleDateString('sv-SE');
+}
+
+// Primeiro dia do mês de uma data AAAA-MM-DD, com deslocamento de meses (−1 = mês passado).
+export function inicioDoMes(iso: string, deslocamento = 0): string {
+  const [a, m] = iso.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m - 1 + deslocamento, 1));
+  return d.toISOString().slice(0, 10);
+}
+
+export function fimDoMes(iso: string, deslocamento = 0): string {
+  const [a, m] = iso.split('-').map(Number);
+  const d = new Date(Date.UTC(a, m + deslocamento, 0));
+  return d.toISOString().slice(0, 10);
+}

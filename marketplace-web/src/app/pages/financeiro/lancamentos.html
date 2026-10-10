@@ -1,0 +1,128 @@
+<!-- Barra de ações: fica grudada no topo ao rolar (o retorno "✅ lançado" sempre à vista). -->
+<div class="barra fixa">
+  <button type="button" class="botao primario" (click)="novo('Saida')">➖ Despesa</button>
+  <button type="button" class="botao primario" (click)="novo('Entrada')">➕ Receita</button>
+  <button type="button" class="botao" (click)="transferir()">⇄ Transferência</button>
+  @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+</div>
+
+<section class="painel filtros-painel">
+  <div class="periodos" role="group" aria-label="Período">
+    <button type="button" class="botao pequeno" [class.ligado]="periodo() === 'mes'" (click)="escolherPeriodo('mes')">Este mês</button>
+    <button type="button" class="botao pequeno" [class.ligado]="periodo() === 'mesPassado'" (click)="escolherPeriodo('mesPassado')">Mês passado</button>
+    <button type="button" class="botao pequeno" [class.ligado]="periodo() === '30dias'" (click)="escolherPeriodo('30dias')">Últimos 30 dias</button>
+    <label>de <input type="date" [ngModel]="de()" (ngModelChange)="mudouData('de', $event)" /></label>
+    <label>até <input type="date" [ngModel]="ate()" (ngModelChange)="mudouData('ate', $event)" /></label>
+  </div>
+  <div class="campos">
+    <label>Conta
+      <select [ngModel]="contaId()" (ngModelChange)="mudouConta($event)">
+        <option [ngValue]="null">Todas as contas</option>
+        @for (c of contas.value() ?? []; track c.id) {
+          <option [ngValue]="c.id">{{ icone[c.tipo] }} {{ c.nome }}{{ c.ativa ? '' : ' (desativada)' }}</option>
+        }
+      </select>
+    </label>
+    <label>Categoria
+      <select [ngModel]="categoriaId()" (ngModelChange)="categoriaId.set($event)">
+        <option [ngValue]="null">Todas</option>
+        @for (c of categorias.value() ?? []; track c.id) { <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nome }}</option> }
+      </select>
+    </label>
+    <label>Origem
+      <select [ngModel]="origem()" (ngModelChange)="origem.set($event)">
+        <option [ngValue]="null">Todas</option>
+        @for (o of origens; track o) { <option [ngValue]="o">{{ nomeOrigem[o] }}</option> }
+      </select>
+    </label>
+    <label class="busca">Buscar
+      <input type="search" [ngModel]="busca()" (ngModelChange)="digitouBusca($event)" placeholder="descrição ou documento" />
+    </label>
+    @if (filtrando()) { <button type="button" class="botao pequeno limpar" (click)="limparFiltros()">Limpar filtros</button> }
+  </div>
+</section>
+
+@if (extrato.value(); as e) {
+  <section class="resumo-extrato">
+    @if (e.saldoAnterior != null) {
+      <div><span>Saldo em {{ e.de | dia }} (antes)</span><strong [class.negativo]="e.saldoAnterior < 0">{{ e.saldoAnterior | currency: 'BRL' }}</strong></div>
+    }
+    <div><span>Entradas</span><strong class="valor-entrada">{{ e.entradas | currency: 'BRL' }}</strong></div>
+    <div><span>Saídas</span><strong class="valor-saida">{{ e.saidas | currency: 'BRL' }}</strong></div>
+    @if (e.saldoFinal != null) {
+      <div class="destaque"><span>Saldo em {{ e.ate | dia }}</span><strong [class.negativo]="e.saldoFinal < 0">{{ e.saldoFinal | currency: 'BRL' }}</strong></div>
+    } @else {
+      <div class="destaque"><span>Entradas − saídas</span><strong [class.negativo]="e.entradas - e.saidas < 0">{{ e.entradas - e.saidas | currency: 'BRL' }}</strong></div>
+    }
+  </section>
+  @if (!contaId()) { <p class="explica">Com "todas as contas", as transferências aparecem na lista mas não entram nas somas (o dinheiro só mudou de lugar).</p> }
+  @if (contaId() && filtrando()) { <p class="explica">Com filtros de categoria, origem ou busca, o saldo linha a linha não aparece (as linhas não somam o saldo da conta).</p> }
+  @if (e.cortado) { <p class="explica aviso-corte">⚠️ Mostrando os 2.000 primeiros lançamentos: diminua o período para ver todos.</p> }
+}
+
+<section class="painel tabela-rolagem" [class.carregando]="extrato.isLoading()">
+  <table>
+    <thead>
+      <tr>
+        <th>Data</th><th>Descrição</th>
+        @if (!contaId()) { <th>Conta</th> }
+        <th class="num">Entrada</th><th class="num">Saída</th>
+        @if (comSaldo()) { <th class="num">Saldo</th> }
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (l of linhas(); track $index) {
+        @if (l.tipo === 'implantacao') {
+          <tr class="implantacao">
+            <td class="data">{{ l.data | dia }}</td>
+            <td colspan="3"><span class="descricao">🏁 Saldo de implantação</span><small class="detalhe">quanto havia na conta quando a empresa começou a usar o sistema</small></td>
+            @if (comSaldo()) { <td class="num forte">{{ l.valor | currency: 'BRL' }}</td> }
+            <td></td>
+          </tr>
+        } @else {
+          @let m = l.mov;
+          <tr [class.transferencia]="m.origem === 'Transferencia'">
+            <td class="data">{{ m.data | dia }}</td>
+            <td>
+              <span class="descricao">{{ m.descricao }}</span>
+              <small class="detalhe">
+                @if (m.categoria) { {{ m.codigoCategoria }} · {{ m.categoria }} } @else { ⇄ transferência entre contas }
+                @if (m.documento) { · doc. {{ m.documento }} }
+                @if (m.origem !== 'Manual' && m.origem !== 'Transferencia') { · <span class="selo origem">{{ nomeOrigem[m.origem] }}</span> }
+                @if (m.criadoPor) { · {{ m.criadoPor }} }
+              </small>
+              @if (erroLinha()?.id === m.id) { <span class="erro-linha" role="alert">✋ {{ erroLinha()!.texto }}</span> }
+              @if (retornoLinha()?.id === m.id) { <span class="retorno" role="status">✅ {{ retornoLinha()!.texto }}</span> }
+            </td>
+            @if (!contaId()) { <td class="conta">{{ m.conta }}</td> }
+            <td class="num valor-entrada">{{ m.tipo === 'Entrada' ? (m.valor | currency: 'BRL') : '' }}</td>
+            <td class="num valor-saida">{{ m.tipo === 'Saida' ? (m.valor | currency: 'BRL') : '' }}</td>
+            @if (comSaldo()) { <td class="num saldo" [class.negativo]="(m.saldoApos ?? 0) < 0">{{ m.saldoApos != null ? (m.saldoApos | currency: 'BRL') : '—' }}</td> }
+            <td class="acoes">
+              @switch (m.origem) {
+                @case ('Manual') {
+                  <button type="button" class="botao pequeno" (click)="editar(m)" aria-label="Editar">✏️</button>
+                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir">🗑️</button>
+                }
+                @case ('Transferencia') {
+                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir transferência">🗑️</button>
+                }
+                @case ('ContaPagar') {
+                  <a class="botao pequeno" routerLink="/contas" [queryParams]="{ situacao: 'pagas' }" title="Para mudar, desfaça o pagamento em Contas a pagar">💸 Ver conta</a>
+                }
+              }
+            </td>
+          </tr>
+        }
+      } @empty {
+        @if (!extrato.isLoading()) {
+          <tr><td [attr.colspan]="7" class="vazio">Nenhum lançamento neste período{{ filtrando() ? ' com esses filtros' : '' }}.</td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</section>
+
+<app-dialogo-lancamento (salvo)="salvou($event)" />
+<app-dialogo-transferencia (salvo)="transferiu($event)" />

@@ -62,3 +62,9 @@ tr.paga { color: var(--cor-texto-suave); }
   .duas label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
   label small { font-weight: 400; color: var(--cor-texto-suave); }
 }
+
+.categoria { font-weight: 600; color: var(--cor-primaria-escura); }
+.janela {
+  .sugerida { font-weight: 400; font-size: 12px; color: var(--cor-primaria-escura); }
+  .ajuda { font-weight: 400; font-size: 12px; color: var(--cor-texto-suave); }
+}

@@ -1,0 +1,83 @@
+<div class="barra">
+  <p class="explica sem-margem">
+    Os <b>grupos</b> são fixos: deles sai o resultado do mês (DRE). As <b>categorias</b> dentro deles são suas: crie, renomeie e
+    desative à vontade. 🔒 = usada pelo sistema (só muda o nome).
+  </p>
+  <span class="espaco"></span>
+  @if (inativas()) {
+    <label class="mostrar"><input type="checkbox" [ngModel]="mostrarInativas()" (ngModelChange)="mostrarInativas.set($event)" /> mostrar desativadas ({{ inativas() }})</label>
+  }
+</div>
+
+@for (g of porGrupo(); track g.grupo) {
+  <section class="painel grupo" [class.carregando]="categorias.isLoading()">
+    <header>
+      <h2><span class="numero">{{ g.numero }}</span> {{ g.nome }}
+        @if (g.natureza) { <span class="selo" [class.entrada]="g.natureza === 'Entrada'" [class.saida]="g.natureza === 'Saida'">{{ g.natureza === 'Entrada' ? 'entradas' : 'saídas' }}</span> }
+      </h2>
+      <p>{{ g.explicacao }}</p>
+    </header>
+    <table>
+      <tbody>
+        @for (c of g.itens; track c.id) {
+          <tr [class.inativo]="!c.ativa">
+            <td class="codigo">{{ c.codigo }}</td>
+            <td>
+              @if (editandoId() === c.id) {
+                <form class="edicao" (ngSubmit)="salvar(c)">
+                  <input name="nome" [(ngModel)]="edicao.nome" required minlength="2" maxlength="80" aria-label="Nome da categoria" />
+                  @if (!c.doSistema && c.usos === 0) {
+                    <select name="grupo" [(ngModel)]="edicao.grupo" aria-label="Grupo">
+                      @for (d of destinos(c); track d.grupo) { <option [ngValue]="d.grupo">{{ d.numero }} {{ d.nome }}</option> }
+                    </select>
+                  }
+                  <button type="submit" class="botao pequeno primario" [disabled]="salvando()">Salvar</button>
+                  <button type="button" class="botao pequeno" (click)="editandoId.set(null)">Cancelar</button>
+                </form>
+              } @else {
+                <span class="nome">{{ c.nome }}
+                  @if (c.doSistema) { <span title="Usada pelo sistema">🔒</span> }
+                  @if (!g.natureza) { <span class="selo" [class.entrada]="c.natureza === 'Entrada'" [class.saida]="c.natureza === 'Saida'">{{ c.natureza === 'Entrada' ? 'entrada' : 'saída' }}</span> }
+                  @if (!c.ativa) { <span class="selo inativo">desativada</span> }
+                </span>
+              }
+              @if (retorno()?.chave === 'c' + c.id) {
+                <span class="retorno" [class.ruim]="retorno()!.ruim" role="status">{{ retorno()!.ruim ? '✋' : '✅' }} {{ retorno()!.texto }}</span>
+              }
+            </td>
+            <td class="usos">{{ c.usos ? c.usos + ' lançamento(s)' : 'sem uso' }}</td>
+            <td class="acoes">
+              @if (editandoId() !== c.id) {
+                <button type="button" class="botao pequeno" (click)="editar(c)" aria-label="Renomear">✏️</button>
+                @if (!c.doSistema) {
+                  @if (c.ativa) {
+                    <button type="button" class="botao pequeno perigo" (click)="ativar(c, false)" [disabled]="salvando()">Desativar</button>
+                  } @else {
+                    <button type="button" class="botao pequeno" (click)="ativar(c, true)" [disabled]="salvando()">Reativar</button>
+                  }
+                }
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (g.grupo !== 'ReceitaVendas') {
+      <form class="nova" (ngSubmit)="adicionar(g)">
+        <input [name]="'nova-' + g.grupo" [(ngModel)]="novo(g.grupo).nome" maxlength="80" placeholder="Nova categoria neste grupo…" [attr.aria-label]="'Nova categoria em ' + g.nome" />
+        @if (!g.natureza) {
+          <select [name]="'natureza-' + g.grupo" [(ngModel)]="novo(g.grupo).natureza" aria-label="Entrada ou saída">
+            <option ngValue="Saida">saída</option>
+            <option ngValue="Entrada">entrada</option>
+          </select>
+        }
+        <button type="submit" class="botao pequeno" [disabled]="salvando()">+ Adicionar</button>
+        @if (retorno()?.chave === g.grupo) {
+          <span class="retorno" [class.ruim]="retorno()!.ruim" role="status">{{ retorno()!.ruim ? '✋' : '✅' }} {{ retorno()!.texto }}</span>
+        }
+      </form>
+    } @else {
+      <p class="nota">Entram sozinhas pelo PDV.</p>
+    }
+  </section>
+}

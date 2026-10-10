@@ -1,0 +1,98 @@
+<section class="totais">
+  <div class="total principal">
+    <span>Total disponível</span>
+    <strong [class.negativo]="total() < 0">{{ total() | currency: 'BRL' }}</strong>
+  </div>
+  <div class="total"><span>💵 Em dinheiro</span><strong>{{ emDinheiro() | currency: 'BRL' }}</strong></div>
+  <div class="total"><span>🏦 Em banco</span><strong [class.negativo]="noBanco() < 0">{{ noBanco() | currency: 'BRL' }}</strong></div>
+</section>
+
+<div class="barra">
+  <button type="button" class="botao primario" (click)="transferir()">⇄ Transferência</button>
+  <button type="button" class="botao" (click)="abrirNova()">+ Nova conta</button>
+  @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+  <span class="espaco"></span>
+  <label class="mostrar"><input type="checkbox" [ngModel]="mostrarInativas()" (ngModelChange)="mostrarInativas.set($event)" /> mostrar desativadas</label>
+</div>
+
+<section class="cartoes" [class.carregando]="contas.isLoading()">
+  @for (c of contas.value() ?? []; track c.id) {
+    <article class="cartao-conta" [class.inativa]="!c.ativa" [class.t-Banco]="c.tipo === 'Banco'" [class.t-Maquininha]="c.tipo === 'Maquininha'">
+      <button type="button" class="abrir" (click)="abrirExtrato(c)" [attr.aria-label]="'Ver o extrato de ' + c.nome">
+        <span class="nome">{{ icone[c.tipo] }} {{ c.nome }}
+          @if (!c.ativa) { <span class="selo inativo">desativada</span> }
+        </span>
+        @if (c.banco || c.agencia || c.numero) {
+          <small>{{ c.banco }}{{ c.agencia ? ' · ag. ' + c.agencia : '' }}{{ c.numero ? ' · c/c ' + c.numero : '' }}</small>
+        }
+        <strong class="saldo" [class.negativo]="c.saldo < 0">{{ c.saldo | currency: 'BRL' }}</strong>
+        <small>
+          @if (c.saldoInicial !== 0) { saldo de implantação {{ c.saldoInicial | currency: 'BRL' }} em {{ c.saldoInicialEm | dia }} · }
+          {{ c.movimentos }} lançamento(s) · ver extrato →
+        </small>
+      </button>
+      <footer>
+        <button type="button" class="botao pequeno" (click)="abrirEdicao(c)">✏️ Editar</button>
+        @if (c.ativa) {
+          <button type="button" class="botao pequeno" (click)="transferir(c.id)">⇄ Transferir daqui</button>
+        }
+        @if (retornoConta()?.id === c.id) { <span class="retorno" role="status">{{ retornoConta()!.texto }}</span> }
+      </footer>
+    </article>
+  } @empty {
+    @if (!contas.isLoading()) { <p class="vazio">Nenhuma conta cadastrada.</p> }
+  }
+</section>
+
+<p class="explica">
+  💡 O saldo é sempre calculado: saldo de implantação + entradas − saídas. Para começar a usar com uma empresa que já
+  existe, edite cada conta e informe <b>quanto havia nela</b> no dia em que começou a usar o sistema.
+</p>
+
+<app-dialogo-transferencia (salvo)="transferiu($event)" />
+
+<!-- Nova / editar conta -->
+<dialog #dlgConta class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ editando() ? 'Editar conta' : 'Nova conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()">✕</button></header>
+    <div class="corpo">
+      <label>Nome<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="80" placeholder="Ex.: Sicredi conta corrente, Cofre do escritório" /></label>
+      <label>Tipo
+        <select name="tipo" [(ngModel)]="form.tipo" [disabled]="!!editando()?.doSistema">
+          @for (t of tipos; track t) { <option [ngValue]="t">{{ icone[t] }} {{ nomeTipo[t] }}</option> }
+        </select>
+        @if (editando()?.doSistema) { <span class="ajuda">Conta usada pelo sistema: dá para renomear, mas não trocar o tipo.</span> }
+        @if (form.tipo === 'Dinheiro') { <span class="ajuda">Dinheiro em espécie nunca fica negativo (o sistema não deixa).</span> }
+      </label>
+      @if (form.tipo === 'Banco') {
+        <label>Banco <small>(opcional)</small><input name="banco" [(ngModel)]="form.banco" maxlength="60" placeholder="Ex.: 748 Sicredi" /></label>
+        <div class="duas">
+          <label>Agência <small>(opcional)</small><input name="agencia" [(ngModel)]="form.agencia" maxlength="10" /></label>
+          <label>Conta <small>(opcional)</small><input name="numero" [(ngModel)]="form.numero" maxlength="20" /></label>
+        </div>
+      }
+      <fieldset class="implantacao">
+        <legend>Saldo de implantação</legend>
+        <span class="ajuda">Quanto havia nesta conta no dia em que a empresa começou a usar o sistema. Lançamentos antes desta data não entram no saldo.</span>
+        <div class="duas">
+          <label>Valor (R$)<input name="saldoInicial" type="number" step="0.01" [(ngModel)]="form.saldoInicial" /></label>
+          <label>Em<input name="saldoInicialEm" type="date" [max]="hoje" [(ngModel)]="form.saldoInicialEm" required /></label>
+        </div>
+      </fieldset>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      @if (editando(); as e) {
+        @if (!e.doSistema) {
+          @if (e.ativa) {
+            <button type="button" class="botao perigo esquerda" (click)="ativar(false)" [disabled]="salvando()">Desativar</button>
+          } @else {
+            <button type="button" class="botao esquerda" (click)="ativar(true)" [disabled]="salvando()">Reativar</button>
+          }
+        }
+      }
+      <button type="button" class="botao" (click)="dlgConta.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+    </footer>
+  </form>
+</dialog>

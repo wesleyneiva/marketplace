@@ -1,0 +1,35 @@
+// Peças comuns às abas do Financeiro (tabelas, janelas, selos vêm de Contas a pagar → Compras → Usuários).
+@use '../contas/contas.scss';
+
+.barra {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 14px;
+  .espaco { flex: 1; }
+}
+
+// Retorno junto da ação ("✅ Lançado", "✋ não deu porque…").
+.retorno {
+  font-size: 14px; font-weight: 600; color: var(--cor-primaria-escura);
+  &.ruim { color: var(--cor-erro); font-weight: 500; }
+}
+
+.valor-entrada { color: var(--cor-primaria-escura); }
+.valor-saida { color: var(--cor-erro); }
+.negativo { color: var(--cor-erro) !important; }
+
+// Janela: campo com explicação curta embaixo.
+.janela {
+  .ajuda { font-weight: 400; font-size: 12px; color: var(--cor-texto-suave); }
+  .sugerida { font-weight: 400; font-size: 12px; color: var(--cor-primaria-escura); }
+  footer .esquerda { margin-right: auto; }
+}
+
+.selo.entrada { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.saida { background: #fee2e2; color: var(--cor-erro); }
+.selo.origem { background: #eef2ff; color: #3730a3; }
+.selo.sistema { background: #f3f4f6; color: #4b5563; }
+
+.erro-linha { display: block; margin-top: 4px; font-size: 12px; color: var(--cor-erro); }
+
+@media (max-width: 640px) {
+  .janela .duas { grid-template-columns: 1fr; }
+}
