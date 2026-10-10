@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
 import {
-  ContaFinanceira, ICONE_CONTA, NOME_TIPO_CONTA, TipoConta, URL_FINANCEIRO, hojeIso, mensagemDeErro,
+  CaixaAberto, ContaFinanceira, ICONE_CONTA, ICONE_FORMA, NOME_FORMA, NOME_TIPO_CONTA, TipoConta, URL_FINANCEIRO, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { DialogoTransferencia } from './dialogo-transferencia';
 
@@ -30,6 +30,12 @@ export class Saldos {
   protected readonly contas = httpResource<ContaFinanceira[]>(() => ({
     url: `${URL_FINANCEIRO}/contas`, params: { incluirInativas: this.mostrarInativas() },
   }));
+  // Caixas abertos agora: as vendas deles entram no Financeiro só no fechamento ("em andamento").
+  protected readonly caixasAbertos = httpResource<CaixaAberto[]>(() => `${URL_FINANCEIRO}/caixas-abertos`);
+  protected readonly totalAbertos = computed(() => (this.caixasAbertos.value() ?? []).reduce((s, c) => s + c.total, 0));
+  protected readonly nomeForma = NOME_FORMA;
+  protected readonly iconeForma = ICONE_FORMA;
+
   protected readonly ativas = computed(() => (this.contas.value() ?? []).filter((c) => c.ativa));
   protected readonly total = computed(() => this.ativas().reduce((s, c) => s + c.saldo, 0));
   protected readonly emDinheiro = computed(() => this.ativas().filter((c) => c.tipo === 'Dinheiro').reduce((s, c) => s + c.saldo, 0));
@@ -51,14 +57,25 @@ export class Saldos {
     this.router.navigate(['/financeiro'], { queryParams: { aba: 'lancamentos', conta: c.id } });
   }
 
+  private transferenciaDoCartao: number | null = null; // a transferência saiu de um cartão: o retorno aparece nele
+
   protected transferir(deContaId?: number): void {
     this.retorno.set(null);
+    this.transferenciaDoCartao = deContaId ?? null;
     this.transferencia().abrir(deContaId);
   }
 
   protected transferiu(texto: string): void {
-    this.retorno.set(texto);
+    if (this.transferenciaDoCartao) this.retornoConta.set({ id: this.transferenciaDoCartao, texto: '✅ ' + texto });
+    else this.retorno.set(texto);
     this.contas.reload();
+  }
+
+  // Gaveta negativa: o caixa abriu com mais troco do que a conta tinha (o troco veio de outro lugar, quase sempre do cofre).
+  protected corrigirGaveta(c: ContaFinanceira): void {
+    this.retorno.set(null);
+    this.transferenciaDoCartao = c.id;
+    this.transferencia().abrir(undefined, c.id, -c.saldo);
   }
 
   protected abrirNova(): void {

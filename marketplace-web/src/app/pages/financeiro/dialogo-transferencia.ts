@@ -66,13 +66,19 @@ export class DialogoTransferencia {
   protected form = { data: '', valor: null as number | null, deContaId: 0, paraContaId: 0, descricao: '' };
 
   // Abre já com as contas (e saldos) atualizadas; "de" opcional (ex.: clicou em transferir no cartão do cofre).
-  async abrir(deContaId?: number): Promise<void> {
+  async abrir(deContaId?: number, paraContaId?: number, valor?: number): Promise<void> {
     this.erro.set(null);
     const contas = await firstValueFrom(this.http.get<ContaFinanceira[]>(`${URL_FINANCEIRO}/contas`));
     this.contas.set(contas);
-    const de = contas.find((c) => c.id === deContaId) ?? contas[0];
-    const para = contas.find((c) => c.id !== de?.id && c.tipo === 'Banco') ?? contas.find((c) => c.id !== de?.id);
-    this.form = { data: this.hoje, valor: null, deContaId: de?.id ?? 0, paraContaId: para?.id ?? 0, descricao: '' };
+    // Para onde: o pedido; senão o banco. De onde: o pedido; senão (se o destino veio) o cofre; senão a primeira.
+    const para = contas.find((c) => c.id === paraContaId)
+      ?? contas.find((c) => c.id !== deContaId && c.tipo === 'Banco') ?? contas.find((c) => c.id !== deContaId);
+    const de = contas.find((c) => c.id === deContaId)
+      ?? contas.find((c) => c.id !== para?.id && c.tipo === 'Dinheiro') ?? contas.find((c) => c.id !== para?.id);
+    this.form = {
+      data: this.hoje, valor: valor ? Math.round(valor * 100) / 100 : null, deContaId: de?.id ?? 0, paraContaId: para?.id ?? 0,
+      descricao: paraContaId && valor ? 'Troco inicial do caixa (veio do cofre)' : '',
+    };
     this.dlg().nativeElement.showModal();
     setTimeout(() => this.campoValor().nativeElement.focus()); // as contas já vêm sugeridas: falta o valor
   }

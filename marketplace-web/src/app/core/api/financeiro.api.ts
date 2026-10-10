@@ -5,7 +5,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 export type TipoConta = 'Dinheiro' | 'Banco' | 'Maquininha';
 export type Natureza = 'Entrada' | 'Saida';
 export type TipoMovimento = 'Entrada' | 'Saida';
-export type OrigemMovimento = 'Manual' | 'ContaPagar' | 'Transferencia' | 'Importacao';
+export type OrigemMovimento = 'Manual' | 'ContaPagar' | 'Transferencia' | 'Importacao' | 'Caixa' | 'Recebimento';
 export type Grupo =
   | 'ReceitaVendas' | 'OutrasReceitas' | 'ImpostosVendas' | 'ComprasMercadorias' | 'Pessoal'
   | 'Ocupacao' | 'Administrativas' | 'DespesasVendas' | 'Financeiras' | 'ForaDoResultado';
@@ -77,6 +77,62 @@ export interface Extrato {
   implantacao: { data: string; valor: number } | null;
 }
 
+// ----- Recebíveis (maquininha) -----
+
+export type FormaEletronica = 'Pix' | 'Debito' | 'Credito';
+
+export interface Recebivel {
+  id: number;
+  sessaoCaixaId: number;
+  numeroCaixa: number;
+  forma: FormaEletronica;
+  dataVenda: string;
+  previsao: string;
+  valorBruto: number;
+  taxaPercentual: number;
+  taxa: number;
+  valorLiquido: number;
+  conta: string;
+  status: 'Previsto' | 'Recebido';
+  recebidoEm: string | null;
+}
+
+export interface ResumoRecebiveis {
+  hoje: number;
+  amanha: number;
+  proximos7Dias: number;
+  proximos30Dias: number;
+  totalPrevisto: number;
+  quantidadePrevistos: number;
+  vendasEletronicasNoMes: number;
+  taxasNoMes: number;
+  proximosDias: { data: string; liquido: number }[];
+}
+
+export interface ConfiguracaoRecebimento {
+  forma: FormaEletronica;
+  taxaPercentual: number;
+  prazoDias: number;
+  diasUteis: boolean;
+  contaFinanceiraId: number;
+  conta: string;
+  exemploHoje: string;
+}
+
+export interface CaixaAberto {
+  sessaoId: number;
+  numeroCaixa: number;
+  operador: string;
+  abertaEm: string;
+  vendas: number;
+  total: number;
+  dinheiroNaGaveta: number;
+  porForma: { forma: string; valor: number }[];
+}
+
+export const NOME_FORMA: Record<string, string> = { Dinheiro: 'Dinheiro', Pix: 'PIX', Debito: 'Débito', Credito: 'Crédito' };
+export const ICONE_FORMA: Record<string, string> = { Dinheiro: '💵', Pix: '⚡', Debito: '💳', Credito: '💳' };
+
 export const URL_FINANCEIRO = '/api/financeiro';
 
 export const ICONE_CONTA: Record<TipoConta, string> = { Dinheiro: '💵', Banco: '🏦', Maquininha: '💳' };
@@ -92,6 +148,8 @@ export const NOME_ORIGEM: Record<OrigemMovimento, string> = {
   ContaPagar: 'conta paga',
   Transferencia: 'transferência',
   Importacao: 'importado',
+  Caixa: 'caixa (PDV)',
+  Recebimento: 'maquininha',
 };
 
 // Categorias agrupadas para o <select> com <optgroup> (só ativas e da natureza pedida).

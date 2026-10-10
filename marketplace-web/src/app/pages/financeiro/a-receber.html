@@ -1,0 +1,74 @@
+@if (resumo.value(); as r) {
+  <section class="totais-receber">
+    <div class="total destaque"><span>Cai hoje</span><strong>{{ r.hoje | currency: 'BRL' }}</strong></div>
+    <div class="total"><span>Amanhã</span><strong>{{ r.amanha | currency: 'BRL' }}</strong></div>
+    <div class="total"><span>Próximos 7 dias</span><strong>{{ r.proximos7Dias | currency: 'BRL' }}</strong></div>
+    <div class="total"><span>Próximos 30 dias</span><strong>{{ r.proximos30Dias | currency: 'BRL' }}</strong></div>
+    <div class="total"><span>Total a receber</span><strong>{{ r.totalPrevisto | currency: 'BRL' }}</strong><small>{{ r.quantidadePrevistos }} recebível(is) · valores líquidos</small></div>
+  </section>
+
+  <section class="painel custo">
+    <div class="texto">
+      <span class="titulo">💳 Quanto a maquininha custou neste mês</span>
+      <strong>{{ r.taxasNoMes | currency: 'BRL' }}</strong>
+      <small>
+        de {{ r.vendasEletronicasNoMes | currency: 'BRL' }} vendidos em cartão e PIX
+        @if (r.vendasEletronicasNoMes > 0) { · {{ percentualTaxas() | number: '1.2-2' }}% em média }
+      </small>
+    </div>
+    <div class="acoes-custo">
+      <button type="button" class="botao" (click)="configurar()">⚙️ Configurar maquininha</button>
+      <button type="button" class="botao" (click)="atualizar()" [disabled]="atualizando()">{{ atualizando() ? 'Atualizando…' : '🔄 Pôr em dia agora' }}</button>
+      @if (retorno(); as ret) { <span class="retorno" [class.ruim]="ret.ruim" role="status">{{ ret.ruim ? '✋' : '✅' }} {{ ret.texto }}</span> }
+    </div>
+  </section>
+
+  @if (barras().length) {
+    <section class="painel grafico-painel">
+      <h2>Próximos depósitos <small>(valor líquido, já sem a taxa)</small></h2>
+      <app-grafico-barras [dados]="barras()" formato="moeda" [larguraRotulos]="80" descricao="Próximos depósitos da maquininha por dia" />
+    </section>
+  }
+}
+
+<nav class="sub-abas" role="tablist">
+  <button role="tab" type="button" [class.ativa]="situacao() === 'previstos'" (click)="situacao.set('previstos')">A receber</button>
+  <button role="tab" type="button" [class.ativa]="situacao() === 'recebidos'" (click)="situacao.set('recebidos')">Recebidos (30 dias)</button>
+</nav>
+
+<section class="painel tabela-rolagem" [class.carregando]="lista.isLoading()">
+  <table>
+    <thead>
+      <tr>
+        <th>{{ situacao() === 'previstos' ? 'Cai em' : 'Caiu em' }}</th><th>Venda</th><th>Forma</th>
+        <th class="num">Bruto</th><th class="num">Taxa</th><th class="num">Líquido</th><th>Conta</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of lista.value() ?? []; track r.id) {
+        <tr>
+          <td class="data"><strong>{{ (r.recebidoEm ?? r.previsao) | dia }}</strong></td>
+          <td>{{ r.dataVenda | dia }}<small class="detalhe">Caixa {{ r.numeroCaixa }}</small></td>
+          <td>{{ iconeForma[r.forma] }} {{ nomeForma[r.forma] }}</td>
+          <td class="num">{{ r.valorBruto | currency: 'BRL' }}</td>
+          <td class="num valor-saida">{{ r.taxa | currency: 'BRL' }}<small class="detalhe">{{ r.taxaPercentual | number: '1.2-2' }}%</small></td>
+          <td class="num forte">{{ r.valorLiquido | currency: 'BRL' }}</td>
+          <td class="conta">{{ r.conta }}</td>
+        </tr>
+      } @empty {
+        @if (!lista.isLoading()) {
+          <tr><td colspan="7" class="vazio">
+            {{ situacao() === 'previstos' ? 'Nada a receber: as vendas em cartão aparecem aqui quando o caixa fecha.' : 'Nenhum depósito nos últimos 30 dias.' }}
+          </td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</section>
+
+<p class="explica">
+  💡 Débito e crédito entram aqui quando o caixa <b>fecha</b>. No dia previsto, o sistema lança sozinho o depósito no banco:
+  o valor vendido em "Vendas no PDV" e a taxa em "Taxas de cartão e PIX" — assim a taxa aparece no resultado do mês.
+</p>
+
+<app-dialogo-maquininha (salvo)="configurou($event)" />

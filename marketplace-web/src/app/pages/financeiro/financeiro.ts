@@ -3,14 +3,15 @@ import { RouterLink } from '@angular/router';
 import { Saldos } from './saldos';
 import { Lancamentos } from './lancamentos';
 import { PlanoContas } from './plano-contas';
+import { AReceber } from './a-receber';
 
-type Aba = 'saldos' | 'lancamentos' | 'plano';
+type Aba = 'saldos' | 'lancamentos' | 'receber' | 'plano';
 
 // Financeiro: onde o dinheiro está (saldos), cada entrada e saída (lançamentos) e o porquê (plano de contas).
 // A aba e a conta ficam no ENDEREÇO (?aba=lancamentos&conta=3): dá para favoritar e o "voltar" do navegador funciona.
 @Component({
   selector: 'app-financeiro',
-  imports: [RouterLink, Saldos, Lancamentos, PlanoContas],
+  imports: [RouterLink, Saldos, Lancamentos, AReceber, PlanoContas],
   template: `
     <header class="titulo-pagina">
       <div>
@@ -22,11 +23,13 @@ type Aba = 'saldos' | 'lancamentos' | 'plano';
     <nav class="abas" role="tablist">
       <a role="tab" routerLink="." [queryParams]="{ aba: 'saldos' }" [class.ativa]="abaAtual() === 'saldos'">💰 Saldos</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'lancamentos' }" [class.ativa]="abaAtual() === 'lancamentos'">📒 Lançamentos</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'receber' }" [class.ativa]="abaAtual() === 'receber'">💳 A receber</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'plano' }" [class.ativa]="abaAtual() === 'plano'">🗂️ Plano de contas</a>
     </nav>
 
     @switch (abaAtual()) {
       @case ('lancamentos') { <app-lancamentos [contaInicial]="conta() ?? null" /> }
+      @case ('receber') { <app-a-receber /> }
       @case ('plano') { <app-plano-contas /> }
       @default { <app-saldos /> }
     }
@@ -49,6 +52,6 @@ export class Financeiro {
 
   protected readonly abaAtual = computed<Aba>(() => {
     const a = this.aba();
-    return a === 'lancamentos' || a === 'plano' ? a : 'saldos';
+    return a === 'lancamentos' || a === 'receber' || a === 'plano' ? a : 'saldos';
   });
 }

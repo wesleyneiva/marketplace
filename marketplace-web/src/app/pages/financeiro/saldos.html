@@ -15,6 +15,27 @@
   <label class="mostrar"><input type="checkbox" [ngModel]="mostrarInativas()" (ngModelChange)="mostrarInativas.set($event)" /> mostrar desativadas</label>
 </div>
 
+@if (caixasAbertos.value()?.length) {
+  <section class="painel abertos">
+    <header>
+      <h2>🧾 Caixas abertos agora <small>— {{ totalAbertos() | currency: 'BRL' }} vendidos, entram no Financeiro no fechamento</small></h2>
+    </header>
+    <ul>
+      @for (cx of caixasAbertos.value() ?? []; track cx.sessaoId) {
+        <li>
+          <strong>Caixa {{ cx.numeroCaixa }}</strong> · {{ cx.operador }} · {{ cx.vendas }} venda(s) · {{ cx.total | currency: 'BRL' }}
+          <small>
+            💵 na gaveta {{ cx.dinheiroNaGaveta | currency: 'BRL' }}
+            @for (f of cx.porForma; track f.forma) {
+              @if (f.forma !== 'Dinheiro' && f.valor > 0) { · {{ iconeForma[f.forma] }} {{ nomeForma[f.forma] }} {{ f.valor | currency: 'BRL' }} }
+            }
+          </small>
+        </li>
+      }
+    </ul>
+  </section>
+}
+
 <section class="cartoes" [class.carregando]="contas.isLoading()">
   @for (c of contas.value() ?? []; track c.id) {
     <article class="cartao-conta" [class.inativa]="!c.ativa" [class.t-Banco]="c.tipo === 'Banco'" [class.t-Maquininha]="c.tipo === 'Maquininha'">
@@ -38,6 +59,12 @@
         }
         @if (retornoConta()?.id === c.id) { <span class="retorno" role="status">{{ retornoConta()!.texto }}</span> }
       </footer>
+      @if (c.tipo === 'Dinheiro' && c.saldo < 0 && c.ativa) {
+        <div class="alerta-negativo" role="alert">
+          ⚠️ Dinheiro não fica negativo na vida real: provavelmente o troco do caixa veio do cofre (ou de outro lugar).
+          <button type="button" class="botao pequeno" (click)="corrigirGaveta(c)">Lançar de onde veio</button>
+        </div>
+      }
     </article>
   } @empty {
     @if (!contas.isLoading()) { <p class="vazio">Nenhuma conta cadastrada.</p> }
