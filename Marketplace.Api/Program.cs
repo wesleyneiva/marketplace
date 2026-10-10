@@ -138,6 +138,7 @@ await SeedEstoque.ExecutarAsync(app.Services);
 await SeedSimulador.ExecutarAsync(app.Services);
 await SeedFornecedores.ExecutarAsync(app.Services);
 await SeedDemonstracao.ExecutarAsync(app.Services);
+await SeedFinanceiro.ExecutarAsync(app.Services); // plano de contas e contas financeiras de cada empresa
 
 // Configure the HTTP request pipeline.
 app.UseForwardedHeaders();

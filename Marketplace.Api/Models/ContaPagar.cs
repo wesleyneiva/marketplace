@@ -18,10 +18,16 @@ public class ContaPagar : IDaEmpresa
     public int? NotaEntradaId { get; set; }
     public NotaEntrada? NotaEntrada { get; set; }
 
+    // Por quê (plano de contas). Notas de fornecedor = "Fornecedores de mercadorias".
+    public int? CategoriaFinanceiraId { get; set; }
+    public CategoriaFinanceira? CategoriaFinanceira { get; set; }
+
     // Pagamento (nulo = em aberto).
     public DateOnly? PagaEm { get; set; }
     public decimal? ValorPago { get; set; }         // pode ser diferente (juros, desconto)
     public string? FormaPagamento { get; set; }
+    public int? ContaFinanceiraId { get; set; }     // de qual conta saiu o dinheiro
+    public ContaFinanceira? ContaFinanceira { get; set; }
     public string? PagaPorId { get; set; }
     public Usuario? PagaPor { get; set; }
 

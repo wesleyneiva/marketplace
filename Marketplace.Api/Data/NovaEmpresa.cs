@@ -104,6 +104,7 @@ public static partial class NovaEmpresa
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
             db.Categorias.AddRange(CategoriasPadrao.Select(c => new Categoria { Nome = c }));
             await db.SaveChangesAsync();
+            await SeedFinanceiro.GarantirPadraoAsync(db); // plano de contas + caixa, cofre e banco
 
             var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
             var senha = UsuariosController.GerarSenhaProvisoria();

@@ -39,6 +39,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<NotaEntrada> NotasEntrada => Set<NotaEntrada>();
     public DbSet<VinculoFornecedorProduto> VinculosFornecedor => Set<VinculoFornecedorProduto>();
     public DbSet<ContaPagar> ContasPagar => Set<ContaPagar>();
+    public DbSet<CategoriaFinanceira> CategoriasFinanceiras => Set<CategoriaFinanceira>();
+    public DbSet<ContaFinanceira> ContasFinanceiras => Set<ContaFinanceira>();
+    public DbSet<MovimentoFinanceiro> MovimentosFinanceiros => Set<MovimentoFinanceiro>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -218,6 +221,56 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(c => c.NotaEntrada).WithMany().HasForeignKey(c => c.NotaEntradaId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.PagaPor).WithMany().HasForeignKey(c => c.PagaPorId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(c => c.CriadaPor).WithMany().HasForeignKey(c => c.CriadaPorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.CategoriaFinanceira).WithMany().HasForeignKey(c => c.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.ContaFinanceira).WithMany().HasForeignKey(c => c.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- Financeiro -----
+        builder.Entity<CategoriaFinanceira>(e =>
+        {
+            e.ToTable("CategoriasFinanceiras");
+            e.Property(c => c.Codigo).HasMaxLength(10);
+            e.Property(c => c.Nome).HasMaxLength(80).UseCollation(OrdemPortugues);
+            e.Property(c => c.Grupo).HasConversion<string>().HasMaxLength(20);
+            e.Property(c => c.Natureza).HasConversion<string>().HasMaxLength(10);
+            e.Property(c => c.Chave).HasMaxLength(30);
+            e.HasIndex(c => new { c.EmpresaId, c.Nome }).IsUnique();
+            e.HasIndex(c => new { c.EmpresaId, c.Codigo }).IsUnique();
+            e.HasIndex(c => new { c.EmpresaId, c.Chave }).IsUnique().HasFilter("\"Chave\" IS NOT NULL");
+        });
+
+        builder.Entity<ContaFinanceira>(e =>
+        {
+            e.ToTable("ContasFinanceiras");
+            e.Property(c => c.Nome).HasMaxLength(80).UseCollation(OrdemPortugues);
+            e.Property(c => c.Tipo).HasConversion<string>().HasMaxLength(12);
+            e.Property(c => c.Banco).HasMaxLength(60);
+            e.Property(c => c.Agencia).HasMaxLength(10);
+            e.Property(c => c.Numero).HasMaxLength(20);
+            e.Property(c => c.SaldoInicial).HasPrecision(14, 2);
+            e.Property(c => c.Chave).HasMaxLength(30);
+            e.HasIndex(c => new { c.EmpresaId, c.Nome }).IsUnique();
+            e.HasIndex(c => new { c.EmpresaId, c.Chave }).IsUnique().HasFilter("\"Chave\" IS NOT NULL");
+        });
+
+        builder.Entity<MovimentoFinanceiro>(e =>
+        {
+            e.ToTable("MovimentosFinanceiros");
+            e.Property(m => m.Tipo).HasConversion<string>().HasMaxLength(10);
+            e.Property(m => m.Valor).HasPrecision(14, 2);
+            e.Property(m => m.Descricao).HasMaxLength(200);
+            e.Property(m => m.Documento).HasMaxLength(60);
+            e.Property(m => m.Origem).HasConversion<string>().HasMaxLength(15);
+            // Regra no próprio banco: valor sempre positivo (o Tipo diz se entrou ou saiu).
+            e.ToTable(t => t.HasCheckConstraint("CK_MovimentosFinanceiros_ValorPositivo", "\"Valor\" > 0"));
+            e.HasIndex(m => new { m.EmpresaId, m.Data });                  // extrato do período
+            e.HasIndex(m => new { m.ContaFinanceiraId, m.Data });          // saldo / extrato de uma conta
+            e.HasIndex(m => m.ContaPagarId);
+            e.HasIndex(m => m.TransferenciaId);
+            e.HasOne(m => m.ContaFinanceira).WithMany().HasForeignKey(m => m.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.CategoriaFinanceira).WithMany().HasForeignKey(m => m.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.ContaPagar).WithMany().HasForeignKey(m => m.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.CriadoPor).WithMany().HasForeignKey(m => m.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- PDV -----

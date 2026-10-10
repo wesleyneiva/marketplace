@@ -272,13 +272,23 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
                 }
                 contas.Add(conta);
             }
+            var categoria = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Fornecedores);
             foreach (var c in contas)
             {
                 c.Fornecedor = fornecedor;
                 c.NotaEntrada = registro;
                 c.CriadaPorId = usuarioId;
+                c.CategoriaFinanceiraId = categoria;
             }
             db.ContasPagar.AddRange(contas);
+
+            // Nota já paga (PIX, dinheiro na entrega): o pagamento entra no livro na hora.
+            // Dinheiro sai da gaveta da loja; o resto, da conta bancária.
+            foreach (var paga in contas.Where(c => c.PagaEm is not null))
+            {
+                var deOnde = paga.FormaPagamento == "Dinheiro" ? ChavesFinanceiras.ContaDinheiro : ChavesFinanceiras.ContaBanco;
+                await Financeiro.RegistrarPagamentoAsync(db, paga, await Financeiro.ContaAsync(db, deOnde), usuarioId);
+            }
         }
 
         try
