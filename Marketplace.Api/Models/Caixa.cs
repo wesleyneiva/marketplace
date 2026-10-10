@@ -24,6 +24,9 @@ public class SessaoCaixa : IDaEmpresa
     public decimal? Diferenca { get; set; }      // contado − esperado (negativo = faltou dinheiro)
     public string? ObservacaoFechamento { get; set; }
 
+    // Quando o fechamento foi lançado no Financeiro (nulo = ainda não: caixa aberto, ou de antes da implantação).
+    public DateTimeOffset? LancadaNoFinanceiroEm { get; set; }
+
     public List<Venda> Vendas { get; set; } = [];
     public List<MovimentoCaixa> Movimentos { get; set; } = [];
 }

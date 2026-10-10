@@ -18,6 +18,7 @@ public static class SeedFinanceiro
         (GrupoFinanceiro.OutrasReceitas, E, "Outras receitas", OutrasReceitas),
         (GrupoFinanceiro.OutrasReceitas, E, "Rendimentos de aplicações", null),
         (GrupoFinanceiro.OutrasReceitas, E, "Descontos obtidos", DescontosObtidos),
+        (GrupoFinanceiro.OutrasReceitas, E, "Sobra de caixa", SobraCaixa),
         (GrupoFinanceiro.ImpostosVendas, S, "Simples Nacional (DAS)", null),
         (GrupoFinanceiro.ComprasMercadorias, S, "Fornecedores de mercadorias", Fornecedores),
         (GrupoFinanceiro.Pessoal, S, "Salários", null),
@@ -37,6 +38,7 @@ public static class SeedFinanceiro
         (GrupoFinanceiro.DespesasVendas, S, "Taxas de cartão e PIX", TaxasCartao),
         (GrupoFinanceiro.DespesasVendas, S, "Sacolas e embalagens", null),
         (GrupoFinanceiro.DespesasVendas, S, "Marketing e divulgação", null),
+        (GrupoFinanceiro.DespesasVendas, S, "Quebra de caixa", QuebraCaixa),
         (GrupoFinanceiro.Financeiras, S, "Juros e multas pagos", Juros),
         (GrupoFinanceiro.Financeiras, S, "Tarifas bancárias", null),
         (GrupoFinanceiro.ForaDoResultado, S, "Investimentos (equipamentos, reformas)", null),
@@ -97,7 +99,24 @@ public static class SeedFinanceiro
             db.ContasFinanceiras.Add(new ContaFinanceira { Nome = nome, Tipo = tipo, Chave = chave, SaldoInicialEm = desde });
         }
         await db.SaveChangesAsync();
+
+        // Contrato da maquininha: médias de mercado (2026). Cada cliente ajusta ao dele em Financeiro → A receber.
+        var configuradas = await db.ConfiguracoesRecebimento.Select(c => c.Forma).ToListAsync();
+        var banco = await db.ContasFinanceiras.Where(c => c.Chave == ContaBanco).Select(c => c.Id).FirstAsync();
+        foreach (var (forma, taxa, prazo, uteis) in Maquininha.Where(m => !configuradas.Contains(m.Forma)))
+            db.ConfiguracoesRecebimento.Add(new ConfiguracaoRecebimento
+            {
+                Forma = forma, TaxaPercentual = taxa, PrazoDias = prazo, DiasUteis = uteis, ContaFinanceiraId = banco,
+            });
+        await db.SaveChangesAsync();
     }
+
+    private static readonly (FormaPagamento Forma, decimal Taxa, int Prazo, bool Uteis)[] Maquininha =
+    [
+        (FormaPagamento.Pix, 0m, 0, false),
+        (FormaPagamento.Debito, 1.37m, 1, true),
+        (FormaPagamento.Credito, 3.15m, 30, false),
+    ];
 
     // Próximo código livre no grupo: grupo 6 com 6.01 e 6.02 → "6.03".
     public static string ProximoCodigo(IEnumerable<CategoriaFinanceira> existentes, GrupoFinanceiro grupo)

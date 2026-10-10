@@ -42,6 +42,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<CategoriaFinanceira> CategoriasFinanceiras => Set<CategoriaFinanceira>();
     public DbSet<ContaFinanceira> ContasFinanceiras => Set<ContaFinanceira>();
     public DbSet<MovimentoFinanceiro> MovimentosFinanceiros => Set<MovimentoFinanceiro>();
+    public DbSet<ConfiguracaoRecebimento> ConfiguracoesRecebimento => Set<ConfiguracaoRecebimento>();
+    public DbSet<Recebivel> Recebiveis => Set<Recebivel>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -267,10 +269,40 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasIndex(m => new { m.ContaFinanceiraId, m.Data });          // saldo / extrato de uma conta
             e.HasIndex(m => m.ContaPagarId);
             e.HasIndex(m => m.TransferenciaId);
+            e.HasIndex(m => m.SessaoCaixaId);
+            e.HasIndex(m => m.LiquidacaoId);
+            e.HasOne(m => m.SessaoCaixa).WithMany().HasForeignKey(m => m.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaFinanceira).WithMany().HasForeignKey(m => m.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CategoriaFinanceira).WithMany().HasForeignKey(m => m.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaPagar).WithMany().HasForeignKey(m => m.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CriadoPor).WithMany().HasForeignKey(m => m.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ConfiguracaoRecebimento>(e =>
+        {
+            e.ToTable("ConfiguracoesRecebimento");
+            e.Property(c => c.Forma).HasConversion<string>().HasMaxLength(10);
+            e.Property(c => c.TaxaPercentual).HasPrecision(6, 4);
+            e.HasIndex(c => new { c.EmpresaId, c.Forma }).IsUnique(); // uma configuração por forma
+            e.ToTable(t => t.HasCheckConstraint("CK_ConfiguracoesRecebimento_Valores",
+                "\"TaxaPercentual\" >= 0 AND \"TaxaPercentual\" < 100 AND \"PrazoDias\" >= 0 AND \"PrazoDias\" <= 365"));
+            e.HasOne(c => c.ContaFinanceira).WithMany().HasForeignKey(c => c.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Recebivel>(e =>
+        {
+            e.ToTable("Recebiveis");
+            e.Property(r => r.Forma).HasConversion<string>().HasMaxLength(10);
+            e.Property(r => r.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(r => r.ValorBruto).HasPrecision(14, 2);
+            e.Property(r => r.TaxaPercentual).HasPrecision(6, 4);
+            e.Property(r => r.Taxa).HasPrecision(14, 2);
+            e.Property(r => r.ValorLiquido).HasPrecision(14, 2);
+            e.HasIndex(r => new { r.EmpresaId, r.Status, r.Previsao }); // "o que vence até hoje e não caiu"
+            e.HasIndex(r => new { r.SessaoCaixaId, r.Forma }).IsUnique(); // um recebível por caixa e forma (nunca lança duas vezes)
+            e.HasIndex(r => r.LiquidacaoId);
+            e.HasOne(r => r.SessaoCaixa).WithMany().HasForeignKey(r => r.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(r => r.ContaFinanceira).WithMany().HasForeignKey(r => r.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- PDV -----

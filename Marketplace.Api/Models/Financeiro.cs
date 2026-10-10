@@ -102,6 +102,9 @@ public class MovimentoFinanceiro : IDaEmpresa
     public int? ContaPagarId { get; set; }
     public ContaPagar? ContaPagar { get; set; }
     public Guid? TransferenciaId { get; set; }      // as duas pernas da transferência têm o mesmo Guid
+    public int? SessaoCaixaId { get; set; }         // lançado no fechamento deste caixa (vendas, sangria, quebra)
+    public SessaoCaixa? SessaoCaixa { get; set; }
+    public Guid? LiquidacaoId { get; set; }         // recebimento da maquininha: os recebíveis desse depósito têm o mesmo Guid
 
     // Conferido com o extrato do banco (Etapa 5: conciliação por OFX).
     public bool Conciliado { get; set; }
@@ -121,7 +124,56 @@ public enum OrigemMovimentoFinanceiro
     ContaPagar,    // pagamento de uma conta a pagar (e os juros/desconto dela)
     Transferencia, // ex.: depositar o dinheiro do cofre no banco
     Importacao,    // implantação de cliente que já tem histórico (planilha / OFX)
+    Caixa,         // fechamento do caixa do PDV: vendas em dinheiro/PIX, sangria, suprimento, quebra/sobra
+    Recebimento,   // a maquininha depositou os recebíveis de cartão (bruto + taxa)
 }
+
+// ===================== RECEBÍVEIS (o que a maquininha ainda vai depositar) =====================
+
+// Taxa, prazo e conta de destino de cada forma de pagamento que NÃO é dinheiro (o contrato da maquininha).
+public class ConfiguracaoRecebimento : IDaEmpresa
+{
+    public int Id { get; set; }
+    public int EmpresaId { get; set; }
+
+    public FormaPagamento Forma { get; set; }        // Pix, Debito ou Credito
+    public decimal TaxaPercentual { get; set; }      // 1,37 = 1,37% do valor vendido
+    public int PrazoDias { get; set; }               // 0 = na hora (PIX); 1 = D+1; 30 = D+30
+    public bool DiasUteis { get; set; }              // conta só dias úteis (D+1 útil do débito)
+
+    public int ContaFinanceiraId { get; set; }       // onde o dinheiro cai (banco)
+    public ContaFinanceira? ContaFinanceira { get; set; }
+}
+
+// Um recebível: as vendas de UM caixa, numa forma (débito ou crédito), que a maquininha vai depositar no dia previsto.
+// Valores e taxa ficam COPIADOS do dia da venda: mudar o contrato amanhã não muda o que já foi vendido.
+public class Recebivel : IDaEmpresa
+{
+    public int Id { get; set; }
+    public int EmpresaId { get; set; }
+
+    public int SessaoCaixaId { get; set; }
+    public SessaoCaixa? SessaoCaixa { get; set; }
+    public FormaPagamento Forma { get; set; }
+
+    public DateOnly DataVenda { get; set; }
+    public DateOnly Previsao { get; set; }           // quando a maquininha deposita
+
+    public decimal ValorBruto { get; set; }          // o que o cliente pagou
+    public decimal TaxaPercentual { get; set; }
+    public decimal Taxa { get; set; }                // em R$ (o que a maquininha fica)
+    public decimal ValorLiquido { get; set; }        // bruto − taxa (o que cai na conta)
+
+    public int ContaFinanceiraId { get; set; }       // onde vai cair
+    public ContaFinanceira? ContaFinanceira { get; set; }
+
+    public StatusRecebivel Status { get; set; } = StatusRecebivel.Previsto;
+    public DateOnly? RecebidoEm { get; set; }
+    public Guid? LiquidacaoId { get; set; }          // os movimentos do depósito (entrada + taxa) têm o mesmo Guid
+}
+
+[JsonConverter(typeof(JsonStringEnumConverter<StatusRecebivel>))]
+public enum StatusRecebivel { Previsto, Recebido }
 
 // Chaves fixas das categorias e contas que o sistema usa sozinho.
 public static class ChavesFinanceiras
@@ -133,6 +185,8 @@ public static class ChavesFinanceiras
     public const string OutrasDespesas = "outras-despesas";
     public const string TaxasCartao = "taxas-cartao";
     public const string Juros = "juros";
+    public const string QuebraCaixa = "quebra-caixa";
+    public const string SobraCaixa = "sobra-caixa";
 
     public const string ContaDinheiro = "dinheiro";
     public const string ContaCofre = "cofre";
