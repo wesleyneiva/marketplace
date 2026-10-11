@@ -34,6 +34,7 @@ export class Pdv {
   private readonly api = inject(PdvApi);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  protected readonly nomeLoja = computed(() => this.auth.usuario()?.empresa.nome ?? '');
   protected readonly balanca = inject(BalancaService);
   protected readonly impressora = inject(ImpressoraService);
 

@@ -233,7 +233,7 @@
       <div class="cupom">
         <div class="cupom-topo">
           <app-logo [tamanho]="34" [slogan]="false" />
-          <small>Mercadinho fictício · ambiente de estudo</small>
+          @if (nomeLoja()) { <small>{{ nomeLoja() }}</small> }
           <small>Venda #{{ c.id }} · Caixa {{ c.numeroCaixa }} · {{ c.dataHora | date: 'dd/MM/yyyy HH:mm' }}</small>
           <small>Operador: {{ c.operador }}</small>
         </div>
