@@ -105,6 +105,76 @@ namespace Marketplace.Api.Migrations
                     b.ToTable("CategoriasFinanceiras", (string)null);
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Cliente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Apelido")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("Bloqueado")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Cpf")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CriadoPorId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DiaPagamento")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Endereco")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("LimiteCredito")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .UseCollation("pt-BR-x-icu");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Telefone")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId", "Cpf")
+                        .IsUnique()
+                        .HasFilter("\"Cpf\" IS NOT NULL");
+
+                    b.HasIndex("EmpresaId", "Nome");
+
+                    b.ToTable("Clientes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Clientes_DiaPagamento", "\"DiaPagamento\" BETWEEN 1 AND 28");
+                        });
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.ClimaRegistro", b =>
                 {
                     b.Property<int>("Id")
@@ -561,6 +631,75 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("VendaId");
 
                     b.ToTable("ItensVenda");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.LancamentoFiado", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("ClienteId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTimeOffset>("DataHora")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Forma")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<int?>("MovimentoFinanceiroId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("SessaoCaixaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("UsuarioId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateOnly?>("Vencimento")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("VendaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
+
+                    b.HasIndex("MovimentoFinanceiroId");
+
+                    b.HasIndex("SessaoCaixaId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("VendaId");
+
+                    b.HasIndex("ClienteId", "DataHora");
+
+                    b.ToTable("LancamentosFiado", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_LancamentosFiado_ValorPositivo", "\"Valor\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.LoteValidade", b =>
@@ -1318,6 +1457,9 @@ namespace Marketplace.Api.Migrations
                     b.Property<string>("CanceladaPorId")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ClienteId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset>("DataHora")
                         .HasColumnType("timestamp with time zone");
 
@@ -1370,6 +1512,8 @@ namespace Marketplace.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CanceladaPorId");
+
+                    b.HasIndex("ClienteId");
 
                     b.HasIndex("SessaoCaixaId");
 
@@ -1573,6 +1717,15 @@ namespace Marketplace.Api.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Cliente", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.ConfiguracaoRecebimento", b =>
                 {
                     b.HasOne("Marketplace.Api.Models.ContaFinanceira", "ContaFinanceira")
@@ -1705,6 +1858,51 @@ namespace Marketplace.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Produto");
+
+                    b.Navigation("Venda");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.LancamentoFiado", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.MovimentoFinanceiro", "MovimentoFinanceiro")
+                        .WithMany()
+                        .HasForeignKey("MovimentoFinanceiroId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marketplace.Api.Models.SessaoCaixa", "SessaoCaixa")
+                        .WithMany()
+                        .HasForeignKey("SessaoCaixaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marketplace.Api.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marketplace.Api.Models.Venda", "Venda")
+                        .WithMany()
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Cliente");
+
+                    b.Navigation("MovimentoFinanceiro");
+
+                    b.Navigation("SessaoCaixa");
+
+                    b.Navigation("Usuario");
 
                     b.Navigation("Venda");
                 });
@@ -1997,6 +2195,11 @@ namespace Marketplace.Api.Migrations
                         .HasForeignKey("CanceladaPorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Marketplace.Api.Models.Cliente", "Cliente")
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Marketplace.Api.Models.Empresa", null)
                         .WithMany()
                         .HasForeignKey("EmpresaId")
@@ -2016,6 +2219,8 @@ namespace Marketplace.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("CanceladaPor");
+
+                    b.Navigation("Cliente");
 
                     b.Navigation("SessaoCaixa");
 

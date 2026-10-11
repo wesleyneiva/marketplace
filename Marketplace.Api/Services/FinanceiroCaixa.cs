@@ -44,7 +44,27 @@ public static class FinanceiroCaixa
         };
         var movimentos = new List<MovimentoFinanceiro>();
 
-        foreach (var f in porForma.Where(f => f.Valor > 0))
+        // Fiado pago no balcão: entra como o dinheiro das vendas (mesmas regras por forma), mas na categoria
+        // "Recebimento de fiado" — a receita dele já contou no dia da venda (DRE por competência).
+        var fiadoRecebido = await db.LancamentosFiado.AsNoTracking()
+            .Where(l => l.SessaoCaixaId == sessao.Id && l.Tipo == TipoLancamentoFiado.Pagamento && l.Forma != null)
+            .GroupBy(l => l.Forma!.Value).Select(g => new { Forma = g.Key, Valor = g.Sum(l => l.Valor) }).ToListAsync();
+        var recebimentoFiado = fiadoRecebido.Count > 0 ? await Financeiro.CategoriaAsync(db, RecebimentoFiado) : 0;
+        foreach (var f in fiadoRecebido.Where(f => f.Forma is FormaPagamento.Dinheiro or FormaPagamento.Pix && f.Valor > 0))
+        {
+            var conta = f.Forma == FormaPagamento.Dinheiro ? gaveta.Id
+                : configuracoes.GetValueOrDefault(FormaPagamento.Pix)?.ContaFinanceiraId ?? gaveta.Id;
+            movimentos.Add(Mov(TipoMovimentoFinanceiro.Entrada, f.Valor, conta, recebimentoFiado, $"Fiado recebido no {NomeForma(f.Forma)} · {quem}"));
+        }
+        // Cartões: somam com as vendas no MESMO recebível do caixa (a maquininha deposita tudo junto).
+        var cartoesFiado = fiadoRecebido.Where(f => f.Forma is FormaPagamento.Debito or FormaPagamento.Credito)
+            .ToDictionary(f => f.Forma, f => f.Valor);
+        var vendasPorForma = porForma.Where(f => f.Forma != FormaPagamento.Fiado) // fiado não é dinheiro: vira dívida na caderneta
+            .Select(f => new { f.Forma, Valor = f.Valor + cartoesFiado.GetValueOrDefault(f.Forma) })
+            .Concat(cartoesFiado.Where(c => porForma.All(p => p.Forma != c.Key)).Select(c => new { Forma = c.Key, Valor = c.Value }))
+            .ToList();
+
+        foreach (var f in vendasPorForma.Where(f => f.Valor > 0))
         {
             if (f.Forma == FormaPagamento.Dinheiro)
             {
@@ -165,6 +185,7 @@ public static class FinanceiroCaixa
         FormaPagamento.Pix => "PIX",
         FormaPagamento.Debito => "débito",
         FormaPagamento.Credito => "crédito",
+        FormaPagamento.Fiado => "fiado",
         _ => "dinheiro",
     };
 

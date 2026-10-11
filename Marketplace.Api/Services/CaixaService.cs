@@ -117,9 +117,15 @@ public class CaixaService(AppDbContext db)
         var qtdCanceladas = await canceladas.CountAsync();
         var valorCancelado = await canceladas.SumAsync(v => (decimal?)v.Total) ?? 0;
 
-        // Dinheiro na gaveta = troco inicial + suprimentos − sangrias + (dinheiro recebido − troco devolvido).
+        // Fiado pago no balcão (o dinheiro dele também está na gaveta).
+        var fiadoRecebido = await db.LancamentosFiado.AsNoTracking()
+            .Where(l => l.SessaoCaixaId == sessaoId && l.Tipo == TipoLancamentoFiado.Pagamento && l.Forma != null)
+            .GroupBy(l => l.Forma!.Value).Select(g => new { Forma = g.Key, Valor = g.Sum(l => l.Valor) }).ToListAsync();
+
+        // Dinheiro na gaveta = troco inicial + suprimentos − sangrias + (dinheiro recebido − troco devolvido) + fiado pago em dinheiro.
         var dinheiroRecebido = porForma.FirstOrDefault(f => f.Forma == FormaPagamento.Dinheiro)?.Valor ?? 0;
-        var esperado = sessao.ValorAbertura + suprimentos - sangrias + dinheiroRecebido - troco;
+        var fiadoEmDinheiro = fiadoRecebido.FirstOrDefault(f => f.Forma == FormaPagamento.Dinheiro)?.Valor ?? 0;
+        var esperado = sessao.ValorAbertura + suprimentos - sangrias + dinheiroRecebido - troco + fiadoEmDinheiro;
 
         // Por forma de pagamento, o que de fato ficou: no dinheiro, desconta o troco devolvido.
         var formas = Enum.GetValues<FormaPagamento>()
@@ -133,6 +139,7 @@ public class CaixaService(AppDbContext db)
             quantidade, total, quantidade == 0 ? 0 : Math.Round(total / quantidade, 2),
             formas, troco, sangrias, suprimentos,
             sessao.Status == StatusSessao.Fechada ? sessao.ValorEsperado ?? esperado : esperado,
-            qtdCanceladas, valorCancelado, sessao.ValorContado, sessao.Diferenca, sessao.ObservacaoFechamento);
+            qtdCanceladas, valorCancelado, sessao.ValorContado, sessao.Diferenca, sessao.ObservacaoFechamento,
+            fiadoRecebido.Select(f => new TotalPorForma(f.Forma.ToString(), f.Valor)).ToList());
     }
 }

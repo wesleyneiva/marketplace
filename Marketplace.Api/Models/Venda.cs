@@ -19,6 +19,10 @@ public class Venda : IDaEmpresa
     public decimal ValorPago { get; set; } // soma dos pagamentos
     public decimal Troco { get; set; }     // valor pago − total (só existe com dinheiro)
 
+    // Cliente identificado (obrigatório quando tem pagamento no fiado).
+    public int? ClienteId { get; set; }
+    public Cliente? Cliente { get; set; }
+
     // De onde veio a venda: PDV (pessoa), simulador ao vivo ou histórico gerado (este SEM movimentar estoque).
     public OrigemVenda Origem { get; set; } = OrigemVenda.Caixa;
 
@@ -67,4 +71,4 @@ public class PagamentoVenda : IDaEmpresa
     public decimal Valor { get; set; }
 }
 
-public enum FormaPagamento { Dinheiro, Pix, Debito, Credito }
+public enum FormaPagamento { Dinheiro, Pix, Debito, Credito, Fiado } // Fiado: não é dinheiro; vira dívida na caderneta

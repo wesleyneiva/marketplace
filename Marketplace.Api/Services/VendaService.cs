@@ -7,7 +7,7 @@ namespace Marketplace.Api.Services;
 
 // Finalizar e cancelar vendas. Uma venda grava, NUMA ÚNICA TRANSAÇÃO:
 // o cupom (itens + pagamentos) e a baixa de estoque de cada produto (pelo EstoqueService).
-public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService caixa)
+public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService caixa, FiadoService fiado)
 {
     // Até quanto de desconto o perfil Caixa pode dar sozinho (acima disso, só Gerente/Administrador).
     public const decimal DescontoMaximoCaixa = 0.10m;
@@ -76,6 +76,12 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
 
         PrepararPagamentos(venda, pedido.Pagamentos);
 
+        // Fiado: vira dívida na caderneta do cliente (limite, bloqueio e atraso: acima disso só gerente libera).
+        venda.ClienteId = pedido.ClienteId;
+        var valorFiado = venda.Pagamentos.Where(p => p.Forma == FormaPagamento.Fiado).Sum(p => p.Valor);
+        if (valorFiado > 0)
+            await fiado.RegistrarCompraAsync(venda, pedido.ClienteId, valorFiado, podeDescontoLivre, usuarioId);
+
         await db.SaveChangesAsync();
         await transacao.CommitAsync();
         return venda;
@@ -86,7 +92,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         foreach (var p in pagamentos)
         {
             if (!Enum.TryParse<FormaPagamento>(p.Forma, ignoreCase: true, out var forma))
-                throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito ou Credito.");
+                throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito, Credito ou Fiado.");
             venda.Pagamentos.Add(new PagamentoVenda { Forma = forma, Valor = Dinheiro(p.Valor) });
         }
 
@@ -97,7 +103,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         // Troco só sai da gaveta: cartão e Pix não podem passar do valor da compra.
         var naoDinheiro = venda.Pagamentos.Where(p => p.Forma != FormaPagamento.Dinheiro).Sum(p => p.Valor);
         if (naoDinheiro > venda.Total)
-            throw new EstoqueException("Cartão/Pix não podem passar do total (troco só em dinheiro).");
+            throw new EstoqueException("Cartão, PIX e fiado não podem passar do total (troco só em dinheiro).");
 
         venda.Troco = venda.ValorPago - venda.Total;
     }
@@ -133,6 +139,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         venda.MotivoCancelamento = motivo.Trim();
 
         await estoque.PrepararCancelamentoAsync(venda, usuarioId, venda.MotivoCancelamento);
+        await fiado.EstornarCompraAsync(venda, usuarioId, venda.MotivoCancelamento);
         await db.SaveChangesAsync();
         return venda;
     }

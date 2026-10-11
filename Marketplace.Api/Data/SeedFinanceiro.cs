@@ -15,6 +15,7 @@ public static class SeedFinanceiro
     private static readonly (GrupoFinanceiro Grupo, NaturezaFinanceira Natureza, string Nome, string? Chave)[] Categorias =
     [
         (GrupoFinanceiro.ReceitaVendas, E, "Vendas no PDV", VendasPdv),
+        (GrupoFinanceiro.ReceitaVendas, E, "Recebimento de fiado", RecebimentoFiado),
         (GrupoFinanceiro.OutrasReceitas, E, "Outras receitas", OutrasReceitas),
         (GrupoFinanceiro.OutrasReceitas, E, "Rendimentos de aplicações", null),
         (GrupoFinanceiro.OutrasReceitas, E, "Descontos obtidos", DescontosObtidos),
@@ -39,6 +40,7 @@ public static class SeedFinanceiro
         (GrupoFinanceiro.DespesasVendas, S, "Sacolas e embalagens", null),
         (GrupoFinanceiro.DespesasVendas, S, "Marketing e divulgação", null),
         (GrupoFinanceiro.DespesasVendas, S, "Quebra de caixa", QuebraCaixa),
+        (GrupoFinanceiro.DespesasVendas, S, "Inadimplência (fiado não pago)", Inadimplencia),
         (GrupoFinanceiro.Financeiras, S, "Juros e multas pagos", Juros),
         (GrupoFinanceiro.Financeiras, S, "Tarifas bancárias", null),
         (GrupoFinanceiro.ForaDoResultado, S, "Investimentos (equipamentos, reformas)", null),

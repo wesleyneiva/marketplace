@@ -144,12 +144,19 @@ public class DreService(AppDbContext db)
         // (c) Taxas da maquininha pela data da VENDA.
         var taxa = await db.Recebiveis.AsNoTracking().Where(r => r.DataVenda >= inicio && r.DataVenda <= fim).SumAsync(r => (decimal?)r.Taxa) ?? 0;
         if (taxa != 0) Somar(await Financeiro.CategoriaAsync(db, ChavesFinanceiras.TaxasCartao), -taxa);
+
+        // (d) Fiado perdoado / calote: a receita contou no dia da venda; a baixa vira despesa no dia da baixa.
+        var baixas = await db.LancamentosFiado.AsNoTracking()
+            .Where(l => l.Tipo == TipoLancamentoFiado.Baixa && l.DataHora >= Relogio.InicioDoDiaUtc(inicio) && l.DataHora < Relogio.InicioDoDiaUtc(fim.AddDays(1)))
+            .SumAsync(l => (decimal?)l.Valor) ?? 0;
+        if (baixas != 0) Somar(await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Inadimplencia), -baixas);
         return resultado;
     }
 
     private IQueryable<MovimentoFinanceiro> LivroDaDre(DateOnly inicio, DateOnly fim, int vendasPdv) =>
         db.MovimentosFinanceiros.AsNoTracking().Where(m =>
             m.Data >= inicio && m.Data <= fim && m.CategoriaFinanceiraId != null && m.CategoriaFinanceiraId != vendasPdv
+            && m.CategoriaFinanceira!.Grupo != GrupoFinanceiro.ReceitaVendas // vendas e fiado recebido: a receita vem das Vendas
             && m.Origem != OrigemMovimentoFinanceiro.Recebimento
             && (m.ContaPagarId == null || m.CategoriaFinanceira!.Chave == ChavesFinanceiras.Juros
                 || m.CategoriaFinanceira.Chave == ChavesFinanceiras.DescontosObtidos));
@@ -239,6 +246,12 @@ public class DreService(AppDbContext db)
         lista.AddRange((await LivroDaDre(inicio, fim, vendasPdv).Where(m => ids.Contains(m.CategoriaFinanceiraId!.Value))
                 .Select(m => new { m.Data, m.Descricao, m.Origem, m.Tipo, m.Valor }).ToListAsync())
             .Select(m => new ItemDetalheDre(m.Data, m.Descricao, NomeOrigem(m.Origem), m.Tipo == TipoMovimentoFinanceiro.Entrada ? m.Valor : -m.Valor)));
+        var inadimplencia = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Inadimplencia);
+        if (ids.Contains(inadimplencia))
+            lista.AddRange((await db.LancamentosFiado.AsNoTracking()
+                    .Where(l => l.Tipo == TipoLancamentoFiado.Baixa && l.DataHora >= ini && l.DataHora < fimUtc)
+                    .Select(l => new { l.DataHora, Cliente = l.Cliente!.Nome, l.Observacao, l.Valor }).ToListAsync())
+                .Select(l => new ItemDetalheDre(Relogio.DiaLocal(l.DataHora), $"Baixa do fiado de {l.Cliente}", l.Observacao, -l.Valor)));
         var taxas = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.TaxasCartao);
         if (ids.Contains(taxas))
             lista.AddRange((await db.Recebiveis.AsNoTracking().Where(r => r.DataVenda >= inicio && r.DataVenda <= fim)

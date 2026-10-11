@@ -41,7 +41,8 @@ public record ResumoCaixaResponse(
     decimal ValorCancelado,
     decimal? ValorContado,
     decimal? Diferenca,
-    string? ObservacaoFechamento);
+    string? ObservacaoFechamento,
+    IReadOnlyList<TotalPorForma>? RecebimentosFiado = null); // clientes que vieram pagar o fiado neste caixa
 
 // ----- Venda -----
 public record ItemVendaRequest(
@@ -55,7 +56,8 @@ public record PagamentoRequest(
 public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaRequest> Itens,
     [Range(0, 1000000, ErrorMessage = "Desconto inválido.")] decimal Desconto,
-    [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos);
+    [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos,
+    int? ClienteId = null); // obrigatório quando há pagamento no fiado
 
 public record CancelarVendaRequest(
     [Required(ErrorMessage = "Informe o motivo.")]

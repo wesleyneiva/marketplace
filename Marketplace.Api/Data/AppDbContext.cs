@@ -44,6 +44,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<MovimentoFinanceiro> MovimentosFinanceiros => Set<MovimentoFinanceiro>();
     public DbSet<ConfiguracaoRecebimento> ConfiguracoesRecebimento => Set<ConfiguracaoRecebimento>();
     public DbSet<Recebivel> Recebiveis => Set<Recebivel>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -306,6 +308,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(r => r.SessaoCaixa).WithMany().HasForeignKey(r => r.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.ContaFinanceira).WithMany().HasForeignKey(r => r.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
         });
+
+        // ----- Fiado -----
+        builder.Entity<Cliente>(e =>
+        {
+            e.Property(c => c.Nome).HasMaxLength(120).UseCollation(OrdemPortugues);
+            e.Property(c => c.Apelido).HasMaxLength(60);
+            e.Property(c => c.Telefone).HasMaxLength(20);
+            e.Property(c => c.Cpf).HasMaxLength(11);
+            e.Property(c => c.Endereco).HasMaxLength(200);
+            e.Property(c => c.Observacao).HasMaxLength(300);
+            e.Property(c => c.LimiteCredito).HasPrecision(12, 2);
+            e.HasIndex(c => new { c.EmpresaId, c.Nome });
+            e.HasIndex(c => new { c.EmpresaId, c.Cpf }).IsUnique().HasFilter("\"Cpf\" IS NOT NULL");
+            e.ToTable(t => t.HasCheckConstraint("CK_Clientes_DiaPagamento", "\"DiaPagamento\" BETWEEN 1 AND 28"));
+        });
+
+        builder.Entity<LancamentoFiado>(e =>
+        {
+            e.ToTable("LancamentosFiado");
+            e.Property(l => l.Tipo).HasConversion<string>().HasMaxLength(10);
+            e.Property(l => l.Forma).HasConversion<string>().HasMaxLength(10);
+            e.Property(l => l.Valor).HasPrecision(12, 2);
+            e.Property(l => l.Observacao).HasMaxLength(200);
+            e.ToTable(t => t.HasCheckConstraint("CK_LancamentosFiado_ValorPositivo", "\"Valor\" > 0"));
+            e.HasIndex(l => new { l.ClienteId, l.DataHora });
+            e.HasIndex(l => l.VendaId);
+            e.HasIndex(l => l.SessaoCaixaId);
+            e.HasOne(l => l.Cliente).WithMany().HasForeignKey(l => l.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.Venda).WithMany().HasForeignKey(l => l.VendaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.SessaoCaixa).WithMany().HasForeignKey(l => l.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.MovimentoFinanceiro).WithMany().HasForeignKey(l => l.MovimentoFinanceiroId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(l => l.Usuario).WithMany().HasForeignKey(l => l.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Venda>().HasOne(v => v.Cliente).WithMany().HasForeignKey(v => v.ClienteId).OnDelete(DeleteBehavior.Restrict);
 
         // ----- PDV -----
         builder.Entity<SessaoCaixa>(e =>

@@ -126,6 +126,7 @@ public enum OrigemMovimentoFinanceiro
     Importacao,    // implantação de cliente que já tem histórico (planilha / OFX)
     Caixa,         // fechamento do caixa do PDV: vendas em dinheiro/PIX, sangria, suprimento, quebra/sobra
     Recebimento,   // a maquininha depositou os recebíveis de cartão (bruto + taxa)
+    Fiado,         // cliente pagou o fiado fora do caixa (ex.: PIX direto no banco)
 }
 
 // ===================== RECEBÍVEIS (o que a maquininha ainda vai depositar) =====================
@@ -187,6 +188,8 @@ public static class ChavesFinanceiras
     public const string Juros = "juros";
     public const string QuebraCaixa = "quebra-caixa";
     public const string SobraCaixa = "sobra-caixa";
+    public const string RecebimentoFiado = "recebimento-fiado";
+    public const string Inadimplencia = "inadimplencia";
 
     public const string ContaDinheiro = "dinheiro";
     public const string ContaCofre = "cofre";
