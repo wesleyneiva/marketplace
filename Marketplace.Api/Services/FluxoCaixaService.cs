@@ -11,7 +11,7 @@ namespace Marketplace.Api.Services;
 //  PREVISTO  = saldo de hoje + recebíveis da maquininha + vendas ESTIMADAS − contas a pagar em aberto, dia a dia.
 // As vendas estimadas usam a média das últimas 4 semanas do MESMO dia da semana (domingo fechado = média zero, sozinho),
 // e cada forma cai quando cai de verdade: dinheiro e PIX no dia, cartões pela regra da maquininha (já sem a taxa).
-public class FluxoCaixaService(AppDbContext db)
+public class FluxoCaixaService(AppDbContext db, FiadoService fiado)
 {
     private const int SemanasDaMedia = 4;
     private static readonly CultureInfo PtBr = CultureInfo.GetCultureInfo("pt-BR");
@@ -99,6 +99,14 @@ public class FluxoCaixaService(AppDbContext db)
         foreach (var r in recebiveis)
             Somar(r.Previsao, new ItemFluxo("recebivel", $"Maquininha · {FinanceiroCaixa.NomeForma(r.Forma)} ({r.Qtd} caixa(s))", r.Liquido, null, false));
 
+        // Fiado a receber, no dia de pagamento de cada cliente. O que JÁ venceu fica fora (não dá para contar com ele).
+        var emAberto = await fiado.EmAbertoAsync();
+        var fiadoAtrasado = emAberto.Where(f => f.Vencimento < hoje).Sum(f => f.Aberto);
+        foreach (var g in emAberto.Where(f => f.Vencimento >= hoje && f.Vencimento <= fim).GroupBy(f => f.Vencimento))
+            Somar(g.Key, new ItemFluxo("fiado",
+                g.Select(f => f.ClienteId).Distinct().Count() is var n && n == 1 ? $"Fiado de {g.First().Cliente}" : $"Fiado de {n} clientes",
+                g.Sum(f => f.Aberto), null, false));
+
         var diasHistorico = 0;
         if (comEstimativa)
             diasHistorico = await EstimarVendasAsync(hoje, fim, Somar);
@@ -111,7 +119,7 @@ public class FluxoCaixaService(AppDbContext db)
         for (var d = hoje; d <= fim; d = d.AddDays(1))
         {
             var doDia = itens.GetValueOrDefault(d) ?? [];
-            var recebe = doDia.Where(i => i.Tipo is "recebivel").Sum(i => i.Valor);
+            var recebe = doDia.Where(i => i.Tipo is "recebivel" or "fiado").Sum(i => i.Valor);
             var estimado = doDia.Where(i => i.Tipo is "estimativa" or "caixa").Sum(i => i.Valor);
             var sai = -doDia.Where(i => i.Tipo == "conta").Sum(i => i.Valor);
             saldo += recebe + estimado - sai;
@@ -126,7 +134,7 @@ public class FluxoCaixaService(AppDbContext db)
         return new FluxoPrevistoResponse(hoje, dias, comEstimativa, saldoHoje, saldoMinimo,
             lista.Sum(x => x.Recebiveis), lista.Sum(x => x.Estimado), lista.Sum(x => x.Saidas), saldo,
             menor, menorEm, primeiroNegativo, primeiroAbaixo, Alerta(lista, primeiroNegativo, primeiroAbaixo, saldoMinimo),
-            diasHistorico, lista);
+            diasHistorico, lista, fiadoAtrasado);
     }
 
     // Vendas estimadas por forma: média das últimas 4 semanas do mesmo dia da semana. Hoje = o que os caixas abertos já

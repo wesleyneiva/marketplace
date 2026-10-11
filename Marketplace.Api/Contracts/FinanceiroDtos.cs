@@ -110,12 +110,14 @@ public record FluxoPrevistoResponse(
     DateOnly Hoje, int Dias, bool ComEstimativa, decimal SaldoHoje, decimal SaldoMinimo,
     decimal TotalRecebiveis, decimal TotalEstimado, decimal TotalSaidas, decimal SaldoFinal,
     decimal MenorSaldo, DateOnly MenorSaldoEm, DateOnly? PrimeiroNegativo, DateOnly? PrimeiroAbaixoMinimo,
-    string? Alerta, int DiasDeHistoricoNaEstimativa, List<DiaFluxo> DiasPrevistos);
+    string? Alerta, int DiasDeHistoricoNaEstimativa, List<DiaFluxo> DiasPrevistos,
+    decimal FiadoAtrasadoFora = 0); // fiado já vencido: fica FORA do previsto (não dá para contar com ele)
 
 public record DiaFluxo(
     DateOnly Data, decimal Recebiveis, decimal Estimado, decimal Saidas, decimal SaldoFinal, string Situacao, List<ItemFluxo> Itens);
 
-// Tipo: "conta" (a pagar), "recebivel" (maquininha), "estimativa" (vendas estimadas) ou "caixa" (caixa aberto agora).
+// Tipo: "conta" (a pagar), "recebivel" (maquininha), "fiado" (cliente paga no dia dele), "estimativa" (vendas estimadas)
+// ou "caixa" (caixa aberto agora).
 // Valor com sinal: + entra, − sai.
 public record ItemFluxo(string Tipo, string Descricao, decimal Valor, int? ContaPagarId, bool Vencida);
 

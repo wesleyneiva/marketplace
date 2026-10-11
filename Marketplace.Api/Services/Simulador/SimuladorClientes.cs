@@ -84,8 +84,14 @@ public class SimuladorClientes(
             if (sessao is null)
             {
                 await RotinaDaManhaAsync(usuarioId, ct);
-                await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m);
-                log.LogInformation("Simulador abriu o Caixa {Numero}.", SimuladorEstado.NumeroCaixa);
+                var aberta = await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m);
+                // Caderneta: quem chegou no "dia de pagar" vem acertar o fiado; calote antigo vira baixa.
+                var fiadoDemo = scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>();
+                await fiadoDemo.GarantirClientesAsync(usuarioId);
+                var pagaram = await fiadoDemo.ReceberDoDiaAsync(aberta, Relogio.Hoje, usuarioId);
+                var baixas = await fiadoDemo.BaixarCalotesAsync(Relogio.Hoje, usuarioId);
+                log.LogInformation("Simulador abriu o Caixa {Numero} ({Pagaram} cliente(s) pagaram o fiado, {Baixas} baixa(s)).",
+                    SimuladorEstado.NumeroCaixa, pagaram, baixas);
             }
         }
 
@@ -146,7 +152,12 @@ public class SimuladorClientes(
 
         try
         {
-            await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, new NovaVendaRequest(itens, 0, [ComportamentoCliente.Pagamento(total)]), OrigemVenda.Simulador);
+            // ~3% levam no fiado (um cliente da caderneta que pode comprar); o resto paga como sempre.
+            var noFiado = await scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>().EscolherClienteAsync(total);
+            var pedido = noFiado is int clienteId
+                ? new NovaVendaRequest(itens, 0, [new PagamentoRequest("Fiado", total)], clienteId)
+                : new NovaVendaRequest(itens, 0, [ComportamentoCliente.Pagamento(total)]);
+            await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
             return true;
         }
         catch (EstoqueException e)

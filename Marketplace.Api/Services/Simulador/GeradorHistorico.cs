@@ -12,7 +12,7 @@ public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas
 //  • NÃO mexe no estoque (as vendas são marcadas com Origem = Historico);
 //  • cria uma sessão do Caixa 9 por dia aberto (seg–sáb, 8h às 19h), já fechada.
 public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios,
-    FinanceiroDemonstracao financeiro, ILogger<GeradorHistorico> log)
+    FinanceiroDemonstracao financeiro, FiadoDemonstracao fiadoDemo, ILogger<GeradorHistorico> log)
 {
     public const string Marca = "Histórico gerado (simulador)";
 
@@ -47,6 +47,11 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         var opcoes = produtos.Select(p => (Produto: p, Habito: PerfilConsumo.Para(p), Disponivel: 9999m)).ToList();
         var porId = produtos.ToDictionary(p => p.Id);
 
+        // Caderneta: os clientes fictícios e o que cada um está devendo, compra a compra (em memória, dia a dia).
+        var clientesFiado = (await fiadoDemo.GarantirClientesAsync(robo.Id)).ToDictionary(c => c.Id);
+        var cadernetas = clientesFiado.Keys.ToDictionary(id => id, _ => new List<CompraFiado>());
+        int comprasFiado = 0, pagamentosFiado = 0, baixas = 0;
+
         db.ChangeTracker.AutoDetectChangesEnabled = false; // inserção em lote: mais rápido
         int totalVendas = 0;
         decimal faturamento = 0;
@@ -65,6 +70,46 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
                 FechadaEm = MomentoUtc(dia, fecha, 0),
                 ObservacaoFechamento = Marca,
             };
+
+            // Quem vem pagar o fiado hoje (chegou o "dia dele": vencimento + o jeito de cada um) e baixa do calote.
+            // Os lançamentos da caderneta ficam numa lista e só entram no banco DEPOIS do caixa do dia estar completo:
+            // com a detecção automática desligada (inserção em lote), registrar antes "congelaria" o caixa sem as vendas.
+            decimal fiadoEmDinheiro = 0;
+            var caderneta = new List<LancamentoFiado>();
+            foreach (var (id, compras) in cadernetas)
+            {
+                var c = clientesFiado[id];
+                var atraso = FiadoDemonstracao.DiasDepoisDoVencimento(c);
+                if (atraso != int.MaxValue)
+                {
+                    var devidas = compras.Where(x => x.Aberto > 0 && x.Vencimento.AddDays(atraso) <= dia).ToList();
+                    if (devidas.Count == 0) continue;
+                    var forma = Random.Shared.NextDouble() < 0.6 ? FormaPagamento.Dinheiro : FormaPagamento.Pix;
+                    var valor = devidas.Sum(x => x.Aberto);
+                    devidas.ForEach(x => x.Aberto = 0);
+                    if (forma == FormaPagamento.Dinheiro) fiadoEmDinheiro += valor;
+                    caderneta.Add(new LancamentoFiado
+                    {
+                        ClienteId = id, Tipo = TipoLancamentoFiado.Pagamento, Valor = valor, Forma = forma, SessaoCaixa = sessao,
+                        DataHora = MomentoUtc(dia, Random.Shared.Next(abre + 1, fecha - 1), Random.Shared.Next(60)), UsuarioId = robo.Id,
+                        Observacao = $"Recebido no Caixa {SimuladorEstado.NumeroCaixa}",
+                    });
+                    pagamentosFiado++;
+                }
+                else if (FiadoDemonstracao.PerfilDe(c) == FiadoDemonstracao.Perfil.Calote)
+                {
+                    var caloteadas = compras.Where(x => x.Aberto > 0 && x.Vencimento.AddDays(FiadoDemonstracao.DiasParaBaixa) <= dia).ToList();
+                    if (caloteadas.Count == 0) continue;
+                    caderneta.Add(new LancamentoFiado
+                    {
+                        ClienteId = id, Tipo = TipoLancamentoFiado.Baixa, Valor = caloteadas.Sum(x => x.Aberto), UsuarioId = robo.Id,
+                        DataHora = MomentoUtc(dia, abre + 1, 0),
+                        Observacao = $"Sem pagar há mais de {FiadoDemonstracao.DiasParaBaixa} dias e sem resposta: baixa (calote).",
+                    });
+                    caloteadas.ForEach(x => x.Aberto = 0);
+                    baixas++;
+                }
+            }
 
             for (var hora = abre; hora < fecha; hora++)
             {
@@ -94,17 +139,35 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
                     venda.Pagamentos.Add(new PagamentoVenda { Forma = Enum.Parse<FormaPagamento>(pagamento.Forma), Valor = pagamento.Valor });
                     venda.ValorPago = pagamento.Valor;
                     venda.Troco = pagamento.Valor - venda.Total;
+
+                    // ~3% no fiado: um cliente da caderneta que PODE comprar (regras do caixa, sem gerente).
+                    if (Random.Shared.NextDouble() < FiadoDemonstracao.ChanceFiado
+                        && EscolherFiado(clientesFiado, cadernetas, venda.Total, dia, de) is { } clienteId)
+                    {
+                        venda.Pagamentos.Clear();
+                        venda.Pagamentos.Add(new PagamentoVenda { Forma = FormaPagamento.Fiado, Valor = venda.Total });
+                        (venda.ValorPago, venda.Troco, venda.ClienteId) = (venda.Total, 0, clienteId);
+                        var vencimento = FiadoService.Vencimento(dia, clientesFiado[clienteId].DiaPagamento);
+                        caderneta.Add(new LancamentoFiado
+                        {
+                            ClienteId = clienteId, Tipo = TipoLancamentoFiado.Compra, Valor = venda.Total, Venda = venda,
+                            Vencimento = vencimento, DataHora = momento, UsuarioId = robo.Id,
+                        });
+                        cadernetas[clienteId].Add(new CompraFiado(vencimento, venda.Total));
+                        comprasFiado++;
+                    }
                     sessao.Vendas.Add(venda);
                 }
             }
 
             // Fechamento do dia: o esperado na gaveta, e 1 em cada 10 dias uma pequena diferença.
             var dinheiro = sessao.Vendas.SelectMany(v => v.Pagamentos).Where(p => p.Forma == FormaPagamento.Dinheiro).Sum(p => p.Valor);
-            sessao.ValorEsperado = sessao.ValorAbertura + dinheiro - sessao.Vendas.Sum(v => v.Troco);
+            sessao.ValorEsperado = sessao.ValorAbertura + dinheiro - sessao.Vendas.Sum(v => v.Troco) + fiadoEmDinheiro;
             sessao.Diferenca = Random.Shared.NextDouble() < 0.10 ? Math.Round((decimal)(Random.Shared.NextDouble() * 4 - 2), 2) : 0;
             sessao.ValorContado = sessao.ValorEsperado + sessao.Diferenca;
 
             db.SessoesCaixa.Add(sessao);
+            db.LancamentosFiado.AddRange(caderneta); // depois do caixa (ver acima)
             await db.SaveChangesAsync(ct);
             db.ChangeTracker.Clear();
 
@@ -112,7 +175,8 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
             faturamento += sessao.Vendas.Sum(v => v.Total);
         }
 
-        log.LogInformation("Histórico gerado: {De} a {Ate}, {Vendas} vendas, {Total:C}.", de, ate, totalVendas, faturamento);
+        log.LogInformation("Histórico gerado: {De} a {Ate}, {Vendas} vendas, {Total:C}; fiado: {Compras} compras, {Pagamentos} pagamentos, {Baixas} baixa(s).",
+            de, ate, totalVendas, faturamento, comprasFiado, pagamentosFiado, baixas);
 
         // O dinheiro desse passado: caixas no Financeiro, depósitos, boletos, despesas fixas, pagamentos e maquininha.
         db.ChangeTracker.AutoDetectChangesEnabled = true;
@@ -123,7 +187,7 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         var fixas = await financeiro.ContasFixasAsync(new DateOnly(de.Year, de.Month, 1), hoje.AddDays(35), robo.Id); // o mês inteiro (as de antes do 1º dia são pagas nele)
         var pagas = await financeiro.PagarVencidasAsync(hoje, robo.Id);
         var recebidos = await FinanceiroCaixa.LiquidarAsync(db, hoje);
-        var resumo = $"{depositos} depósitos, {boletos} boletos de fornecedor, {fixas} despesas fixas, {pagas} contas pagas, {recebidos} recebíveis depositados";
+        var resumo = $"fiado: {comprasFiado} compras, {pagamentosFiado} pagamentos, {baixas} baixa(s); {depositos} depósitos, {boletos} boletos de fornecedor, {fixas} despesas fixas, {pagas} contas pagas, {recebidos} recebíveis depositados";
         log.LogInformation("Financeiro do histórico: {Resumo}.", resumo);
         return new ResultadoHistorico(de, ate, dias, totalVendas, faturamento, climaPorHora.Count, resumo);
     }
@@ -131,10 +195,33 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
     // Apaga TODO o histórico gerado (vendas com Origem = Historico e as sessões marcadas). O resto fica intacto.
     public async Task<int> ApagarAsync(CancellationToken ct)
     {
+        await fiadoDemo.ApagarHistoricoAsync(ct); // a caderneta aponta para as vendas e os caixas do histórico
         await financeiro.ApagarAsync(ct); // antes: os lançamentos apontam para as sessões
         var vendas = await db.Vendas.Where(v => v.Origem == OrigemVenda.Historico).ExecuteDeleteAsync(ct); // itens e pagamentos vão junto (cascade)
         await db.SessoesCaixa.Where(s => s.ObservacaoFechamento == Marca && !s.Vendas.Any()).ExecuteDeleteAsync(ct);
         return vendas;
+    }
+
+    // Uma compra no fiado, em memória: quanto ainda falta pagar dela.
+    private sealed class CompraFiado(DateOnly vencimento, decimal valor)
+    {
+        public DateOnly Vencimento { get; } = vencimento;
+        public decimal Aberto { get; set; } = valor;
+    }
+
+    // Quem pode levar no fiado agora: não bloqueado, dentro do limite, sem atraso grave. O calote só compra no começo.
+    private static int? EscolherFiado(Dictionary<int, Cliente> clientes, Dictionary<int, List<CompraFiado>> cadernetas,
+        decimal total, DateOnly dia, DateOnly inicio)
+    {
+        var podem = clientes.Values.Where(c =>
+        {
+            var perfil = FiadoDemonstracao.PerfilDe(c);
+            if (perfil == FiadoDemonstracao.Perfil.Bloqueado || (perfil == FiadoDemonstracao.Perfil.Calote && dia > inicio.AddDays(20))) return false;
+            var compras = cadernetas[c.Id];
+            var atrasoGrave = compras.Any(x => x.Aberto > 0 && x.Vencimento.AddDays(FiadoService.DiasDeTolerancia) < dia);
+            return !atrasoGrave && compras.Sum(x => x.Aberto) + total <= c.LimiteCredito;
+        }).ToList();
+        return podem.Count == 0 ? null : podem[Random.Shared.Next(podem.Count)].Id;
     }
 
     private static DateTimeOffset MomentoUtc(DateOnly dia, int hora, int minuto) =>

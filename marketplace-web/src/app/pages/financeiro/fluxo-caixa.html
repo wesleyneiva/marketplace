@@ -70,6 +70,9 @@
       <app-grafico-saldo [dados]="pontosSaldo()" [minimo]="p.saldoMinimo" descricao="Saldo projetado no fim de cada dia" />
       <h2 class="segundo">Entradas e saídas previstas</h2>
       <app-grafico-entradas-saidas [dados]="pontosFluxo()" descricao="Entradas e saídas previstas por dia" />
+      @if (p.fiadoAtrasadoFora > 0) {
+        <p class="nota">📒 {{ p.fiadoAtrasadoFora | currency: 'BRL' }} de fiado <b>já vencido</b> ficaram fora da previsão (não dá para contar com eles). Veja em 📒 Fiado → Atrasados.</p>
+      }
       @if (p.comEstimativa) {
         <p class="nota">
           🛒 Vendas estimadas: média das últimas {{ p.diasDeHistoricoNaEstimativa >= 28 ? 4 : (p.diasDeHistoricoNaEstimativa / 7 | number: '1.0-0') }}
@@ -84,12 +87,12 @@
     <div class="barra">
       <h2 class="titulo-tabela">Dia a dia</h2>
       <span class="espaco"></span>
-      <label class="checar"><input type="checkbox" [ngModel]="soDiasComMovimento()" (ngModelChange)="soDiasComMovimento.set($event)" /> só dias com contas ou maquininha</label>
+      <label class="checar"><input type="checkbox" [ngModel]="soDiasComMovimento()" (ngModelChange)="soDiasComMovimento.set($event)" /> só dias com contas, maquininha ou fiado</label>
     </div>
     <section class="painel tabela-rolagem">
       <table>
         <thead>
-          <tr><th>Dia</th><th class="num">Maquininha</th><th class="num">Vendas estimadas</th><th class="num">Contas a pagar</th><th class="num">Saldo</th><th></th></tr>
+          <tr><th>Dia</th><th class="num">Maquininha e fiado</th><th class="num">Vendas estimadas</th><th class="num">Contas a pagar</th><th class="num">Saldo</th><th></th></tr>
         </thead>
         <tbody>
           @for (d of linhasPrevisto(); track d.data) {
@@ -115,7 +118,7 @@
                     <ul>
                       @for (i of d.itens; track $index) {
                         <li [class.vencida]="i.vencida">
-                          <span class="tipo">{{ i.tipo === 'conta' ? '💸' : i.tipo === 'recebivel' ? '💳' : i.tipo === 'caixa' ? '🧾' : '🛒' }}</span>
+                          <span class="tipo">{{ i.tipo === 'conta' ? '💸' : i.tipo === 'recebivel' ? '💳' : i.tipo === 'fiado' ? '📒' : i.tipo === 'caixa' ? '🧾' : '🛒' }}</span>
                           <span class="desc">
                             @if (i.contaPagarId) { <a routerLink="/contas" [queryParams]="{ situacao: i.vencida ? 'vencidas' : 'abertas' }">{{ i.descricao }}</a> }
                             @else { {{ i.descricao }} }

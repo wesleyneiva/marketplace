@@ -55,6 +55,25 @@ public class FiadoService(AppDbContext db)
         });
     }
 
+    // O que ainda está em aberto, compra a compra (pagamentos abatem as mais antigas): para o fluxo de caixa previsto.
+    public async Task<List<(int ClienteId, string Cliente, DateOnly Vencimento, decimal Aberto)>> EmAbertoAsync()
+    {
+        var lancamentos = await db.LancamentosFiado.AsNoTracking()
+            .Select(l => new { l.ClienteId, Cliente = l.Cliente!.Nome, l.Tipo, l.Valor, l.Vencimento, l.DataHora }).ToListAsync();
+        var lista = new List<(int, string, DateOnly, decimal)>();
+        foreach (var g in lancamentos.GroupBy(l => l.ClienteId))
+        {
+            var abatido = g.Where(l => l.Tipo != TipoLancamentoFiado.Compra).Sum(l => l.Valor);
+            foreach (var c in g.Where(l => l.Tipo == TipoLancamentoFiado.Compra).OrderBy(l => l.Vencimento).ThenBy(l => l.DataHora))
+            {
+                var abate = Math.Min(abatido, c.Valor);
+                abatido -= abate;
+                if (c.Valor - abate > 0) lista.Add((g.Key, c.Cliente, c.Vencimento ?? Relogio.Hoje, c.Valor - abate));
+            }
+        }
+        return lista;
+    }
+
     public async Task<SituacaoFiado> SituacaoAsync(int clienteId) =>
         (await SituacoesAsync([clienteId])).GetValueOrDefault(clienteId) ?? new SituacaoFiado(0, 0, 0, null, 0, null, null);
 

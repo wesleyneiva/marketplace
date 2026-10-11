@@ -201,7 +201,7 @@ export function fimDoMes(iso: string, deslocamento = 0): string {
 export type SituacaoDia = 'ok' | 'minimo' | 'negativo';
 
 export interface ItemFluxo {
-  tipo: 'conta' | 'recebivel' | 'estimativa' | 'caixa';
+  tipo: 'conta' | 'recebivel' | 'fiado' | 'estimativa' | 'caixa';
   descricao: string;
   valor: number; // + entra, − sai
   contaPagarId: number | null;
@@ -235,6 +235,7 @@ export interface FluxoPrevisto {
   alerta: string | null;
   diasDeHistoricoNaEstimativa: number;
   diasPrevistos: DiaFluxo[];
+  fiadoAtrasadoFora: number; // fiado já vencido: fica fora do previsto
 }
 
 export interface PeriodoFluxo {
