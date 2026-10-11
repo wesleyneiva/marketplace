@@ -128,7 +128,7 @@ public static class SeedCatalogo
         }
 
         await db.SaveChangesAsync();
-        logger.LogInformation("Catálogo fictício criado: {Categorias} categorias, {Produtos} produtos.",
+        logger.LogInformation("Catálogo da demonstração criado: {Categorias} categorias, {Produtos} produtos.",
             Catalogo.Count, sequencia - 1);
     }
 

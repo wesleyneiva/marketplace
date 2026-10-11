@@ -61,7 +61,7 @@ public class InsightsService(
         var dados = new Dictionary<string, object?>
         {
             ["Mercado"] = empresa.Demonstracao
-                ? $"Mercadinho de bairro em {local?.Nome ?? "Porto Alegre/RS"} (dados FICTÍCIOS de estudo). Abre seg–sáb 8h–19h; domingo e feriado fechado."
+                ? $"Mercadinho de bairro em {local?.Nome ?? "Porto Alegre/RS"} (mercado de demonstração). Abre seg–sáb 8h–19h; domingo e feriado fechado."
                 : $"Mercado \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + ".",
             ["Período analisado"] = $"{periodo.De:dd/MM/yyyy} a {periodo.Ate:dd/MM/yyyy} ({periodo.Dias} dias)",
             ["Atenção"] = hojeParcial

@@ -66,7 +66,7 @@ public static class SeedEstoque
                 EstoqueAnterior = 0,
                 EstoquePosterior = produto.EstoqueAtual,
                 CustoUnitario = produto.PrecoCusto,
-                Observacao = "Estoque inicial (catálogo fictício)",
+                Observacao = "Estoque inicial",
             });
 
             if (!produto.ControlaValidade)
