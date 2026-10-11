@@ -1,0 +1,122 @@
+<header class="titulo-pagina">
+  <div>
+    <h1>📒 Fiado</h1>
+    <p>A caderneta da loja: quem deve, quanto, desde quando. Vende-se no fiado pelo caixa (Alt+5) e recebe-se no balcão (F6).</p>
+  </div>
+  <div class="barra-topo">
+    <button type="button" class="botao primario" (click)="novo()">+ Novo cliente</button>
+    @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+  </div>
+</header>
+
+@if (resumo.value(); as r) {
+  <section class="painel-fiado">
+    <div class="caixa-num destaque"><span>A receber</span><strong>{{ r.totalAReceber | currency: 'BRL' }}</strong><small>{{ r.clientesComSaldo }} cliente(s) devendo</small></div>
+    <div class="caixa-num" [class.atrasado]="r.vencido > 0"><span>Vencido</span><strong>{{ r.vencido | currency: 'BRL' }}</strong>
+      <small>{{ r.clientesEmAtraso }} em atraso@if (r.clientesAtrasoGrave) { · <b>{{ r.clientesAtrasoGrave }} há mais de {{ tolerancia }} dias</b> }</small></div>
+    <div class="caixa-num"><span>Vence em 7 dias</span><strong>{{ r.venceProximos7Dias | currency: 'BRL' }}</strong></div>
+    <div class="caixa-num"><span>Vendido no fiado (mês)</span><strong>{{ r.vendidoNoMes | currency: 'BRL' }}</strong></div>
+    <div class="caixa-num"><span>Recebido (mês)</span><strong class="valor-entrada">{{ r.recebidoNoMes | currency: 'BRL' }}</strong>
+      <small>limite total {{ r.limiteTotal | currency: 'BRL' }} · {{ r.clientesAtivos }} cliente(s)</small></div>
+  </section>
+}
+
+<div class="barra">
+  <nav class="sub-abas" role="tablist">
+    <button role="tab" type="button" [class.ativa]="situacao() === 'devendo'" (click)="situacao.set('devendo')">Devendo</button>
+    <button role="tab" type="button" [class.ativa]="situacao() === 'atrasados'" (click)="situacao.set('atrasados')">⚠️ Atrasados</button>
+    <button role="tab" type="button" [class.ativa]="situacao() === 'todos'" (click)="situacao.set('todos')">Todos</button>
+    <button role="tab" type="button" [class.ativa]="situacao() === 'inativos'" (click)="situacao.set('inativos')">Desativados</button>
+  </nav>
+  <span class="espaco"></span>
+  <input type="search" class="busca" [ngModel]="busca()" (ngModelChange)="digitou($event)" placeholder="🔍 nome, apelido, telefone ou CPF" aria-label="Buscar cliente" />
+</div>
+
+<section class="painel tabela-rolagem" [class.carregando]="clientes.isLoading()">
+  <table>
+    <thead>
+      <tr><th>Cliente</th><th class="num">Deve</th><th>Limite</th><th>Vencimento</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (c of clientes.value() ?? []; track c.id) {
+        <tr class="linha-cliente" [class.atraso-grave]="c.diasAtraso > tolerancia" (click)="abrirCaderneta(c)">
+          <td>
+            <span class="descricao">{{ c.nome }}@if (c.bloqueado) { <span class="selo vencida">bloqueado</span> }</span>
+            <small class="detalhe">@if (c.apelido) { {{ c.apelido }} · }@if (c.telefone) { {{ telefoneBonito(c.telefone) }} · }paga dia {{ c.diaPagamento }}</small>
+          </td>
+          <td class="num">
+            @if (c.saldo > 0) { <strong>{{ c.saldo | currency: 'BRL' }}</strong> }
+            @else if (c.saldo < 0) { <small class="credito">crédito {{ -c.saldo | currency: 'BRL' }}</small> }
+            @else { <small class="detalhe">—</small> }
+          </td>
+          <td class="limite">
+            <div class="barra-uso" [attr.aria-label]="'Usou ' + (uso(c) | number: '1.0-0') + '% do limite'"><i [style.width.%]="uso(c)" [class.cheio]="uso(c) >= 90"></i></div>
+            <small class="detalhe">{{ c.limiteCredito ? (c.limiteCredito | currency: 'BRL') : 'sem limite' }}@if (c.limiteCredito) { · livre {{ c.disponivel | currency: 'BRL' }} }</small>
+          </td>
+          <td>
+            @if (c.diasAtraso > 0) {
+              <span class="selo" [class.vencida]="c.diasAtraso > tolerancia" [class.hoje]="c.diasAtraso <= tolerancia">{{ c.diasAtraso }} dia(s) de atraso</span>
+              <small class="detalhe">{{ c.vencido | currency: 'BRL' }} vencido</small>
+            } @else if (c.proximoVencimento) {
+              <span>{{ c.proximoVencimento | dia }}</span><small class="detalhe">{{ c.valorProximo | currency: 'BRL' }}</small>
+            } @else { <small class="detalhe">—</small> }
+          </td>
+          <td class="acoes" (click)="$event.stopPropagation()">
+            <button type="button" class="botao pequeno" (click)="abrirCaderneta(c)">📒 Caderneta</button>
+            @if (c.saldo > 0 && temWhats(c)) {
+              <button type="button" class="botao pequeno" (click)="cobrar(c)" title="Abre o WhatsApp com a mensagem pronta">💬</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        @if (!clientes.isLoading()) {
+          <tr><td colspan="5" class="vazio">
+            @switch (situacao()) {
+              @case ('devendo') { Ninguém devendo agora. 👍 }
+              @case ('atrasados') { Nenhum cliente em atraso. 👍 }
+              @default { Nenhum cliente{{ busca() ? ' com "' + busca() + '"' : '' }}. Use "+ Novo cliente". }
+            }
+          </td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</section>
+
+<app-dialogo-caderneta (mudou)="recarregar()" (editar)="editar($event)" />
+
+<!-- Cadastro -->
+<dialog #dlgCliente class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ editando() ? 'Editar cliente' : 'Novo cliente' }}</h2><button type="button" class="fechar" (click)="dlgCliente.close()">✕</button></header>
+    <div class="corpo">
+      <label>Nome<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="120" placeholder="Nome completo" /></label>
+      <label>Apelido <small>(como o caixa procura: "Dona Maria do 302")</small><input name="apelido" [(ngModel)]="form.apelido" maxlength="60" /></label>
+      <div class="duas">
+        <label>WhatsApp <small>(com DDD)</small><input name="telefone" [(ngModel)]="form.telefone" maxlength="20" inputmode="tel" placeholder="(51) 99999-8888" /></label>
+        <label>CPF <small>(opcional)</small><input name="cpf" [(ngModel)]="form.cpf" maxlength="14" inputmode="numeric" /></label>
+      </div>
+      <label>Endereço <small>(opcional)</small><input name="endereco" [(ngModel)]="form.endereco" maxlength="200" /></label>
+      <div class="duas">
+        <label>Limite de fiado (R$)<input name="limite" type="number" min="0" step="10" [(ngModel)]="form.limiteCredito" required /></label>
+        <label>Paga todo dia<input name="dia" type="number" min="1" max="28" [(ngModel)]="form.diaPagamento" required /></label>
+      </div>
+      <small class="ajuda">O que comprar no mês vence no dia escolhido do mês seguinte. Limite 0 = não compra fiado (só gerente libera).</small>
+      <label class="checar"><input type="checkbox" name="bloqueado" [(ngModel)]="form.bloqueado" /> Bloqueado para fiado (só gerente vende)</label>
+      <label>Observação <small>(opcional)</small><input name="obs" [(ngModel)]="form.observacao" maxlength="300" /></label>
+      <small class="ajuda">🔒 LGPD: guarde só o necessário. O CPF é opcional.</small>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      @if (editando(); as e) {
+        @if (e.ativo) {
+          <button type="button" class="botao perigo esquerda" (click)="ativar(false)" [disabled]="salvando()">Desativar</button>
+        } @else {
+          <button type="button" class="botao esquerda" (click)="ativar(true)" [disabled]="salvando()">Reativar</button>
+        }
+      }
+      <button type="button" class="botao" (click)="dlgCliente.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+    </footer>
+  </form>
+</dialog>

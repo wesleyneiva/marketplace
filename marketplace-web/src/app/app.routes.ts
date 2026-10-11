@@ -77,6 +77,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/financeiro/financeiro').then((m) => m.Financeiro),
       },
       {
+        // Fiado (caderneta): clientes da loja, quem deve, receber, cobrar. A venda no fiado é pelo PDV.
+        path: 'fiado',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/fiado/fiado').then((m) => m.Fiado),
+      },
+      {
         path: 'contas',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),
