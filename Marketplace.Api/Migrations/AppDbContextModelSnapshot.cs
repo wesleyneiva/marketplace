@@ -386,6 +386,12 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<decimal>("SaldoMinimoCaixa")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<string>("Subdominio")
                         .IsRequired()
                         .HasMaxLength(40)

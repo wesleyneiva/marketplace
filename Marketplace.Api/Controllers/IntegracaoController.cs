@@ -15,7 +15,7 @@ namespace Marketplace.Api.Controllers;
 [Route("api/integracao")]
 [AllowAnonymous]
 [ChaveApi]
-public class IntegracaoController(AppDbContext db, RelatoriosService relatorios, InsightsService insights, LocaisDasLojas locais) : ControllerBase
+public class IntegracaoController(AppDbContext db, RelatoriosService relatorios, InsightsService insights, LocaisDasLojas locais, FluxoCaixaService fluxo) : ControllerBase
 {
     // GET /api/integracao/resumo?data=2026-10-08 → fechamento do dia (padrão: hoje)
     [HttpGet("resumo")]
@@ -137,7 +137,11 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
             .Select(c => new { c.Descricao, c.Vencimento, c.Valor })
             .ToListAsync();
 
-        var total = baixo.Count + validade.Count + diferencas.Count + contas.Count;
+        // Fluxo de caixa dos próximos 7 dias: saldo projetado negativo ou abaixo do mínimo de segurança.
+        var previsto = await fluxo.PrevistoAsync(7, true);
+        var caixaApertado = previsto.PrimeiroNegativo is not null || previsto.PrimeiroAbaixoMinimo is not null;
+
+        var total = baixo.Count + validade.Count + diferencas.Count + contas.Count + (caixaApertado ? 1 : 0);
         string? mensagem = null;
         if (total > 0)
         {
@@ -177,10 +181,17 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
                 }
                 if (contas.Count > 10) m.AppendLine($"… e mais {contas.Count - 10}");
             }
+            if (caixaApertado)
+                m.AppendLine($"\n{(previsto.PrimeiroNegativo is not null ? "🔴" : "🟡")} Fluxo de caixa (próximos 7 dias):\n{previsto.Alerta}");
             mensagem = m.ToString().TrimEnd();
         }
 
-        return new { temAlerta = total > 0, total, estoqueBaixo = baixo, validade, diferencasCaixa = diferencas, contasPagar = contas, mensagem };
+        return new
+        {
+            temAlerta = total > 0, total, estoqueBaixo = baixo, validade, diferencasCaixa = diferencas, contasPagar = contas,
+            fluxoCaixa = caixaApertado ? new { previsto.PrimeiroNegativo, previsto.PrimeiroAbaixoMinimo, previsto.MenorSaldo, previsto.Alerta } : null,
+            mensagem,
+        };
     }
 
     // GET /api/integracao/estoque?busca=arroz → para o comando /estoque do bot

@@ -35,6 +35,9 @@ public class Empresa
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public string Fuso { get; set; } = "America/Sao_Paulo"; // nome IANA (ex.: America/Manaus)
+
+    // Fluxo de caixa: o "colchão" que o dono quer manter. Saldo projetado abaixo disso = alerta amarelo; abaixo de 0 = vermelho.
+    public decimal SaldoMinimoCaixa { get; set; }
 }
 
 public static class EtiquetaBalancaTipos

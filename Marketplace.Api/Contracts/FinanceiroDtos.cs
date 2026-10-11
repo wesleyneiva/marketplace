@@ -94,3 +94,29 @@ public record ConfiguracaoRecebimentoRequest(
 public record CaixaAbertoResponse(
     int SessaoId, int NumeroCaixa, string Operador, DateTimeOffset AbertaEm, int Vendas, decimal Total,
     decimal DinheiroNaGaveta, List<TotalPorForma> PorForma);
+
+// ----- Fluxo de caixa -----
+
+// REALIZADO: o que de fato entrou e saiu (todas as contas; transferências fora), por dia, semana ou mês.
+public record FluxoRealizadoResponse(
+    DateOnly De, DateOnly Ate, string Agrupar, decimal SaldoInicial, decimal Entradas, decimal Saidas, decimal SaldoFinal,
+    List<PeriodoFluxo> Periodos);
+
+public record PeriodoFluxo(DateOnly Inicio, DateOnly Fim, string Rotulo, decimal Entradas, decimal Saidas, decimal Implantacao, decimal SaldoFinal);
+
+// PREVISTO: saldo de hoje + o que vai cair (maquininha, vendas estimadas) − o que vai vencer, dia a dia.
+// Situacao do dia: "ok", "minimo" (abaixo do saldo mínimo de segurança) ou "negativo".
+public record FluxoPrevistoResponse(
+    DateOnly Hoje, int Dias, bool ComEstimativa, decimal SaldoHoje, decimal SaldoMinimo,
+    decimal TotalRecebiveis, decimal TotalEstimado, decimal TotalSaidas, decimal SaldoFinal,
+    decimal MenorSaldo, DateOnly MenorSaldoEm, DateOnly? PrimeiroNegativo, DateOnly? PrimeiroAbaixoMinimo,
+    string? Alerta, int DiasDeHistoricoNaEstimativa, List<DiaFluxo> DiasPrevistos);
+
+public record DiaFluxo(
+    DateOnly Data, decimal Recebiveis, decimal Estimado, decimal Saidas, decimal SaldoFinal, string Situacao, List<ItemFluxo> Itens);
+
+// Tipo: "conta" (a pagar), "recebivel" (maquininha), "estimativa" (vendas estimadas) ou "caixa" (caixa aberto agora).
+// Valor com sinal: + entra, − sai.
+public record ItemFluxo(string Tipo, string Descricao, decimal Valor, int? ContaPagarId, bool Vencida);
+
+public record SaldoMinimoRequest([Range(0, 99999999, ErrorMessage = "Saldo mínimo inválido.")] decimal Valor);
