@@ -98,7 +98,7 @@ public class InsightsService(
             recomendações práticas para o gerente, em português do Brasil. {foco}
 
             Regras:
-            - Formato: uma lista; cada item começa com um emoji e um título curto, seguido de "—" e no máximo 2 frases.
+            - Formato: uma lista; cada item começa com um título curto (sem emojis), seguido de "—" e no máximo 2 frases.
             - Cite os números dos dados para justificar, cada número com o SEU contexto (ex.: um fator "1,6x no frio"
               não pode ser usado para falar de chuva).
             - NÃO invente números, produtos ou fatos que não estejam nos dados.

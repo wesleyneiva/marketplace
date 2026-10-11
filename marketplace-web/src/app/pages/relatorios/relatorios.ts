@@ -149,9 +149,12 @@ export class Relatorios {
   protected readonly gerando = signal(false);
   protected readonly erroInsights = signal<string | null>(null);
 
-  // Cada linha que a IA escreveu vira um item da lista.
+  // Cada linha que a IA escreveu vira um item da lista (sem emojis: o sistema usa só ícones de traço).
   protected readonly itensInsights = computed(() =>
-    (this.insights()?.texto ?? '').split('\n').map((l) => l.replace(/^[-•*]\s*/, '').trim()).filter(Boolean),
+    (this.insights()?.texto ?? '')
+      .split('\n')
+      .map((l) => l.replace(/[\p{Extended_Pictographic}\u{FE0F}\u{200D}]/gu, '').replace(/^[-•*]\s*/, '').trim())
+      .filter(Boolean),
   );
 
   async gerarInsights(): Promise<void> {
