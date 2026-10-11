@@ -120,3 +120,21 @@ public record DiaFluxo(
 public record ItemFluxo(string Tipo, string Descricao, decimal Valor, int? ContaPagarId, bool Vencida);
 
 public record SaldoMinimoRequest([Range(0, 99999999, ErrorMessage = "Saldo mínimo inválido.")] decimal Valor);
+
+// ----- DRE gerencial (regime de competência) -----
+
+// Uma tabela: linhas × meses. Valores COM SINAL (+ aumenta o resultado, − diminui). A % é sobre a receita bruta do mês.
+// Tipo: "receita", "deducao", "subtotal" (receita líquida, lucro bruto, resultado operacional) ou "resultado" (lucro líquido).
+public record DreResponse(
+    List<MesDre> Meses, List<LinhaDre> Linhas, List<LinhaDre> ForaDoResultado, decimal AliquotaSimples, bool AliquotaInformada);
+
+public record MesDre(string Mes, string Rotulo, DateOnly Inicio, DateOnly Fim, bool Parcial, decimal DasPagoNoMes, decimal ComprasPagasNoMes);
+
+public record LinhaDre(string Chave, string Nome, int Nivel, string Tipo, List<decimal> Valores, bool Detalhavel);
+
+// Clicou numa linha: do que ela é feita.
+public record DetalheDreResponse(string Titulo, string? Observacao, List<ItemDetalheDre> Itens);
+
+public record ItemDetalheDre(DateOnly? Data, string Descricao, string? Complemento, decimal Valor);
+
+public record AliquotaSimplesRequest([Range(0, 33, ErrorMessage = "Alíquota: de 0 a 33%.")] decimal Valor);

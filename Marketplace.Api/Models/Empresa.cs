@@ -38,6 +38,10 @@ public class Empresa
 
     // Fluxo de caixa: o "colchão" que o dono quer manter. Saldo projetado abaixo disso = alerta amarelo; abaixo de 0 = vermelho.
     public decimal SaldoMinimoCaixa { get; set; }
+
+    // DRE: alíquota EFETIVA do Simples Nacional (% do faturamento), informada pelo contador. 0 = ainda não informada
+    // (a DRE usa os DAS lançados no mês e avisa). Ex.: 7,3 = 7,3% das vendas do mês.
+    public decimal AliquotaSimples { get; set; }
 }
 
 public static class EtiquetaBalancaTipos

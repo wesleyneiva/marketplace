@@ -1,6 +1,7 @@
 using Marketplace.Api.Models;
 using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Data;
 
@@ -15,6 +16,12 @@ public static class SeedDemonstracao
     public static async Task ExecutarAsync(IServiceProvider services)
     {
         using var scope = services.CriarEscopo(EmpresaId);
+
+        // DRE da demonstração: a mesma alíquota usada para gerar os DAS dela (FinanceiroDemonstracao).
+        await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas
+            .Where(e => e.Id == EmpresaId && e.Demonstracao && e.AliquotaSimples == 0)
+            .ExecuteUpdateAsync(s => s.SetProperty(e => e.AliquotaSimples, Services.Simulador.FinanceiroDemonstracao.AliquotaSimples));
+
         var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
         var email = scope.ServiceProvider.GetRequiredService<IConfiguration>()["Demonstracao:Email"] ?? EmailPadrao;
         if (await usuarios.FindByEmailAsync(email) is not null)

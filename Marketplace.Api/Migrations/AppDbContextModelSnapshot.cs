@@ -338,6 +338,12 @@ namespace Marketplace.Api.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("AliquotaSimples")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(6, 4)
+                        .HasColumnType("numeric(6,4)")
+                        .HasDefaultValue(0m);
+
                     b.Property<bool>("Ativa")
                         .HasColumnType("boolean");
 
