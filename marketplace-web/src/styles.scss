@@ -158,6 +158,10 @@ select {
   --grafico-serie: #15803d;        // verde do Marketplace (gráficos de uma série)
   --grafico-serie-ativa: #0f5f2d;
   --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
+  --grafico-saidas: #4a3aa7;       // fluxo de caixa: saídas (o mesmo violeta validado; vermelho/laranja reprovam p/ deutan)
+  --grafico-estimado: #4caf6e;     // fluxo de caixa: entradas ESTIMADAS (verde mais claro = incerteza; validado; contraste 2,67 → tabela obrigatória)
+  --grafico-faixa-minimo: #fef3c7; // região abaixo do saldo mínimo (com rótulo)
+  --grafico-faixa-negativo: #fee2e2; // região abaixo de zero (com rótulo)
   --grafico-grade: #e9e8e2;
   --grafico-base: #c3c2b7;
   --grafico-texto-eixo: #898781;
@@ -166,6 +170,8 @@ select {
 // Componentes Angular são "inline" por padrão: aí a largura não pode ser medida e o gráfico
 // fica com o tamanho inicial (e vaza da tela). Como bloco, ele ocupa a largura do espaço que tem.
 app-grafico-colunas,
+app-grafico-saldo,
+app-grafico-entradas-saidas,
 app-grafico-faixa,
 app-grafico-barras,
 app-mapa-calor {
@@ -201,6 +207,17 @@ app-mapa-calor {
   .ponto { fill: var(--grafico-temperatura); stroke: var(--cor-superficie); stroke-width: 2; }
 
   .celula.ativa { stroke: var(--cor-texto); stroke-width: 1.5; }
+
+  .linha-saldo { fill: none; stroke: var(--grafico-serie); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .ponto-saldo { fill: var(--grafico-serie); stroke: var(--cor-superficie); stroke-width: 2; }
+  .regiao-minimo { fill: var(--grafico-faixa-minimo); }
+  .regiao-negativo { fill: var(--grafico-faixa-negativo); }
+  .ref-minimo { stroke: #b45309; stroke-width: 1; stroke-dasharray: 4 3; }
+  .ref-zero { stroke: var(--grafico-texto-eixo); stroke-width: 1; }
+  .rotulo-ref { fill: var(--cor-texto-suave); font-size: 11px; }
+  .coluna-saida { fill: var(--grafico-saidas); }
+  .coluna-estimada { fill: var(--grafico-estimado); }
+  .faixa-ativa { fill: var(--grafico-grade); opacity: 0.6; }
 }
 
 .dica-grafico {

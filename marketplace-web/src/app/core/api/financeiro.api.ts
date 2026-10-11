@@ -195,3 +195,73 @@ export function fimDoMes(iso: string, deslocamento = 0): string {
   const d = new Date(Date.UTC(a, m + deslocamento, 0));
   return d.toISOString().slice(0, 10);
 }
+
+// ----- Fluxo de caixa -----
+
+export type SituacaoDia = 'ok' | 'minimo' | 'negativo';
+
+export interface ItemFluxo {
+  tipo: 'conta' | 'recebivel' | 'estimativa' | 'caixa';
+  descricao: string;
+  valor: number; // + entra, − sai
+  contaPagarId: number | null;
+  vencida: boolean;
+}
+
+export interface DiaFluxo {
+  data: string;
+  recebiveis: number;
+  estimado: number;
+  saidas: number;
+  saldoFinal: number;
+  situacao: SituacaoDia;
+  itens: ItemFluxo[];
+}
+
+export interface FluxoPrevisto {
+  hoje: string;
+  dias: number;
+  comEstimativa: boolean;
+  saldoHoje: number;
+  saldoMinimo: number;
+  totalRecebiveis: number;
+  totalEstimado: number;
+  totalSaidas: number;
+  saldoFinal: number;
+  menorSaldo: number;
+  menorSaldoEm: string;
+  primeiroNegativo: string | null;
+  primeiroAbaixoMinimo: string | null;
+  alerta: string | null;
+  diasDeHistoricoNaEstimativa: number;
+  diasPrevistos: DiaFluxo[];
+}
+
+export interface PeriodoFluxo {
+  inicio: string;
+  fim: string;
+  rotulo: string;
+  entradas: number;
+  saidas: number;
+  implantacao: number;
+  saldoFinal: number;
+}
+
+export interface FluxoRealizado {
+  de: string;
+  ate: string;
+  agrupar: 'dia' | 'semana' | 'mes';
+  saldoInicial: number;
+  entradas: number;
+  saidas: number;
+  saldoFinal: number;
+  periodos: PeriodoFluxo[];
+}
+
+const SEMANA = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+
+// "2026-10-13" → "ter 13/10" (sem passar por Date em UTC: o dia não "volta" para 12).
+export function diaCurto(iso: string): string {
+  const [a, m, d] = iso.split('-').map(Number);
+  return `${SEMANA[new Date(a, m - 1, d).getDay()]} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
+}

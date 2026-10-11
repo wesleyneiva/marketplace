@@ -1,0 +1,180 @@
+<div class="barra">
+  <div class="alternar" role="group" aria-label="Previsto ou realizado">
+    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'previsto'" (click)="modo.set('previsto')">🔮 Previsto</button>
+    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'realizado'" (click)="modo.set('realizado')">📜 Realizado</button>
+  </div>
+  <span class="espaco"></span>
+  @if (modo() === 'previsto') {
+    <div class="alternar" role="group" aria-label="Horizonte">
+      @for (d of [30, 60, 90]; track d) {
+        <button type="button" class="botao pequeno" [class.ligado]="dias() === d" (click)="dias.set(d)">{{ d }} dias</button>
+      }
+    </div>
+    <label class="checar"><input type="checkbox" [ngModel]="comEstimativa()" (ngModelChange)="comEstimativa.set($event)" /> incluir vendas estimadas</label>
+  } @else {
+    <div class="alternar" role="group" aria-label="Período">
+      <button type="button" class="botao pequeno" [class.ligado]="periodo() === '30d'" (click)="escolherPeriodoAgrupado('30d')">30 dias</button>
+      <button type="button" class="botao pequeno" [class.ligado]="periodo() === '90d'" (click)="escolherPeriodoAgrupado('90d')">90 dias</button>
+      <button type="button" class="botao pequeno" [class.ligado]="periodo() === '6m'" (click)="escolherPeriodoAgrupado('6m')">6 meses</button>
+      <button type="button" class="botao pequeno" [class.ligado]="periodo() === '12m'" (click)="escolherPeriodoAgrupado('12m')">12 meses</button>
+    </div>
+    <div class="alternar" role="group" aria-label="Agrupar">
+      <button type="button" class="botao pequeno" [class.ligado]="agrupar() === 'dia'" (click)="agrupar.set('dia')">por dia</button>
+      <button type="button" class="botao pequeno" [class.ligado]="agrupar() === 'semana'" (click)="agrupar.set('semana')">por semana</button>
+      <button type="button" class="botao pequeno" [class.ligado]="agrupar() === 'mes'" (click)="agrupar.set('mes')">por mês</button>
+    </div>
+  }
+</div>
+
+<!-- =============================================================== PREVISTO -->
+@if (modo() === 'previsto') {
+  @if (previsto.value(); as p) {
+    <section class="numeros" [class.carregando]="previsto.isLoading()">
+      <div class="numero"><span>Saldo hoje</span><strong [class.negativo]="p.saldoHoje < 0">{{ p.saldoHoje | currency: 'BRL' }}</strong><small>todas as contas</small></div>
+      <div class="numero destaque" [class.alerta]="p.saldoFinal < p.saldoMinimo" [class.perigo]="p.saldoFinal < 0">
+        <span>Saldo em {{ p.dias }} dias</span><strong>{{ p.saldoFinal | currency: 'BRL' }}</strong>
+        <small>+{{ p.totalRecebiveis + p.totalEstimado | currency: 'BRL' }} · −{{ p.totalSaidas | currency: 'BRL' }}</small>
+      </div>
+      <div class="numero" [class.alerta]="p.menorSaldo < p.saldoMinimo" [class.perigo]="p.menorSaldo < 0">
+        <span>Pior dia</span><strong>{{ p.menorSaldo | currency: 'BRL' }}</strong>
+        <small><button type="button" class="link" (click)="irParaDia(p.menorSaldoEm)">{{ diaCurto(p.menorSaldoEm) }} →</button></small>
+      </div>
+      <div class="numero">
+        <span>Saldo mínimo de segurança</span>
+        @if (editandoMinimo()) {
+          <form class="minimo" (ngSubmit)="salvarMinimo()">
+            <input name="minimo" type="number" min="0" step="100" [(ngModel)]="novoMinimo" aria-label="Saldo mínimo em reais" />
+            <button type="submit" class="botao pequeno primario">Salvar</button>
+            <button type="button" class="botao pequeno" (click)="editandoMinimo.set(false)">✕</button>
+          </form>
+        } @else {
+          <strong>{{ p.saldoMinimo | currency: 'BRL' }}</strong>
+          <small><button type="button" class="link" (click)="editarMinimo(p.saldoMinimo)">✏️ mudar</button></small>
+        }
+        @if (retornoMinimo(); as r) { <small class="retorno" [class.ruim]="r.ruim" role="status">{{ r.ruim ? '✋' : '✅' }} {{ r.texto }}</small> }
+      </div>
+    </section>
+
+    @if (p.alerta) {
+      <div class="alerta-fluxo" [class.vermelho]="p.primeiroNegativo" role="alert">
+        <strong>{{ p.primeiroNegativo ? '🔴 Vai faltar dinheiro' : '🟡 Abaixo do mínimo de segurança' }}</strong>
+        <p>{{ p.alerta }}</p>
+        <button type="button" class="botao pequeno" (click)="irParaDia((p.primeiroNegativo ?? p.primeiroAbaixoMinimo)!)">Ver o dia</button>
+      </div>
+    } @else {
+      <p class="tudo-certo">✅ Nos próximos {{ p.dias }} dias o saldo projetado fica sempre acima do mínimo de segurança.</p>
+    }
+
+    <section class="painel graficos">
+      <h2>Saldo projetado <small>no fim de cada dia</small></h2>
+      <app-grafico-saldo [dados]="pontosSaldo()" [minimo]="p.saldoMinimo" descricao="Saldo projetado no fim de cada dia" />
+      <h2 class="segundo">Entradas e saídas previstas</h2>
+      <app-grafico-entradas-saidas [dados]="pontosFluxo()" descricao="Entradas e saídas previstas por dia" />
+      @if (p.comEstimativa) {
+        <p class="nota">
+          🛒 Vendas estimadas: média das últimas {{ p.diasDeHistoricoNaEstimativa >= 28 ? 4 : (p.diasDeHistoricoNaEstimativa / 7 | number: '1.0-0') }}
+          semana(s) do mesmo dia da semana. Dinheiro e PIX entram no dia; cartões quando a maquininha deposita, já sem a taxa.
+          @if (p.diasDeHistoricoNaEstimativa < 28) { <b>Pouco histórico ainda ({{ p.diasDeHistoricoNaEstimativa }} dias): a estimativa melhora com o tempo.</b> }
+        </p>
+      } @else {
+        <p class="nota">Sem as vendas estimadas: só o que já é certo (maquininha) contra as contas a pagar.</p>
+      }
+    </section>
+
+    <div class="barra">
+      <h2 class="titulo-tabela">Dia a dia</h2>
+      <span class="espaco"></span>
+      <label class="checar"><input type="checkbox" [ngModel]="soDiasComMovimento()" (ngModelChange)="soDiasComMovimento.set($event)" /> só dias com contas ou maquininha</label>
+    </div>
+    <section class="painel tabela-rolagem">
+      <table>
+        <thead>
+          <tr><th>Dia</th><th class="num">Maquininha</th><th class="num">Vendas estimadas</th><th class="num">Contas a pagar</th><th class="num">Saldo</th><th></th></tr>
+        </thead>
+        <tbody>
+          @for (d of linhasPrevisto(); track d.data) {
+            <tr [id]="'dia-' + d.data" class="linha-dia" [class.s-minimo]="d.situacao === 'minimo'" [class.s-negativo]="d.situacao === 'negativo'"
+                [class.aberta]="aberto() === d.data" (click)="abrirDia(d.data)">
+              <td class="data"><strong>{{ diaCurto(d.data) }}</strong>@if (d.data === p.hoje) { <small>hoje</small> }</td>
+              <td class="num valor-entrada">{{ d.recebiveis ? (d.recebiveis | currency: 'BRL') : '' }}</td>
+              <td class="num estimado">{{ d.estimado ? (d.estimado | currency: 'BRL') : '' }}</td>
+              <td class="num valor-saida">{{ d.saidas ? (d.saidas | currency: 'BRL') : '' }}</td>
+              <td class="num forte" [class.negativo]="d.saldoFinal < 0">{{ d.saldoFinal | currency: 'BRL' }}</td>
+              <td class="situacao">
+                @switch (d.situacao) {
+                  @case ('negativo') { <span class="selo vencida">🔴 negativo</span> }
+                  @case ('minimo') { <span class="selo hoje">🟡 abaixo do mínimo</span> }
+                }
+                @if (d.itens.length) { <span class="abrir" aria-hidden="true">{{ aberto() === d.data ? '▲' : '▼' }}</span> }
+              </td>
+            </tr>
+            @if (aberto() === d.data) {
+              <tr class="detalhe-dia">
+                <td colspan="6">
+                  @if (d.itens.length) {
+                    <ul>
+                      @for (i of d.itens; track $index) {
+                        <li [class.vencida]="i.vencida">
+                          <span class="tipo">{{ i.tipo === 'conta' ? '💸' : i.tipo === 'recebivel' ? '💳' : i.tipo === 'caixa' ? '🧾' : '🛒' }}</span>
+                          <span class="desc">
+                            @if (i.contaPagarId) { <a routerLink="/contas" [queryParams]="{ situacao: i.vencida ? 'vencidas' : 'abertas' }">{{ i.descricao }}</a> }
+                            @else { {{ i.descricao }} }
+                          </span>
+                          <span class="num" [class.valor-entrada]="i.valor > 0" [class.valor-saida]="i.valor < 0">{{ i.valor | currency: 'BRL' }}</span>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="nada">Nada previsto neste dia.</p>
+                  }
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else if (previsto.isLoading()) {
+    <p class="nota">Calculando…</p>
+  }
+}
+
+<!-- =============================================================== REALIZADO -->
+@if (modo() === 'realizado') {
+  @if (realizado.value(); as r) {
+    <section class="numeros" [class.carregando]="realizado.isLoading()">
+      <div class="numero"><span>Saldo em {{ r.de | dia }}</span><strong>{{ r.saldoInicial | currency: 'BRL' }}</strong><small>antes do período</small></div>
+      <div class="numero"><span>Entrou</span><strong class="valor-entrada">{{ r.entradas | currency: 'BRL' }}</strong><small>sem transferências</small></div>
+      <div class="numero"><span>Saiu</span><strong class="valor-saida">{{ r.saidas | currency: 'BRL' }}</strong><small>&nbsp;</small></div>
+      <div class="numero destaque"><span>Saldo em {{ r.ate | dia }}</span><strong [class.negativo]="r.saldoFinal < 0">{{ r.saldoFinal | currency: 'BRL' }}</strong>
+        <small>{{ r.entradas - r.saidas >= 0 ? 'sobrou' : 'faltou' }} {{ (r.entradas - r.saidas) | currency: 'BRL' }} no período</small></div>
+    </section>
+
+    <section class="painel graficos">
+      <h2>Saldo <small>no fim de cada {{ r.agrupar === 'mes' ? 'mês' : r.agrupar }}</small></h2>
+      <app-grafico-saldo [dados]="pontosSaldoReal()" descricao="Saldo realizado" />
+      <h2 class="segundo">Entradas e saídas</h2>
+      <app-grafico-entradas-saidas [dados]="pontosFluxoReal()" descricao="Entradas e saídas realizadas" />
+    </section>
+
+    <section class="painel tabela-rolagem">
+      <table>
+        <thead><tr><th>{{ r.agrupar === 'mes' ? 'Mês' : r.agrupar === 'semana' ? 'Semana' : 'Dia' }}</th><th class="num">Entrou</th><th class="num">Saiu</th><th class="num">Resultado</th><th class="num">Saldo</th></tr></thead>
+        <tbody>
+          @for (x of r.periodos; track x.inicio) {
+            <tr>
+              <td class="data"><strong>{{ r.agrupar === 'dia' ? diaCurto(x.inicio) : x.rotulo }}</strong>
+                @if (x.implantacao) { <small>+ implantação {{ x.implantacao | currency: 'BRL' }}</small> }</td>
+              <td class="num valor-entrada">{{ x.entradas | currency: 'BRL' }}</td>
+              <td class="num valor-saida">{{ x.saidas | currency: 'BRL' }}</td>
+              <td class="num" [class.negativo]="x.entradas - x.saidas < 0">{{ x.entradas - x.saidas | currency: 'BRL' }}</td>
+              <td class="num forte" [class.negativo]="x.saldoFinal < 0">{{ x.saldoFinal | currency: 'BRL' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  } @else if (realizado.isLoading()) {
+    <p class="nota">Calculando…</p>
+  }
+}

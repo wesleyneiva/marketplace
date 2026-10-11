@@ -22,6 +22,9 @@ public class FluxoCaixaService(AppDbContext db)
     public async Task<FluxoRealizadoResponse> RealizadoAsync(DateOnly de, DateOnly ate, string agrupar)
     {
         if (de > ate) (de, ate) = (ate, de);
+        // Antes da implantação não há o que mostrar (tudo zero): o período começa nela.
+        var primeiraImplantacao = await db.ContasFinanceiras.MinAsync(c => (DateOnly?)c.SaldoInicialEm);
+        if (primeiraImplantacao is DateOnly inicioFinanceiro && de < inicioFinanceiro && inicioFinanceiro <= ate) de = inicioFinanceiro;
         var saldoInicial = (await Financeiro.SaldosAsync(db, de.AddDays(-1))).Values.Sum();
 
         // Só o que conta no saldo: movimentos a partir da implantação de cada conta (antes disso é histórico de consulta).

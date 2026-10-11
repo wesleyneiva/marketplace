@@ -28,6 +28,27 @@ export function escalaRedonda(maximo: number, marcas = 4): number[] {
   return Array.from({ length: Math.round(topo / passo) + 1 }, (_, i) => +(i * passo).toFixed(6));
 }
 
+// Marcas redondas para um intervalo que pode ter NEGATIVOS (ex.: saldo projetado de −8.000 a 50.000).
+// O zero sempre aparece quando o intervalo cruza o zero.
+export function escalaIntervalo(minimo: number, maximo: number, marcas = 4): number[] {
+  if (minimo >= 0) return escalaRedonda(maximo, marcas);
+  if (maximo <= minimo) maximo = minimo + 1;
+  const bruto = (maximo - minimo) / marcas;
+  const potencia = 10 ** Math.floor(Math.log10(bruto));
+  const passo = [1, 2, 2.5, 5, 10].map((m) => m * potencia).find((p) => p >= bruto)!;
+  const de = Math.floor(minimo / passo) * passo;
+  const ate = Math.ceil(maximo / passo) * passo;
+  return Array.from({ length: Math.round((ate - de) / passo) + 1 }, (_, i) => +(de + i * passo).toFixed(6));
+}
+
+// Coluna "para baixo" (saídas): base reta em cima, ponta arredondada embaixo.
+export function caminhoColunaAbaixo(x: number, base: number, largura: number, y: number): string {
+  const altura = y - base;
+  if (altura <= 0) return '';
+  const r = Math.min(4, largura / 2, altura);
+  return `M${x},${base} V${y - r} Q${x},${y} ${x + r},${y} H${x + largura - r} Q${x + largura},${y} ${x + largura},${y - r} V${base} Z`;
+}
+
 // Barra com o topo arredondado (4px) e a base reta, crescendo de baixo para cima.
 export function caminhoColuna(x: number, y: number, largura: number, base: number): string {
   const altura = base - y;
