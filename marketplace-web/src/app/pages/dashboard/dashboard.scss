@@ -40,8 +40,11 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0;
   color: inherit;
   text-decoration: none;
+  // O número acompanha a largura do cartão (5 cartões lado a lado em tela de notebook não estouram).
+  container-type: inline-size;
 
   &.clicavel {
     transition: border-color 0.15s, box-shadow 0.15s;
@@ -68,6 +71,7 @@
     width: 34px;
     height: 34px;
     border-radius: 9px;
+    flex-shrink: 0;
     background: var(--cor-primaria-clara);
     color: var(--cor-primaria);
     font-size: 17px;
@@ -79,7 +83,8 @@
   }
 
   .valor {
-    font-size: 30px;
+    font-size: clamp(18px, 12.5cqi, 30px);
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
 
     &.apagado {
