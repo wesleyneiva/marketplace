@@ -10,6 +10,7 @@ import { GraficoFaixa, PontoFaixa } from '../../shared/graficos/grafico-faixa';
 import { CelulaMapa, MapaCalor } from '../../shared/graficos/mapa-calor';
 import { formatar } from '../../shared/graficos/largura';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Icone } from '../../shared/icone';
 
 const NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -18,7 +19,7 @@ const FORMAS: Record<string, string> = { Pix: 'Pix', Debito: 'Débito', Credito:
 
 @Component({
   selector: 'app-relatorios',
-  imports: [CurrencyPipe, DecimalPipe, DiaPipe, QuantidadePipe, GraficoColunas, GraficoFaixa, GraficoBarras, MapaCalor],
+  imports: [Icone, CurrencyPipe, DecimalPipe, DiaPipe, QuantidadePipe, GraficoColunas, GraficoFaixa, GraficoBarras, MapaCalor],
   templateUrl: './relatorios.html',
   styleUrl: './relatorios.scss',
 })

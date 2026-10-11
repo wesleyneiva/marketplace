@@ -1,6 +1,6 @@
 <header class="titulo-pagina">
   <div>
-    <a routerLink="/produtos" class="voltar">← Produtos</a>
+    <a routerLink="/produtos" class="voltar"><app-icone nome="arrow-left" /> Produtos</a>
     <h1>{{ editando() ? 'Editar produto' : 'Novo produto' }}</h1>
   </div>
 </header>
@@ -107,7 +107,7 @@
   </div>
 
   <details class="fiscal" [open]="!!form.controls.ncm.value">
-    <summary>🧾 Dados fiscais <small>(para o cupom fiscal NFC-e — confirme com o seu contador)</small></summary>
+    <summary><app-icone nome="receipt" /> Dados fiscais <small>(para o cupom fiscal NFC-e — confirme com o seu contador)</small></summary>
     <div class="grade">
       <div class="campo">
         <label for="ncm">NCM</label>
@@ -165,11 +165,11 @@
 @if (editando() && produto(); as p) {
   <section class="painel extra">
     <header class="extra-topo">
-      <h2>🏷️ Estoque deste produto</h2>
+      <h2><app-icone nome="tag" /> Estoque deste produto</h2>
       <div class="extra-acoes">
-        <button type="button" class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)">📥 Entrada</button>
-        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Perda', p)">🗑️ Perda</button>
-        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Ajuste', p)">⚖️ Ajuste</button>
+        <button type="button" class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)"><app-icone nome="import" /> Entrada</button>
+        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Perda', p)"><app-icone nome="trash-2" /> Perda</button>
+        <button type="button" class="botao pequeno" (click)="dialogo.abrir('Ajuste', p)"><app-icone nome="scale" /> Ajuste</button>
       </div>
     </header>
 

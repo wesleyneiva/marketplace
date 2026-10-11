@@ -118,7 +118,9 @@ input {
 }
 
 .selo {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   padding: 2px 8px;
   border-radius: 99px;
   font-size: 12px;
@@ -150,6 +152,16 @@ select {
     outline: 2px solid var(--cor-primaria);
     outline-offset: -1px;
   }
+}
+
+// ---------- Ícones (<app-icone>, shared/icone.ts) ----------
+// Nos títulos o ícone vai na cor da marca; no resto ele herda a cor do texto (verde no ok, vermelho no erro…).
+h1 > app-icone,
+h2 > app-icone,
+h3 > app-icone,
+summary > app-icone {
+  color: var(--cor-primaria);
+  margin-right: 2px;
 }
 
 // ---------- Gráficos (SVG desenhado pelos componentes em shared/graficos) ----------

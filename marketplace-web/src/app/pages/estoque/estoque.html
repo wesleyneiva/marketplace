@@ -1,23 +1,23 @@
 <header class="titulo-pagina">
   <div>
-    <h1>🏷️ Estoque</h1>
+    <h1><app-icone nome="tag" /> Estoque</h1>
     <p>Entradas, perdas, ajustes e validades</p>
   </div>
   <div class="acoes-topo">
-    <button type="button" class="botao primario" (click)="dialogo.abrir('Entrada')">📥 Entrada</button>
-    <button type="button" class="botao" (click)="dialogo.abrir('Perda')">🗑️ Perda</button>
-    <button type="button" class="botao" (click)="dialogo.abrir('Ajuste')">⚖️ Ajuste</button>
+    <button type="button" class="botao primario" (click)="dialogo.abrir('Entrada')"><app-icone nome="import" /> Entrada</button>
+    <button type="button" class="botao" (click)="dialogo.abrir('Perda')"><app-icone nome="trash-2" /> Perda</button>
+    <button type="button" class="botao" (click)="dialogo.abrir('Ajuste')"><app-icone nome="scale" /> Ajuste</button>
   </div>
 </header>
 
 @if (aviso()) {
-  <div class="aviso-sucesso" role="status">✅ {{ aviso() }}</div>
+  <div class="aviso-sucesso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div>
 }
 
 <nav class="abas" role="tablist">
-  <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')">⏰ Validades</button>
-  <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')">📜 Movimentações</button>
-  <button role="tab" [class.ativa]="abaAtual() === 'baixo'" (click)="irPara('baixo')">⚠️ Estoque baixo</button>
+  <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')"><app-icone nome="clock" /> Validades</button>
+  <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')"><app-icone nome="history" /> Movimentações</button>
+  <button role="tab" [class.ativa]="abaAtual() === 'baixo'" (click)="irPara('baixo')"><app-icone nome="triangle-alert" /> Estoque baixo</button>
 </nav>
 
 <!-- ===================== VALIDADES ===================== -->
@@ -55,9 +55,9 @@
             <td>
               <span class="situacao" [class]="'situacao s' + (l.diasRestantes < 0 ? 'vencido' : l.diasRestantes === 0 ? 'hoje' : l.diasRestantes <= 3 ? 'urgente' : 'proximo')">
                 @switch (true) {
-                  @case (l.diasRestantes < 0) { 🔴 Vencido há {{ -l.diasRestantes }} {{ -l.diasRestantes === 1 ? 'dia' : 'dias' }} }
-                  @case (l.diasRestantes === 0) { 🟠 Vence hoje }
-                  @default { 🟡 {{ l.diasRestantes }} {{ l.diasRestantes === 1 ? 'dia' : 'dias' }} }
+                  @case (l.diasRestantes < 0) { <app-icone nome="octagon-alert" /> Vencido há {{ -l.diasRestantes }} {{ -l.diasRestantes === 1 ? 'dia' : 'dias' }} }
+                  @case (l.diasRestantes === 0) { <app-icone nome="triangle-alert" /> Vence hoje }
+                  @default { <app-icone nome="triangle-alert" /> {{ l.diasRestantes }} {{ l.diasRestantes === 1 ? 'dia' : 'dias' }} }
                 }
               </span>
             </td>
@@ -73,7 +73,7 @@
           </tr>
         } @empty {
           @if (!validades.isLoading()) {
-            <tr><td colspan="6" class="vazio">🎉 Nada vencido nem vencendo nesse período.</td></tr>
+            <tr><td colspan="6" class="vazio"><app-icone nome="circle-check" /> Nada vencido nem vencendo nesse período.</td></tr>
           }
         }
       </tbody>
@@ -85,13 +85,13 @@
 @if (abaAtual() === 'movimentacoes') {
   <section class="filtros">
     @if (filtroProduto(); as fp) {
-      <span class="filtro-produto">{{ fp.nome }} <button (click)="mudarFiltro(() => filtroProduto.set(null))" aria-label="Limpar produto">✕</button></span>
+      <span class="filtro-produto">{{ fp.nome }} <button (click)="mudarFiltro(() => filtroProduto.set(null))" aria-label="Limpar produto"><app-icone nome="x" /></button></span>
     } @else {
       <app-produto-busca class="busca" placeholder="Filtrar por produto…" (selecionado)="mudarFiltro(() => filtroProduto.set($event))" />
     }
     <select (change)="mudarFiltro(() => filtroTipo.set($any($event.target).value))" aria-label="Tipo">
       <option value="">Todos os tipos</option>
-      @for (t of tipos; track t.valor) { <option [value]="t.valor">{{ t.icone }} {{ t.rotulo }}</option> }
+      @for (t of tipos; track t.valor) { <option [value]="t.valor">{{ t.rotulo }}</option> }
     </select>
     <label class="data">De <input type="date" (change)="mudarFiltro(() => filtroDe.set($any($event.target).value))" /></label>
     <label class="data">Até <input type="date" (change)="mudarFiltro(() => filtroAte.set($any($event.target).value))" /></label>
@@ -106,7 +106,7 @@
         @for (m of movimentacoes.value()?.itens ?? []; track m.id) {
           <tr>
             <td class="quando">{{ m.dataHora | date: 'dd/MM/yy HH:mm' }}</td>
-            <td><span class="tipo" [class]="'tipo t' + m.tipo">{{ iconeTipo(m.tipo) }} {{ m.tipo === 'Inventario' ? 'Inventário' : m.tipo }}</span></td>
+            <td><span class="tipo" [class]="'tipo t' + m.tipo"><app-icone [nome]="iconeTipo(m.tipo)" /> {{ m.tipo === 'Inventario' ? 'Inventário' : m.tipo }}</span></td>
             <td><a class="nome" [routerLink]="['/produtos', m.produtoId]">{{ m.produto }}</a></td>
             <td class="num" [class.positivo]="m.quantidade > 0" [class.negativo]="m.quantidade < 0">{{ m.quantidade | quantidade: m.unidade : true }}</td>
             <td class="num sub-num">{{ m.estoqueAnterior | quantidade: m.unidade }} → <b>{{ m.estoquePosterior | quantidade: m.unidade }}</b></td>
@@ -129,7 +129,7 @@
 
   @if (totalPaginasMov() > 1) {
     <nav class="paginacao">
-      <button class="botao pequeno" [disabled]="paginaMov() === 1" (click)="paginaMov.set(paginaMov() - 1)">← Anterior</button>
+      <button class="botao pequeno" [disabled]="paginaMov() === 1" (click)="paginaMov.set(paginaMov() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
       <span>Página {{ paginaMov() }} de {{ totalPaginasMov() }}</span>
       <button class="botao pequeno" [disabled]="paginaMov() === totalPaginasMov()" (click)="paginaMov.set(paginaMov() + 1)">Próxima →</button>
     </nav>
@@ -151,11 +151,11 @@
             <td class="num negativo">{{ p.estoqueAtual | quantidade: p.unidade }}</td>
             <td class="num">{{ p.estoqueMinimo | quantidade: p.unidade }}</td>
             <td class="num">{{ p.estoqueMinimo - p.estoqueAtual | quantidade: p.unidade }}</td>
-            <td class="acoes"><button class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)">📥 Entrada</button></td>
+            <td class="acoes"><button class="botao pequeno primario" (click)="dialogo.abrir('Entrada', p)"><app-icone nome="import" /> Entrada</button></td>
           </tr>
         } @empty {
           @if (!baixo.isLoading()) {
-            <tr><td colspan="6" class="vazio">🎉 Nenhum produto abaixo do mínimo.</td></tr>
+            <tr><td colspan="6" class="vazio"><app-icone nome="circle-check" /> Nenhum produto abaixo do mínimo.</td></tr>
           }
         }
       </tbody>

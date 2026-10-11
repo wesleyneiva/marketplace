@@ -12,6 +12,7 @@ import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
+import { Icone } from '../../shared/icone';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -24,7 +25,7 @@ interface ItemCarrinho {
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
 @Component({
   selector: 'app-pdv',
-  imports: [FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -596,7 +597,7 @@ export class Pdv {
     this.dlgReceber()?.nativeElement.close(); // o (close) da janela faz o resto
   }
 
-  // Fechou a janela (Concluir, Esc ou ✕): aviso do que foi recebido e o cursor de volta na busca de produtos.
+  // Fechou a janela (Concluir, Esc ou o X): aviso do que foi recebido e o cursor de volta na busca de produtos.
   protected aoFecharReceber(): void {
     const r = this.recibo();
     if (r) this.mostrarAviso(`Fiado de ${r.cliente}: recebido ${dinheiroBr(r.valor)}. ${r.saldoAtual > 0 ? 'Ainda deve ' + dinheiroBr(r.saldoAtual) + '.' : 'Quitado!'}`);

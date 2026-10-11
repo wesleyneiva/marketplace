@@ -6,11 +6,11 @@ import { firstValueFrom } from 'rxjs';
 export type FormaPagamento = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito' | 'Fiado';
 
 export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; icone: string; tecla: string }[] = [
-  { valor: 'Dinheiro', rotulo: 'Dinheiro', icone: '💵', tecla: '1' },
-  { valor: 'Pix', rotulo: 'Pix', icone: '⚡', tecla: '2' },
-  { valor: 'Debito', rotulo: 'Débito', icone: '💳', tecla: '3' },
-  { valor: 'Credito', rotulo: 'Crédito', icone: '💳', tecla: '4' },
-  { valor: 'Fiado', rotulo: 'Fiado', icone: '📒', tecla: '5' },
+  { valor: 'Dinheiro', rotulo: 'Dinheiro', icone: 'banknote', tecla: '1' },
+  { valor: 'Pix', rotulo: 'Pix', icone: 'qr-code', tecla: '2' },
+  { valor: 'Debito', rotulo: 'Débito', icone: 'credit-card', tecla: '3' },
+  { valor: 'Credito', rotulo: 'Crédito', icone: 'credit-card', tecla: '4' },
+  { valor: 'Fiado', rotulo: 'Fiado', icone: 'notebook-pen', tecla: '5' },
 ];
 
 // Formas para RECEBER um fiado (o cliente paga a dívida): fiado não paga fiado.

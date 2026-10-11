@@ -4,18 +4,18 @@
       <app-logo [tamanho]="38" tema="escuro" />
     </a>
     @if (usuario(); as u) {
-      <p class="empresa" title="Empresa">🏪 {{ u.empresa.nome }}</p>
+      <p class="empresa" title="Empresa"><app-icone nome="store" /> {{ u.empresa.nome }}</p>
     }
 
     <nav>
       @for (item of itensVisiveis(); track item.rota) {
         @if (item.pronto) {
           <a [routerLink]="item.rota" routerLinkActive="ativo" (click)="menuAberto.set(false)">
-            <span class="icone" aria-hidden="true">{{ item.icone }}</span>{{ item.rotulo }}
+            <app-icone class="icone" [nome]="item.icone" />{{ item.rotulo }}
           </a>
         } @else {
           <span class="item-futuro" title="Em breve">
-            <span class="icone" aria-hidden="true">{{ item.icone }}</span>{{ item.rotulo }}
+            <app-icone class="icone" [nome]="item.icone" />{{ item.rotulo }}
             <em>em breve</em>
           </span>
         }
@@ -27,7 +27,7 @@
 
   <div class="principal">
     <header class="topo">
-      <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu">☰</button>
+      <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu"><app-icone nome="menu" /></button>
       <div class="espaco"></div>
       @if (usuario(); as u) {
         <div class="usuario">
@@ -38,15 +38,15 @@
           </div>
         </div>
       }
- @if (!usuario()?.somenteLeitura) {
-      <a class="trocar-senha" routerLink="/trocar-senha" title="Trocar minha senha" aria-label="Trocar minha senha">🔑</a>
+      @if (!usuario()?.somenteLeitura) {
+      <a class="trocar-senha" routerLink="/trocar-senha" title="Trocar minha senha" aria-label="Trocar minha senha"><app-icone nome="key-round" /></a>
       }
-      <button type="button" class="sair" (click)="sair()">Sair</button>
+      <button type="button" class="sair" (click)="sair()"><app-icone nome="log-out" /> Sair</button>
     </header>
 
     @if (usuario()?.somenteLeitura) {
       <div class="faixa-demo" role="status">
-        👀 <strong>Modo demonstração</strong> — mercado fictício, o caixa automático vende sozinho.
+        <app-icone nome="eye" /> <strong>Modo demonstração</strong> — mercado fictício, o caixa automático vende sozinho.
         Você pode olhar tudo; nada é gravado.
       </div>
     }

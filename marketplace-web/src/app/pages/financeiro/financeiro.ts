@@ -6,6 +6,7 @@ import { PlanoContas } from './plano-contas';
 import { AReceber } from './a-receber';
 import { FluxoCaixa } from './fluxo-caixa';
 import { DreAba } from './dre';
+import { Icone } from '../../shared/icone';
 
 type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
 
@@ -13,22 +14,22 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
 // A aba e a conta ficam no ENDEREÇO (?aba=lancamentos&conta=3): dá para favoritar e o "voltar" do navegador funciona.
 @Component({
   selector: 'app-financeiro',
-  imports: [RouterLink, Saldos, Lancamentos, FluxoCaixa, DreAba, AReceber, PlanoContas],
+  imports: [Icone, RouterLink, Saldos, Lancamentos, FluxoCaixa, DreAba, AReceber, PlanoContas],
   template: `
     <header class="titulo-pagina">
       <div>
-        <h1>🏦 Financeiro</h1>
+        <h1><app-icone nome="landmark" /> Financeiro</h1>
         <p>Todo dinheiro que entra e sai: de qual conta e por quê.</p>
       </div>
     </header>
 
     <nav class="abas nao-imprimir" role="tablist">
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'saldos' }" [class.ativa]="abaAtual() === 'saldos'">💰 Saldos</a>
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'lancamentos' }" [class.ativa]="abaAtual() === 'lancamentos'">📒 Lançamentos</a>
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'fluxo' }" [class.ativa]="abaAtual() === 'fluxo'">📈 Fluxo de caixa</a>
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'dre' }" [class.ativa]="abaAtual() === 'dre'">📊 DRE</a>
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'receber' }" [class.ativa]="abaAtual() === 'receber'">💳 A receber</a>
-      <a role="tab" routerLink="." [queryParams]="{ aba: 'plano' }" [class.ativa]="abaAtual() === 'plano'">🗂️ Plano de contas</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'saldos' }" [class.ativa]="abaAtual() === 'saldos'"><app-icone nome="circle-dollar-sign" /> Saldos</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'lancamentos' }" [class.ativa]="abaAtual() === 'lancamentos'"><app-icone nome="notebook-pen" /> Lançamentos</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'fluxo' }" [class.ativa]="abaAtual() === 'fluxo'"><app-icone nome="chart-line" /> Fluxo de caixa</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'dre' }" [class.ativa]="abaAtual() === 'dre'"><app-icone nome="chart-column" /> DRE</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'receber' }" [class.ativa]="abaAtual() === 'receber'"><app-icone nome="credit-card" /> A receber</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'plano' }" [class.ativa]="abaAtual() === 'plano'"><app-icone nome="folder" /> Plano de contas</a>
     </nav>
 
     @switch (abaAtual()) {

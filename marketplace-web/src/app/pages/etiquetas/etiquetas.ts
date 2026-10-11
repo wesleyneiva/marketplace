@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { Categoria, Produto } from '../../core/api/produtos.api';
 import { CodigoBarras } from '../../shared/codigo-barras';
 import { ProdutoBusca } from '../../shared/produto-busca';
+import { Icone } from '../../shared/icone';
 
 interface Etiqueta {
   id: number;
@@ -35,7 +36,7 @@ type Formato = keyof typeof FORMATOS;
 // conferir a prévia e imprimir numa folha A4 de etiquetas adesivas.
 @Component({
   selector: 'app-etiquetas',
-  imports: [FormsModule, KeyValuePipe, RouterLink, CodigoBarras, ProdutoBusca],
+  imports: [Icone, FormsModule, KeyValuePipe, RouterLink, CodigoBarras, ProdutoBusca],
   templateUrl: './etiquetas.html',
   styleUrl: './etiquetas.scss',
 })

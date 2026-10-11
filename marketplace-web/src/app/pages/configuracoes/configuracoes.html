@@ -1,22 +1,22 @@
 <header class="titulo-pagina">
   <div>
-    <h1>⚙️ Configurações</h1>
+    <h1><app-icone nome="settings" /> Configurações</h1>
     <p>Balança, leitor e impressora.</p>
   </div>
 </header>
 
-@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
 @if (erro()) { <div class="erro-caixa" role="alert">{{ erro() }}</div> }
 
 <section class="painel secao">
-  <h2>📍 Cidade da loja</h2>
+  <h2><app-icone nome="map-pin" /> Cidade da loja</h2>
   <p class="explica">Define o <b>clima</b> (relatório "o clima influenciou?", previsão nos insights) e o <b>fuso horário</b>:
     "hoje", vendas do dia e relatórios por hora seguem o relógio da cidade (em Manaus, 1 hora a menos que Brasília).</p>
   @if (config.value(); as c) {
     @if (c.cidade) {
-      <p class="cidade-atual">🏙️ <b>{{ c.cidade }}/{{ c.uf }}</b> · horário de {{ nomeDoFuso(c.fuso) }} · agora na loja: <b>{{ c.horaLocal }}</b></p>
+      <p class="cidade-atual"><app-icone nome="building" /> <b>{{ c.cidade }}/{{ c.uf }}</b> · horário de {{ nomeDoFuso(c.fuso) }} · agora na loja: <b>{{ c.horaLocal }}</b></p>
     } @else {
-      <p class="falta-plu">✋ A cidade da loja ainda não foi definida: sem ela não há clima nos relatórios e o horário usado é o de Brasília.</p>
+      <p class="falta-plu"><app-icone nome="circle-alert" /> A cidade da loja ainda não foi definida: sem ela não há clima nos relatórios e o horário usado é o de Brasília.</p>
     }
   }
   @if (ehAdmin()) {
@@ -36,7 +36,7 @@
 </section>
 
 <section class="painel secao">
-  <h2>🏷️ Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
+  <h2><app-icone nome="tag" /> Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
   <p class="explica">
     A balança imprime uma etiqueta com código de barras começando com <b>2</b>. O caixa passa o leitor e o produto entra com o
     peso certo. Configure aqui o <b>mesmo formato</b> escolhido no programa da balança.
@@ -68,7 +68,7 @@
       </div>
       <div class="botoes">
         @if (ehAdmin()) { <button type="button" class="botao primario" (click)="salvar()">Salvar formato</button> }
-        <a class="botao" href="/api/produtos/balanca/exportar" download>⬇️ Exportar produtos para a balança (.csv)</a>
+        <a class="botao" href="/api/produtos/balanca/exportar" download><app-icone nome="download" /> Exportar produtos para a balança (.csv)</a>
       </div>
       <p class="dica">A exportação traz os produtos com <b>código na balança (PLU)</b>: código, nome e preço do quilo — para cadastrar
         (ou conferir) no programa da balança. O PLU de cada produto fica no cadastro do produto.</p>
@@ -77,7 +77,7 @@
 </section>
 
 <section class="painel secao">
-  <h2>🧪 Etiqueta de teste (sem balança)</h2>
+  <h2><app-icone nome="flask-conical" /> Etiqueta de teste (sem balança)</h2>
   <p class="explica">Escolha um produto com PLU e um peso: o sistema desenha a etiqueta como a balança faria. Bipe na tela com o
     leitor ou copie o número e cole no campo do PDV.</p>
   <div class="grade">
@@ -93,7 +93,7 @@
       → {{ pesoTeste | number: '1.3-3' }} kg = <b>{{ valorTeste() | currency: 'BRL' }}</b></p>
     @if (!p.codigoBalanca) {
       <p class="falta-plu">
-        ✋ Este produto ainda não tem <b>código na balança (PLU)</b> — sem ele a etiqueta não tem como dizer qual é o produto.
+        <app-icone nome="circle-alert" /> Este produto ainda não tem <b>código na balança (PLU)</b> — sem ele a etiqueta não tem como dizer qual é o produto.
         <a [routerLink]="['/produtos', p.id]">Abrir o cadastro do produto</a>, preencher "Código na balança (PLU)"
         (o botão <i>Próximo livre</i> sugere um número), salvar e voltar aqui.
       </p>
@@ -107,15 +107,15 @@
       <app-codigo-barras class="barras-grande" [codigo]="e" />
     </div>
     <div class="copiar">
-      <button type="button" class="botao pequeno" (click)="copiar(e)">📋 Copiar {{ e }}</button>
-      @if (copiado() === true) { <span class="ok">✅ Copiado! Cole no campo do PDV (Ctrl+V) e aperte Enter.</span> }
+      <button type="button" class="botao pequeno" (click)="copiar(e)"><app-icone nome="clipboard-list" /> Copiar {{ e }}</button>
+      @if (copiado() === true) { <span class="ok"><app-icone nome="circle-check" /> Copiado! Cole no campo do PDV (Ctrl+V) e aperte Enter.</span> }
       @if (copiado() === false) { <span class="falhou">Não deu para copiar sozinho: selecione o número <b>{{ e }}</b> e use Ctrl+C.</span> }
     </div>
   }
 </section>
 
 <section class="painel secao">
-  <h2>⚖️ Balança do caixa <small class="neste">neste computador</small></h2>
+  <h2><app-icone nome="scale" /> Balança do caixa <small class="neste">neste computador</small></h2>
   <p class="explica">Balança ligada no computador do caixa (cabo USB-serial ou serial). Ao bater um produto vendido por quilo,
     o peso entra sozinho (ou aperte <kbd>F4</kbd> na janela do peso). Protocolo Toledo/Filizola, o padrão das balanças de caixa.</p>
 
@@ -143,7 +143,7 @@
 
   <div class="botoes">
     @if (balanca.serialDisponivel) {
-      <button type="button" class="botao" (click)="balanca.escolherPorta()">🔌 Escolher a porta da balança…</button>
+      <button type="button" class="botao" (click)="balanca.escolherPorta()"><app-icone nome="plug" /> Escolher a porta da balança…</button>
       @if (balanca.conectada()) { <button type="button" class="botao" (click)="balanca.desconectar()">Desligar</button> }
     }
     <button type="button" class="botao primario" (click)="testarBalanca()" [disabled]="!balanca.ativa()">Ler peso agora</button>
@@ -153,14 +153,14 @@
     Situação: <b>{{ balanca.config().modo === 'serial' ? (balanca.conectada() ? 'ligada' : 'desligada (escolha a porta)') : balanca.config().modo === 'simulada' ? 'simulada' : 'sem balança' }}</b>.
     @if (balanca.ultimoErro()) { <span class="txt-erro">{{ balanca.ultimoErro() }}</span> }
     @if (!balanca.serialDisponivel) {
-      <br />⚠️ Para usar a balança de verdade, abra o sistema no <b>Chrome ou Edge</b> pelo endereço seguro <b>https://app.wnlabs.com.br</b>
+      <br /><app-icone nome="triangle-alert" /> Para usar a balança de verdade, abra o sistema no <b>Chrome ou Edge</b> pelo endereço seguro <b>https://app.wnlabs.com.br</b>
       (o navegador só libera a porta serial em endereço https).
     }
   </p>
 </section>
 
 <section class="painel secao">
-  <h2>🖨️ Impressora de cupom <small class="neste">neste computador</small></h2>
+  <h2><app-icone nome="printer" /> Impressora de cupom <small class="neste">neste computador</small></h2>
   <p class="explica">Impressora térmica instalada no Windows como impressora comum (Elgin, Epson, Bematech, Daruma…).
     Escolha ela como padrão na janela de impressão.</p>
   <div class="impressora">
@@ -184,7 +184,7 @@
         <input type="checkbox" [ngModel]="impressora.config().automatica" (ngModelChange)="impressora.salvarConfig({ automatica: $event })" />
         Imprimir sozinho ao finalizar a venda
       </label>
-      <button type="button" class="botao" (click)="imprimirTeste()">🖨️ Imprimir cupom de teste</button>
+      <button type="button" class="botao" (click)="imprimirTeste()"><app-icone nome="printer" /> Imprimir cupom de teste</button>
       <details class="dica">
         <summary>Imprimir direto, sem a janela de impressão</summary>
         <ol>

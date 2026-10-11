@@ -146,7 +146,7 @@ export class ImpressoraService {
         <div class="linha"><span>Devia</span><span>${dinheiro(r.saldoAnterior)}</span></div>
         <div class="linha forte grande"><span>PAGOU (${esc(rotuloForma(r.forma))})</span><span>${dinheiro(r.valor)}</span></div>
         ${troco ? `<div class="linha"><span>Recebido</span><span>${dinheiro(recebido!)}</span></div><div class="linha forte"><span>TROCO</span><span>${dinheiro(troco)}</span></div>` : ''}
-        <div class="linha forte"><span>${r.saldoAtual > 0 ? 'AINDA DEVE' : r.saldoAtual < 0 ? 'CRÉDITO' : 'SALDO'}</span><span>${r.saldoAtual === 0 ? 'quitado ✓' : dinheiro(Math.abs(r.saldoAtual))}</span></div>
+        <div class="linha forte"><span>${r.saldoAtual > 0 ? 'AINDA DEVE' : r.saldoAtual < 0 ? 'CRÉDITO' : 'SALDO'}</span><span>${r.saldoAtual === 0 ? 'quitado' : dinheiro(Math.abs(r.saldoAtual))}</span></div>
         <div class="tracos"></div>
         <div class="centro">Obrigado!</div>
         <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>

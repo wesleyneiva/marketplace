@@ -1,11 +1,11 @@
 <header class="titulo-pagina">
   <div>
-    <h1>🚚 Fornecedores</h1>
+    <h1><app-icone nome="truck" /> Fornecedores</h1>
     <p>De quem o mercado compra. O prazo de entrega entra no cálculo da sugestão de compra.</p>
   </div>
   <div class="botoes-topo">
     <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="incluirInativos.set(!incluirInativos())">Mostrar inativos</button>
-    <a class="botao" routerLink="/compras">🛍️ Compras</a>
+    <a class="botao" routerLink="/compras"><app-icone nome="shopping-bag" /> Compras</a>
     <button type="button" class="botao primario" (click)="abrir()">+ Novo fornecedor</button>
   </div>
 </header>
@@ -33,7 +33,7 @@
 
 <dialog #dlg class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
-    <header><h2>{{ editando() ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2><button type="button" class="fechar" (click)="dlg.close()">✕</button></header>
+    <header><h2>{{ editando() ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <label>Nome *<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="120" autofocus /></label>
       <div class="dupla">

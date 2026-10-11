@@ -3,31 +3,32 @@ import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ContaFinanceira, ICONE_CONTA, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
+import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // Transferência entre contas (ex.: levar o dinheiro do cofre para o banco). Não é receita nem despesa.
 @Component({
   selector: 'app-dialogo-transferencia',
-  imports: [FormsModule, CurrencyPipe],
+  imports: [Icone, FormsModule, CurrencyPipe],
   styleUrl: './financeiro.scss',
   template: `
     <dialog #dlg class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
-        <header><h2>⇄ Transferência entre contas</h2><button type="button" class="fechar" (click)="dlg.close()">✕</button></header>
+        <header><h2><app-icone nome="arrow-left-right" /> Transferência entre contas</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
         <div class="corpo">
           <p class="dica">O dinheiro só muda de lugar: não é receita nem despesa (não mexe no resultado).</p>
           <div class="duas">
             <label>Sai de
               <select name="de" [(ngModel)]="form.deContaId" required>
                 @for (c of contas(); track c.id) {
-                  <option [ngValue]="c.id">{{ icone[c.tipo] }} {{ c.nome }} ({{ c.saldo | currency: 'BRL' }})</option>
+                  <option [ngValue]="c.id">{{ c.nome }} ({{ c.saldo | currency: 'BRL' }})</option>
                 }
               </select>
             </label>
             <label>Entra em
               <select name="para" [(ngModel)]="form.paraContaId" required>
                 @for (c of contas(); track c.id) {
-                  <option [ngValue]="c.id" [disabled]="c.id === form.deContaId">{{ icone[c.tipo] }} {{ c.nome }}</option>
+                  <option [ngValue]="c.id" [disabled]="c.id === form.deContaId">{{ c.nome }}</option>
                 }
               </select>
             </label>
@@ -58,7 +59,6 @@ export class DialogoTransferencia {
 
   readonly salvo = output<string>();
 
-  protected readonly icone = ICONE_CONTA;
   protected readonly hoje = hojeIso();
   protected readonly contas = signal<ContaFinanceira[]>([]);
   protected readonly erro = signal<string | null>(null);

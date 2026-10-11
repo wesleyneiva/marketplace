@@ -3,7 +3,7 @@
 } @else if (caixa() === null) {
   <!-- ======================= ABRIR CAIXA ======================= -->
   <section class="painel abrir">
-    <h1>🧾 Abrir caixa</h1>
+    <h1><app-icone nome="receipt" /> Abrir caixa</h1>
     <p>Conte o dinheiro que está na gaveta antes de começar.</p>
     <form (ngSubmit)="abrirCaixa()">
       <label>Caixa nº
@@ -27,33 +27,33 @@
   <!-- ======================= CAIXA ABERTO ======================= -->
   <div class="pdv">
     <header class="barra">
-      <strong>🧾 Caixa {{ cx.numeroCaixa }}</strong>
+      <strong><app-icone nome="receipt" /> Caixa {{ cx.numeroCaixa }}</strong>
       <span>{{ cx.operador }}</span>
       <span class="pilula">{{ cx.quantidadeVendas }} {{ cx.quantidadeVendas === 1 ? 'venda' : 'vendas' }} · {{ cx.totalVendido | currency: 'BRL' }}</span>
       <span class="espaco"></span>
       @if (ultimoCupom(); as u) {
-        <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda">🧾 Último cupom (#{{ u.id }})</button>
+        <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda"><app-icone nome="receipt" /> Último cupom (#{{ u.id }})</button>
       }
-      <button type="button" class="botao pequeno" (click)="abrirReceber()" title="Cliente veio pagar o fiado (F6)">📒 Receber fiado <kbd>F6</kbd></button>
-      <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')">↑ Sangria</button>
-      <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')">↓ Suprimento</button>
+      <button type="button" class="botao pequeno" (click)="abrirReceber()" title="Cliente veio pagar o fiado (F6)"><app-icone nome="notebook-pen" /> Receber fiado <kbd>F6</kbd></button>
+      <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')"><app-icone nome="arrow-up-from-line" /> Sangria</button>
+      <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')"><app-icone nome="arrow-down-to-line" /> Suprimento</button>
       <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>
     </header>
 
-    @if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
-    @if (erro() && !produtoPeso()) { <div class="erro" role="alert">⚠️ {{ erro() }}</div> }
+    @if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
+    @if (erro() && !produtoPeso()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erro() }}</div> }
 
     <div class="colunas">
       <!-- ----- Esquerda: busca + itens ----- -->
       <section class="esquerda">
         @if (produtoPeso(); as pp) {
           <form class="peso" (ngSubmit)="confirmarPeso()">
-            <span>⚖️ Peso de <b>{{ pp.nome }}</b> ({{ pp.precoVenda | currency: 'BRL' }}/{{ pp.unidade }})</span>
+            <span><app-icone nome="scale" /> Peso de <b>{{ pp.nome }}</b> ({{ pp.precoVenda | currency: 'BRL' }}/{{ pp.unidade }})</span>
             <input #campoPeso name="peso" [(ngModel)]="textoPeso" inputmode="decimal" placeholder="Ex.: 1,235"
                    (keydown.escape)="cancelarPeso()" (keydown.f4)="$event.preventDefault(); lerBalanca()" />
             @if (balanca.ativa()) {
               <button type="button" class="botao" (click)="lerBalanca()" [disabled]="lendoBalanca()" title="Ler o peso da balança (F4)">
-                {{ lendoBalanca() ? '⏳' : '⚖️' }} Balança <kbd>F4</kbd>
+                <app-icone [nome]="lendoBalanca() ? 'loader-circle' : 'scale'" [attr.girando]="lendoBalanca() ? '' : null" /> Balança <kbd>F4</kbd>
               </button>
             }
             <button type="submit" class="botao primario">OK</button>
@@ -66,7 +66,7 @@
                    placeholder="Bipe o código ou digite o nome · 3*arroz = 3 unidades"
                    (input)="digitar()" (keydown.enter)="buscar()" (keydown.arrowdown)="moverSelecao(1, $event)"
                    (keydown.arrowup)="moverSelecao(-1, $event)" aria-label="Buscar produto" />
-            @if (buscando()) { <span class="girando">⏳</span> }
+            @if (buscando()) { <app-icone class="girando" nome="loader-circle" girando /> }
             @if (resultados().length) {
               <ul class="resultados" role="listbox">
                 @for (p of resultados(); track p.id; let i = $index) {
@@ -96,10 +96,10 @@
                   <td class="num">{{ item.quantidade | quantidade: item.produto.unidade }}</td>
                   <td class="num">{{ item.produto.precoVenda | currency: 'BRL' }}</td>
                   <td class="num forte">{{ totalItem(item) | currency: 'BRL' }}</td>
-                  <td><button type="button" class="remover" (click)="remover(item)" [attr.aria-label]="'Remover ' + item.produto.nome">✕</button></td>
+                  <td><button type="button" class="remover" (click)="remover(item)" [attr.aria-label]="'Remover ' + item.produto.nome"><app-icone nome="x" /></button></td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="vazio">🛒 Caixa livre — bipe o primeiro produto.</td></tr>
+                <tr><td colspan="6" class="vazio"><app-icone nome="shopping-cart" /> Caixa livre — bipe o primeiro produto.</td></tr>
               }
             </tbody>
           </table>
@@ -134,7 +134,7 @@
 
   <!-- ======================= PAGAMENTO ======================= -->
   <dialog #dlgPagamento class="janela" (close)="erro.set(null); pagamentos.set([])">
-    <header><h2>💰 Pagamento</h2><button type="button" class="fechar" (click)="dlgPagamento.close()">✕</button></header>
+    <header><h2><app-icone nome="circle-dollar-sign" /> Pagamento</h2><button type="button" class="fechar" (click)="dlgPagamento.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <div class="placar">
         <div><span>Total</span><strong>{{ total() | currency: 'BRL' }}</strong></div>
@@ -150,7 +150,7 @@
         <div class="formas">
           @for (f of formas; track f.valor) {
             <button type="button" class="botao" [class.ligado]="formaAtual() === f.valor" (click)="escolherForma(f.valor)">
-              {{ f.icone }} {{ f.rotulo }} <kbd>Alt+{{ f.tecla }}</kbd>
+              <app-icone [nome]="f.icone" /> {{ f.rotulo }} <kbd>Alt+{{ f.tecla }}</kbd>
             </button>
           }
         </div>
@@ -158,16 +158,16 @@
           @if (clienteFiado(); as cf) {
             <div class="cliente-escolhido" [class.travado]="fiadoTravado()">
               <div>
-                <b>📒 {{ cf.nome }}</b>@if (cf.apelido) { <small> · {{ cf.apelido }}</small> }
+                <b><app-icone nome="notebook-pen" /> {{ cf.nome }}</b>@if (cf.apelido) { <small> · {{ cf.apelido }}</small> }
                 <small class="linha-info">{{ rotuloSaldo(cf.saldo) }} · limite {{ cf.limiteCredito | currency: 'BRL' }} · disponível {{ cf.disponivel | currency: 'BRL' }}
                   @if (cf.diasAtraso > 0) { · <b class="atraso">{{ cf.diasAtraso }} dia(s) de atraso ({{ cf.vencido | currency: 'BRL' }})</b> }</small>
               </div>
               <button type="button" class="botao pequeno" (click)="trocarClienteFiado()">Trocar</button>
             </div>
             @if (fiadoTravado(); as motivo) {
-              <div class="erro" role="alert">⛔ {{ motivo }} <b>Só um gerente pode liberar.</b></div>
+              <div class="erro" role="alert"><app-icone nome="ban" /> {{ motivo }} <b>Só um gerente pode liberar.</b></div>
             } @else if (cf.restricao && ehGerencia()) {
-              <div class="aviso-gerente" role="status">⚠️ {{ cf.restricao }} Você é gerente: pode liberar (fica registrado na caderneta).</div>
+              <div class="aviso-gerente" role="status"><app-icone nome="triangle-alert" /> {{ cf.restricao }} Você é gerente: pode liberar (fica registrado na caderneta).</div>
             }
           } @else {
           <div class="busca-cliente">
@@ -181,13 +181,13 @@
                   <li><button type="button" (click)="escolherClienteFiado(c)">
                     <b>{{ c.nome }}</b>@if (c.apelido) { <small> · {{ c.apelido }}</small> }@if (c.telefoneFinal) { <small> · fone …{{ c.telefoneFinal }}</small> }
                     <span class="situacao" [class.atraso]="c.diasAtraso > 0" [class.restrito]="c.restricao">
-                      {{ rotuloSaldo(c.saldo) }}@if (c.diasAtraso > 0) { · {{ c.diasAtraso }} dia(s) de atraso }@if (c.restricao) { · ⛔ }
+                      {{ rotuloSaldo(c.saldo) }}@if (c.diasAtraso > 0) { · {{ c.diasAtraso }} dia(s) de atraso }@if (c.restricao) { · <app-icone nome="ban" /> }
                     </span>
                   </button></li>
                 }
               </ul>
             } @else if (textoCliente.trim().length >= 2 && !buscandoCliente()) {
-              <small class="dica">Nenhum cliente com "{{ textoCliente }}". O cadastro é feito pelo gerente em 📒 Fiado.</small>
+              <small class="dica">Nenhum cliente com "{{ textoCliente }}". O cadastro é feito pelo gerente em <app-icone nome="notebook-pen" /> Fiado.</small>
             }
           </div>
           }
@@ -212,7 +212,7 @@
         <ul class="lista-pagamentos">
           @for (p of pagamentos(); track $index) {
             <li><span>{{ rotuloForma(p.forma) }}@if (p.forma === 'Fiado' && clienteFiado()) { · {{ clienteFiado()!.nome }} }</span><b>{{ p.valor | currency: 'BRL' }}</b>
-              <button type="button" class="remover" (click)="removerPagamento($index)" aria-label="Remover pagamento">✕</button></li>
+              <button type="button" class="remover" (click)="removerPagamento($index)" aria-label="Remover pagamento"><app-icone nome="x" /></button></li>
           }
         </ul>
       }
@@ -254,7 +254,7 @@
         </div>
         @if (c.cliente; as cli) {
           <div class="cupom-fiado">
-            <b>📒 {{ cli.nome }}</b>
+            <b><app-icone nome="notebook-pen" /> {{ cli.nome }}</b>
             @if (cli.saldoDevedor !== null) {
               <span>{{ rotuloSaldo(cli.saldoDevedor) }}@if (cli.vencimentoFiado) { · esta compra vence {{ cli.vencimentoFiado | date: 'dd/MM/yyyy' : 'UTC' }} }</span>
               <small>Imprima e peça a assinatura do cliente.</small>
@@ -264,7 +264,7 @@
         <small class="cupom-rodape">Obrigado pela preferência! · Não é documento fiscal</small>
       </div>
       <footer>
-        <button type="button" class="botao grande" (click)="imprimirCupom()">🖨️ Imprimir</button>
+        <button type="button" class="botao grande" (click)="imprimirCupom()"><app-icone nome="printer" /> Imprimir</button>
         <button #btnNovaVenda type="button" class="botao primario grande" (click)="novaVenda()">Nova venda <kbd>Enter</kbd></button>
       </footer>
     }
@@ -274,8 +274,8 @@
   <dialog #dlgMovimento class="janela pequena" (close)="erro.set(null)">
     <form (ngSubmit)="confirmarMovimento()">
       <header>
-        <h2>{{ tipoMovimento() === 'sangria' ? '↑ Sangria (retirar dinheiro)' : '↓ Suprimento (colocar dinheiro)' }}</h2>
-        <button type="button" class="fechar" (click)="dlgMovimento.close()">✕</button>
+        <h2><app-icone [nome]="tipoMovimento() === 'sangria' ? 'arrow-up-from-line' : 'arrow-down-to-line'" /> {{ tipoMovimento() === 'sangria' ? 'Sangria (retirar dinheiro)' : 'Suprimento (colocar dinheiro)' }}</h2>
+        <button type="button" class="fechar" (click)="dlgMovimento.close()"><app-icone nome="x" /></button>
       </header>
       <div class="corpo">
         @if (tipoMovimento() === 'sangria') {
@@ -295,7 +295,7 @@
 
   <!-- ======================= FECHAMENTO ======================= -->
   <dialog #dlgFechar class="janela" (close)="fechamento() ? concluirFechamento() : erro.set(null)">
-    <header><h2>🔒 Fechar caixa {{ cx.numeroCaixa }}</h2><button type="button" class="fechar" (click)="dlgFechar.close()">✕</button></header>
+    <header><h2><app-icone nome="lock" /> Fechar caixa {{ cx.numeroCaixa }}</h2><button type="button" class="fechar" (click)="dlgFechar.close()"><app-icone nome="x" /></button></header>
     @if (!fechamento()) {
       <form (ngSubmit)="confirmarFechamento()">
         <div class="corpo">
@@ -326,9 +326,9 @@
       @let f = fechamento()!;
       <div class="corpo">
         <div class="resultado" [class.ok]="f.diferenca === 0" [class.sobra]="(f.diferenca ?? 0) > 0" [class.falta-dinheiro]="(f.diferenca ?? 0) < 0">
-          @if (f.diferenca === 0) { ✅ Caixa conferido: bateu certinho! }
-          @else if ((f.diferenca ?? 0) > 0) { ⚠️ Sobrou {{ f.diferenca | currency: 'BRL' }} }
-          @else { ❌ Faltou {{ -(f.diferenca ?? 0) | currency: 'BRL' }} }
+          @if (f.diferenca === 0) { <app-icone nome="circle-check" /> Caixa conferido: bateu certinho! }
+          @else if ((f.diferenca ?? 0) > 0) { <app-icone nome="triangle-alert" /> Sobrou {{ f.diferenca | currency: 'BRL' }} }
+          @else { <app-icone nome="circle-x" /> Faltou {{ -(f.diferenca ?? 0) | currency: 'BRL' }} }
         </div>
         <div class="resumo-fechar">
           <div><span>Troco inicial</span><b>{{ f.valorAbertura | currency: 'BRL' }}</b></div>
@@ -341,7 +341,7 @@
         </div>
       </div>
       <footer>
-        <button type="button" class="botao" (click)="imprimirFechamento()">🖨️ Imprimir fechamento</button>
+        <button type="button" class="botao" (click)="imprimirFechamento()"><app-icone nome="printer" /> Imprimir fechamento</button>
         <button type="button" class="botao primario" (click)="concluirFechamento()">Concluir</button>
       </footer>
     }
@@ -349,7 +349,7 @@
 
   <!-- ======================= RECEBER FIADO (F6) ======================= -->
   <dialog #dlgReceber class="janela" (close)="aoFecharReceber()">
-    <header><h2>📒 Receber fiado</h2><button type="button" class="fechar" (click)="dlgReceber.close()">✕</button></header>
+    <header><h2><app-icone nome="notebook-pen" /> Receber fiado</h2><button type="button" class="fechar" (click)="dlgReceber.close()"><app-icone nome="x" /></button></header>
     @if (!recibo()) {
       <div class="corpo">
         @if (clienteReceber(); as cr) {
@@ -365,7 +365,7 @@
           } @else {
             <div class="formas">
               @for (f of formasReceber; track f.valor) {
-                <button type="button" class="botao" [class.ligado]="formaReceber() === f.valor" (click)="formaReceber.set(f.valor)">{{ f.icone }} {{ f.rotulo }}</button>
+                <button type="button" class="botao" [class.ligado]="formaReceber() === f.valor" (click)="formaReceber.set(f.valor)"><app-icone [nome]="f.icone" /> {{ f.rotulo }}</button>
               }
             </div>
             <form class="receber" (ngSubmit)="confirmarReceber()">
@@ -391,13 +391,13 @@
                   <li><button type="button" (click)="escolherClienteReceber(c)">
                     <b>{{ c.nome }}</b>@if (c.apelido) { <small> · {{ c.apelido }}</small> }@if (c.telefoneFinal) { <small> · fone …{{ c.telefoneFinal }}</small> }
                     <span class="situacao" [class.atraso]="c.diasAtraso > 0" [class.restrito]="c.restricao">
-                      {{ rotuloSaldo(c.saldo) }}@if (c.diasAtraso > 0) { · {{ c.diasAtraso }} dia(s) de atraso }@if (c.restricao) { · ⛔ }
+                      {{ rotuloSaldo(c.saldo) }}@if (c.diasAtraso > 0) { · {{ c.diasAtraso }} dia(s) de atraso }@if (c.restricao) { · <app-icone nome="ban" /> }
                     </span>
                   </button></li>
                 }
               </ul>
             } @else if (textoCliente.trim().length >= 2 && !buscandoCliente()) {
-              <small class="dica">Nenhum cliente com "{{ textoCliente }}". O cadastro é feito pelo gerente em 📒 Fiado.</small>
+              <small class="dica">Nenhum cliente com "{{ textoCliente }}". O cadastro é feito pelo gerente em <app-icone nome="notebook-pen" /> Fiado.</small>
             }
           </div>
         }
@@ -407,15 +407,15 @@
     } @else {
       @let r = recibo()!;
       <div class="corpo">
-        <div class="resultado ok">✅ Recebido {{ r.valor | currency: 'BRL' }} de {{ r.cliente }}</div>
+        <div class="resultado ok"><app-icone nome="circle-check" /> Recebido {{ r.valor | currency: 'BRL' }} de {{ r.cliente }}</div>
         <div class="resumo-fechar">
           <div><span>Devia</span><b>{{ r.saldoAnterior | currency: 'BRL' }}</b></div>
           <div><span>Pagou ({{ rotuloForma(r.forma) }})</span><b>{{ r.valor | currency: 'BRL' }}</b></div>
-          <div><span>{{ r.saldoAtual > 0 ? 'Ainda deve' : 'Situação' }}</span><b>{{ r.saldoAtual > 0 ? (r.saldoAtual | currency: 'BRL') : 'quitado ✓' }}</b></div>
+          <div><span>{{ r.saldoAtual > 0 ? 'Ainda deve' : 'Situação' }}</span><b>{{ r.saldoAtual > 0 ? (r.saldoAtual | currency: 'BRL') : 'quitado' }}</b></div>
         </div>
       </div>
       <footer>
-        <button type="button" class="botao" (click)="imprimirRecibo()">🖨️ Imprimir recibo</button>
+        <button type="button" class="botao" (click)="imprimirRecibo()"><app-icone nome="printer" /> Imprimir recibo</button>
         <button type="button" class="botao primario" (click)="concluirReceber()">Concluir</button>
       </footer>
     }

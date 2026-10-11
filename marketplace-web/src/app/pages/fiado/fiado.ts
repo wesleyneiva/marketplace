@@ -8,13 +8,14 @@ import { DiaPipe } from '../../shared/dia.pipe';
 import { ClienteFiado, DIAS_TOLERANCIA, ResumoFiado, URL_FIADO, linkCobranca, telefoneBonito } from '../../core/api/fiado.api';
 import { mensagemDeErro } from '../../core/api/financeiro.api';
 import { DialogoCaderneta } from './dialogo-caderneta';
+import { Icone } from '../../shared/icone';
 
 type Situacao = 'devendo' | 'atrasados' | 'todos' | 'inativos';
 
-// 📒 Fiado: o painel da caderneta, os clientes da loja e o cadastro. A venda e o recebimento no balcão são no PDV.
+// Fiado: o painel da caderneta, os clientes da loja e o cadastro. A venda e o recebimento no balcão são no PDV.
 @Component({
   selector: 'app-fiado',
-  imports: [CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, DialogoCaderneta],
+  imports: [Icone, CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, DialogoCaderneta],
   templateUrl: './fiado.html',
   styleUrls: ['../financeiro/financeiro.scss', './fiado.scss'],
 })

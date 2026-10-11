@@ -55,9 +55,27 @@
   .topo-cartao {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     color: var(--cor-texto-suave);
     font-size: 14px;
     font-weight: 600;
+  }
+
+  // Ícone do indicador num quadradinho com o tom da marca.
+  .icone {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: var(--cor-primaria-clara);
+    color: var(--cor-primaria);
+    font-size: 17px;
+
+    &.alerta {
+      background: #fef3c7;
+      color: #b45309;
+    }
   }
 
   .valor {
@@ -101,8 +119,15 @@
   padding: 16px 18px;
 
   h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     margin: 0 0 8px;
     font-size: 15px;
+
+    app-icone {
+      color: var(--cor-texto-suave);
+    }
   }
 }
 
@@ -131,8 +156,15 @@
 }
 
 .vazio {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   margin: 8px 0 0;
   color: var(--cor-texto-suave);
+
+  app-icone {
+    color: var(--cor-primaria);
+  }
 }
 
 .simulador {
@@ -147,7 +179,14 @@
   background: var(--cor-primaria-clara);
 
   .robo {
-    font-size: 24px;
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--cor-superficie);
+    color: var(--cor-primaria);
+    font-size: 20px;
   }
 
   .info {

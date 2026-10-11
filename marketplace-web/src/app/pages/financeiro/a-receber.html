@@ -9,7 +9,7 @@
 
   <section class="painel custo">
     <div class="texto">
-      <span class="titulo">💳 Quanto a maquininha custou neste mês</span>
+      <span class="titulo"><app-icone nome="credit-card" /> Quanto a maquininha custou neste mês</span>
       <strong>{{ r.taxasNoMes | currency: 'BRL' }}</strong>
       <small>
         de {{ r.vendasEletronicasNoMes | currency: 'BRL' }} vendidos em cartão e PIX
@@ -17,9 +17,9 @@
       </small>
     </div>
     <div class="acoes-custo">
-      <button type="button" class="botao" (click)="configurar()">⚙️ Configurar maquininha</button>
-      <button type="button" class="botao" (click)="atualizar()" [disabled]="atualizando()">{{ atualizando() ? 'Atualizando…' : '🔄 Pôr em dia agora' }}</button>
-      @if (retorno(); as ret) { <span class="retorno" [class.ruim]="ret.ruim" role="status">{{ ret.ruim ? '✋' : '✅' }} {{ ret.texto }}</span> }
+      <button type="button" class="botao" (click)="configurar()"><app-icone nome="settings" /> Configurar maquininha</button>
+      <button type="button" class="botao" (click)="atualizar()" [disabled]="atualizando()"><app-icone nome="refresh-cw" [attr.girando]="atualizando() ? '' : null" /> {{ atualizando() ? 'Atualizando…' : 'Pôr em dia agora' }}</button>
+      @if (retorno(); as ret) { <span class="retorno" [class.ruim]="ret.ruim" role="status"><app-icone [nome]="ret.ruim ? 'circle-alert' : 'circle-check'" /> {{ ret.texto }}</span> }
     </div>
   </section>
 
@@ -49,7 +49,7 @@
         <tr>
           <td class="data"><strong>{{ (r.recebidoEm ?? r.previsao) | dia }}</strong></td>
           <td>{{ r.dataVenda | dia }}<small class="detalhe">Caixa {{ r.numeroCaixa }}</small></td>
-          <td>{{ iconeForma[r.forma] }} {{ nomeForma[r.forma] }}</td>
+          <td><app-icone [nome]="iconeForma[r.forma]" /> {{ nomeForma[r.forma] }}</td>
           <td class="num">{{ r.valorBruto | currency: 'BRL' }}</td>
           <td class="num valor-saida">{{ r.taxa | currency: 'BRL' }}<small class="detalhe">{{ r.taxaPercentual | number: '1.2-2' }}%</small></td>
           <td class="num forte">{{ r.valorLiquido | currency: 'BRL' }}</td>
@@ -67,7 +67,7 @@
 </section>
 
 <p class="explica">
-  💡 Débito e crédito entram aqui quando o caixa <b>fecha</b>. No dia previsto, o sistema lança sozinho o depósito no banco:
+  <app-icone nome="lightbulb" /> Débito e crédito entram aqui quando o caixa <b>fecha</b>. No dia previsto, o sistema lança sozinho o depósito no banco:
   o valor vendido em "Vendas no PDV" e a taxa em "Taxas de cartão e PIX" — assim a taxa aparece no resultado do mês.
 </p>
 

@@ -14,7 +14,7 @@ public static class SomenteLeitura
             && caminho.StartsWithSegments("/api") && !caminho.StartsWithSegments("/api/auth/logout"))
         {
             ctx.Response.StatusCode = StatusCodes.Status403Forbidden;
-            await ctx.Response.WriteAsJsonAsync(new { mensagem = "Modo demonstração: aqui é só para olhar. 🙂" });
+            await ctx.Response.WriteAsJsonAsync(new { mensagem = "Modo demonstração: aqui é só para olhar." });
             return;
         }
         await proximo();

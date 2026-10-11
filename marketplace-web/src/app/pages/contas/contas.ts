@@ -6,8 +6,9 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
 import {
-  CategoriaFinanceira, ContaFinanceira, ICONE_CONTA, URL_FINANCEIRO, categoriasPorGrupo,
+  CategoriaFinanceira, ContaFinanceira, URL_FINANCEIRO, categoriasPorGrupo,
 } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // Formatos iguais a Contracts/ContasDtos.cs.
 interface Conta {
@@ -52,7 +53,7 @@ const FORMAS = ['PIX', 'Boleto', 'Dinheiro', 'Transferência', 'Cartão de débi
 // Contas a pagar: as parcelas das notas (entram sozinhas pela NF-e) e as lançadas à mão (aluguel, luz, internet...).
 @Component({
   selector: 'app-contas',
-  imports: [FormsModule, CurrencyPipe, DiaPipe, RouterLink],
+  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink],
   templateUrl: './contas.html',
   styleUrl: './contas.scss',
 })
@@ -68,7 +69,6 @@ export class Contas {
   protected readonly categorias = httpResource<CategoriaFinanceira[]>(() => ({ url: `${URL_FINANCEIRO}/categorias`, params: { incluirInativas: true } }));
   protected readonly contasFinanceiras = httpResource<ContaFinanceira[]>(() => `${URL_FINANCEIRO}/contas`);
   protected readonly grupos = computed(() => categoriasPorGrupo(this.categorias.value() ?? [], 'Saida', this.editando()?.categoriaId));
-  protected readonly icone = ICONE_CONTA;
 
   // ?situacao=pagas (ex.: veio do "Ver conta" do Financeiro).
   readonly situacao = input<string>();

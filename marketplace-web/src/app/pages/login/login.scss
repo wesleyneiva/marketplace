@@ -99,6 +99,10 @@ input {
 }
 
 .entrar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 24px;
   padding: 12px;
   border: 0;

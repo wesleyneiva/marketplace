@@ -59,11 +59,11 @@ export interface AjusteRequest {
 }
 
 export const TIPOS_MOVIMENTACAO: { valor: TipoMovimentacao; rotulo: string; icone: string }[] = [
-  { valor: 'Entrada', rotulo: 'Entrada', icone: '📥' },
-  { valor: 'Venda', rotulo: 'Venda', icone: '🧾' },
-  { valor: 'Perda', rotulo: 'Perda', icone: '🗑️' },
-  { valor: 'Ajuste', rotulo: 'Ajuste', icone: '⚖️' },
-  { valor: 'Inventario', rotulo: 'Inventário', icone: '📋' },
+  { valor: 'Entrada', rotulo: 'Entrada', icone: 'package-plus' },
+  { valor: 'Venda', rotulo: 'Venda', icone: 'receipt' },
+  { valor: 'Perda', rotulo: 'Perda', icone: 'package-minus' },
+  { valor: 'Ajuste', rotulo: 'Ajuste', icone: 'scale' },
+  { valor: 'Inventario', rotulo: 'Inventário', icone: 'clipboard-list' },
 ];
 
 @Injectable({ providedIn: 'root' })

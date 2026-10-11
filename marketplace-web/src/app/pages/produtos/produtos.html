@@ -1,13 +1,13 @@
 <header class="titulo-pagina">
   <div>
-    <h1>📦 Produtos</h1>
+    <h1><app-icone nome="package" /> Produtos</h1>
     <p>
       @if (produtos.value(); as p) { {{ p.total }} {{ p.total === 1 ? 'produto' : 'produtos' }} } @else { Carregando… }
     </p>
   </div>
   <div class="botoes-topo">
-    <a class="botao" routerLink="/produtos/etiquetas">🏷️ Etiquetas</a>
-    <a class="botao" routerLink="/produtos/importar">📥 Importar planilha</a>
+    <a class="botao" routerLink="/produtos/etiquetas"><app-icone nome="tag" /> Etiquetas</a>
+    <a class="botao" routerLink="/produtos/importar"><app-icone nome="import" /> Importar planilha</a>
     <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
   </div>
 </header>
@@ -24,7 +24,7 @@
   </select>
 
   <button type="button" class="botao" [class.ligado]="estoqueBaixo()" (click)="alternarEstoqueBaixo()">
-    ⚠️ Estoque baixo
+    <app-icone nome="triangle-alert" /> Estoque baixo
   </button>
   <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="alternarInativos()">
     Mostrar inativos
@@ -65,7 +65,7 @@
             <td class="num">
               {{ p.estoqueAtual | number: (p.unidade === 'KG' ? '1.3-3' : '1.0-0') }} {{ p.unidade }}
               @if (p.estoqueBaixo && p.ativo) {
-                <span class="selo alerta" [title]="'Mínimo: ' + p.estoqueMinimo">⚠️ baixo</span>
+                <span class="selo alerta" [title]="'Mínimo: ' + p.estoqueMinimo"><app-icone nome="triangle-alert" /> baixo</span>
               }
               @if (!p.ativo) {
                 <span class="selo inativo">inativo</span>
@@ -91,7 +91,7 @@
 
 @if (totalPaginas() > 1) {
   <nav class="paginacao" aria-label="Paginação">
-    <button class="botao pequeno" [disabled]="pagina() === 1" (click)="irParaPagina(pagina() - 1)">← Anterior</button>
+    <button class="botao pequeno" [disabled]="pagina() === 1" (click)="irParaPagina(pagina() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
     <span>Página {{ pagina() }} de {{ totalPaginas() }}</span>
     <button class="botao pequeno" [disabled]="pagina() === totalPaginas()" (click)="irParaPagina(pagina() + 1)">Próxima →</button>
   </nav>

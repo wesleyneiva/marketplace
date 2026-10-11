@@ -1,14 +1,14 @@
-<a routerLink="/produtos" class="voltar">← Produtos</a>
+<a routerLink="/produtos" class="voltar"><app-icone nome="arrow-left" /> Produtos</a>
 <header class="titulo-pagina">
   <div>
-    <h1>📥 Importar produtos</h1>
+    <h1><app-icone nome="import" /> Importar produtos</h1>
     <p>Cadastre ou atualize muitos produtos de uma vez com uma planilha do Excel.</p>
   </div>
 </header>
 
 @if (resultado(); as r) {
   <section class="painel sucesso" role="status">
-    <span class="icone">✅</span>
+    <span class="icone"><app-icone nome="circle-check" /></span>
     <div>
       <h2>{{ r.novos + r.atualizados }} {{ r.novos + r.atualizados === 1 ? 'produto importado' : 'produtos importados' }}</h2>
       <ul>
@@ -25,7 +25,7 @@
       </ul>
       <div class="botoes">
         <a class="botao primario" routerLink="/produtos">Ver produtos</a>
-        <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }">🏷️ Etiquetas dos preços de hoje</a>
+        <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }"><app-icone nome="tag" /> Etiquetas dos preços de hoje</a>
         <button type="button" class="botao" (click)="recomecar()">Importar outra planilha</button>
       </div>
     </div>
@@ -37,7 +37,7 @@
       <div>
         <h2>Baixe o modelo</h2>
         <p>Planilha pronta com as colunas certas, um exemplo e as instruções. As suas categorias já vêm no menu.</p>
-        <a class="botao" [href]="urlModelo" download>⬇️ Baixar modelo (.xlsx)</a>
+        <a class="botao" [href]="urlModelo" download><app-icone nome="download" /> Baixar modelo (.xlsx)</a>
       </div>
     </div>
 
@@ -54,10 +54,10 @@
          (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
     <input type="file" accept=".xlsx,.csv" (change)="escolherArquivo($event)" [disabled]="enviando()" class="sr-only" />
     @if (enviando()) {
-      <strong>⏳ Lendo a planilha…</strong>
+      <strong><app-icone nome="loader-circle" girando /> Lendo a planilha…</strong>
       <span>Conferindo cada linha. Nada é gravado ainda.</span>
     } @else {
-      <strong>📄 Clique para escolher a planilha</strong>
+      <strong><app-icone nome="file-text" /> Clique para escolher a planilha</strong>
       <span>ou arraste o arquivo para cá · .xlsx ou .csv · até 5 MB</span>
     }
   </label>
@@ -70,7 +70,7 @@
 
   <section class="painel resumo">
     <div class="arquivo">
-      <span>📄 <strong>{{ p.arquivo }}</strong> · {{ p.totalLinhas }} {{ p.totalLinhas === 1 ? 'linha' : 'linhas' }}</span>
+      <span><app-icone nome="file-text" /> <strong>{{ p.arquivo }}</strong> · {{ p.totalLinhas }} {{ p.totalLinhas === 1 ? 'linha' : 'linhas' }}</span>
       <button type="button" class="botao pequeno" (click)="recomecar()" [disabled]="importando()">Enviar outra planilha</button>
     </div>
 
@@ -99,10 +99,10 @@
     }
 
     @if (p.categoriasNovas.length) {
-      <p class="nota">🆕 Categorias novas que serão criadas: <strong>{{ p.categoriasNovas.join(', ') }}</strong></p>
+      <p class="nota"><app-icone nome="sparkles" /> Categorias novas que serão criadas: <strong>{{ p.categoriasNovas.join(', ') }}</strong></p>
     }
     @for (a of p.avisosGerais; track a) {
-      <p class="nota">⚠️ {{ a }}</p>
+      <p class="nota"><app-icone nome="triangle-alert" /> {{ a }}</p>
     }
   </section>
 
@@ -137,8 +137,8 @@
                 <small class="codigo">{{ l.codigoBarras ?? 'sem código de barras' }} · {{ l.unidade ?? '?' }}</small>
                 @if (l.erros.length || l.avisos.length) {
                   <div class="mensagens">
-                    @for (e of l.erros; track e) { <div class="msg-erro">❌ {{ e }}</div> }
-                    @for (a of l.avisos; track a) { <div class="msg-aviso">⚠️ {{ a }}</div> }
+                    @for (e of l.erros; track e) { <div class="msg-erro"><app-icone nome="circle-x" /> {{ e }}</div> }
+                    @for (a of l.avisos; track a) { <div class="msg-aviso"><app-icone nome="triangle-alert" /> {{ a }}</div> }
                   </div>
                 }
               </td>
@@ -149,7 +149,7 @@
               <td>{{ l.controlaValidade ? (l.validade | dia) : '—' }}</td>
             </tr>
           } @empty {
-            <tr><td colspan="8" class="vazio">Nenhuma linha neste filtro. 👍</td></tr>
+            <tr><td colspan="8" class="vazio">Nenhuma linha neste filtro. <app-icone nome="circle-check" /></td></tr>
           }
         </tbody>
       </table>
@@ -173,7 +173,7 @@
         }
       </div>
       <button type="button" class="botao primario" [disabled]="aproveitaveis() === 0 || importando()" (click)="importar()">
-        @if (importando()) { ⏳ Importando… } @else { ✅ Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }} }
+        @if (importando()) { <app-icone nome="loader-circle" girando /> Importando… } @else { <app-icone nome="circle-check" /> Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }} }
       </button>
     </section>
     @if (erro()) {

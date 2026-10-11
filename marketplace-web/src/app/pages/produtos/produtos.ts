@@ -3,10 +3,11 @@ import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { Categoria, Pagina, Produto, ProdutosApi } from '../../core/api/produtos.api';
+import { Icone } from '../../shared/icone';
 
 @Component({
   selector: 'app-produtos',
-  imports: [RouterLink, CurrencyPipe, DecimalPipe],
+  imports: [Icone, RouterLink, CurrencyPipe, DecimalPipe],
   templateUrl: './produtos.html',
   styleUrl: './produtos.scss',
 })

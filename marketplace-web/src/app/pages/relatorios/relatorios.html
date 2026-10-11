@@ -1,6 +1,6 @@
 <header class="titulo-pagina">
   <div>
-    <h1>📈 Relatórios</h1>
+    <h1><app-icone nome="chart-line" /> Relatórios</h1>
     <p>{{ periodo().de | dia }} a {{ periodo().ate | dia }} · todas as vendas concluídas (caixa, simulador e histórico)</p>
   </div>
   <div class="periodos" role="group" aria-label="Período">
@@ -54,15 +54,15 @@
     <section class="painel bloco insights">
       <header class="insights-topo">
         <div>
-          <h2>💡 Insights da IA</h2>
+          <h2><app-icone nome="lightbulb" /> Insights da IA</h2>
           <p>A IA (Gemini, pelo n8n) lê os números deste período e a previsão do tempo, e sugere ações.</p>
         </div>
         <button type="button" class="botao primario" (click)="gerarInsights()" [disabled]="gerando()">
-          {{ gerando() ? 'Analisando…' : insights() ? '↻ Gerar de novo' : 'Gerar insights' }}
+          <app-icone [nome]="gerando() ? 'loader-circle' : insights() ? 'refresh-cw' : 'sparkles'" [attr.girando]="gerando() ? '' : null" /> {{ gerando() ? 'Analisando…' : insights() ? 'Gerar de novo' : 'Gerar insights' }}
         </button>
       </header>
       @if (gerando()) {
-        <p class="aguarde">⏳ A IA está analisando {{ dias() }} dias de vendas, os produtos e o clima… (uns 10 a 20 segundos)</p>
+        <p class="aguarde"><app-icone nome="loader-circle" girando /> A IA está analisando {{ dias() }} dias de vendas, os produtos e o clima… (uns 10 a 20 segundos)</p>
       } @else if (erroInsights()) {
         <div class="mensagem-erro" role="alert">{{ erroInsights() }}</div>
       } @else if (insights(); as ins) {
@@ -176,7 +176,7 @@
   @if (clima.value(); as c) {
     <section class="painel bloco">
       <header>
-        <h2>🌦️ O clima influenciou as vendas?</h2>
+        <h2><app-icone nome="cloud-sun-rain" /> O clima influenciou as vendas?</h2>
         <p>Cruzamos cada venda com o clima real daquela hora em Porto Alegre.
           @if (efeitoChuva() !== null) { Com chuva, o movimento foi <b>{{ efeitoChuva()! > 0 ? '+' : '' }}{{ efeitoChuva() }}%</b> em relação às horas secas. }</p>
       </header>
@@ -194,12 +194,12 @@
 
       <div class="sensiveis">
         @for (grupo of [
-          { titulo: '🔥 Sobem no calor', lista: c.sobemNoCalor },
-          { titulo: '🥶 Sobem no frio', lista: c.sobemNoFrio },
-          { titulo: '🌧️ Sobem na chuva', lista: c.sobemNaChuva }
+          { titulo: 'Sobem no calor', icone: 'sun', lista: c.sobemNoCalor },
+          { titulo: 'Sobem no frio', icone: 'snowflake', lista: c.sobemNoFrio },
+          { titulo: 'Sobem na chuva', icone: 'cloud-rain', lista: c.sobemNaChuva }
         ]; track grupo.titulo) {
           <div class="grupo">
-            <h3>{{ grupo.titulo }}</h3>
+            <h3><app-icone [nome]="grupo.icone" /> {{ grupo.titulo }}</h3>
             @for (x of grupo.lista; track x.nome) {
               <div class="sensivel">
                 <span class="fator">{{ x.fator | number: '1.1-1' }}×</span>
@@ -213,7 +213,7 @@
       </div>
 
       <p class="nota">
-        ⚠️ <b>Correlação não é causa.</b> Só aparecem padrões com ~99,7% de confiança estatística (teste z ≥ 3 — testamos muitos produtos de uma vez, e com menos confiança alguns "padrões" seriam só sorte), mas um padrão
+        <app-icone nome="triangle-alert" /> <b>Correlação não é causa.</b> Só aparecem padrões com ~99,7% de confiança estatística (teste z ≥ 3 — testamos muitos produtos de uma vez, e com menos confiança alguns "padrões" seriam só sorte), mas um padrão
         pode ter outra explicação: as horas frias são as do começo da manhã, quando o café da manhã vende mais — por isso
         presunto e requeijão "sobem no frio".
       </p>

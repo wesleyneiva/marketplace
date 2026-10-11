@@ -1,6 +1,6 @@
 <header class="titulo-pagina">
   <div>
-    <h1>💸 Contas a pagar</h1>
+    <h1><app-icone nome="hand-coins" /> Contas a pagar</h1>
     <p>As parcelas das notas de fornecedor entram sozinhas; aluguel, luz e outras você lança aqui.</p>
   </div>
   <button type="button" class="botao primario" (click)="abrirNova()">+ Lançar conta</button>
@@ -26,7 +26,7 @@
   </section>
 }
 
-@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
 
 <nav class="abas" role="tablist">
   <button role="tab" [class.ativa]="filtro() === 'abertas'" (click)="mudarFiltro('abertas')">Em aberto</button>
@@ -70,9 +70,9 @@
             @if (c.situacao === 'Paga') {
               <button type="button" class="botao pequeno" (click)="desfazer(c)">Desfazer</button>
             } @else {
-              <button type="button" class="botao pequeno primario" (click)="abrirPagamento(c)">✅ Pagar</button>
-              <button type="button" class="botao pequeno" (click)="abrirEdicao(c)" aria-label="Editar">✏️</button>
-              <button type="button" class="botao pequeno perigo" (click)="excluir(c)" aria-label="Excluir">🗑️</button>
+              <button type="button" class="botao pequeno primario" (click)="abrirPagamento(c)"><app-icone nome="circle-check" /> Pagar</button>
+              <button type="button" class="botao pequeno" (click)="abrirEdicao(c)" aria-label="Editar"><app-icone nome="pencil" /></button>
+              <button type="button" class="botao pequeno perigo" (click)="excluir(c)" aria-label="Excluir"><app-icone nome="trash-2" /></button>
             }
           </td>
         </tr>
@@ -80,7 +80,7 @@
         @if (!contas.isLoading()) {
           <tr><td colspan="5" class="vazio">
             @switch (filtro()) {
-              @case ('vencidas') { Nenhuma conta vencida. 👍 }
+              @case ('vencidas') { Nenhuma conta vencida. <app-icone nome="circle-check" /> }
               @case ('pagas') { Nenhuma conta paga nos últimos 90 dias. }
               @default { Nenhuma conta em aberto. }
             }
@@ -94,7 +94,7 @@
 <!-- Lançar / editar -->
 <dialog #dlgConta class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
-    <header><h2>{{ editando() ? 'Editar conta' : 'Lançar conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()">✕</button></header>
+    <header><h2>{{ editando() ? 'Editar conta' : 'Lançar conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <label>Descrição<input name="descricao" [(ngModel)]="form.descricao" (ngModelChange)="aoDigitar()" required minlength="2" maxlength="200" placeholder="Ex.: Aluguel da loja, Energia elétrica…" /></label>
       <label>Categoria
@@ -106,7 +106,7 @@
             </optgroup>
           }
         </select>
-        @if (sugerida()) { <small class="sugerida">💡 Sugerida pela descrição. Pode trocar.</small> }
+        @if (sugerida()) { <small class="sugerida"><app-icone nome="lightbulb" /> Sugerida pela descrição. Pode trocar.</small> }
       </label>
       <div class="duas">
         <label>Vencimento<input name="vencimento" type="date" [(ngModel)]="form.vencimento" required /></label>
@@ -140,7 +140,7 @@
 <dialog #dlgPagar class="janela" (close)="erro.set(null)">
   @if (pagando(); as c) {
     <form (ngSubmit)="pagar()" #fp="ngForm">
-      <header><h2>✅ Pagar conta</h2><button type="button" class="fechar" (click)="dlgPagar.close()">✕</button></header>
+      <header><h2><app-icone nome="circle-check" /> Pagar conta</h2><button type="button" class="fechar" (click)="dlgPagar.close()"><app-icone nome="x" /></button></header>
       <div class="corpo">
         <p><b>{{ c.descricao }}</b><br /><small>Vencimento {{ c.vencimento | dia }} · {{ c.valor | currency: 'BRL' }}</small></p>
         <div class="duas">
@@ -159,7 +159,7 @@
           <select name="conta" [(ngModel)]="pagamento.contaFinanceiraId" (ngModelChange)="escolheuContaManual()" required>
             <option [ngValue]="0" disabled>Escolha a conta…</option>
             @for (cf of contasFinanceiras.value() ?? []; track cf.id) {
-              <option [ngValue]="cf.id">{{ icone[cf.tipo] }} {{ cf.nome }} ({{ cf.saldo | currency: 'BRL' }})</option>
+              <option [ngValue]="cf.id">{{ cf.nome }} ({{ cf.saldo | currency: 'BRL' }})</option>
             }
           </select>
           <small class="ajuda">O pagamento entra no Financeiro, nesta conta.</small>

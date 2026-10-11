@@ -8,7 +8,7 @@
     @if (acesso().demonstracao) {
       <div class="demo">
         <button type="button" class="entrar" (click)="verDemonstracao()" [disabled]="entrando()">
-          👀 Ver demonstração
+          <app-icone nome="eye" /> Ver demonstração
         </button>
         <small>Um mercado fictício funcionando de verdade: o caixa automático vende o dia todo,
           com o clima real de Porto Alegre. Só para olhar — nada é gravado.</small>

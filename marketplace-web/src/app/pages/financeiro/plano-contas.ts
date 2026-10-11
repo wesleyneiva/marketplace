@@ -3,12 +3,13 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { CategoriaFinanceira, Grupo, GrupoFinanceiro, Natureza, URL_FINANCEIRO, mensagemDeErro } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // Aba "Plano de contas": as categorias dentro dos grupos fixos (a DRE vai sair dos grupos).
-// O cliente cria, renomeia e desativa as categorias; as do sistema (🔒) só podem ser renomeadas.
+// O cliente cria, renomeia e desativa as categorias; as do sistema (cadeado) só podem ser renomeadas.
 @Component({
   selector: 'app-plano-contas',
-  imports: [FormsModule],
+  imports: [Icone, FormsModule],
   templateUrl: './plano-contas.html',
   styleUrls: ['./financeiro.scss', './plano-contas.scss'],
 })

@@ -2,12 +2,12 @@
   @if (caderneta(); as cd) {
     @let c = cd.cliente;
     <header>
-      <h2>📒 {{ c.nome }}@if (c.apelido) { <small> · {{ c.apelido }}</small> }</h2>
-      <button type="button" class="fechar" (click)="fechar()">✕</button>
+      <h2><app-icone nome="notebook-pen" /> {{ c.nome }}@if (c.apelido) { <small> · {{ c.apelido }}</small> }</h2>
+      <button type="button" class="fechar" (click)="fechar()"><app-icone nome="x" /></button>
     </header>
     <div class="corpo">
       <p class="contato">
-        @if (c.telefone) { 📱 {{ telefoneBonito(c.telefone) }} · }
+        @if (c.telefone) { <app-icone nome="smartphone" /> {{ telefoneBonito(c.telefone) }} · }
         paga todo dia <b>{{ c.diaPagamento }}</b> · limite {{ c.limiteCredito | currency: 'BRL' }}
         @if (c.bloqueado) { · <span class="selo vencida">bloqueado</span> }
         @if (!c.ativo) { · <span class="selo inativo">desativado</span> }
@@ -31,33 +31,33 @@
 
       <div class="acoes-caderneta">
         @if (c.saldo > 0) {
-          <button type="button" class="botao primario" (click)="abrirReceber()" [disabled]="salvando()">💵 Receber</button>
-          <button type="button" class="botao" (click)="cobrar()" [disabled]="!whatsapp()" [attr.title]="whatsapp() ? 'Abre o WhatsApp com a mensagem pronta' : 'Cadastre o telefone para cobrar no WhatsApp'">💬 Cobrar no WhatsApp</button>
+          <button type="button" class="botao primario" (click)="abrirReceber()" [disabled]="salvando()"><app-icone nome="banknote" /> Receber</button>
+          <button type="button" class="botao" (click)="cobrar()" [disabled]="!whatsapp()" [attr.title]="whatsapp() ? 'Abre o WhatsApp com a mensagem pronta' : 'Cadastre o telefone para cobrar no WhatsApp'"><app-icone nome="message-circle" /> Cobrar no WhatsApp</button>
         }
-        <button type="button" class="botao" (click)="editar.emit(c.id)">✏️ Editar</button>
-        <button type="button" class="botao" (click)="alternarBloqueio()" [disabled]="salvando()">{{ c.bloqueado ? '🔓 Desbloquear' : '⛔ Bloquear fiado' }}</button>
+        <button type="button" class="botao" (click)="editar.emit(c.id)"><app-icone nome="pencil" /> Editar</button>
+        <button type="button" class="botao" (click)="alternarBloqueio()" [disabled]="salvando()"><app-icone [nome]="c.bloqueado ? 'lock-open' : 'ban'" /> {{ c.bloqueado ? 'Desbloquear' : 'Bloquear fiado' }}</button>
         @if (ehAdmin() && c.saldo > 0) {
-          <button type="button" class="botao perigo" (click)="abrirBaixa()" [disabled]="salvando()">🧾 Dar baixa</button>
+          <button type="button" class="botao perigo" (click)="abrirBaixa()" [disabled]="salvando()"><app-icone nome="receipt" /> Dar baixa</button>
         }
-        @if (retorno(); as r) { <span class="retorno" [class.ruim]="r.ruim" role="status">{{ r.ruim ? '✋' : '✅' }} {{ r.texto }}</span> }
+        @if (retorno(); as r) { <span class="retorno" [class.ruim]="r.ruim" role="status"><app-icone [nome]="r.ruim ? 'circle-alert' : 'circle-check'" /> {{ r.texto }}</span> }
       </div>
-      @if (c.saldo > 0 && !c.telefone) { <p class="dica">💡 Cadastre o WhatsApp do cliente para cobrar com um clique.</p> }
+      @if (c.saldo > 0 && !c.telefone) { <p class="dica"><app-icone nome="lightbulb" /> Cadastre o WhatsApp do cliente para cobrar com um clique.</p> }
 
       @if (painel() === 'receber') {
         <form class="painel-acao" (ngSubmit)="confirmarReceber()" #fr="ngForm">
-          <h3>💵 Receber fora do caixa <small>(ex.: PIX que caiu direto no banco)</small></h3>
+          <h3><app-icone nome="banknote" /> Receber fora do caixa <small>(ex.: PIX que caiu direto no banco)</small></h3>
           <div class="grade">
             <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [max]="c.saldo" [(ngModel)]="receber.valor" required /></label>
             <label>Data<input name="data" type="date" [max]="hoje" [(ngModel)]="receber.data" required /></label>
             <label>Forma
               <select name="forma" [ngModel]="receber.forma" (ngModelChange)="formaMudou($event)">
-                <option value="Pix">⚡ PIX</option><option value="Dinheiro">💵 Dinheiro</option>
-                <option value="Debito">💳 Débito</option><option value="Credito">💳 Crédito</option>
+                <option value="Pix">PIX</option><option value="Dinheiro">Dinheiro</option>
+                <option value="Debito">Débito</option><option value="Credito">Crédito</option>
               </select>
             </label>
             <label>Entrou em
               <select name="conta" [(ngModel)]="receber.contaFinanceiraId" required>
-                @for (ct of contas(); track ct.id) { <option [ngValue]="ct.id">{{ iconeConta[ct.tipo] }} {{ ct.nome }}</option> }
+                @for (ct of contas(); track ct.id) { <option [ngValue]="ct.id">{{ ct.nome }}</option> }
               </select>
             </label>
           </div>
@@ -72,7 +72,7 @@
 
       @if (painel() === 'baixa') {
         <form class="painel-acao perigo" (ngSubmit)="confirmarBaixa()" #fb="ngForm">
-          <h3>🧾 Dar baixa (perdão / calote)</h3>
+          <h3><app-icone nome="receipt" /> Dar baixa (perdão / calote)</h3>
           <p class="dica">A dívida some da caderneta e vira despesa <b>Inadimplência</b> na DRE. Não mexe no caixa (não entrou dinheiro).</p>
           <div class="grade">
             <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [max]="c.saldo" [(ngModel)]="baixa.valor" required /></label>
@@ -94,7 +94,7 @@
               <tr [class]="'t-' + l.tipo">
                 <td class="data">{{ l.dataHora | date: 'dd/MM/yy HH:mm' }}</td>
                 <td>
-                  <span class="descricao">{{ rotuloTipo(l) }}@if (l.vendaId) { · venda nº {{ l.vendaId }} }</span>
+                  <span class="descricao"><app-icone [nome]="iconeTipo(l)" /> {{ rotuloTipo(l) }}@if (l.vendaId) { · venda nº {{ l.vendaId }} }</span>
                   <small class="detalhe">
                     @if (l.vencimento) { vence {{ l.vencimento | dia }} · }
                     @if (l.forma) { {{ l.forma }} {{ l.noCaixa ? 'no caixa' : 'fora do caixa' }} · }
@@ -106,7 +106,7 @@
                   {{ l.tipo === 'Compra' ? '+' : '−' }}{{ l.valor | currency: 'BRL' }}</td>
                 <td class="num forte">{{ l.saldoApos | currency: 'BRL' }}</td>
                 <td class="acoes">
-                  @if (l.podeDesfazer) { <button type="button" class="botao pequeno" (click)="desfazer(l)" [disabled]="salvando()" title="Lançado errado? Desfaz (sai também do Financeiro)">↩️</button> }
+                  @if (l.podeDesfazer) { <button type="button" class="botao pequeno" (click)="desfazer(l)" [disabled]="salvando()" title="Lançado errado? Desfaz (sai também do Financeiro)"><app-icone nome="undo-2" /></button> }
                 </td>
               </tr>
             } @empty {
@@ -118,7 +118,7 @@
     </div>
     <footer><button type="button" class="botao" (click)="fechar()">Fechar</button></footer>
   } @else {
-    <header><h2>📒 Carregando…</h2><button type="button" class="fechar" (click)="fechar()">✕</button></header>
+    <header><h2><app-icone nome="notebook-pen" /> Carregando…</h2><button type="button" class="fechar" (click)="fechar()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       @if (retorno(); as r) { <div class="erro">{{ r.texto }}</div> } @else { <p class="dica">Abrindo a caderneta…</p> }
     </div>

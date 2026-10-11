@@ -1,7 +1,7 @@
 <div class="barra">
   <div class="alternar" role="group" aria-label="Previsto ou realizado">
-    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'previsto'" (click)="modo.set('previsto')">🔮 Previsto</button>
-    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'realizado'" (click)="modo.set('realizado')">📜 Realizado</button>
+    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'previsto'" (click)="modo.set('previsto')"><app-icone nome="trending-up" /> Previsto</button>
+    <button type="button" class="botao pequeno" [class.ligado]="modo() === 'realizado'" (click)="modo.set('realizado')"><app-icone nome="history" /> Realizado</button>
   </div>
   <span class="espaco"></span>
   @if (modo() === 'previsto') {
@@ -45,24 +45,24 @@
           <form class="minimo" (ngSubmit)="salvarMinimo()">
             <input name="minimo" type="number" min="0" step="100" [(ngModel)]="novoMinimo" aria-label="Saldo mínimo em reais" />
             <button type="submit" class="botao pequeno primario">Salvar</button>
-            <button type="button" class="botao pequeno" (click)="editandoMinimo.set(false)">✕</button>
+            <button type="button" class="botao pequeno" (click)="editandoMinimo.set(false)"><app-icone nome="x" /></button>
           </form>
         } @else {
           <strong>{{ p.saldoMinimo | currency: 'BRL' }}</strong>
-          <small><button type="button" class="link" (click)="editarMinimo(p.saldoMinimo)">✏️ mudar</button></small>
+          <small><button type="button" class="link" (click)="editarMinimo(p.saldoMinimo)"><app-icone nome="pencil" /> mudar</button></small>
         }
-        @if (retornoMinimo(); as r) { <small class="retorno" [class.ruim]="r.ruim" role="status">{{ r.ruim ? '✋' : '✅' }} {{ r.texto }}</small> }
+        @if (retornoMinimo(); as r) { <small class="retorno" [class.ruim]="r.ruim" role="status"><app-icone [nome]="r.ruim ? 'circle-alert' : 'circle-check'" /> {{ r.texto }}</small> }
       </div>
     </section>
 
     @if (p.alerta) {
       <div class="alerta-fluxo" [class.vermelho]="p.primeiroNegativo" role="alert">
-        <strong>{{ p.primeiroNegativo ? '🔴 Vai faltar dinheiro' : '🟡 Abaixo do mínimo de segurança' }}</strong>
+        <strong><app-icone [nome]="p.primeiroNegativo ? 'octagon-alert' : 'triangle-alert'" /> {{ p.primeiroNegativo ? 'Vai faltar dinheiro' : 'Abaixo do mínimo de segurança' }}</strong>
         <p>{{ p.alerta }}</p>
         <button type="button" class="botao pequeno" (click)="irParaDia((p.primeiroNegativo ?? p.primeiroAbaixoMinimo)!)">Ver o dia</button>
       </div>
     } @else {
-      <p class="tudo-certo">✅ Nos próximos {{ p.dias }} dias o saldo projetado fica sempre acima do mínimo de segurança.</p>
+      <p class="tudo-certo"><app-icone nome="circle-check" /> Nos próximos {{ p.dias }} dias o saldo projetado fica sempre acima do mínimo de segurança.</p>
     }
 
     <section class="painel graficos">
@@ -71,11 +71,11 @@
       <h2 class="segundo">Entradas e saídas previstas</h2>
       <app-grafico-entradas-saidas [dados]="pontosFluxo()" descricao="Entradas e saídas previstas por dia" />
       @if (p.fiadoAtrasadoFora > 0) {
-        <p class="nota">📒 {{ p.fiadoAtrasadoFora | currency: 'BRL' }} de fiado <b>já vencido</b> ficaram fora da previsão (não dá para contar com eles). Veja em 📒 Fiado → Atrasados.</p>
+        <p class="nota"><app-icone nome="notebook-pen" /> {{ p.fiadoAtrasadoFora | currency: 'BRL' }} de fiado <b>já vencido</b> ficaram fora da previsão (não dá para contar com eles). Veja em <app-icone nome="notebook-pen" /> Fiado → Atrasados.</p>
       }
       @if (p.comEstimativa) {
         <p class="nota">
-          🛒 Vendas estimadas: média das últimas {{ p.diasDeHistoricoNaEstimativa >= 28 ? 4 : (p.diasDeHistoricoNaEstimativa / 7 | number: '1.0-0') }}
+          <app-icone nome="shopping-cart" /> Vendas estimadas: média das últimas {{ p.diasDeHistoricoNaEstimativa >= 28 ? 4 : (p.diasDeHistoricoNaEstimativa / 7 | number: '1.0-0') }}
           semana(s) do mesmo dia da semana. Dinheiro e PIX entram no dia; cartões quando a maquininha deposita, já sem a taxa.
           @if (p.diasDeHistoricoNaEstimativa < 28) { <b>Pouco histórico ainda ({{ p.diasDeHistoricoNaEstimativa }} dias): a estimativa melhora com o tempo.</b> }
         </p>
@@ -105,10 +105,10 @@
               <td class="num forte" [class.negativo]="d.saldoFinal < 0">{{ d.saldoFinal | currency: 'BRL' }}</td>
               <td class="situacao">
                 @switch (d.situacao) {
-                  @case ('negativo') { <span class="selo vencida">🔴 negativo</span> }
-                  @case ('minimo') { <span class="selo hoje">🟡 abaixo do mínimo</span> }
+                  @case ('negativo') { <span class="selo vencida"><app-icone nome="octagon-alert" /> negativo</span> }
+                  @case ('minimo') { <span class="selo hoje"><app-icone nome="triangle-alert" /> abaixo do mínimo</span> }
                 }
-                @if (d.itens.length) { <span class="abrir" aria-hidden="true">{{ aberto() === d.data ? '▲' : '▼' }}</span> }
+                @if (d.itens.length) { <app-icone class="abrir" [nome]="aberto() === d.data ? 'chevron-up' : 'chevron-down'" /> }
               </td>
             </tr>
             @if (aberto() === d.data) {
@@ -118,7 +118,7 @@
                     <ul>
                       @for (i of d.itens; track $index) {
                         <li [class.vencida]="i.vencida">
-                          <span class="tipo">{{ i.tipo === 'conta' ? '💸' : i.tipo === 'recebivel' ? '💳' : i.tipo === 'fiado' ? '📒' : i.tipo === 'caixa' ? '🧾' : '🛒' }}</span>
+                          <span class="tipo"><app-icone [nome]="i.tipo === 'conta' ? 'hand-coins' : i.tipo === 'recebivel' ? 'credit-card' : i.tipo === 'fiado' ? 'notebook-pen' : i.tipo === 'caixa' ? 'receipt' : 'shopping-cart'" /></span>
                           <span class="desc">
                             @if (i.contaPagarId) { <a routerLink="/contas" [queryParams]="{ situacao: i.vencida ? 'vencidas' : 'abertas' }">{{ i.descricao }}</a> }
                             @else { {{ i.descricao }} }

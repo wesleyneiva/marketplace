@@ -8,7 +8,7 @@
 
 @if (simulador.value(); as sim) {
   <section class="simulador" [class.pausado]="!sim.ativo">
-    <span class="robo" aria-hidden="true">🤖</span>
+    <span class="robo"><app-icone nome="bot" /></span>
     <div class="info">
       <strong>Simulador de clientes {{ sim.ativo ? 'ativo' : 'pausado' }}</strong>
       <small>
@@ -17,12 +17,12 @@
         {{ sim.vendasHoje }} {{ sim.vendasHoje === 1 ? 'cliente' : 'clientes' }} hoje ({{ sim.faturamentoHoje | currency: 'BRL' }})
         @if (sim.ultimoErro) { · <b class="txt-perigo">erro: {{ sim.ultimoErro }}</b> }
       </small>
-      @if (avisoSimulador()) { <small class="ok">✅ {{ avisoSimulador() }}</small> }
+      @if (avisoSimulador()) { <small class="ok"><app-icone nome="circle-check" /> {{ avisoSimulador() }}</small> }
     </div>
     @if (ehAdmin()) {
       <button type="button" class="botao pequeno" (click)="atenderAgora()" [disabled]="ocupado()">+5 clientes agora</button>
       <button type="button" class="botao pequeno" (click)="alternarSimulador()" [disabled]="ocupado()">
-        {{ sim.ativo ? '⏸ Pausar' : '▶ Retomar' }}
+        <app-icone [nome]="sim.ativo ? 'pause' : 'play'" /> {{ sim.ativo ? 'Pausar' : 'Retomar' }}
       </button>
     }
   </section>
@@ -30,7 +30,7 @@
 
 <section class="indicadores">
   <a class="cartao clicavel" routerLink="/pdv">
-    <div class="topo-cartao"><span>Vendas hoje</span><span class="icone" aria-hidden="true">💰</span></div>
+    <div class="topo-cartao"><span>Vendas hoje</span><span class="icone"><app-icone nome="circle-dollar-sign" /></span></div>
     @if (vendas(); as v) {
       <strong class="valor">{{ v.total | currency: 'BRL' }}</strong>
       <small>{{ v.quantidade }} {{ v.quantidade === 1 ? 'venda' : 'vendas' }} · {{ v.rotulo }}</small>
@@ -41,7 +41,7 @@
   </a>
 
   <article class="cartao">
-    <div class="topo-cartao"><span>Ticket médio</span><span class="icone" aria-hidden="true">🧾</span></div>
+    <div class="topo-cartao"><span>Ticket médio</span><span class="icone"><app-icone nome="receipt" /></span></div>
     @if (vendas(); as v) {
       <strong class="valor">{{ v.ticket | currency: 'BRL' }}</strong>
       <small>
@@ -55,13 +55,13 @@
 
   @if (veEstoque()) {
     <a class="cartao clicavel" routerLink="/estoque" [queryParams]="{ aba: 'baixo' }">
-      <div class="topo-cartao"><span>Estoque baixo</span><span class="icone" aria-hidden="true">⚠️</span></div>
+      <div class="topo-cartao"><span>Estoque baixo</span><span class="icone alerta"><app-icone nome="package" /></span></div>
       <strong class="valor" [class.alerta]="(estoqueBaixo.value()?.total ?? 0) > 0">{{ estoqueBaixo.value()?.total ?? '…' }}</strong>
       <small>{{ (estoqueBaixo.value()?.total ?? 0) === 1 ? 'produto abaixo do mínimo' : 'produtos abaixo do mínimo' }}</small>
     </a>
 
     <a class="cartao clicavel" routerLink="/estoque" [queryParams]="{ aba: 'validades' }">
-      <div class="topo-cartao"><span>Validade (7 dias)</span><span class="icone" aria-hidden="true">⏰</span></div>
+      <div class="topo-cartao"><span>Validade (7 dias)</span><span class="icone alerta"><app-icone nome="clock" /></span></div>
       <strong class="valor" [class.perigo]="resumoValidade().vencidos > 0">
         {{ validades.isLoading() ? '…' : resumoValidade().vencidos + resumoValidade().vencendo }}
       </strong>
@@ -72,7 +72,7 @@
     </a>
 
     <a class="cartao clicavel" routerLink="/contas">
-      <div class="topo-cartao"><span>Contas a pagar (7 dias)</span><span class="icone" aria-hidden="true">💸</span></div>
+      <div class="topo-cartao"><span>Contas a pagar (7 dias)</span><span class="icone"><app-icone nome="calendar-clock" /></span></div>
       @if (contas.value(); as c) {
         <strong class="valor" [class.perigo]="c.vencidas > 0" [class.alerta]="!c.vencidas && c.vencemHoje > 0">
           {{ c.valorVencidas + c.valorHoje + c.valorProximos7Dias | currency: 'BRL' }}
@@ -92,19 +92,19 @@
 @if (veEstoque()) {
   <section class="listas">
     <article class="painel lista">
-      <h2>⚠️ Repor primeiro</h2>
+      <h2><app-icone nome="triangle-alert" /> Repor primeiro</h2>
       @for (p of estoqueBaixo.value()?.itens ?? []; track p.id) {
         <a class="linha" [routerLink]="['/produtos', p.id]">
           <span>{{ p.nome }}</span>
           <b class="txt-alerta">{{ p.estoqueAtual }} / {{ p.estoqueMinimo }} {{ p.unidade }}</b>
         </a>
       } @empty {
-        <p class="vazio">🎉 Nada abaixo do mínimo.</p>
+        <p class="vazio"><app-icone nome="circle-check" /> Nada abaixo do mínimo.</p>
       }
     </article>
 
     <article class="painel lista">
-      <h2>⏰ Vencendo primeiro</h2>
+      <h2><app-icone nome="clock" /> Vencendo primeiro</h2>
       @for (l of resumoValidade().primeiros; track l.id) {
         <a class="linha" [routerLink]="['/produtos', l.produtoId]">
           <span>{{ l.produto }}</span>
@@ -113,7 +113,7 @@
           </b>
         </a>
       } @empty {
-        <p class="vazio">🎉 Nada vencendo nos próximos 7 dias.</p>
+        <p class="vazio"><app-icone nome="circle-check" /> Nada vencendo nos próximos 7 dias.</p>
       }
     </article>
   </section>

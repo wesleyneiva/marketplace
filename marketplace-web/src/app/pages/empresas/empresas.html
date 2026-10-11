@@ -1,12 +1,12 @@
 <header class="titulo-pagina">
   <div>
-    <h1>🏢 Empresas</h1>
+    <h1><app-icone nome="building-2" /> Empresas</h1>
     <p>Os clientes do sistema. Todos entram pelo mesmo endereço: <strong>app.wnlabs.com.br</strong></p>
   </div>
   <button type="button" class="botao primario" (click)="abrirNova()">+ Novo cliente</button>
 </header>
 
-@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
 
 @if (empresas.error()) {
   <p class="vazio">Não foi possível carregar. <button class="botao pequeno" (click)="empresas.reload()">Tentar de novo</button></p>
@@ -37,10 +37,10 @@
       </dl>
 
       <div class="acoes">
-        <button type="button" class="botao pequeno" (click)="alternarUsuarios(e)">👥 Usuários {{ aberta() === e.id ? '▲' : '▼' }}</button>
-        <button type="button" class="botao pequeno" (click)="abrirEdicao(e)">✏️ Editar / plano</button>
+        <button type="button" class="botao pequeno" (click)="alternarUsuarios(e)"><app-icone nome="users" /> Usuários <app-icone [nome]="aberta() === e.id ? 'chevron-up' : 'chevron-down'" /></button>
+        <button type="button" class="botao pequeno" (click)="abrirEdicao(e)"><app-icone nome="pencil" /> Editar / plano</button>
         <button type="button" class="botao pequeno" [class.perigo]="e.ativa" [disabled]="processando() === e.id" (click)="alternarSituacao(e)">
-          {{ e.ativa ? '⏸️ Suspender' : '▶️ Reativar' }}
+          <app-icone [nome]="e.ativa ? 'pause' : 'play'" /> {{ e.ativa ? 'Suspender' : 'Reativar' }}
         </button>
       </div>
 
@@ -60,7 +60,7 @@
                     @else { <span class="selo ativa">ok</span> }
                   </td>
                   <td>{{ tempoDesde(u.ultimoAcesso) }}</td>
-                  <td><button type="button" class="botao pequeno" (click)="redefinirSenha(e, u)">🔑 Senha nova</button></td>
+                  <td><button type="button" class="botao pequeno" (click)="redefinirSenha(e, u)"><app-icone nome="key-round" /> Senha nova</button></td>
                 </tr>
               } @empty {
                 <tr><td colspan="5" class="vazio">Carregando…</td></tr>
@@ -78,7 +78,7 @@
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header>
       <h2>{{ editando() ? 'Editar empresa' : 'Novo cliente' }}</h2>
-      <button type="button" class="fechar" (click)="dlgEmpresa.close()">✕</button>
+      <button type="button" class="fechar" (click)="dlgEmpresa.close()"><app-icone nome="x" /></button>
     </header>
     <div class="corpo">
       <label>Nome do mercado<input name="nome" [(ngModel)]="nome" required minlength="2" maxlength="100" /></label>
@@ -90,7 +90,7 @@
       @if (!editando()) {
         <label>Cidade da loja <small>(clima e fuso horário; o cliente pode mudar depois em Configurações)</small>
           <app-cidade-busca (selecionada)="cidade.set($event)" />
-          @if (cidade(); as c) { <small>✔ {{ c.nome }}/{{ c.uf }} · horário de {{ nomeDoFuso(c.fuso) }}</small> }
+          @if (cidade(); as c) { <small><app-icone nome="check" /> {{ c.nome }}/{{ c.uf }} · horário de {{ nomeDoFuso(c.fuso) }}</small> }
         </label>
       }
       <label>Plano: quantos caixas (PDVs)<input name="caixas" type="number" min="1" max="999" [(ngModel)]="limiteCaixas" required /></label>
@@ -102,7 +102,7 @@
         </fieldset>
         <p class="dica">O sistema cria a empresa com as categorias padrão e gera uma <b>senha provisória</b> para o administrador.</p>
       } @else if (limiteCaixas < editando()!.caixasAbertos) {
-        <p class="dica">⚠️ Há {{ editando()!.caixasAbertos }} caixas abertos agora; os que passarem do plano somem da lista ao serem fechados.</p>
+        <p class="dica"><app-icone nome="triangle-alert" /> Há {{ editando()!.caixasAbertos }} caixas abertos agora; os que passarem do plano somem da lista ao serem fechados.</p>
       }
       @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
     </div>
@@ -118,14 +118,14 @@
 <!-- Senha provisória: mostrada UMA vez -->
 <dialog #dlgSenha class="janela" (close)="credencial.set(null)">
   @if (credencial(); as c) {
-    <header><h2>🔑 {{ c.titulo }}</h2></header>
+    <header><h2><app-icone nome="key-round" /> {{ c.titulo }}</h2></header>
     <div class="corpo">
       <p>Mande para <b>{{ c.nome }}</b> (de preferência a senha numa mensagem separada):</p>
       <pre class="mensagem">{{ mensagemCliente(c) }}</pre>
-      <p class="dica">⚠️ A senha <b>não aparece de novo</b>. Se o cliente perder, gere outra em "Usuários → Senha nova".</p>
+      <p class="dica"><app-icone nome="triangle-alert" /> A senha <b>não aparece de novo</b>. Se o cliente perder, gere outra em "Usuários → Senha nova".</p>
     </div>
     <footer>
-      <button type="button" class="botao" (click)="copiar()">{{ copiado() ? '✓ Copiada' : '📋 Copiar mensagem' }}</button>
+      <button type="button" class="botao" (click)="copiar()"><app-icone [nome]="copiado() ? 'check' : 'copy'" /> {{ copiado() ? 'Copiada' : 'Copiar mensagem' }}</button>
       <button type="button" class="botao primario" (click)="dlgSenha.close()">Pronto</button>
     </footer>
   }

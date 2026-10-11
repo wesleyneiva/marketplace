@@ -14,6 +14,7 @@ import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Cupom } from '../../core/api/pdv.api';
+import { Icone } from '../../shared/icone';
 
 interface Configuracao {
   balancaDigitosCodigo: number;
@@ -28,7 +29,7 @@ interface Configuracao {
 // Configurações da loja e dos equipamentos: balança (etiqueta e caixa) e impressora.
 @Component({
   selector: 'app-configuracoes',
-  imports: [FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
+  imports: [Icone, FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
   templateUrl: './configuracoes.html',
   styleUrl: './configuracoes.scss',
 })
@@ -87,7 +88,7 @@ export class Configuracoes {
       await firstValueFrom(this.http.put('/api/empresa/configuracao/cidade', { nome: c.nome, uf: c.uf, latitude: c.latitude, longitude: c.longitude, fuso: c.fuso }));
       this.cidadeEscolhida.set(null);
       this.config.reload();
-      this.avisoCidade.set(`✅ Cidade salva: ${c.nome}/${c.uf}. Clima e horário da loja já seguem a cidade nova.`);
+      this.avisoCidade.set(`Cidade salva: ${c.nome}/${c.uf}. Clima e horário da loja já seguem a cidade nova.`);
     } catch (e) {
       this.avisoCidade.set((e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a cidade.');
     } finally {

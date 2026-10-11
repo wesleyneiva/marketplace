@@ -9,11 +9,12 @@ import {
   CaixaAberto, ContaFinanceira, ICONE_CONTA, ICONE_FORMA, NOME_FORMA, NOME_TIPO_CONTA, TipoConta, URL_FINANCEIRO, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { DialogoTransferencia } from './dialogo-transferencia';
+import { Icone } from '../../shared/icone';
 
 // Aba "Saldos": um cartão por conta (gaveta, cofre, banco...) com o saldo de hoje.
 @Component({
   selector: 'app-saldos',
-  imports: [CurrencyPipe, FormsModule, DiaPipe, DialogoTransferencia],
+  imports: [Icone, CurrencyPipe, FormsModule, DiaPipe, DialogoTransferencia],
   templateUrl: './saldos.html',
   styleUrls: ['./financeiro.scss', './saldos.scss'],
 })
@@ -66,7 +67,7 @@ export class Saldos {
   }
 
   protected transferiu(texto: string): void {
-    if (this.transferenciaDoCartao) this.retornoConta.set({ id: this.transferenciaDoCartao, texto: '✅ ' + texto });
+    if (this.transferenciaDoCartao) this.retornoConta.set({ id: this.transferenciaDoCartao, texto });
     else this.retorno.set(texto);
     this.contas.reload();
   }
@@ -112,7 +113,7 @@ export class Saldos {
         : await firstValueFrom(this.http.post<ContaFinanceira>(`${URL_FINANCEIRO}/contas`, dados));
       this.dlg().nativeElement.close();
       this.retorno.set(null);
-      this.retornoConta.set({ id: salva.id, texto: e ? '✅ Conta atualizada.' : '✅ Conta criada.' });
+      this.retornoConta.set({ id: salva.id, texto: e ? 'Conta atualizada.' : 'Conta criada.' });
       this.contas.reload();
     } catch (err) {
       this.erro.set(mensagemDeErro(err));
@@ -130,7 +131,7 @@ export class Saldos {
       await firstValueFrom(this.http.post(`${URL_FINANCEIRO}/contas/${c.id}/ativa`, {}, { params: { valor } }));
       this.dlg().nativeElement.close();
       if (!valor) this.mostrarInativas.set(true); // para a conta desativada continuar à vista (e poder reativar)
-      this.retornoConta.set({ id: c.id, texto: valor ? '✅ Conta reativada.' : '✅ Conta desativada.' });
+      this.retornoConta.set({ id: c.id, texto: valor ? 'Conta reativada.' : 'Conta desativada.' });
       this.contas.reload();
     } catch (err) {
       this.erro.set(mensagemDeErro(err));

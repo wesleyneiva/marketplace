@@ -1,7 +1,7 @@
 <div class="barra">
   <p class="explica sem-margem">
     Os <b>grupos</b> são fixos: deles sai o resultado do mês (DRE). As <b>categorias</b> dentro deles são suas: crie, renomeie e
-    desative à vontade. 🔒 = usada pelo sistema (só muda o nome).
+    desative à vontade. <app-icone nome="lock" /> = usada pelo sistema (só muda o nome).
   </p>
   <span class="espaco"></span>
   @if (inativas()) {
@@ -36,19 +36,19 @@
                 </form>
               } @else {
                 <span class="nome">{{ c.nome }}
-                  @if (c.doSistema) { <span title="Usada pelo sistema">🔒</span> }
+                  @if (c.doSistema) { <span title="Usada pelo sistema"><app-icone nome="lock" /></span> }
                   @if (!g.natureza) { <span class="selo" [class.entrada]="c.natureza === 'Entrada'" [class.saida]="c.natureza === 'Saida'">{{ c.natureza === 'Entrada' ? 'entrada' : 'saída' }}</span> }
                   @if (!c.ativa) { <span class="selo inativo">desativada</span> }
                 </span>
               }
               @if (retorno()?.chave === 'c' + c.id) {
-                <span class="retorno" [class.ruim]="retorno()!.ruim" role="status">{{ retorno()!.ruim ? '✋' : '✅' }} {{ retorno()!.texto }}</span>
+                <span class="retorno" [class.ruim]="retorno()!.ruim" role="status"><app-icone [nome]="retorno()!.ruim ? 'circle-alert' : 'circle-check'" /> {{ retorno()!.texto }}</span>
               }
             </td>
             <td class="usos">{{ c.usos ? c.usos + ' lançamento(s)' : 'sem uso' }}</td>
             <td class="acoes">
               @if (editandoId() !== c.id) {
-                <button type="button" class="botao pequeno" (click)="editar(c)" aria-label="Renomear">✏️</button>
+                <button type="button" class="botao pequeno" (click)="editar(c)" aria-label="Renomear"><app-icone nome="pencil" /></button>
                 @if (!c.doSistema) {
                   @if (c.ativa) {
                     <button type="button" class="botao pequeno perigo" (click)="ativar(c, false)" [disabled]="salvando()">Desativar</button>
@@ -73,7 +73,7 @@
         }
         <button type="submit" class="botao pequeno" [disabled]="salvando()">+ Adicionar</button>
         @if (retorno()?.chave === g.grupo) {
-          <span class="retorno" [class.ruim]="retorno()!.ruim" role="status">{{ retorno()!.ruim ? '✋' : '✅' }} {{ retorno()!.texto }}</span>
+          <span class="retorno" [class.ruim]="retorno()!.ruim" role="status"><app-icone [nome]="retorno()!.ruim ? 'circle-alert' : 'circle-check'" /> {{ retorno()!.texto }}</span>
         }
       </form>
     } @else {

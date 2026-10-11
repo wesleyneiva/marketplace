@@ -17,7 +17,7 @@
       <input id="nova" name="nova" type="password" [ngModel]="novaSenha()" (ngModelChange)="novaSenha.set($event)" autocomplete="new-password" required />
       <ul class="regras">
         @for (r of regras(); track r.texto) {
-          <li [class.ok]="r.ok">{{ r.ok ? '✓' : '○' }} {{ r.texto }}</li>
+          <li [class.ok]="r.ok"><app-icone [nome]="r.ok ? 'circle-check' : 'circle'" /> {{ r.texto }}</li>
         }
       </ul>
 

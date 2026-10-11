@@ -1,9 +1,9 @@
-<!-- Barra de ações: fica grudada no topo ao rolar (o retorno "✅ lançado" sempre à vista). -->
+<!-- Barra de ações: fica grudada no topo ao rolar (o retorno "lançado" sempre à vista). -->
 <div class="barra fixa">
-  <button type="button" class="botao primario" (click)="novo('Saida')">➖ Despesa</button>
-  <button type="button" class="botao primario" (click)="novo('Entrada')">➕ Receita</button>
-  <button type="button" class="botao" (click)="transferir()">⇄ Transferência</button>
-  @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+  <button type="button" class="botao primario" (click)="novo('Saida')"><app-icone nome="minus" /> Despesa</button>
+  <button type="button" class="botao primario" (click)="novo('Entrada')"><app-icone nome="plus" /> Receita</button>
+  <button type="button" class="botao" (click)="transferir()"><app-icone nome="arrow-left-right" /> Transferência</button>
+  @if (retorno()) { <span class="retorno" role="status"><app-icone nome="circle-check" /> {{ retorno() }}</span> }
 </div>
 
 <section class="painel filtros-painel">
@@ -19,7 +19,7 @@
       <select [ngModel]="contaId()" (ngModelChange)="mudouConta($event)">
         <option [ngValue]="null">Todas as contas</option>
         @for (c of contas.value() ?? []; track c.id) {
-          <option [ngValue]="c.id">{{ icone[c.tipo] }} {{ c.nome }}{{ c.ativa ? '' : ' (desativada)' }}</option>
+          <option [ngValue]="c.id">{{ c.nome }}{{ c.ativa ? '' : ' (desativada)' }}</option>
         }
       </select>
     </label>
@@ -57,7 +57,7 @@
   </section>
   @if (!contaId()) { <p class="explica">Com "todas as contas", as transferências aparecem na lista mas não entram nas somas (o dinheiro só mudou de lugar).</p> }
   @if (contaId() && filtrando()) { <p class="explica">Com filtros de categoria, origem ou busca, o saldo linha a linha não aparece (as linhas não somam o saldo da conta).</p> }
-  @if (e.cortado) { <p class="explica aviso-corte">⚠️ Mostrando os 2.000 primeiros lançamentos: diminua o período para ver todos.</p> }
+  @if (e.cortado) { <p class="explica aviso-corte"><app-icone nome="triangle-alert" /> Mostrando os 2.000 primeiros lançamentos: diminua o período para ver todos.</p> }
 }
 
 <section class="painel tabela-rolagem" [class.carregando]="extrato.isLoading()">
@@ -76,7 +76,7 @@
         @if (l.tipo === 'implantacao') {
           <tr class="implantacao">
             <td class="data">{{ l.data | dia }}</td>
-            <td colspan="3"><span class="descricao">🏁 Saldo de implantação</span><small class="detalhe">quanto havia na conta quando a empresa começou a usar o sistema</small></td>
+            <td colspan="3"><span class="descricao"><app-icone nome="flag" /> Saldo de implantação</span><small class="detalhe">quanto havia na conta quando a empresa começou a usar o sistema</small></td>
             @if (comSaldo()) { <td class="num forte">{{ l.valor | currency: 'BRL' }}</td> }
             <td></td>
           </tr>
@@ -87,13 +87,13 @@
             <td>
               <span class="descricao">{{ m.descricao }}</span>
               <small class="detalhe">
-                @if (m.categoria) { {{ m.codigoCategoria }} · {{ m.categoria }} } @else { ⇄ transferência entre contas }
+                @if (m.categoria) { {{ m.codigoCategoria }} · {{ m.categoria }} } @else { <app-icone nome="arrow-left-right" /> transferência entre contas }
                 @if (m.documento) { · doc. {{ m.documento }} }
                 @if (m.origem !== 'Manual' && m.origem !== 'Transferencia') { · <span class="selo origem">{{ nomeOrigem[m.origem] }}</span> }
                 @if (m.criadoPor) { · {{ m.criadoPor }} }
               </small>
-              @if (erroLinha()?.id === m.id) { <span class="erro-linha" role="alert">✋ {{ erroLinha()!.texto }}</span> }
-              @if (retornoLinha()?.id === m.id) { <span class="retorno" role="status">✅ {{ retornoLinha()!.texto }}</span> }
+              @if (erroLinha()?.id === m.id) { <span class="erro-linha" role="alert"><app-icone nome="circle-alert" /> {{ erroLinha()!.texto }}</span> }
+              @if (retornoLinha()?.id === m.id) { <span class="retorno" role="status"><app-icone nome="circle-check" /> {{ retornoLinha()!.texto }}</span> }
             </td>
             @if (!contaId()) { <td class="conta">{{ m.conta }}</td> }
             <td class="num valor-entrada">{{ m.tipo === 'Entrada' ? (m.valor | currency: 'BRL') : '' }}</td>
@@ -102,14 +102,14 @@
             <td class="acoes">
               @switch (m.origem) {
                 @case ('Manual') {
-                  <button type="button" class="botao pequeno" (click)="editar(m)" aria-label="Editar">✏️</button>
-                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir">🗑️</button>
+                  <button type="button" class="botao pequeno" (click)="editar(m)" aria-label="Editar"><app-icone nome="pencil" /></button>
+                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir"><app-icone nome="trash-2" /></button>
                 }
                 @case ('Transferencia') {
-                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir transferência">🗑️</button>
+                  <button type="button" class="botao pequeno perigo" (click)="excluir(m)" aria-label="Excluir transferência"><app-icone nome="trash-2" /></button>
                 }
                 @case ('ContaPagar') {
-                  <a class="botao pequeno" routerLink="/contas" [queryParams]="{ situacao: 'pagas' }" title="Para mudar, desfaça o pagamento em Contas a pagar">💸 Ver conta</a>
+                  <a class="botao pequeno" routerLink="/contas" [queryParams]="{ situacao: 'pagas' }" title="Para mudar, desfaça o pagamento em Contas a pagar"><app-icone nome="hand-coins" /> Ver conta</a>
                 }
               }
             </td>

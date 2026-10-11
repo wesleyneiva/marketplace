@@ -10,11 +10,12 @@ import { DatePipe } from '@angular/common';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { MovimentarDialog } from '../../shared/movimentar-dialog';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Icone } from '../../shared/icone';
 
 // Mesma tela para "novo" e "editar": se a rota tem :id, estamos editando.
 @Component({
   selector: 'app-produto-form',
-  imports: [ReactiveFormsModule, RouterLink, CurrencyPipe, DecimalPipe, DatePipe, DiaPipe, QuantidadePipe, MovimentarDialog],
+  imports: [Icone, ReactiveFormsModule, RouterLink, CurrencyPipe, DecimalPipe, DatePipe, DiaPipe, QuantidadePipe, MovimentarDialog],
   templateUrl: './produto-form.html',
   styleUrl: './produto-form.scss',
 })

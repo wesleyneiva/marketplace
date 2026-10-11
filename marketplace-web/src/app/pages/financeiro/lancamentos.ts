@@ -6,11 +6,12 @@ import { Router, RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
 import {
-  CategoriaFinanceira, ContaFinanceira, Extrato, ICONE_CONTA, Movimento, NOME_ORIGEM, OrigemMovimento, TipoMovimento,
+  CategoriaFinanceira, ContaFinanceira, Extrato, Movimento, NOME_ORIGEM, OrigemMovimento, TipoMovimento,
   URL_FINANCEIRO, fimDoMes, hojeIso, inicioDoMes, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { DialogoLancamento } from './dialogo-lancamento';
 import { DialogoTransferencia } from './dialogo-transferencia';
+import { Icone } from '../../shared/icone';
 
 type Periodo = 'mes' | 'mesPassado' | '30dias' | 'outro';
 // Uma linha da tabela: um movimento ou a linha do saldo de implantação.
@@ -19,7 +20,7 @@ type Linha = { tipo: 'mov'; mov: Movimento } | { tipo: 'implantacao'; data: stri
 // Aba "Lançamentos": o livro (extrato). Com uma conta escolhida, mostra o saldo linha a linha, como o extrato do banco.
 @Component({
   selector: 'app-lancamentos',
-  imports: [CurrencyPipe, FormsModule, DiaPipe, RouterLink, DialogoLancamento, DialogoTransferencia],
+  imports: [Icone, CurrencyPipe, FormsModule, DiaPipe, RouterLink, DialogoLancamento, DialogoTransferencia],
   templateUrl: './lancamentos.html',
   styleUrls: ['./financeiro.scss', './lancamentos.scss'],
 })
@@ -29,7 +30,6 @@ export class Lancamentos {
 
   readonly contaInicial = input<number | null>(null);
 
-  protected readonly icone = ICONE_CONTA;
   protected readonly nomeOrigem = NOME_ORIGEM;
   protected readonly origens = Object.keys(NOME_ORIGEM) as OrigemMovimento[];
   private readonly hoje = hojeIso();

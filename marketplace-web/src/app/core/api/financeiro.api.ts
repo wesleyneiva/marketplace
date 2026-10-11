@@ -131,11 +131,12 @@ export interface CaixaAberto {
 }
 
 export const NOME_FORMA: Record<string, string> = { Dinheiro: 'Dinheiro', Pix: 'PIX', Debito: 'Débito', Credito: 'Crédito' };
-export const ICONE_FORMA: Record<string, string> = { Dinheiro: '💵', Pix: '⚡', Debito: '💳', Credito: '💳' };
+// Nomes de ícones (shared/icones.ts), desenhados com <app-icone [nome]="...">. Não use dentro de <option>.
+export const ICONE_FORMA: Record<string, string> = { Dinheiro: 'banknote', Pix: 'qr-code', Debito: 'credit-card', Credito: 'credit-card' };
 
 export const URL_FINANCEIRO = '/api/financeiro';
 
-export const ICONE_CONTA: Record<TipoConta, string> = { Dinheiro: '💵', Banco: '🏦', Maquininha: '💳' };
+export const ICONE_CONTA: Record<TipoConta, string> = { Dinheiro: 'banknote', Banco: 'landmark', Maquininha: 'credit-card' };
 
 export const NOME_TIPO_CONTA: Record<TipoConta, string> = {
   Dinheiro: 'Dinheiro (gaveta, cofre)',

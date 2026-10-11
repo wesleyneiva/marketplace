@@ -5,13 +5,14 @@ import { RouterLink } from '@angular/router';
 import { LinhaPrevia, PreviaImportacao, ProdutosApi, ResultadoImportacao, URL_MODELO_IMPORTACAO } from '../../core/api/produtos.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Icone } from '../../shared/icone';
 
 type Filtro = 'todas' | 'erro' | 'aviso' | 'novo' | 'atualizar';
 
 // Importar produtos por planilha: 1) baixar o modelo, 2) enviar e ver a prévia, 3) confirmar.
 @Component({
   selector: 'app-importar-produtos',
-  imports: [RouterLink, CurrencyPipe, DiaPipe, QuantidadePipe],
+  imports: [Icone, RouterLink, CurrencyPipe, DiaPipe, QuantidadePipe],
   templateUrl: './importar-produtos.html',
   styleUrl: './importar-produtos.scss',
 })

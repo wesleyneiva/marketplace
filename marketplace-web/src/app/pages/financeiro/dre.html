@@ -6,8 +6,8 @@
   </div>
   <label class="checar"><input type="checkbox" [ngModel]="incluirAtual()" (ngModelChange)="incluirAtual.set($event)" /> incluir o mês atual (em andamento)</label>
   <span class="espaco"></span>
-  <button type="button" class="botao pequeno" (click)="abrirTudo(abertos().size === 0)">{{ abertos().size === 0 ? '➕ Abrir categorias' : '➖ Fechar categorias' }}</button>
-  <button type="button" class="botao pequeno" (click)="imprimir()">🖨️ Imprimir / PDF</button>
+  <button type="button" class="botao pequeno" (click)="abrirTudo(abertos().size === 0)"><app-icone [nome]="abertos().size === 0 ? 'chevron-down' : 'chevron-up'" /> {{ abertos().size === 0 ? 'Abrir categorias' : 'Fechar categorias' }}</button>
+  <button type="button" class="botao pequeno" (click)="imprimir()"><app-icone nome="printer" /> Imprimir / PDF</button>
 </div>
 
 @if (dre.value(); as d) {
@@ -23,17 +23,17 @@
       </form>
       <small>O contador informa: é o DAS do mês dividido pelo faturamento do mês. No mercadinho, costuma ficar entre 4% e 10%.</small>
     } @else if (d.aliquotaInformada) {
-      <span>🧾 Impostos calculados com a alíquota efetiva do Simples: <b>{{ d.aliquotaSimples | number: '1.0-2' }}%</b> das vendas.</span>
-      <button type="button" class="link nao-imprimir" (click)="editarAliquota(d.aliquotaSimples)">✏️ mudar</button>
+      <span><app-icone nome="receipt" /> Impostos calculados com a alíquota efetiva do Simples: <b>{{ d.aliquotaSimples | number: '1.0-2' }}%</b> das vendas.</span>
+      <button type="button" class="link nao-imprimir" (click)="editarAliquota(d.aliquotaSimples)"><app-icone nome="pencil" /> mudar</button>
     } @else {
-      <span>⚠️ <b>Informe a alíquota do Simples</b> (o contador sabe): enquanto isso, a DRE usa os DAS que vencem em cada mês, e o imposto pode cair no mês errado.</span>
+      <span><app-icone nome="triangle-alert" /> <b>Informe a alíquota do Simples</b> (o contador sabe): enquanto isso, a DRE usa os DAS que vencem em cada mês, e o imposto pode cair no mês errado.</span>
       <button type="button" class="botao pequeno nao-imprimir" (click)="editarAliquota(0)">Informar alíquota</button>
     }
-    @if (retornoAliquota(); as r) { <span class="retorno" [class.ruim]="r.ruim" role="status">{{ r.ruim ? '✋' : '✅' }} {{ r.texto }}</span> }
+    @if (retornoAliquota(); as r) { <span class="retorno" [class.ruim]="r.ruim" role="status"><app-icone [nome]="r.ruim ? 'circle-alert' : 'circle-check'" /> {{ r.texto }}</span> }
   </section>
 
   @if (d.meses[d.meses.length - 1].parcial) {
-    <p class="aviso-parcial">⏳ <b>{{ d.meses[d.meses.length - 1].rotulo }} está em andamento:</b> as contas do mês (aluguel, folha…) já entram inteiras,
+    <p class="aviso-parcial"><app-icone nome="loader-circle" girando /> <b>{{ d.meses[d.meses.length - 1].rotulo }} está em andamento:</b> as contas do mês (aluguel, folha…) já entram inteiras,
       mas a receita ainda é só até hoje. O resultado dele só vale quando o mês fechar.</p>
   }
 
@@ -43,8 +43,8 @@
       <h2>De cada <b>R$ 100</b> vendidos em {{ c.mes.rotulo }}</h2>
       <app-grafico-barras [dados]="c.barras" formato="moedaCentavos" [larguraRotulos]="170" descricao="Para onde vai cada 100 reais vendidos" />
       <p class="conclusao" [class.prejuizo]="c.lucro <= 0">
-        @if (c.lucro > 0) { ✅ Sobram <b>{{ c.lucro | number: '1.2-2' }} reais de lucro</b> a cada R$ 100 vendidos. }
-        @else { 🔴 O mês deu <b>prejuízo</b>: faltaram {{ -c.lucro | number: '1.2-2' }} reais a cada R$ 100 vendidos. }
+        @if (c.lucro > 0) { <app-icone nome="circle-check" /> Sobram <b>{{ c.lucro | number: '1.2-2' }} reais de lucro</b> a cada R$ 100 vendidos. }
+        @else { <app-icone nome="octagon-alert" /> O mês deu <b>prejuízo</b>: faltaram {{ -c.lucro | number: '1.2-2' }} reais a cada R$ 100 vendidos. }
       </p>
     </section>
   }
@@ -67,7 +67,7 @@
             <td class="nome">
               @if (temCategorias().has(l.chave)) {
                 <button type="button" class="abre nao-imprimir" (click)="alternar(l.chave)" [attr.aria-expanded]="abertos().has(l.chave)"
-                        [attr.aria-label]="(abertos().has(l.chave) ? 'Fechar ' : 'Abrir ') + l.nome">{{ abertos().has(l.chave) ? '▾' : '▸' }}</button>
+                        [attr.aria-label]="(abertos().has(l.chave) ? 'Fechar ' : 'Abrir ') + l.nome"><app-icone [nome]="abertos().has(l.chave) ? 'chevron-down' : 'chevron-right'" /></button>
               }
               {{ l.nome }}
             </td>
@@ -89,7 +89,7 @@
     </table>
   </section>
   <p class="explica">
-    💡 Clique num valor para ver do que ele é feito. % = sobre a receita bruta do mês. ▲▼ em verde = melhorou o resultado; em vermelho = piorou.
+    <app-icone nome="lightbulb" /> Clique num valor para ver do que ele é feito. % = sobre a receita bruta do mês. ▲▼ em verde = melhorou o resultado; em vermelho = piorou.
   </p>
 
   @if (d.foraDoResultado.length) {
@@ -127,7 +127,7 @@
 
 <!-- Detalhe de uma linha -->
 <dialog #dlgDetalhe class="janela larga" (close)="detalhe.set(null)">
-  <header><h2>{{ detalhe()?.titulo ?? 'Carregando…' }}</h2><button type="button" class="fechar" (click)="dlgDetalhe.close()">✕</button></header>
+  <header><h2>{{ detalhe()?.titulo ?? 'Carregando…' }}</h2><button type="button" class="fechar" (click)="dlgDetalhe.close()"><app-icone nome="x" /></button></header>
   <div class="corpo">
     @if (carregandoDetalhe()) { <p class="dica">Buscando…</p> }
     @if (detalhe(); as dt) {

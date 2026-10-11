@@ -8,13 +8,14 @@ import {
   ICONE_FORMA, NOME_FORMA, Recebivel, ResumoRecebiveis, URL_FINANCEIRO, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { DialogoMaquininha } from './dialogo-maquininha';
+import { Icone } from '../../shared/icone';
 
 const DIAS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
 
 // Aba "A receber": o que a maquininha ainda vai depositar (débito D+1, crédito D+30) e quanto ela custa.
 @Component({
   selector: 'app-a-receber',
-  imports: [CurrencyPipe, DecimalPipe, DiaPipe, GraficoBarras, DialogoMaquininha],
+  imports: [Icone, CurrencyPipe, DecimalPipe, DiaPipe, GraficoBarras, DialogoMaquininha],
   templateUrl: './a-receber.html',
   styleUrls: ['./financeiro.scss', './a-receber.scss'],
 })

@@ -4,13 +4,14 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
 import {
-  ConfiguracaoRecebimento, ContaFinanceira, ICONE_CONTA, ICONE_FORMA, NOME_FORMA, URL_FINANCEIRO, mensagemDeErro,
+  ConfiguracaoRecebimento, ContaFinanceira, ICONE_FORMA, NOME_FORMA, URL_FINANCEIRO, mensagemDeErro,
 } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // O contrato da maquininha: taxa, prazo e onde cai o dinheiro de cada forma. Vale para as PRÓXIMAS vendas.
 @Component({
   selector: 'app-dialogo-maquininha',
-  imports: [FormsModule, DiaPipe],
+  imports: [Icone, FormsModule, DiaPipe],
   styleUrl: './financeiro.scss',
   styles: `
     .janela { width: min(640px, calc(100vw - 32px)); }
@@ -25,18 +26,18 @@ import {
   template: `
     <dialog #dlg class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
-        <header><h2>⚙️ Maquininha e PIX</h2><button type="button" class="fechar" (click)="dlg.close()">✕</button></header>
+        <header><h2><app-icone nome="settings" /> Maquininha e PIX</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
         <div class="corpo">
           <p class="dica">Copie do contrato da sua maquininha. Vale para as <b>próximas</b> vendas: as já feitas guardam a taxa do dia.</p>
           @for (c of linhas(); track c.forma) {
             <section class="forma">
-              <h3>{{ iconeForma[c.forma] }} {{ nomeForma[c.forma] }}</h3>
+              <h3><app-icone [nome]="iconeForma[c.forma]" /> {{ nomeForma[c.forma] }}</h3>
               <div class="campos">
                 <label>Taxa (%)<input [name]="'taxa-' + c.forma" type="number" min="0" max="20" step="0.01" [(ngModel)]="c.taxaPercentual" required /></label>
                 <label>Prazo (dias)<input [name]="'prazo-' + c.forma" type="number" min="0" max="120" step="1" [(ngModel)]="c.prazoDias" required /></label>
                 <label class="conta">Cai em
                   <select [name]="'conta-' + c.forma" [(ngModel)]="c.contaFinanceiraId" required>
-                    @for (cf of contas(); track cf.id) { <option [ngValue]="cf.id">{{ iconeConta[cf.tipo] }} {{ cf.nome }}</option> }
+                    @for (cf of contas(); track cf.id) { <option [ngValue]="cf.id">{{ cf.nome }}</option> }
                   </select>
                 </label>
               </div>
@@ -66,7 +67,6 @@ export class DialogoMaquininha {
 
   protected readonly nomeForma = NOME_FORMA;
   protected readonly iconeForma = ICONE_FORMA;
-  protected readonly iconeConta = ICONE_CONTA;
   protected readonly linhas = signal<ConfiguracaoRecebimento[]>([]);
   protected readonly contas = signal<ContaFinanceira[]>([]);
   protected readonly erro = signal<string | null>(null);

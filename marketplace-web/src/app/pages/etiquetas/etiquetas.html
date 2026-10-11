@@ -1,8 +1,8 @@
 <div class="nao-imprimir">
-  <a routerLink="/produtos" class="voltar">← Produtos</a>
+  <a routerLink="/produtos" class="voltar"><app-icone nome="arrow-left" /> Produtos</a>
   <header class="titulo-pagina">
     <div>
-      <h1>🏷️ Etiquetas de preço</h1>
+      <h1><app-icone nome="tag" /> Etiquetas de preço</h1>
       <p>Escolha os produtos, confira a prévia e imprima em folha A4 de etiquetas adesivas.</p>
     </div>
   </header>
@@ -50,7 +50,7 @@
                 <td>{{ l.etiqueta.categoria }}</td>
                 <td class="num">R$ {{ preco(l.etiqueta.precoVenda).reais }},{{ preco(l.etiqueta.precoVenda).centavos }}@if (l.etiqueta.unidade === 'KG') {/kg}</td>
                 <td class="num"><input type="number" min="0" max="99" class="copias" [ngModel]="l.copias" (ngModelChange)="l.copias = $event; mexeu()" /></td>
-                <td><button type="button" class="botao pequeno perigo" (click)="remover(l)" aria-label="Tirar da lista">✕</button></td>
+                <td><button type="button" class="botao pequeno perigo" (click)="remover(l)" aria-label="Tirar da lista"><app-icone nome="x" /></button></td>
               </tr>
             }
           </tbody>
@@ -64,7 +64,7 @@
           @for (f of formatos | keyvalue; track f.key) { <option [ngValue]="f.key">{{ f.value.nome }}</option> }
         </select>
       </label>
-      <button type="button" class="botao primario" (click)="imprimir()" [disabled]="!totalEtiquetas()">🖨️ Imprimir {{ totalEtiquetas() }} etiquetas</button>
+      <button type="button" class="botao primario" (click)="imprimir()" [disabled]="!totalEtiquetas()"><app-icone nome="printer" /> Imprimir {{ totalEtiquetas() }} etiquetas</button>
       <small>Na janela de impressão: papel <b>A4</b>, margens <b>nenhuma</b>, escala <b>100%</b>. Teste antes numa folha comum.</small>
     </section>
   } @else {

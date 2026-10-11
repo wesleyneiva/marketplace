@@ -6,7 +6,7 @@
   .espaco { flex: 1; }
 }
 
-// Retorno junto da ação ("✅ Lançado", "✋ não deu porque…").
+// Retorno junto da ação ("Lançado", "não deu porque…").
 .retorno {
   font-size: 14px; font-weight: 600; color: var(--cor-primaria-escura);
   &.ruim { color: var(--cor-erro); font-weight: 500; }

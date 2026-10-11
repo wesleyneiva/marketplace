@@ -4,11 +4,12 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { Logo } from '../../shared/logo';
+import { Icone } from '../../shared/icone';
 
 // Primeiro acesso (senha provisória → obrigatório) ou "Trocar minha senha" (voluntário).
 @Component({
   selector: 'app-trocar-senha',
-  imports: [FormsModule, RouterLink, Logo],
+  imports: [Icone, FormsModule, RouterLink, Logo],
   templateUrl: './trocar-senha.html',
   styleUrl: '../login/login.scss',
 })

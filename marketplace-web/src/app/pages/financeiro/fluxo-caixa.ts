@@ -10,6 +10,7 @@ import { GraficoEntradasSaidas, PontoEntradaSaida } from '../../shared/graficos/
 import {
   FluxoPrevisto, FluxoRealizado, URL_FINANCEIRO, diaCurto, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 type Modo = 'previsto' | 'realizado';
 type PeriodoRealizado = '30d' | '90d' | '6m' | '12m';
@@ -21,7 +22,7 @@ const BRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
 // Previsto = saldo de hoje + maquininha + vendas estimadas − contas a pagar; Realizado = o que de fato entrou e saiu.
 @Component({
   selector: 'app-fluxo-caixa',
-  imports: [CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, RouterLink, GraficoSaldo, GraficoEntradasSaidas],
+  imports: [Icone, CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, RouterLink, GraficoSaldo, GraficoEntradasSaidas],
   templateUrl: './fluxo-caixa.html',
   styleUrls: ['./financeiro.scss', './fluxo-caixa.scss'],
 })

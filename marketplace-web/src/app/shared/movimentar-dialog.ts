@@ -7,6 +7,7 @@ import { Produto, ProdutosApi } from '../core/api/produtos.api';
 import { DiaPipe } from './dia.pipe';
 import { ProdutoBusca } from './produto-busca';
 import { QuantidadePipe } from './quantidade.pipe';
+import { Icone } from './icone';
 
 export type TipoAcao = 'Entrada' | 'Perda' | 'Ajuste';
 
@@ -15,7 +16,7 @@ export type TipoAcao = 'Entrada' | 'Perda' | 'Ajuste';
 // Uso:  <app-movimentar-dialog #dialogo (salvo)="..." />   e   dialogo.abrir('Entrada', produto?)
 @Component({
   selector: 'app-movimentar-dialog',
-  imports: [FormsModule, CurrencyPipe, DiaPipe, ProdutoBusca, QuantidadePipe],
+  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, ProdutoBusca, QuantidadePipe],
   templateUrl: './movimentar-dialog.html',
   styleUrl: './movimentar-dialog.scss',
 })
@@ -46,7 +47,10 @@ export class MovimentarDialog {
   protected observacao = '';
 
   protected readonly titulo = computed(
-    () => ({ Entrada: '📥 Entrada de mercadoria', Perda: '🗑️ Registrar perda', Ajuste: '⚖️ Ajuste de inventário' })[this.tipo()],
+    () => ({ Entrada: 'Entrada de mercadoria', Perda: 'Registrar perda', Ajuste: 'Ajuste de inventário' })[this.tipo()],
+  );
+  protected readonly iconeTitulo = computed(
+    () => ({ Entrada: 'package-plus', Perda: 'package-minus', Ajuste: 'scale' })[this.tipo()],
   );
   protected readonly fracionado = computed(() => ['KG', 'L'].includes(this.produto()?.unidade ?? ''));
 

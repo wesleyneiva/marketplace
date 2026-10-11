@@ -1,11 +1,12 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { Icone } from '../../shared/icone';
 import { Logo } from '../../shared/logo';
 
 interface ItemMenu {
   rotulo: string;
-  icone: string;
+  icone: string;     // nome do ícone (shared/icones.ts)
   rota: string;
   perfis: string[];  // quem pode ver este item
   soDono?: boolean;  // só o dono da plataforma (administra os clientes)
@@ -15,7 +16,7 @@ interface ItemMenu {
 // "Casca" do sistema: menu lateral + barra do topo. As páginas aparecem no <router-outlet>.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo, Icone],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -27,19 +28,19 @@ export class Shell {
   protected readonly menuAberto = signal(false);
 
   private readonly menu: ItemMenu[] = [
-    { rotulo: 'Dashboard', icone: '📊', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
-    { rotulo: 'Caixa (PDV)', icone: '🧾', rota: '/pdv', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
-    { rotulo: 'Produtos', icone: '📦', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Estoque', icone: '🏷️', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Compras', icone: '🛍️', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Fornecedores', icone: '🚚', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Financeiro', icone: '🏦', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Contas a pagar', icone: '💸', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Fiado', icone: '📒', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Relatórios', icone: '📈', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Usuários', icone: '👥', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
-    { rotulo: 'Configurações', icone: '⚙️', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Empresas', icone: '🏢', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },
+    { rotulo: 'Dashboard', icone: 'layout-dashboard', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
+    { rotulo: 'Caixa (PDV)', icone: 'receipt', rota: '/pdv', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
+    { rotulo: 'Produtos', icone: 'package', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Estoque', icone: 'tag', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Compras', icone: 'shopping-bag', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Financeiro', icone: 'landmark', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Contas a pagar', icone: 'calendar-clock', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Fiado', icone: 'notebook-pen', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Usuários', icone: 'users', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Configurações', icone: 'settings', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Empresas', icone: 'building-2', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },
   ];
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.

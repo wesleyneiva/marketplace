@@ -5,6 +5,7 @@ import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/htt
 import { firstValueFrom } from 'rxjs';
 import { copiarTexto } from '../../shared/copiar';
 import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
+import { Icone } from '../../shared/icone';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -51,7 +52,7 @@ export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
 // Clientes do SaaS: cadastrar, mudar o plano, suspender/reativar e gerar senha nova para quem esqueceu.
 @Component({
   selector: 'app-empresas',
-  imports: [FormsModule, CurrencyPipe, DatePipe, CidadeBusca],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, CidadeBusca],
   templateUrl: './empresas.html',
   styleUrl: './empresas.scss',
 })

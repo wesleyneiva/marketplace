@@ -3,11 +3,12 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AcessoInfo, AuthService } from '../../core/auth/auth.service';
+import { Icone } from '../../shared/icone';
 import { Logo } from '../../shared/logo';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, Logo],
+  imports: [ReactiveFormsModule, Logo, Icone],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

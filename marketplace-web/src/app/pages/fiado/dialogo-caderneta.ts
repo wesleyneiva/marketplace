@@ -6,12 +6,13 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { Caderneta, LancamentoFiado, URL_FIADO, linkCobranca, telefoneBonito } from '../../core/api/fiado.api';
-import { ContaFinanceira, ICONE_CONTA, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
+import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // A caderneta de UM cliente: o extrato, receber fora do caixa, desfazer, dar baixa (Administrador) e cobrar no WhatsApp.
 @Component({
   selector: 'app-dialogo-caderneta',
-  imports: [CurrencyPipe, DatePipe, FormsModule, DiaPipe],
+  imports: [Icone, CurrencyPipe, DatePipe, FormsModule, DiaPipe],
   templateUrl: './dialogo-caderneta.html',
   styleUrls: ['../financeiro/financeiro.scss', './fiado.scss'],
 })
@@ -24,7 +25,6 @@ export class DialogoCaderneta {
   readonly editar = output<number>();
 
   protected readonly telefoneBonito = telefoneBonito;
-  protected readonly iconeConta = ICONE_CONTA;
   protected readonly ehAdmin = computed(() => this.auth.temPerfil('Administrador'));
   protected readonly hoje = hojeIso();
 
@@ -139,7 +139,11 @@ export class DialogoCaderneta {
   }
 
   protected rotuloTipo(l: LancamentoFiado): string {
-    return { Compra: '🛒 Compra', Pagamento: '💵 Pagamento', Estorno: '↩️ Estorno', Baixa: '🧾 Baixa' }[l.tipo];
+    return { Compra: 'Compra', Pagamento: 'Pagamento', Estorno: 'Estorno', Baixa: 'Baixa' }[l.tipo];
+  }
+
+  protected iconeTipo(l: LancamentoFiado): string {
+    return { Compra: 'shopping-cart', Pagamento: 'banknote', Estorno: 'undo-2', Baixa: 'receipt' }[l.tipo];
   }
 
   protected real(v: number): string {

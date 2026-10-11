@@ -7,13 +7,14 @@ import { firstValueFrom } from 'rxjs';
 import { ItemSugestao, Pedido, SugestaoFornecedor } from '../../core/api/compras.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Icone } from '../../shared/icone';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
 interface Conferencia { itemId: number; produto: string; unidade: string; perecivel: boolean; pedido: number; recebido: number; validade: string; custo: number }
 
 @Component({
   selector: 'app-compras',
-  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe],
+  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe],
   templateUrl: './compras.html',
   styleUrl: './compras.scss',
 })

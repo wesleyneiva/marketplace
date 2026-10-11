@@ -4,22 +4,23 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import {
-  CategoriaFinanceira, ContaFinanceira, ICONE_CONTA, Movimento, TipoMovimento, URL_FINANCEIRO,
+  CategoriaFinanceira, ContaFinanceira, Movimento, TipoMovimento, URL_FINANCEIRO,
   categoriasPorGrupo, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
+import { Icone } from '../../shared/icone';
 
 // Receita ou despesa avulsa, já paga/recebida (ex.: comprou material de limpeza no PIX, rendimento do banco).
 // Para algo a pagar DEPOIS, o lugar é Contas a pagar.
 @Component({
   selector: 'app-dialogo-lancamento',
-  imports: [FormsModule, CurrencyPipe],
+  imports: [Icone, FormsModule, CurrencyPipe],
   styleUrl: './financeiro.scss',
   template: `
     <dialog #dlg class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
         <header>
-          <h2>{{ editando() ? 'Editar lançamento' : tipo() === 'Entrada' ? '➕ Nova receita' : '➖ Nova despesa' }}</h2>
-          <button type="button" class="fechar" (click)="dlg.close()">✕</button>
+          <h2>@if (!editando()) { <app-icone [nome]="tipo() === 'Entrada' ? 'plus' : 'minus'" /> }{{ editando() ? 'Editar lançamento' : tipo() === 'Entrada' ? 'Nova receita' : 'Nova despesa' }}</h2>
+          <button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button>
         </header>
         <div class="corpo">
           <label>Descrição
@@ -39,12 +40,12 @@ import {
                 </optgroup>
               }
             </select>
-            @if (sugerida()) { <span class="sugerida">💡 Sugerida pela descrição. Pode trocar.</span> }
+            @if (sugerida()) { <span class="sugerida"><app-icone nome="lightbulb" /> Sugerida pela descrição. Pode trocar.</span> }
           </label>
           <label>{{ tipo() === 'Entrada' ? 'Entrou em' : 'Saiu de' }}
             <select name="conta" [(ngModel)]="form.contaId" required>
               @for (c of contas(); track c.id) {
-                <option [ngValue]="c.id">{{ icone[c.tipo] }} {{ c.nome }} ({{ c.saldo | currency: 'BRL' }})</option>
+                <option [ngValue]="c.id">{{ c.nome }} ({{ c.saldo | currency: 'BRL' }})</option>
               }
             </select>
           </label>
@@ -69,7 +70,6 @@ export class DialogoLancamento {
   // id do lançamento salvo + texto do retorno; editou = veio de uma linha (o retorno aparece nela).
   readonly salvo = output<{ id: number; texto: string; editou: boolean }>();
 
-  protected readonly icone = ICONE_CONTA;
   protected readonly hoje = hojeIso();
   protected readonly tipo = signal<TipoMovimento>('Saida');
   protected readonly editando = signal<Movimento | null>(null);

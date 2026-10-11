@@ -375,7 +375,7 @@ public class FinanceiroController(AppDbContext db) : ControllerBase
         OrigemMovimentoFinanceiro.Transferencia => "Transferência não se edita: exclua e lance de novo.",
         OrigemMovimentoFinanceiro.Caixa => "Este lançamento veio do fechamento do caixa (PDV) e não pode ser alterado aqui.",
         OrigemMovimentoFinanceiro.Recebimento => "Este lançamento é um depósito da maquininha e não pode ser alterado aqui.",
-        OrigemMovimentoFinanceiro.Fiado => "Este lançamento é um fiado recebido: desfaça na caderneta do cliente (📒 Fiado).",
+        OrigemMovimentoFinanceiro.Fiado => "Este lançamento é um fiado recebido: desfaça na caderneta do cliente (menu Fiado).",
         _ => "Este lançamento foi gerado pelo sistema e não pode ser alterado aqui.",
     };
 

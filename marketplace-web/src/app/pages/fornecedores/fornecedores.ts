@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Fornecedor } from '../../core/api/compras.api';
+import { Icone } from '../../shared/icone';
 
 @Component({
   selector: 'app-fornecedores',
-  imports: [FormsModule, RouterLink],
+  imports: [Icone, FormsModule, RouterLink],
   templateUrl: './fornecedores.html',
   styleUrl: '../usuarios/usuarios.scss',
 })

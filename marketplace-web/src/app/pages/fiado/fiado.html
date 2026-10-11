@@ -1,11 +1,11 @@
 <header class="titulo-pagina">
   <div>
-    <h1>📒 Fiado</h1>
+    <h1><app-icone nome="notebook-pen" /> Fiado</h1>
     <p>A caderneta da loja: quem deve, quanto, desde quando. Vende-se no fiado pelo caixa (Alt+5) e recebe-se no balcão (F6).</p>
   </div>
   <div class="barra-topo">
     <button type="button" class="botao primario" (click)="novo()">+ Novo cliente</button>
-    @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+    @if (retorno()) { <span class="retorno" role="status"><app-icone nome="circle-check" /> {{ retorno() }}</span> }
   </div>
 </header>
 
@@ -24,12 +24,12 @@
 <div class="barra">
   <nav class="sub-abas" role="tablist">
     <button role="tab" type="button" [class.ativa]="situacao() === 'devendo'" (click)="situacao.set('devendo')">Devendo</button>
-    <button role="tab" type="button" [class.ativa]="situacao() === 'atrasados'" (click)="situacao.set('atrasados')">⚠️ Atrasados</button>
+    <button role="tab" type="button" [class.ativa]="situacao() === 'atrasados'" (click)="situacao.set('atrasados')"><app-icone nome="triangle-alert" /> Atrasados</button>
     <button role="tab" type="button" [class.ativa]="situacao() === 'todos'" (click)="situacao.set('todos')">Todos</button>
     <button role="tab" type="button" [class.ativa]="situacao() === 'inativos'" (click)="situacao.set('inativos')">Desativados</button>
   </nav>
   <span class="espaco"></span>
-  <input type="search" class="busca" [ngModel]="busca()" (ngModelChange)="digitou($event)" placeholder="🔍 nome, apelido, telefone ou CPF" aria-label="Buscar cliente" />
+  <input type="search" class="busca" [ngModel]="busca()" (ngModelChange)="digitou($event)" placeholder="Buscar por nome, apelido, telefone ou CPF" aria-label="Buscar cliente" />
 </div>
 
 <section class="painel tabela-rolagem" [class.carregando]="clientes.isLoading()">
@@ -62,9 +62,9 @@
             } @else { <small class="detalhe">—</small> }
           </td>
           <td class="acoes" (click)="$event.stopPropagation()">
-            <button type="button" class="botao pequeno" (click)="abrirCaderneta(c)">📒 Caderneta</button>
+            <button type="button" class="botao pequeno" (click)="abrirCaderneta(c)"><app-icone nome="notebook-pen" /> Caderneta</button>
             @if (c.saldo > 0 && temWhats(c)) {
-              <button type="button" class="botao pequeno" (click)="cobrar(c)" title="Abre o WhatsApp com a mensagem pronta">💬</button>
+              <button type="button" class="botao pequeno" (click)="cobrar(c)" title="Abre o WhatsApp com a mensagem pronta"><app-icone nome="message-circle" /></button>
             }
           </td>
         </tr>
@@ -72,8 +72,8 @@
         @if (!clientes.isLoading()) {
           <tr><td colspan="5" class="vazio">
             @switch (situacao()) {
-              @case ('devendo') { Ninguém devendo agora. 👍 }
-              @case ('atrasados') { Nenhum cliente em atraso. 👍 }
+              @case ('devendo') { Ninguém devendo agora. <app-icone nome="circle-check" /> }
+              @case ('atrasados') { Nenhum cliente em atraso. <app-icone nome="circle-check" /> }
               @default { Nenhum cliente{{ busca() ? ' com "' + busca() + '"' : '' }}. Use "+ Novo cliente". }
             }
           </td></tr>
@@ -88,7 +88,7 @@
 <!-- Cadastro -->
 <dialog #dlgCliente class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
-    <header><h2>{{ editando() ? 'Editar cliente' : 'Novo cliente' }}</h2><button type="button" class="fechar" (click)="dlgCliente.close()">✕</button></header>
+    <header><h2>{{ editando() ? 'Editar cliente' : 'Novo cliente' }}</h2><button type="button" class="fechar" (click)="dlgCliente.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <label>Nome<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="120" placeholder="Nome completo" /></label>
       <label>Apelido <small>(como o caixa procura: "Dona Maria do 302")</small><input name="apelido" [(ngModel)]="form.apelido" maxlength="60" /></label>
@@ -104,7 +104,7 @@
       <small class="ajuda">O que comprar no mês vence no dia escolhido do mês seguinte. Limite 0 = não compra fiado (só gerente libera).</small>
       <label class="checar"><input type="checkbox" name="bloqueado" [(ngModel)]="form.bloqueado" /> Bloqueado para fiado (só gerente vende)</label>
       <label>Observação <small>(opcional)</small><input name="obs" [(ngModel)]="form.observacao" maxlength="300" /></label>
-      <small class="ajuda">🔒 LGPD: guarde só o necessário. O CPF é opcional.</small>
+      <small class="ajuda"><app-icone nome="lock" /> LGPD: guarde só o necessário. O CPF é opcional.</small>
       @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
     </div>
     <footer>

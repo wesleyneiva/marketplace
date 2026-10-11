@@ -1,19 +1,19 @@
 <header class="titulo-pagina">
   <div>
-    <h1>🛍️ Compras</h1>
+    <h1><app-icone nome="shopping-bag" /> Compras</h1>
     <p>O que comprar, de quem, e a conferência quando a mercadoria chega.</p>
   </div>
   <div class="botoes-topo">
-    <a class="botao primario" routerLink="/compras/nota">📄 Entrada por NF-e (XML)</a>
-    <a class="botao" routerLink="/fornecedores">🚚 Fornecedores</a>
+    <a class="botao primario" routerLink="/compras/nota"><app-icone nome="file-text" /> Entrada por NF-e (XML)</a>
+    <a class="botao" routerLink="/fornecedores"><app-icone nome="truck" /> Fornecedores</a>
   </div>
 </header>
 
-@if (aviso()) { <div class="aviso" role="status">✅ {{ aviso() }}</div> }
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
 
 <nav class="abas" role="tablist">
-  <button role="tab" [class.ativa]="aba() === 'sugestao'" (click)="aba.set('sugestao')">💡 Sugestão de compra</button>
-  <button role="tab" [class.ativa]="aba() === 'pedidos'" (click)="aba.set('pedidos')">📋 Pedidos</button>
+  <button role="tab" [class.ativa]="aba() === 'sugestao'" (click)="aba.set('sugestao')"><app-icone nome="lightbulb" /> Sugestão de compra</button>
+  <button role="tab" [class.ativa]="aba() === 'pedidos'" (click)="aba.set('pedidos')"><app-icone nome="clipboard-list" /> Pedidos</button>
 </nav>
 
 <!-- ======================= SUGESTÃO ======================= -->
@@ -59,12 +59,12 @@
       </div>
       <footer>
         <button type="button" class="botao" (click)="criarPedido(s, false)" [disabled]="ocupado() || !selecionados(s)">Salvar rascunho</button>
-        <button type="button" class="botao primario" (click)="criarPedido(s, true)" [disabled]="ocupado() || !selecionados(s)">📤 Criar e enviar ao fornecedor</button>
+        <button type="button" class="botao primario" (click)="criarPedido(s, true)" [disabled]="ocupado() || !selecionados(s)"><app-icone nome="send" /> Criar e enviar ao fornecedor</button>
       </footer>
     </section>
   } @empty {
     @if (!sugestao.isLoading()) {
-      <section class="painel vazio-grande">🎉 Nada a comprar agora: o estoque (com o que já está a caminho) aguenta até as próximas entregas.</section>
+      <section class="painel vazio-grande"><app-icone nome="circle-check" /> Nada a comprar agora: o estoque (com o que já está a caminho) aguenta até as próximas entregas.</section>
     }
   }
 }
@@ -84,17 +84,17 @@
         @for (p of pedidosVisiveis(); track p.id) {
           <tr class="linha-pedido" (click)="aberto.set(aberto() === p.id ? null : p.id)">
             <td class="pos">{{ p.id }}</td>
-            <td><span class="nome">{{ p.fornecedor }}</span><small>{{ p.itens.length }} itens · {{ p.automatico ? '🤖 automático' : p.criadoPor }}</small></td>
+            <td><span class="nome">{{ p.fornecedor }}</span><small>{{ p.itens.length }} itens · @if (p.automatico) { <app-icone nome="bot" /> automático } @else { {{ p.criadoPor }} }</small></td>
             <td>
               <span class="status" [class]="'status s-' + p.status">{{ p.status }}</span>
               @if (p.atrasado) { <span class="selo alerta">atrasado</span> }
             </td>
             <td class="quando">{{ p.criadoEm | date: 'dd/MM HH:mm' }}</td>
-            <td class="quando">{{ p.status === 'Recebido' ? '✓ ' + (p.recebidoEm | date: 'dd/MM HH:mm') : p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }}</td>
+            <td class="quando">@if (p.status === 'Recebido') { <app-icone nome="check" /> {{ p.recebidoEm | date: 'dd/MM HH:mm' }} } @else { {{ p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }} }</td>
             <td class="num forte">{{ p.total | currency: 'BRL' }}</td>
             <td class="acoes" (click)="$event.stopPropagation()">
-              @if (p.status === 'Rascunho') { <button type="button" class="botao pequeno primario" (click)="enviar(p)" [disabled]="ocupado()">📤 Enviar</button> }
-              @if (p.status === 'Enviado') { <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)">📦 Receber</button> }
+              @if (p.status === 'Rascunho') { <button type="button" class="botao pequeno primario" (click)="enviar(p)" [disabled]="ocupado()"><app-icone nome="send" /> Enviar</button> }
+              @if (p.status === 'Enviado') { <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)"><app-icone nome="package" /> Receber</button> }
               @if (p.status === 'Rascunho' || p.status === 'Enviado') { <button type="button" class="botao pequeno perigo" (click)="cancelar(p)" [disabled]="ocupado()">Cancelar</button> }
             </td>
           </tr>
@@ -131,7 +131,7 @@
 <!-- ======================= CONFERÊNCIA NA ENTREGA ======================= -->
 <dialog #dlgReceber class="janela larga" (close)="erroReceber.set(null)">
   @if (recebendo(); as p) {
-    <header><h2>📦 Receber pedido #{{ p.id }} — {{ p.fornecedor }}</h2><button type="button" class="fechar" (click)="dlgReceber.close()">✕</button></header>
+    <header><h2><app-icone nome="package" /> Receber pedido #{{ p.id }} — {{ p.fornecedor }}</h2><button type="button" class="fechar" (click)="dlgReceber.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <p class="dica">Confira cada item contra a nota e a mercadoria. Se veio menos, corrija a quantidade. Perecível: informe a validade impressa.</p>
       <div class="rolagem">

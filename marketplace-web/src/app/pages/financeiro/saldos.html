@@ -3,14 +3,14 @@
     <span>Total disponível</span>
     <strong [class.negativo]="total() < 0">{{ total() | currency: 'BRL' }}</strong>
   </div>
-  <div class="total"><span>💵 Em dinheiro</span><strong>{{ emDinheiro() | currency: 'BRL' }}</strong></div>
-  <div class="total"><span>🏦 Em banco</span><strong [class.negativo]="noBanco() < 0">{{ noBanco() | currency: 'BRL' }}</strong></div>
+  <div class="total"><span><app-icone nome="banknote" /> Em dinheiro</span><strong>{{ emDinheiro() | currency: 'BRL' }}</strong></div>
+  <div class="total"><span><app-icone nome="landmark" /> Em banco</span><strong [class.negativo]="noBanco() < 0">{{ noBanco() | currency: 'BRL' }}</strong></div>
 </section>
 
 <div class="barra">
-  <button type="button" class="botao primario" (click)="transferir()">⇄ Transferência</button>
+  <button type="button" class="botao primario" (click)="transferir()"><app-icone nome="arrow-left-right" /> Transferência</button>
   <button type="button" class="botao" (click)="abrirNova()">+ Nova conta</button>
-  @if (retorno()) { <span class="retorno" role="status">✅ {{ retorno() }}</span> }
+  @if (retorno()) { <span class="retorno" role="status"><app-icone nome="circle-check" /> {{ retorno() }}</span> }
   <span class="espaco"></span>
   <label class="mostrar"><input type="checkbox" [ngModel]="mostrarInativas()" (ngModelChange)="mostrarInativas.set($event)" /> mostrar desativadas</label>
 </div>
@@ -18,16 +18,16 @@
 @if (caixasAbertos.value()?.length) {
   <section class="painel abertos">
     <header>
-      <h2>🧾 Caixas abertos agora <small>— {{ totalAbertos() | currency: 'BRL' }} vendidos, entram no Financeiro no fechamento</small></h2>
+      <h2><app-icone nome="receipt" /> Caixas abertos agora <small>— {{ totalAbertos() | currency: 'BRL' }} vendidos, entram no Financeiro no fechamento</small></h2>
     </header>
     <ul>
       @for (cx of caixasAbertos.value() ?? []; track cx.sessaoId) {
         <li>
           <strong>Caixa {{ cx.numeroCaixa }}</strong> · {{ cx.operador }} · {{ cx.vendas }} venda(s) · {{ cx.total | currency: 'BRL' }}
           <small>
-            💵 na gaveta {{ cx.dinheiroNaGaveta | currency: 'BRL' }}
+            <app-icone nome="banknote" /> na gaveta {{ cx.dinheiroNaGaveta | currency: 'BRL' }}
             @for (f of cx.porForma; track f.forma) {
-              @if (f.forma !== 'Dinheiro' && f.valor > 0) { · {{ iconeForma[f.forma] }} {{ nomeForma[f.forma] }} {{ f.valor | currency: 'BRL' }} }
+              @if (f.forma !== 'Dinheiro' && f.valor > 0) { · <app-icone [nome]="iconeForma[f.forma]" /> {{ nomeForma[f.forma] }} {{ f.valor | currency: 'BRL' }} }
             }
           </small>
         </li>
@@ -40,7 +40,7 @@
   @for (c of contas.value() ?? []; track c.id) {
     <article class="cartao-conta" [class.inativa]="!c.ativa" [class.t-Banco]="c.tipo === 'Banco'" [class.t-Maquininha]="c.tipo === 'Maquininha'">
       <button type="button" class="abrir" (click)="abrirExtrato(c)" [attr.aria-label]="'Ver o extrato de ' + c.nome">
-        <span class="nome">{{ icone[c.tipo] }} {{ c.nome }}
+        <span class="nome"><app-icone [nome]="icone[c.tipo]" /> {{ c.nome }}
           @if (!c.ativa) { <span class="selo inativo">desativada</span> }
         </span>
         @if (c.banco || c.agencia || c.numero) {
@@ -53,15 +53,15 @@
         </small>
       </button>
       <footer>
-        <button type="button" class="botao pequeno" (click)="abrirEdicao(c)">✏️ Editar</button>
+        <button type="button" class="botao pequeno" (click)="abrirEdicao(c)"><app-icone nome="pencil" /> Editar</button>
         @if (c.ativa) {
-          <button type="button" class="botao pequeno" (click)="transferir(c.id)">⇄ Transferir daqui</button>
+          <button type="button" class="botao pequeno" (click)="transferir(c.id)"><app-icone nome="arrow-left-right" /> Transferir daqui</button>
         }
         @if (retornoConta()?.id === c.id) { <span class="retorno" role="status">{{ retornoConta()!.texto }}</span> }
       </footer>
       @if (c.tipo === 'Dinheiro' && c.saldo < 0 && c.ativa) {
         <div class="alerta-negativo" role="alert">
-          ⚠️ Dinheiro não fica negativo na vida real: provavelmente o troco do caixa veio do cofre (ou de outro lugar).
+          <app-icone nome="triangle-alert" /> Dinheiro não fica negativo na vida real: provavelmente o troco do caixa veio do cofre (ou de outro lugar).
           <button type="button" class="botao pequeno" (click)="corrigirGaveta(c)">Lançar de onde veio</button>
         </div>
       }
@@ -72,7 +72,7 @@
 </section>
 
 <p class="explica">
-  💡 O saldo é sempre calculado: saldo de implantação + entradas − saídas. Para começar a usar com uma empresa que já
+  <app-icone nome="lightbulb" /> O saldo é sempre calculado: saldo de implantação + entradas − saídas. Para começar a usar com uma empresa que já
   existe, edite cada conta e informe <b>quanto havia nela</b> no dia em que começou a usar o sistema.
 </p>
 
@@ -81,12 +81,12 @@
 <!-- Nova / editar conta -->
 <dialog #dlgConta class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
-    <header><h2>{{ editando() ? 'Editar conta' : 'Nova conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()">✕</button></header>
+    <header><h2>{{ editando() ? 'Editar conta' : 'Nova conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
       <label>Nome<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="80" placeholder="Ex.: Sicredi conta corrente, Cofre do escritório" /></label>
       <label>Tipo
         <select name="tipo" [(ngModel)]="form.tipo" [disabled]="!!editando()?.doSistema">
-          @for (t of tipos; track t) { <option [ngValue]="t">{{ icone[t] }} {{ nomeTipo[t] }}</option> }
+          @for (t of tipos; track t) { <option [ngValue]="t">{{ nomeTipo[t] }}</option> }
         </select>
         @if (editando()?.doSistema) { <span class="ajuda">Conta usada pelo sistema: dá para renomear, mas não trocar o tipo.</span> }
         @if (form.tipo === 'Dinheiro') { <span class="ajuda">Dinheiro em espécie nunca fica negativo (o sistema não deixa).</span> }

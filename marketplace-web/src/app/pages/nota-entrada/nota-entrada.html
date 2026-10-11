@@ -1,14 +1,14 @@
-<a routerLink="/compras" class="voltar">← Compras</a>
+<a routerLink="/compras" class="voltar"><app-icone nome="arrow-left" /> Compras</a>
 <header class="titulo-pagina">
   <div>
-    <h1>📄 Entrada por nota fiscal (XML)</h1>
+    <h1><app-icone nome="file-text" /> Entrada por nota fiscal (XML)</h1>
     <p>Envie o XML da NF-e do fornecedor: o sistema reconhece os produtos, calcula o custo e dá entrada no estoque.</p>
   </div>
 </header>
 
 @if (resultado(); as r) {
   <section class="painel sucesso" role="status">
-    <span class="icone">✅</span>
+    <span class="icone"><app-icone nome="circle-check" /></span>
     <div>
       <h2>Nota lançada no estoque</h2>
       <ul>
@@ -23,7 +23,7 @@
       <div class="botoes">
         <a class="botao primario" routerLink="/estoque">Ver estoque</a>
         @if (r.produtosCriados) {
-          <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }">🏷️ Etiquetas dos produtos novos</a>
+          <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ desde: hoje }"><app-icone nome="tag" /> Etiquetas dos produtos novos</a>
         }
         <button type="button" class="botao" (click)="recomecar()">Lançar outra nota</button>
       </div>
@@ -34,10 +34,10 @@
          (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
     <input type="file" accept=".xml,text/xml,application/xml" (change)="escolherArquivo($event)" [disabled]="lendo()" class="sr-only" />
     @if (lendo()) {
-      <strong>⏳ Lendo a nota…</strong>
+      <strong><app-icone nome="loader-circle" girando /> Lendo a nota…</strong>
       <span>Procurando os produtos. Nada é gravado ainda.</span>
     } @else {
-      <strong>📄 Clique para escolher o XML da nota</strong>
+      <strong><app-icone nome="file-text" /> Clique para escolher o XML da nota</strong>
       <span>ou arraste o arquivo para cá · o .xml que o fornecedor manda por e-mail (não o PDF)</span>
     }
   </label>
@@ -61,7 +61,7 @@
                 <td class="num">{{ n.quantidadeItens }}</td>
                 <td class="num">{{ n.valorTotal | currency: 'BRL' }}</td>
                 <td><small>{{ n.registradaEm | date: 'dd/MM HH:mm' }} · {{ n.registradaPor }}</small></td>
-                <td><a class="botao pequeno" [href]="urlNotas + '/' + n.id + '/xml'" download>⬇️ XML</a></td>
+                <td><a class="botao pequeno" [href]="urlNotas + '/' + n.id + '/xml'" download><app-icone nome="download" /> XML</a></td>
               </tr>
             }
           </tbody>
@@ -88,8 +88,8 @@
     </div>
     <small class="chave">Chave {{ chaveFormatada(c.chave) }}</small>
 
-    @if (c.bloqueio) { <div class="mensagem-erro" role="alert">🚫 {{ c.bloqueio }}</div> }
-    @for (a of c.avisos; track a) { <p class="nota-aviso">⚠️ {{ a }}</p> }
+    @if (c.bloqueio) { <div class="mensagem-erro" role="alert"><app-icone nome="ban" /> {{ c.bloqueio }}</div> }
+    @for (a of c.avisos; track a) { <p class="nota-aviso"><app-icone nome="triangle-alert" /> {{ a }}</p> }
 
     @if (c.pedidosAbertos.length) {
       <label class="pedido">
@@ -141,9 +141,9 @@
       </header>
 
       <div class="escolha" role="radiogroup">
-        <button type="button" [class.ligado]="i.acao === 'existente'" (click)="mudarAcao(i, 'existente')">📦 Produto cadastrado</button>
-        <button type="button" [class.ligado]="i.acao === 'novo'" (click)="mudarAcao(i, 'novo')">➕ Cadastrar novo</button>
-        <button type="button" [class.ligado]="i.acao === 'ignorar'" (click)="mudarAcao(i, 'ignorar')">🚫 Ignorar</button>
+        <button type="button" [class.ligado]="i.acao === 'existente'" (click)="mudarAcao(i, 'existente')"><app-icone nome="package" /> Produto cadastrado</button>
+        <button type="button" [class.ligado]="i.acao === 'novo'" (click)="mudarAcao(i, 'novo')"><app-icone nome="plus" /> Cadastrar novo</button>
+        <button type="button" [class.ligado]="i.acao === 'ignorar'" (click)="mudarAcao(i, 'ignorar')"><app-icone nome="ban" /> Ignorar</button>
       </div>
 
       @if (i.acao === 'existente') {
@@ -155,7 +155,7 @@
                 {{ i.produto.codigoBarras ?? 'sem código' }} · venda {{ i.produto.precoVenda | currency: 'BRL' }} · custo atual {{ i.produto.precoCusto | currency: 'BRL' }}
               </small>
               @if (i.base.produto?.id === i.produto.id && i.base.comoAchou) {
-                <small class="achado">✔ reconhecido pelo {{ i.base.comoAchou }}</small>
+                <small class="achado"><app-icone nome="check" /> reconhecido pelo {{ i.base.comoAchou }}</small>
               }
             </div>
             <button type="button" class="botao pequeno" (click)="i.trocando = true; mexeu()">Trocar</button>
@@ -218,8 +218,8 @@
         </div>
       }
 
-      @for (a of i.base.avisos; track a) { <p class="nota-aviso">⚠️ {{ a }}</p> }
-      @if (pendencia(i); as p) { <p class="falta">✋ {{ p }}</p> }
+      @for (a of i.base.avisos; track a) { <p class="nota-aviso"><app-icone nome="triangle-alert" /> {{ a }}</p> }
+      @if (pendencia(i); as p) { <p class="falta"><app-icone nome="circle-alert" /> {{ p }}</p> }
     </article>
   }
 
@@ -229,14 +229,14 @@
       @if (c.bloqueio) {
         <p>Esta nota não pode ser lançada.</p>
       } @else if (resumo().pendentes) {
-        <p>Falta resolver <strong>{{ resumo().pendentes }}</strong> {{ resumo().pendentes === 1 ? 'item' : 'itens' }} (marcados com ✋).</p>
+        <p>Falta resolver <strong>{{ resumo().pendentes }}</strong> {{ resumo().pendentes === 1 ? 'item' : 'itens' }} (marcados com <app-icone nome="circle-alert" />).</p>
       } @else {
         <p>Tudo conferido. O estoque e o custo dos produtos serão atualizados.</p>
       }
     </div>
     <button type="button" class="botao primario" (click)="darEntrada()"
             [disabled]="!!c.bloqueio || resumo().pendentes > 0 || resumo().existentes + resumo().novos === 0 || gravando()">
-      @if (gravando()) { ⏳ Gravando… } @else { ✅ Dar entrada no estoque }
+      @if (gravando()) { <app-icone nome="loader-circle" girando /> Gravando… } @else { <app-icone nome="circle-check" /> Dar entrada no estoque }
     </button>
   </section>
   @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }

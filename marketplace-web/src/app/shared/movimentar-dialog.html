@@ -1,8 +1,8 @@
 <dialog #dialogo (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header>
-      <h2>{{ titulo() }}</h2>
-      <button type="button" class="fechar" (click)="fechar()" aria-label="Fechar">✕</button>
+      <h2><app-icone [nome]="iconeTitulo()" /> {{ titulo() }}</h2>
+      <button type="button" class="fechar" (click)="fechar()" aria-label="Fechar"><app-icone nome="x" /></button>
     </header>
 
     <div class="corpo">

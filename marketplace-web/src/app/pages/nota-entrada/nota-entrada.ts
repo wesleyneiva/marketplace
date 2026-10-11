@@ -10,6 +10,7 @@ import { Categoria, Produto, UNIDADES } from '../../core/api/produtos.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { ProdutoBusca } from '../../shared/produto-busca';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
+import { Icone } from '../../shared/icone';
 
 type Acao = 'existente' | 'novo' | 'ignorar';
 
@@ -34,7 +35,7 @@ interface ItemEstado {
 // Entrada de mercadoria pelo XML da NF-e: enviar o XML → conferir item a item → dar entrada no estoque.
 @Component({
   selector: 'app-nota-entrada',
-  imports: [FormsModule, RouterLink, CurrencyPipe, DatePipe, DiaPipe, QuantidadePipe, ProdutoBusca],
+  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DiaPipe, QuantidadePipe, ProdutoBusca],
   templateUrl: './nota-entrada.html',
   styleUrl: './nota-entrada.scss',
 })
