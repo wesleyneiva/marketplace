@@ -12,6 +12,7 @@ import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
+import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 
 interface ItemCarrinho {
@@ -38,7 +39,8 @@ export class Pdv {
   protected readonly balanca = inject(BalancaService);
   protected readonly impressora = inject(ImpressoraService);
 
-  protected readonly formas = FORMAS_PAGAMENTO;
+  protected readonly formas = MODULOS.fiado ? FORMAS_PAGAMENTO : FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
+  protected readonly comFiado = MODULOS.fiado;
   protected readonly ehGerencia = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
 
   // ----- Caixa (sessão) -----
@@ -678,7 +680,7 @@ export class Pdv {
     if (e.key === 'F2' && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirPagamento();
-    } else if (e.key === 'F6' && !algumaJanelaAberta && !this.produtoPeso()) {
+    } else if (e.key === 'F6' && MODULOS.fiado && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirReceber();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {
@@ -688,7 +690,7 @@ export class Pdv {
       this.produtoPeso.set(null);
       this.erro.set(null);
       this.focarBusca();
-    } else if (this.dlgPagamento()?.nativeElement.open && e.altKey && ['1', '2', '3', '4', '5'].includes(e.key)) {
+    } else if (this.dlgPagamento()?.nativeElement.open && e.altKey && /^[1-9]$/.test(e.key) && Number(e.key) <= this.formas.length) {
       // Alt+1..5 troca a forma de pagamento sem tirar a mão do teclado (5 = fiado).
       e.preventDefault();
       this.escolherForma(this.formas[Number(e.key) - 1].valor);

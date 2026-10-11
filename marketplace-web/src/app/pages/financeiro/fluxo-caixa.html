@@ -92,7 +92,7 @@
     <section class="painel tabela-rolagem">
       <table>
         <thead>
-          <tr><th>Dia</th><th class="num">Maquininha e fiado</th><th class="num">Vendas estimadas</th><th class="num">Contas a pagar</th><th class="num">Saldo</th><th></th></tr>
+          <tr><th>Dia</th><th class="num">{{ comFiado ? 'Maquininha e fiado' : 'Maquininha' }}</th><th class="num">Vendas estimadas</th><th class="num">Contas a pagar</th><th class="num">Saldo</th><th></th></tr>
         </thead>
         <tbody>
           @for (d of linhasPrevisto(); track d.data) {

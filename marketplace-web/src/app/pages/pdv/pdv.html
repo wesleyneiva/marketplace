@@ -34,7 +34,9 @@
       @if (ultimoCupom(); as u) {
         <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda"><app-icone nome="receipt" /> Último cupom (#{{ u.id }})</button>
       }
+      @if (comFiado) {
       <button type="button" class="botao pequeno" (click)="abrirReceber()" title="Cliente veio pagar o fiado (F6)"><app-icone nome="notebook-pen" /> Receber fiado <kbd>F6</kbd></button>
+      }
       <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')"><app-icone nome="arrow-up-from-line" /> Sangria</button>
       <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')"><app-icone nome="arrow-down-to-line" /> Suprimento</button>
       <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>

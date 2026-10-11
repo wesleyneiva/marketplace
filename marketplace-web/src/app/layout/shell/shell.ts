@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { Logo } from '../../shared/logo';
 
@@ -11,6 +12,7 @@ interface ItemMenu {
   perfis: string[];  // quem pode ver este item
   soDono?: boolean;  // só o dono da plataforma (administra os clientes)
   pronto: boolean;   // false = aparece como "em breve"
+  modulo?: keyof typeof MODULOS; // módulo opcional (core/modulos.ts): some do menu se estiver desligado
 }
 
 // "Casca" do sistema: menu lateral + barra do topo. As páginas aparecem no <router-outlet>.
@@ -36,7 +38,7 @@ export class Shell {
     { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Financeiro', icone: 'landmark', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Contas a pagar', icone: 'calendar-clock', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Fiado', icone: 'notebook-pen', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Fiado', icone: 'notebook-pen', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'fiado' },
     { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Usuários', icone: 'users', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Configurações', icone: 'settings', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
@@ -45,7 +47,7 @@ export class Shell {
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.
   protected readonly itensVisiveis = computed(() =>
-    this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma)),
+    this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || MODULOS[item.modulo])),
   );
 
   protected readonly iniciais = computed(() =>

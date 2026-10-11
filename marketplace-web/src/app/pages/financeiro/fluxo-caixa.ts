@@ -11,6 +11,7 @@ import {
   FluxoPrevisto, FluxoRealizado, URL_FINANCEIRO, diaCurto, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
+import { MODULOS } from '../../core/modulos';
 
 type Modo = 'previsto' | 'realizado';
 type PeriodoRealizado = '30d' | '90d' | '6m' | '12m';
@@ -27,6 +28,7 @@ const BRL = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', curren
   styleUrls: ['./financeiro.scss', './fluxo-caixa.scss'],
 })
 export class FluxoCaixa {
+  protected readonly comFiado = MODULOS.fiado;
   private readonly http = inject(HttpClient);
   protected readonly diaCurto = diaCurto;
 

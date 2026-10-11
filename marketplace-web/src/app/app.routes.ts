@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, precisaSerDono, somenteDeslogado } from './core/auth/auth.guards';
+import { MODULOS } from './core/modulos';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
 export const routes: Routes = [
@@ -79,6 +80,7 @@ export const routes: Routes = [
       {
         // Fiado (caderneta): clientes da loja, quem deve, receber, cobrar. A venda no fiado é pelo PDV.
         path: 'fiado',
+        canMatch: [() => MODULOS.fiado], // módulo opcional: desligado em core/modulos.ts
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/fiado/fiado').then((m) => m.Fiado),
       },
