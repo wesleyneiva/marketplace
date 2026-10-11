@@ -80,7 +80,11 @@ public record VendaResponse(
     decimal Troco,
     IReadOnlyList<ItemVendaResponse> Itens,
     IReadOnlyList<PagamentoResponse> Pagamentos,
-    string? MotivoCancelamento);
+    string? MotivoCancelamento,
+    ClienteCupom? Cliente = null);
+
+// Cliente identificado na venda; no fiado, quanto ele deve AGORA e quando esta compra vence (sai no cupom para assinar).
+public record ClienteCupom(string Nome, string? Apelido, decimal? SaldoDevedor, DateOnly? VencimentoFiado);
 
 public record VendaListaResponse(int Id, DateTimeOffset DataHora, int NumeroCaixa, string Operador, string Status, int QuantidadeItens, decimal Total, string Formas);
 

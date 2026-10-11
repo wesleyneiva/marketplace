@@ -3,14 +3,18 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 // Formatos iguais aos DTOs da API (Contracts/PdvDtos.cs).
-export type FormaPagamento = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito';
+export type FormaPagamento = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito' | 'Fiado';
 
 export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; icone: string; tecla: string }[] = [
   { valor: 'Dinheiro', rotulo: 'Dinheiro', icone: '💵', tecla: '1' },
   { valor: 'Pix', rotulo: 'Pix', icone: '⚡', tecla: '2' },
   { valor: 'Debito', rotulo: 'Débito', icone: '💳', tecla: '3' },
   { valor: 'Credito', rotulo: 'Crédito', icone: '💳', tecla: '4' },
+  { valor: 'Fiado', rotulo: 'Fiado', icone: '📒', tecla: '5' },
 ];
+
+// Formas para RECEBER um fiado (o cliente paga a dívida): fiado não paga fiado.
+export const FORMAS_RECEBER = FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
 
 export interface ResumoCaixa {
   sessaoId: number;
@@ -33,6 +37,7 @@ export interface ResumoCaixa {
   valorContado: number | null;
   diferenca: number | null;
   observacaoFechamento: string | null;
+  recebimentosFiado?: { forma: FormaPagamento; valor: number }[]; // clientes que pagaram o fiado neste caixa
 }
 
 export interface Cupom {
@@ -49,6 +54,33 @@ export interface Cupom {
   itens: { produtoId: number; descricao: string; unidade: string; quantidade: number; precoUnitario: number; total: number }[];
   pagamentos: { forma: FormaPagamento; valor: number }[];
   motivoCancelamento: string | null;
+  // No fiado: quanto o cliente deve AGORA e quando esta compra vence (sai no cupom para assinar).
+  cliente?: { nome: string; apelido: string | null; saldoDevedor: number | null; vencimentoFiado: string | null } | null;
+}
+
+// Busca de cliente no PDV (só o necessário: telefone com os 4 últimos dígitos).
+export interface ClientePdv {
+  id: number;
+  nome: string;
+  apelido: string | null;
+  telefoneFinal: string | null;
+  saldo: number;          // negativo = crédito do cliente
+  limiteCredito: number;
+  disponivel: number;
+  vencido: number;
+  diasAtraso: number;
+  bloqueado: boolean;
+  restricao: string | null; // por que só gerente libera (nulo = pode comprar)
+}
+
+export interface ReciboFiado {
+  cliente: string;
+  valor: number;
+  forma: FormaPagamento;
+  saldoAnterior: number;
+  saldoAtual: number;
+  dataHora: string;
+  operador: string;
 }
 
 export interface ResumoVendas {
@@ -65,6 +97,7 @@ export interface NovaVenda {
   itens: { produtoId: number; quantidade: number }[];
   desconto: number;
   pagamentos: { forma: FormaPagamento; valor: number }[];
+  clienteId?: number | null; // obrigatório com fiado
 }
 
 export interface CaixaDisponivel {
@@ -100,6 +133,14 @@ export class PdvApi {
 
   vender(venda: NovaVenda): Promise<Cupom> {
     return firstValueFrom(this.http.post<Cupom>('/api/vendas', venda));
+  }
+
+  buscarClientes(termo: string): Promise<ClientePdv[]> {
+    return firstValueFrom(this.http.get<ClientePdv[]>('/api/fiado/pdv/buscar', { params: { termo } }));
+  }
+
+  receberFiado(clienteId: number, valor: number, forma: FormaPagamento): Promise<ReciboFiado> {
+    return firstValueFrom(this.http.post<ReciboFiado>('/api/fiado/pdv/receber', { clienteId, valor, forma }));
   }
 }
 

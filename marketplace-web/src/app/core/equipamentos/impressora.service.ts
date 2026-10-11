@@ -45,6 +45,19 @@ export class ImpressoraService {
       <div class="item"><span>${String(n + 1).padStart(3, '0')} ${esc(i.descricao)}</span></div>
       <div class="linha"><span>${qtd(i.quantidade, i.unidade)} ${esc(i.unidade)} x ${dinheiro(i.precoUnitario)}</span><span>${dinheiro(i.total)}</span></div>`).join('');
     const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}</span><span>${dinheiro(p.valor)}</span></div>`).join('');
+    // Fiado: quem comprou, quanto deve agora, quando vence e a ASSINATURA (a "nota" da caderneta).
+    const fiado = c.pagamentos.find((p) => p.forma === 'Fiado');
+    const cli = c.cliente;
+    const blocoCliente = !cli ? '' : fiado ? `
+        <div class="tracos"></div>
+        <div class="centro forte">COMPRA NO FIADO</div>
+        <div class="linha"><span>Cliente</span><span>${esc(cli.nome)}</span></div>
+        ${cli.apelido ? `<div class="linha"><span></span><span>${esc(cli.apelido)}</span></div>` : ''}
+        <div class="linha"><span>Nesta compra</span><span>${dinheiro(fiado.valor)}</span></div>
+        ${cli.vencimentoFiado ? `<div class="linha"><span>Vence em</span><span>${diaBr(cli.vencimentoFiado)}</span></div>` : ''}
+        ${cli.saldoDevedor !== null ? `<div class="linha forte"><span>${cli.saldoDevedor >= 0 ? 'SALDO DEVEDOR' : 'CRÉDITO'}</span><span>${dinheiro(Math.abs(cli.saldoDevedor))}</span></div>` : ''}
+        <div class="assinatura">${esc(cli.nome)}</div>`
+      : `<div class="linha"><span>Cliente</span><span>${esc(cli.nome)}</span></div>`;
 
     const via = (n: number) => `
       <section class="via">
@@ -63,6 +76,7 @@ export class ImpressoraService {
         <div class="tracos"></div>
         ${pagamentos}
         ${c.troco > 0 ? `<div class="linha forte"><span>TROCO</span><span>${dinheiro(c.troco)}</span></div>` : ''}
+        ${blocoCliente}
         <div class="tracos"></div>
         <div class="centro">${esc(cfg.rodape)}</div>
         <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
@@ -76,6 +90,11 @@ export class ImpressoraService {
     const linha = (rotulo: string, valor: string, classe = '') => `<div class="linha ${classe}"><span>${rotulo}</span><span>${valor}</span></div>`;
     const formas = r.porForma.map((f) => linha(esc(rotuloForma(f.forma)), dinheiro(f.valor))).join('');
     const diferenca = r.diferenca ?? 0;
+    const fiadoRecebido = r.recebimentosFiado ?? [];
+    const fiadoEmDinheiro = fiadoRecebido.find((f) => f.forma === 'Dinheiro')?.valor ?? 0;
+    const blocoFiado = fiadoRecebido.length
+      ? `<div class="tracos"></div><div class="forte">Fiado recebido (clientes que pagaram)</div>${fiadoRecebido.map((f) => linha(esc(rotuloForma(f.forma)), dinheiro(f.valor))).join('')}`
+      : '';
     const corpo = `
       <section class="via">
         <div class="centro forte grande">${esc(loja)}</div>
@@ -91,11 +110,13 @@ export class ImpressoraService {
         <div class="tracos"></div>
         <div class="forte">Por forma de pagamento</div>
         ${formas || linha('(nenhuma venda)', '')}
+        ${blocoFiado}
         <div class="tracos"></div>
         <div class="forte">Dinheiro na gaveta</div>
         ${linha('Troco inicial', dinheiro(r.valorAbertura))}
         ${linha('+ Recebido em dinheiro', dinheiro((r.porForma.find((f) => f.forma === 'Dinheiro')?.valor ?? 0) + r.trocoDado))}
         ${linha('− Troco dado', dinheiro(r.trocoDado))}
+        ${fiadoEmDinheiro ? linha('+ Fiado recebido', dinheiro(fiadoEmDinheiro)) : ''}
         ${linha('+ Suprimentos', dinheiro(r.suprimentos))}
         ${linha('− Sangrias', dinheiro(r.sangrias))}
         ${linha('= Esperado', dinheiro(r.dinheiroEsperado), 'forte')}
@@ -107,6 +128,30 @@ export class ImpressoraService {
         <div class="centro pequeno">Impresso em ${dataHora(new Date().toISOString())}</div>
       </section>`;
     return this.envelope(`Fechamento do caixa ${r.numeroCaixa}`, corpo);
+  }
+
+  // Recibo do fiado pago no balcão (uma via para o cliente; a loja tem o registro na caderneta).
+  htmlReciboFiado(r: { cliente: string; valor: number; forma: string; saldoAnterior: number; saldoAtual: number; dataHora: string; operador: string },
+    numeroCaixa: number, loja: string, recebido?: number): string {
+    const troco = recebido && recebido > r.valor ? recebido - r.valor : 0;
+    const corpo = `
+      <section class="via">
+        <div class="centro forte grande">${esc(loja)}</div>
+        <div class="centro forte">RECIBO · PAGAMENTO DE FIADO</div>
+        <div class="tracos"></div>
+        <div class="linha"><span>Caixa ${numeroCaixa}</span><span>${esc(r.operador)}</span></div>
+        <div class="linha"><span>Data</span><span>${dataHora(r.dataHora)}</span></div>
+        <div class="linha"><span>Cliente</span><span>${esc(r.cliente)}</span></div>
+        <div class="tracos"></div>
+        <div class="linha"><span>Devia</span><span>${dinheiro(r.saldoAnterior)}</span></div>
+        <div class="linha forte grande"><span>PAGOU (${esc(rotuloForma(r.forma))})</span><span>${dinheiro(r.valor)}</span></div>
+        ${troco ? `<div class="linha"><span>Recebido</span><span>${dinheiro(recebido!)}</span></div><div class="linha forte"><span>TROCO</span><span>${dinheiro(troco)}</span></div>` : ''}
+        <div class="linha forte"><span>${r.saldoAtual > 0 ? 'AINDA DEVE' : r.saldoAtual < 0 ? 'CRÉDITO' : 'SALDO'}</span><span>${r.saldoAtual === 0 ? 'quitado ✓' : dinheiro(Math.abs(r.saldoAtual))}</span></div>
+        <div class="tracos"></div>
+        <div class="centro">Obrigado!</div>
+        <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
+      </section>`;
+    return this.envelope(`Recibo de fiado`, corpo);
   }
 
   // Comprovante de sangria (dinheiro que sai da gaveta para o cofre) ou suprimento (troco que entra).
@@ -181,6 +226,12 @@ function dinheiro(v: number): string {
 
 function dataHora(iso: string): string {
   return new Date(iso).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+// "2026-11-10" → "10/11/2026" (sem passar por Date: o dia não "volta" em UTC).
+function diaBr(iso: string): string {
+  const [a, m, d] = iso.split('-');
+  return `${d}/${m}/${a}`;
 }
 
 function rotuloForma(forma: string): string {

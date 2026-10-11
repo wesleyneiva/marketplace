@@ -6,7 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import {
-  CaixaDisponivel, Cupom, FORMAS_PAGAMENTO, FormaPagamento, PdvApi, ResumoCaixa, arredondar, lerNumero,
+  CaixaDisponivel, ClientePdv, Cupom, FORMAS_PAGAMENTO, FORMAS_RECEBER, FormaPagamento, PdvApi, ReciboFiado, ResumoCaixa, arredondar, lerNumero,
 } from '../../core/api/pdv.api';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
@@ -21,7 +21,7 @@ interface ItemCarrinho {
 // Tela do caixa (PDV). Feita para TECLADO: o campo de busca fica sempre focado.
 //   • Bipa o código de barras (ou digita parte do nome) e Enter.
 //   • "3*arroz" ou "3*789..." → 3 unidades.  Produto por KG pede o peso.
-//   • F2 → pagamento.  Esc → fecha listas/janelas.
+//   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
 @Component({
   selector: 'app-pdv',
   imports: [FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo],
@@ -82,6 +82,30 @@ export class Pdv {
   protected readonly troco = computed(() => arredondar(Math.max(0, this.pago() - this.total())));
   protected readonly finalizando = signal(false);
 
+  // ----- Fiado (cliente da caderneta) -----
+  protected readonly clienteFiado = signal<ClientePdv | null>(null);
+  protected textoCliente = '';
+  protected readonly clientesAchados = signal<ClientePdv[]>([]);
+  protected readonly buscandoCliente = signal(false);
+  private esperaCliente?: ReturnType<typeof setTimeout>;
+  // Cliente com restrição (sem limite, acima do limite, bloqueado, atrasado): o operador de caixa não libera.
+  protected readonly fiadoTravado = computed(() => {
+    const c = this.clienteFiado();
+    if (!c || this.ehGerencia()) return null;
+    if (c.restricao) return c.restricao;
+    const valor = this.formaAtual() === 'Fiado' ? arredondar(lerNumero(this.textoValor)) || this.falta() : 0;
+    return c.saldo + valor > c.limiteCredito ? `Passa do limite: disponível ${dinheiroBr(c.disponivel)}.` : null;
+  });
+
+  // ----- Receber fiado no balcão (F6; o F4 é da balança) -----
+  protected readonly formasReceber = FORMAS_RECEBER;
+  protected readonly clienteReceber = signal<ClientePdv | null>(null);
+  protected textoReceber = '';
+  protected textoRecebido = ''; // dinheiro que o cliente entregou (para o troco)
+  protected readonly formaReceber = signal<FormaPagamento>('Dinheiro');
+  protected readonly recibo = signal<ReciboFiado | null>(null);
+  private reciboRecebido: number | undefined;
+
   // ----- Resultado / mensagens -----
   protected readonly cupom = signal<Cupom | null>(null);
   protected readonly ultimoCupom = signal<Cupom | null>(null); // para reimprimir depois que a janela fechou
@@ -106,6 +130,9 @@ export class Pdv {
   private readonly dlgCupom = viewChild<ElementRef<HTMLDialogElement>>('dlgCupom');
   private readonly dlgMovimento = viewChild<ElementRef<HTMLDialogElement>>('dlgMovimento');
   private readonly dlgFechar = viewChild<ElementRef<HTMLDialogElement>>('dlgFechar');
+  private readonly dlgReceber = viewChild<ElementRef<HTMLDialogElement>>('dlgReceber');
+  private readonly campoCliente = viewChild<ElementRef<HTMLInputElement>>('campoCliente');
+  private readonly campoReceber = viewChild<ElementRef<HTMLInputElement>>('campoReceber');
 
   constructor() {
     void this.carregarCaixa();
@@ -380,6 +407,7 @@ export class Pdv {
     }
     this.erro.set(null);
     this.pagamentos.set([]);
+    this.limparCliente();
     this.escolherForma('Dinheiro');
     this.dlgPagamento()?.nativeElement.showModal();
   }
@@ -387,7 +415,45 @@ export class Pdv {
   protected escolherForma(forma: FormaPagamento): void {
     this.formaAtual.set(forma);
     this.textoValor = this.falta().toFixed(2).replace('.', ',');
+    // Fiado sem cliente escolhido: o cursor vai para a busca do cliente; com cliente, para o valor.
+    if (forma === 'Fiado' && !this.clienteFiado()) setTimeout(() => this.campoCliente()?.nativeElement.focus());
+    else setTimeout(() => this.campoValor()?.nativeElement.select());
+  }
+
+  // ----- Cliente (fiado e receber) -----
+
+  // Digitou o nome/apelido/telefone: 0,3 s parado → busca.
+  protected digitouCliente(texto: string): void {
+    this.textoCliente = texto;
+    clearTimeout(this.esperaCliente);
+    if (texto.trim().length < 2) { this.clientesAchados.set([]); return; }
+    this.esperaCliente = setTimeout(async () => {
+      this.buscandoCliente.set(true);
+      try { this.clientesAchados.set(await this.api.buscarClientes(texto.trim())); }
+      catch { this.clientesAchados.set([]); }
+      finally { this.buscandoCliente.set(false); }
+    }, 300);
+  }
+
+  protected escolherClienteFiado(c: ClientePdv): void {
+    this.clienteFiado.set(c);
+    this.clientesAchados.set([]);
+    this.textoCliente = '';
+    this.erro.set(null);
     setTimeout(() => this.campoValor()?.nativeElement.select());
+  }
+
+  protected trocarClienteFiado(): void {
+    // Já tem fiado lançado para este cliente nesta compra: tira antes (o fiado é de UM cliente).
+    this.pagamentos.update((p) => p.filter((x) => x.forma !== 'Fiado'));
+    this.limparCliente();
+    setTimeout(() => this.campoCliente()?.nativeElement.focus());
+  }
+
+  private limparCliente(): void {
+    this.clienteFiado.set(null);
+    this.clientesAchados.set([]);
+    this.textoCliente = '';
   }
 
   // Enter no valor: registra o pagamento; se já está tudo pago, finaliza.
@@ -402,8 +468,16 @@ export class Pdv {
       return;
     }
     if (this.formaAtual() !== 'Dinheiro' && valor > this.falta()) {
-      this.erro.set('Cartão/Pix não podem passar do valor que falta (troco só em dinheiro).');
+      this.erro.set('Cartão, PIX e fiado não podem passar do valor que falta (troco só em dinheiro).');
       return;
+    }
+    if (this.formaAtual() === 'Fiado') {
+      if (!this.clienteFiado()) { this.erro.set('Fiado: escolha o cliente primeiro.'); return; }
+      const c = this.clienteFiado()!;
+      if (!this.ehGerencia() && (c.restricao || c.saldo + valor > c.limiteCredito)) {
+        this.erro.set((c.restricao ?? `Passa do limite de ${c.nome}: disponível ${dinheiroBr(c.disponivel)}.`) + ' Chame um gerente.');
+        return;
+      }
     }
     this.erro.set(null);
     this.pagamentos.update((p) => [...p, { forma: this.formaAtual(), valor }]);
@@ -437,6 +511,7 @@ export class Pdv {
         itens: this.carrinho().map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade })),
         desconto: this.desconto(),
         pagamentos: this.pagamentos(),
+        clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : null,
       });
       this.dlgPagamento()?.nativeElement.close();
       this.cupom.set(cupom);
@@ -458,6 +533,81 @@ export class Pdv {
     this.dlgCupom()?.nativeElement.close();
     this.cupom.set(null);
     this.focarBusca();
+  }
+
+  // ================================================================ receber fiado (F6)
+
+  protected abrirReceber(): void {
+    if (this.carrinho().length) {
+      this.erro.set('Finalize ou cancele a compra atual antes de receber um fiado.');
+      return;
+    }
+    this.clienteReceber.set(null);
+    this.limparCliente();
+    this.textoReceber = '';
+    this.textoRecebido = '';
+    this.formaReceber.set('Dinheiro');
+    this.recibo.set(null);
+    this.erro.set(null);
+    this.dlgReceber()?.nativeElement.showModal();
+    setTimeout(() => this.campoCliente()?.nativeElement.focus());
+  }
+
+  protected escolherClienteReceber(c: ClientePdv): void {
+    this.clienteReceber.set(c);
+    this.clientesAchados.set([]);
+    this.textoCliente = '';
+    this.textoReceber = Math.max(0, c.saldo).toFixed(2).replace('.', ',');
+    this.erro.set(null);
+    setTimeout(() => this.campoReceber()?.nativeElement.select());
+  }
+
+  protected trocoReceber(): number {
+    const valor = lerNumero(this.textoReceber), recebido = lerNumero(this.textoRecebido);
+    return this.formaReceber() === 'Dinheiro' && recebido > valor ? arredondar(recebido - valor) : 0;
+  }
+
+  protected async confirmarReceber(): Promise<void> {
+    const c = this.clienteReceber();
+    if (!c) return;
+    const valor = arredondar(lerNumero(this.textoReceber));
+    if (Number.isNaN(valor) || valor <= 0) { this.erro.set('Informe o valor que o cliente está pagando.'); return; }
+    if (valor > c.saldo) { this.erro.set(`${c.nome} deve ${dinheiroBr(c.saldo)}: receba até esse valor.`); return; }
+    const recebido = lerNumero(this.textoRecebido);
+    if (this.formaReceber() === 'Dinheiro' && !Number.isNaN(recebido) && recebido > 0 && recebido < valor) {
+      this.erro.set('O dinheiro entregue é menor que o valor pago.');
+      return;
+    }
+    await this.executar(async () => {
+      const r = await this.api.receberFiado(c.id, valor, this.formaReceber());
+      this.recibo.set(r);
+      this.reciboRecebido = Number.isNaN(recebido) ? undefined : recebido;
+      if (this.impressora.config().automatica) this.imprimirRecibo();
+      this.caixa.set(await this.api.caixaAtual());
+    });
+  }
+
+  protected imprimirRecibo(): void {
+    const r = this.recibo(), cx = this.caixa();
+    if (r && cx) this.impressora.imprimirHtml(this.impressora.htmlReciboFiado(r, cx.numeroCaixa, this.loja(), this.reciboRecebido));
+  }
+
+  protected concluirReceber(): void {
+    this.dlgReceber()?.nativeElement.close(); // o (close) da janela faz o resto
+  }
+
+  // Fechou a janela (Concluir, Esc ou ✕): aviso do que foi recebido e o cursor de volta na busca de produtos.
+  protected aoFecharReceber(): void {
+    const r = this.recibo();
+    if (r) this.mostrarAviso(`Fiado de ${r.cliente}: recebido ${dinheiroBr(r.valor)}. ${r.saldoAtual > 0 ? 'Ainda deve ' + dinheiroBr(r.saldoAtual) + '.' : 'Quitado!'}`);
+    this.recibo.set(null);
+    this.erro.set(null);
+    this.clientesAchados.set([]);
+    this.focarBusca();
+  }
+
+  protected rotuloSaldo(saldo: number): string {
+    return saldo > 0 ? `deve ${dinheiroBr(saldo)}` : saldo < 0 ? `crédito de ${dinheiroBr(-saldo)}` : 'não deve nada';
   }
 
   // ================================================================ sangria / suprimento / fechamento
@@ -526,6 +676,9 @@ export class Pdv {
     if (e.key === 'F2' && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirPagamento();
+    } else if (e.key === 'F6' && !algumaJanelaAberta && !this.produtoPeso()) {
+      e.preventDefault();
+      this.abrirReceber();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {
       clearTimeout(this.esperaDigitacao);
       this.resultados.set([]);
@@ -533,8 +686,8 @@ export class Pdv {
       this.produtoPeso.set(null);
       this.erro.set(null);
       this.focarBusca();
-    } else if (this.dlgPagamento()?.nativeElement.open && e.altKey && ['1', '2', '3', '4'].includes(e.key)) {
-      // Alt+1..4 troca a forma de pagamento sem tirar a mão do teclado.
+    } else if (this.dlgPagamento()?.nativeElement.open && e.altKey && ['1', '2', '3', '4', '5'].includes(e.key)) {
+      // Alt+1..5 troca a forma de pagamento sem tirar a mão do teclado (5 = fiado).
       e.preventDefault();
       this.escolherForma(this.formas[Number(e.key) - 1].valor);
     }
@@ -574,6 +727,14 @@ export class Pdv {
     return resumo.porForma.find((f) => f.forma === forma)?.valor ?? 0;
   }
 
+  protected somaFiadoRecebido(resumo: ResumoCaixa): number {
+    return (resumo.recebimentosFiado ?? []).reduce((s, f) => s + f.valor, 0);
+  }
+
+  protected fiadoEmDinheiro(resumo: ResumoCaixa): number {
+    return resumo.recebimentosFiado?.find((f) => f.forma === 'Dinheiro')?.valor ?? 0;
+  }
+
   private limparVenda(focar = true): void {
     this.carrinho.set([]);
     this.desconto.set(0);
@@ -611,6 +772,10 @@ export class Pdv {
     }
     return 'Não foi possível concluir. Tente de novo.';
   }
+}
+
+function dinheiroBr(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 // "3*arroz" → { quantidade: 3, termo: "arroz" } · "arroz" → { quantidade: null, termo: "arroz" }

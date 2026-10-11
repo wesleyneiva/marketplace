@@ -12,7 +12,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/vendas")]
 [Authorize]
-public class VendasController(VendaService vendas, CaixaService caixa, AppDbContext db) : ControllerBase
+public class VendasController(VendaService vendas, CaixaService caixa, AppDbContext db, FiadoService fiado) : ControllerBase
 {
     private const string Gerencia = $"{Perfis.Administrador},{Perfis.Gerente}";
     private string UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -136,8 +136,9 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
             Math.Round(total - custo, 2), formas, porHora);
     }
 
-    private async Task<VendaResponse> MontarCupomAsync(int id) =>
-        await db.Vendas.AsNoTracking().Where(v => v.Id == id)
+    private async Task<VendaResponse> MontarCupomAsync(int id)
+    {
+        var cupom = await db.Vendas.AsNoTracking().Where(v => v.Id == id)
             .Select(v => new VendaResponse(
                 v.Id, v.DataHora, v.SessaoCaixa!.NumeroCaixa, v.Usuario!.NomeCompleto, v.Status.ToString(),
                 v.Subtotal, v.Desconto, v.Total, v.ValorPago, v.Troco,
@@ -145,6 +146,20 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
                 v.Pagamentos.OrderBy(p => p.Id).Select(p => new PagamentoResponse(p.Forma.ToString(), p.Valor)).ToList(),
                 v.MotivoCancelamento))
             .FirstAsync();
+
+        // Cliente identificado: no fiado, o saldo devedor de AGORA e o vencimento desta compra (para assinar no cupom).
+        var cliente = await db.Vendas.Where(v => v.Id == id && v.ClienteId != null)
+            .Select(v => new { Id = v.ClienteId!.Value, v.Cliente!.Nome, v.Cliente.Apelido }).FirstOrDefaultAsync();
+        if (cliente is null) return cupom;
+        var compra = await db.LancamentosFiado.AsNoTracking()
+            .Where(l => l.VendaId == id && l.Tipo == TipoLancamentoFiado.Compra).Select(l => l.Vencimento).FirstOrDefaultAsync();
+        var noFiado = cupom.Pagamentos.Any(p => p.Forma == nameof(FormaPagamento.Fiado));
+        return cupom with
+        {
+            Cliente = new ClienteCupom(cliente.Nome, cliente.Apelido,
+                noFiado ? (await fiado.SituacaoAsync(cliente.Id)).Saldo : null, noFiado ? compra : null),
+        };
+    }
 
     private static (DateTimeOffset Inicio, DateTimeOffset Fim) DiaEmUtc(DateOnly dia) =>
         (Relogio.InicioDoDiaUtc(dia), Relogio.InicioDoDiaUtc(dia.AddDays(1)));

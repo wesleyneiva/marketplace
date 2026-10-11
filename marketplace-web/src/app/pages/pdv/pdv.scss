@@ -611,3 +611,42 @@ kbd {
   gap: 8px;
   font-weight: 400;
 }
+
+// ---------- Fiado ----------
+.busca-cliente {
+  display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px;
+  label { font-weight: 600; font-size: 14px; }
+}
+.clientes-achados {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 240px; overflow-y: auto;
+  button {
+    width: 100%; text-align: left; padding: 8px 10px; border: 1px solid var(--cor-borda); border-radius: 8px;
+    background: var(--cor-superficie); cursor: pointer; font: inherit;
+    &:hover, &:focus { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); }
+  }
+  small { color: var(--cor-texto-suave); }
+  .situacao { display: block; font-size: 12px; color: var(--cor-texto-suave); &.atraso { color: #92400e; } &.restrito { color: var(--cor-erro); } }
+}
+.cliente-escolhido {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;
+  padding: 10px 12px; border: 1px solid var(--cor-primaria); border-radius: 10px; background: var(--cor-primaria-clara);
+  small { color: var(--cor-texto-suave); }
+  .linha-info { display: block; margin-top: 2px; }
+  .atraso { color: #92400e; }
+  &.travado { border-color: var(--cor-erro); background: var(--cor-erro-fundo); }
+}
+.aviso-gerente { margin-bottom: 10px; padding: 8px 12px; border-radius: 8px; background: #fffbeb; color: #78350f; font-size: 14px; }
+.cupom-fiado {
+  display: flex; flex-direction: column; gap: 2px; margin-top: 10px; padding: 8px 10px;
+  border: 1px dashed var(--cor-borda); border-radius: 8px; font-size: 14px;
+  small { color: var(--cor-texto-suave); }
+}
+.troco-receber { margin: 4px 0; font-size: 16px; }
+
+// Receber fiado: valor pago e dinheiro entregue um embaixo do outro, com rótulo (o troco aparece na hora).
+.receber {
+  display: flex; flex-direction: column; gap: 6px;
+  label { font-weight: 600; font-size: 14px; small { font-weight: 400; color: var(--cor-texto-suave); } }
+  input { font-size: 20px; text-align: right; font-variant-numeric: tabular-nums; }
+  button { margin-top: 6px; align-self: flex-end; }
+}
