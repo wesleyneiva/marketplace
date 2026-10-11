@@ -5,14 +5,15 @@ import { Lancamentos } from './lancamentos';
 import { PlanoContas } from './plano-contas';
 import { AReceber } from './a-receber';
 import { FluxoCaixa } from './fluxo-caixa';
+import { DreAba } from './dre';
 
-type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'receber' | 'plano';
+type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
 
 // Financeiro: onde o dinheiro está (saldos), cada entrada e saída (lançamentos) e o porquê (plano de contas).
 // A aba e a conta ficam no ENDEREÇO (?aba=lancamentos&conta=3): dá para favoritar e o "voltar" do navegador funciona.
 @Component({
   selector: 'app-financeiro',
-  imports: [RouterLink, Saldos, Lancamentos, FluxoCaixa, AReceber, PlanoContas],
+  imports: [RouterLink, Saldos, Lancamentos, FluxoCaixa, DreAba, AReceber, PlanoContas],
   template: `
     <header class="titulo-pagina">
       <div>
@@ -21,10 +22,11 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'receber' | 'plano';
       </div>
     </header>
 
-    <nav class="abas" role="tablist">
+    <nav class="abas nao-imprimir" role="tablist">
       <a role="tab" routerLink="." [queryParams]="{ aba: 'saldos' }" [class.ativa]="abaAtual() === 'saldos'">💰 Saldos</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'lancamentos' }" [class.ativa]="abaAtual() === 'lancamentos'">📒 Lançamentos</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'fluxo' }" [class.ativa]="abaAtual() === 'fluxo'">📈 Fluxo de caixa</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'dre' }" [class.ativa]="abaAtual() === 'dre'">📊 DRE</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'receber' }" [class.ativa]="abaAtual() === 'receber'">💳 A receber</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'plano' }" [class.ativa]="abaAtual() === 'plano'">🗂️ Plano de contas</a>
     </nav>
@@ -32,6 +34,7 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'receber' | 'plano';
     @switch (abaAtual()) {
       @case ('lancamentos') { <app-lancamentos [contaInicial]="conta() ?? null" /> }
       @case ('fluxo') { <app-fluxo-caixa /> }
+      @case ('dre') { <app-dre /> }
       @case ('receber') { <app-a-receber /> }
       @case ('plano') { <app-plano-contas /> }
       @default { <app-saldos /> }
@@ -55,6 +58,6 @@ export class Financeiro {
 
   protected readonly abaAtual = computed<Aba>(() => {
     const a = this.aba();
-    return a === 'lancamentos' || a === 'fluxo' || a === 'receber' || a === 'plano' ? a : 'saldos';
+    return a === 'lancamentos' || a === 'fluxo' || a === 'dre' || a === 'receber' || a === 'plano' ? a : 'saldos';
   });
 }

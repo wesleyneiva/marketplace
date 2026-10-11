@@ -65,14 +65,16 @@ export function caminhoBarra(x: number, y: number, comprimento: number, espessur
 }
 
 const moeda = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+const moedaCentavos = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const numero = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const compacto = new Intl.NumberFormat('pt-BR', { notation: 'compact', maximumFractionDigits: 1 });
 
-export type Formato = 'moeda' | 'numero' | 'compacto' | 'moedaCompacta';
+export type Formato = 'moeda' | 'moedaCentavos' | 'numero' | 'compacto' | 'moedaCompacta';
 
 export function formatar(valor: number, formato: Formato): string {
   switch (formato) {
     case 'moeda': return moeda.format(valor);
+    case 'moedaCentavos': return moedaCentavos.format(valor);
     case 'compacto': return compacto.format(valor);
     case 'moedaCompacta': return 'R$ ' + compacto.format(valor);
     default: return numero.format(valor);

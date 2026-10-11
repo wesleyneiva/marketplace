@@ -1,0 +1,154 @@
+<div class="barra nao-imprimir">
+  <div class="alternar" role="group" aria-label="Quantos meses">
+    @for (n of [1, 3, 6, 12]; track n) {
+      <button type="button" class="botao pequeno" [class.ligado]="meses() === n" (click)="meses.set(n)">{{ n === 1 ? '1 mês' : n + ' meses' }}</button>
+    }
+  </div>
+  <label class="checar"><input type="checkbox" [ngModel]="incluirAtual()" (ngModelChange)="incluirAtual.set($event)" /> incluir o mês atual (em andamento)</label>
+  <span class="espaco"></span>
+  <button type="button" class="botao pequeno" (click)="abrirTudo(abertos().size === 0)">{{ abertos().size === 0 ? '➕ Abrir categorias' : '➖ Fechar categorias' }}</button>
+  <button type="button" class="botao pequeno" (click)="imprimir()">🖨️ Imprimir / PDF</button>
+</div>
+
+@if (dre.value(); as d) {
+  <!-- Alíquota do Simples -->
+  <section class="aliquota" [class.falta]="!d.aliquotaInformada">
+    @if (editandoAliquota()) {
+      <form class="editar" (ngSubmit)="salvarAliquota()">
+        <label>Alíquota efetiva do Simples (%)
+          <input name="aliquota" type="number" min="0" max="33" step="0.01" [(ngModel)]="novaAliquota" />
+        </label>
+        <button type="submit" class="botao pequeno primario">Salvar</button>
+        <button type="button" class="botao pequeno" (click)="editandoAliquota.set(false)">Cancelar</button>
+      </form>
+      <small>O contador informa: é o DAS do mês dividido pelo faturamento do mês. No mercadinho, costuma ficar entre 4% e 10%.</small>
+    } @else if (d.aliquotaInformada) {
+      <span>🧾 Impostos calculados com a alíquota efetiva do Simples: <b>{{ d.aliquotaSimples | number: '1.0-2' }}%</b> das vendas.</span>
+      <button type="button" class="link nao-imprimir" (click)="editarAliquota(d.aliquotaSimples)">✏️ mudar</button>
+    } @else {
+      <span>⚠️ <b>Informe a alíquota do Simples</b> (o contador sabe): enquanto isso, a DRE usa os DAS que vencem em cada mês, e o imposto pode cair no mês errado.</span>
+      <button type="button" class="botao pequeno nao-imprimir" (click)="editarAliquota(0)">Informar alíquota</button>
+    }
+    @if (retornoAliquota(); as r) { <span class="retorno" [class.ruim]="r.ruim" role="status">{{ r.ruim ? '✋' : '✅' }} {{ r.texto }}</span> }
+  </section>
+
+  @if (d.meses[d.meses.length - 1].parcial) {
+    <p class="aviso-parcial">⏳ <b>{{ d.meses[d.meses.length - 1].rotulo }} está em andamento:</b> as contas do mês (aluguel, folha…) já entram inteiras,
+      mas a receita ainda é só até hoje. O resultado dele só vale quando o mês fechar.</p>
+  }
+
+  <!-- De cada R$ 100 -->
+  @if (cem(); as c) {
+    <section class="painel cem">
+      <h2>De cada <b>R$ 100</b> vendidos em {{ c.mes.rotulo }}</h2>
+      <app-grafico-barras [dados]="c.barras" formato="moedaCentavos" [larguraRotulos]="170" descricao="Para onde vai cada 100 reais vendidos" />
+      <p class="conclusao" [class.prejuizo]="c.lucro <= 0">
+        @if (c.lucro > 0) { ✅ Sobram <b>{{ c.lucro | number: '1.2-2' }} reais de lucro</b> a cada R$ 100 vendidos. }
+        @else { 🔴 O mês deu <b>prejuízo</b>: faltaram {{ -c.lucro | number: '1.2-2' }} reais a cada R$ 100 vendidos. }
+      </p>
+    </section>
+  }
+
+  <!-- A DRE -->
+  <section class="painel tabela-rolagem dre" [class.carregando]="dre.isLoading()">
+    <table>
+      <thead>
+        <tr>
+          <th class="nome">Demonstração do resultado <small>(competência)</small></th>
+          @for (m of d.meses; track m.mes) {
+            <th class="num mes" [class.parcial]="m.parcial">{{ m.rotulo }}@if (m.parcial) { <small>em andamento</small> }</th>
+          }
+          @if (d.meses.length > 1) { <th class="num var">vs mês anterior</th> }
+        </tr>
+      </thead>
+      <tbody>
+        @for (l of linhasVisiveis(); track l.chave) {
+          <tr [class]="'n' + l.nivel + ' t-' + l.tipo">
+            <td class="nome">
+              @if (temCategorias().has(l.chave)) {
+                <button type="button" class="abre nao-imprimir" (click)="alternar(l.chave)" [attr.aria-expanded]="abertos().has(l.chave)"
+                        [attr.aria-label]="(abertos().has(l.chave) ? 'Fechar ' : 'Abrir ') + l.nome">{{ abertos().has(l.chave) ? '▾' : '▸' }}</button>
+              }
+              {{ l.nome }}
+            </td>
+            @for (v of l.valores; track $index; let i = $index) {
+              <td class="num valor" [class.parcial]="d.meses[i].parcial" [class.clicavel]="l.detalhavel" [class.negativo]="l.nivel === 0 && v < 0"
+                  (click)="detalhar(l, d.meses[i])" [attr.title]="l.detalhavel ? 'Ver do que é feito' : null">
+                <span>{{ v | currency: 'BRL' }}</span>
+                @if (pct(v, i); as p) { <small>{{ (p < 0 ? -p : p) | number: '1.1-1' }}%</small> }
+              </td>
+            }
+            @if (d.meses.length > 1) {
+              <td class="num var">
+                @if (variacao(l); as x) { <span [class.melhor]="x.melhor" [class.pior]="!x.melhor">{{ x.texto }}</span> }
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+  <p class="explica">
+    💡 Clique num valor para ver do que ele é feito. % = sobre a receita bruta do mês. ▲▼ em verde = melhorou o resultado; em vermelho = piorou.
+  </p>
+
+  @if (d.foraDoResultado.length) {
+    <section class="painel tabela-rolagem fora">
+      <table>
+        <thead><tr><th class="nome">Fora do resultado <small>(mexem no caixa, não no lucro)</small></th>
+          @for (m of d.meses; track m.mes) { <th class="num">{{ m.rotulo }}</th> }</tr></thead>
+        <tbody>
+          @for (l of d.foraDoResultado; track l.chave) {
+            <tr><td class="nome">{{ l.nome }}</td>
+              @for (v of l.valores; track $index; let i = $index) {
+                <td class="num valor clicavel" (click)="detalhar(l, d.meses[i])">{{ v | currency: 'BRL' }}</td>
+              }</tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+
+  <section class="painel tabela-rolagem caixa">
+    <table>
+      <thead><tr><th class="nome">Para conferir (regime de caixa: o que foi pago no mês)</th>
+        @for (m of d.meses; track m.mes) { <th class="num">{{ m.rotulo }}</th> }</tr></thead>
+      <tbody>
+        <tr><td class="nome">DAS (Simples) pago</td>@for (m of d.meses; track m.mes) { <td class="num">{{ m.dasPagoNoMes | currency: 'BRL' }}</td> }</tr>
+        <tr><td class="nome">Fornecedores de mercadorias pagos</td>@for (m of d.meses; track m.mes) { <td class="num">{{ m.comprasPagasNoMes | currency: 'BRL' }}</td> }</tr>
+      </tbody>
+    </table>
+  </section>
+} @else if (dre.isLoading()) {
+  <p class="explica">Calculando a DRE…</p>
+} @else if (dre.error()) {
+  <p class="erro">Não foi possível calcular a DRE.</p>
+}
+
+<!-- Detalhe de uma linha -->
+<dialog #dlgDetalhe class="janela larga" (close)="detalhe.set(null)">
+  <header><h2>{{ detalhe()?.titulo ?? 'Carregando…' }}</h2><button type="button" class="fechar" (click)="dlgDetalhe.close()">✕</button></header>
+  <div class="corpo">
+    @if (carregandoDetalhe()) { <p class="dica">Buscando…</p> }
+    @if (detalhe(); as dt) {
+      @if (dt.observacao) { <p class="dica">{{ dt.observacao }}</p> }
+      @if (dt.itens.length) {
+        <table class="itens-detalhe">
+          <tbody>
+            @for (i of dt.itens; track $index) {
+              <tr>
+                <td class="data">{{ i.data ? (i.data | dia) : '' }}</td>
+                <td><span class="descricao">{{ i.descricao }}</span>@if (i.complemento) { <small class="detalhe">{{ i.complemento }}</small> }</td>
+                <td class="num" [class.valor-saida]="i.valor < 0" [class.valor-entrada]="i.valor > 0">{{ i.valor | currency: 'BRL' }}</td>
+              </tr>
+            }
+          </tbody>
+          <tfoot><tr><td></td><td class="forte">Total</td><td class="num forte">{{ totalDetalhe() | currency: 'BRL' }}</td></tr></tfoot>
+        </table>
+      } @else if (!carregandoDetalhe()) {
+        <p class="dica">Nada neste mês.</p>
+      }
+    }
+  </div>
+  <footer><button type="button" class="botao" (click)="dlgDetalhe.close()">Fechar</button></footer>
+</dialog>

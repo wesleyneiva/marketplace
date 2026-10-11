@@ -265,3 +265,10 @@ app-mapa-calor {
   .layout, .principal, .conteudo { display: block !important; margin: 0 !important; padding: 0 !important; }
   body { background: #fff !important; }
 }
+
+// ---------- Impressão (ex.: DRE em PDF): só o conteúdo da página, sem menu, topo e faixa da demonstração ----------
+@media print {
+  .lateral, .topo, .faixa-demo, .fundo-menu, .nao-imprimir { display: none !important; }
+  .layout, .principal, .conteudo { display: block !important; margin: 0 !important; padding: 0 !important; }
+  body { background: #fff !important; }
+}

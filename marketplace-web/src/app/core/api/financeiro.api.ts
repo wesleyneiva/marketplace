@@ -265,3 +265,38 @@ export function diaCurto(iso: string): string {
   const [a, m, d] = iso.split('-').map(Number);
   return `${SEMANA[new Date(a, m - 1, d).getDay()]} ${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}`;
 }
+
+// ----- DRE gerencial -----
+
+export interface MesDre {
+  mes: string;      // "2026-09"
+  rotulo: string;   // "set/2026"
+  inicio: string;
+  fim: string;
+  parcial: boolean; // mês em andamento
+  dasPagoNoMes: number;
+  comprasPagasNoMes: number;
+}
+
+export interface LinhaDre {
+  chave: string;    // "receita-bruta", "cmv", "grupo:Pessoal", "categoria:12"...
+  nome: string;
+  nivel: number;    // 0 = total/subtotal, 1 = grupo, 2 = categoria
+  tipo: 'receita' | 'deducao' | 'subtotal' | 'resultado';
+  valores: number[]; // um por mês, com sinal (+ aumenta o resultado)
+  detalhavel: boolean;
+}
+
+export interface Dre {
+  meses: MesDre[];
+  linhas: LinhaDre[];
+  foraDoResultado: LinhaDre[];
+  aliquotaSimples: number;
+  aliquotaInformada: boolean;
+}
+
+export interface DetalheDre {
+  titulo: string;
+  observacao: string | null;
+  itens: { data: string | null; descricao: string; complemento: string | null; valor: number }[];
+}

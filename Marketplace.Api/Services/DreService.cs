@@ -26,6 +26,12 @@ public class DreService(AppDbContext db)
         meses = Math.Clamp(meses, 1, 12);
         var hoje = Relogio.Hoje;
         var lista = Enumerable.Range(0, meses).Select(i => new DateOnly(ateMes.Year, ateMes.Month, 1).AddMonths(i - meses + 1)).ToList();
+        // Meses inteiros antes de a empresa ter qualquer dado (venda ou implantação do financeiro) não entram: seriam colunas de zero.
+        var primeiraVenda = await db.Vendas.MinAsync(v => (DateTimeOffset?)v.DataHora);
+        var implantacao = await db.ContasFinanceiras.MinAsync(c => (DateOnly?)c.SaldoInicialEm);
+        var inicioDados = new[] { primeiraVenda is { } pv ? Relogio.DiaLocal(pv) : (DateOnly?)null, implantacao }.Where(d => d is not null).Min();
+        if (inicioDados is DateOnly primeiroDia && lista.Any(m => m.AddMonths(1) > primeiroDia))
+            lista = lista.Where(m => m.AddMonths(1) > primeiroDia).ToList();
         var aliquota = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.AliquotaSimples).FirstAsync();
         var categorias = await db.CategoriasFinanceiras.AsNoTracking().ToListAsync();
         var porGrupo = categorias.GroupBy(c => c.Grupo).ToDictionary(g => g.Key, g => g.OrderBy(c => Ordem(c.Codigo)).ToList());
@@ -189,13 +195,13 @@ public class DreService(AppDbContext db)
             {
                 var itens = await db.ItensVenda.AsNoTracking()
                     .Where(i => i.Venda!.Status == StatusVenda.Concluida && i.Venda.DataHora >= ini && i.Venda.DataHora < fimUtc)
-                    .GroupBy(i => i.Descricao)
-                    .Select(g => new { Produto = g.Key, Qtd = g.Sum(i => i.Quantidade), Custo = g.Sum(i => i.CustoUnitario * i.Quantidade), Receita = g.Sum(i => i.Total) })
+                    .GroupBy(i => new { i.Descricao, i.Unidade })
+                    .Select(g => new { Produto = g.Key.Descricao, g.Key.Unidade, Qtd = g.Sum(i => i.Quantidade), Custo = g.Sum(i => i.CustoUnitario * i.Quantidade), Receita = g.Sum(i => i.Total) })
                     .OrderByDescending(x => x.Custo).Take(40).ToListAsync();
                 return new($"Custo das mercadorias vendidas · {rotulo}",
                     "Os 40 produtos que mais pesaram no custo. O custo de cada item fica gravado no momento da venda.",
                     itens.Select(x => new ItemDetalheDre(null, x.Produto,
-                        $"{x.Qtd.ToString("0.###", PtBr)} vendidos · margem {(x.Receita == 0 ? 0 : (1 - x.Custo / x.Receita) * 100).ToString("0.0", PtBr)}%", -x.Custo)).ToList());
+                        $"{x.Qtd.ToString("0.###", PtBr)} {x.Unidade.ToLowerInvariant()} vendidos · margem {(x.Receita == 0 ? 0 : (1 - x.Custo / x.Receita) * 100).ToString("0.0", PtBr)}%", -x.Custo)).ToList());
             }
             case "perdas":
             {
