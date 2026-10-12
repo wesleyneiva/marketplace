@@ -29,6 +29,8 @@ export const routes: Routes = [
           { path: '', loadComponent: () => import('./pages/plataforma/visao-geral/visao-geral').then((m) => m.VisaoGeral) },
           { path: 'clientes', loadComponent: () => import('./pages/empresas/empresas').then((m) => m.Empresas) },
           { path: 'clientes/:id', loadComponent: () => import('./pages/plataforma/cliente/cliente').then((m) => m.Cliente) },
+          { path: 'planos', loadComponent: () => import('./pages/plataforma/planos/planos').then((m) => m.Planos) },
+          { path: 'cobrancas', loadComponent: () => import('./pages/plataforma/cobrancas/cobrancas').then((m) => m.Cobrancas) },
         ],
       },
       { path: 'empresas', redirectTo: 'plataforma/clientes' },

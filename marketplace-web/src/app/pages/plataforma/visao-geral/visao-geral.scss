@@ -45,3 +45,10 @@ a.cartao:hover { box-shadow: var(--sombra); }
   .quando { color: var(--cor-texto-suave); white-space: nowrap; }
   .vazio { color: var(--cor-texto-suave); font-size: 14px; margin: 0; }
 }
+
+.secao-titulo { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 6px 0 10px; }
+.cartao.destaque strong { color: var(--cor-primaria-escura); }
+.cartao.perigo strong { color: var(--cor-erro); }
+.duas-colunas { margin-bottom: 18px; }
+.bloco.grafico { min-width: 0; }
+.nota { margin: 6px 0 0; font-size: 12px; color: var(--cor-texto-suave); }

@@ -1,0 +1,51 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="tag" /> Planos</h1>
+    <p>O que você vende. Mensalidade = preço do plano + caixas além dos incluídos × preço do caixa extra.
+      Mudar um preço vale para as <b>próximas</b> mensalidades.</p>
+  </div>
+  <button type="button" class="botao primario" (click)="abrir(null)"><app-icone nome="plus" /> Novo plano</button>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
+
+<section class="lista">
+  @for (p of planos.value() ?? []; track p.id) {
+    <article class="painel plano" [class.inativo]="!p.ativo">
+      <header>
+        <h2>{{ p.nome }} @if (!p.ativo) { <span class="selo">inativo</span> }</h2>
+        <button type="button" class="botao pequeno" (click)="abrir(p)"><app-icone nome="pencil" /> Editar</button>
+      </header>
+      @if (p.descricao) { <p class="descricao">{{ p.descricao }}</p> }
+      <p class="preco"><strong>{{ p.precoMensal | currency: 'BRL' }}</strong>/mês · {{ p.caixasIncluidos }} caixa{{ p.caixasIncluidos === 1 ? '' : 's' }} incluído{{ p.caixasIncluidos === 1 ? '' : 's' }}</p>
+      <p class="extra">Caixa extra: {{ p.precoCaixaExtra | currency: 'BRL' }}/mês · {{ p.clientes }} cliente{{ p.clientes === 1 ? '' : 's' }} neste plano</p>
+    </article>
+  } @empty {
+    @if (!planos.isLoading()) { <p class="vazio">Nenhum plano cadastrado.</p> }
+  }
+</section>
+
+<dialog #dlg class="janela">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header>
+      <h2>{{ editando ? 'Editar plano' : 'Novo plano' }}</h2>
+      <button type="button" class="fechar" (click)="dlg.close()" aria-label="Fechar"><app-icone nome="x" /></button>
+    </header>
+    <div class="corpo">
+      <label>Nome<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="60" /></label>
+      <label>Descrição <small>(opcional)</small><input name="descricao" [(ngModel)]="form.descricao" maxlength="300" /></label>
+      <div class="tres">
+        <label>Preço por mês (R$)<input name="preco" type="number" min="0" step="0.01" [(ngModel)]="form.precoMensal" required /></label>
+        <label>Caixas incluídos<input name="caixas" type="number" min="1" max="999" [(ngModel)]="form.caixasIncluidos" required /></label>
+        <label>Caixa extra (R$/mês)<input name="extra" type="number" min="0" step="0.01" [(ngModel)]="form.precoCaixaExtra" required /></label>
+      </div>
+      <p class="dica">Exemplos: 1 caixa = {{ exemplo(1) | currency: 'BRL' }} · 2 caixas = {{ exemplo(2) | currency: 'BRL' }} · 3 caixas = {{ exemplo(3) | currency: 'BRL' }}</p>
+      <label class="marcar"><input name="ativo" type="checkbox" [(ngModel)]="form.ativo" /> Ativo (aparece para clientes novos)</label>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlg.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : 'Salvar' }}</button>
+    </footer>
+  </form>
+</dialog>

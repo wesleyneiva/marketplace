@@ -1,0 +1,20 @@
+@use '../../usuarios/usuarios.scss';
+
+.lista { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+
+.plano {
+  padding: 16px;
+  &.inativo { opacity: 0.7; border-style: dashed; }
+  header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  h2 { margin: 0; font-size: 17px; }
+  .descricao { margin: 6px 0 0; color: var(--cor-texto-suave); font-size: 14px; }
+  .preco { margin: 12px 0 2px; font-size: 15px; }
+  .preco strong { font-size: 24px; }
+  .extra { margin: 0; color: var(--cor-texto-suave); font-size: 13px; }
+  .selo { font-size: 12px; font-weight: 400; padding: 2px 8px; border-radius: 99px; background: var(--cor-fundo); }
+}
+
+.tres { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+.marcar { flex-direction: row !important; align-items: center; gap: 8px; }
+.dica { margin: 0; color: var(--cor-texto-suave); font-size: 13px; }
+.aviso { margin-bottom: 14px; padding: 10px 12px; border-radius: 8px; background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }

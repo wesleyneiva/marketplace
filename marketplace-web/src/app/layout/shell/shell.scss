@@ -246,3 +246,19 @@ nav {
   font-size: 13px;
   line-height: 1.4;
 }
+
+.faixa-assinatura {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 16px;
+  background: #fffbeb;
+  color: #92400e;
+  border-bottom: 1px solid #fde68a;
+  font-size: 14px;
+
+  &.perigo { background: #fee2e2; color: var(--cor-erro); border-bottom-color: #fecaca; }
+  .pix { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .contato { opacity: 0.85; }
+}

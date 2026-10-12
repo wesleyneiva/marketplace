@@ -17,14 +17,14 @@ namespace Marketplace.Api.Controllers;
 [Route("api/plataforma/empresas")]
 [DonoDaPlataforma]
 public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios, IConfiguration config, IServiceProvider services,
-    LocaisDasLojas locais, ColetorClima coletor)
+    LocaisDasLojas locais, ColetorClima coletor, CobrancasService cobrancas)
     : ControllerBase
 {
     // GET /api/plataforma/empresas → todos os clientes com números de USO (nada de vendas ou faturamento deles)
     [HttpGet]
     public async Task<List<EmpresaResumoResponse>> Listar()
     {
-        var empresas = await Clientes().AsNoTracking().OrderBy(e => e.Id).ToListAsync();
+        var empresas = await Clientes().AsNoTracking().Include(e => e.Plano).OrderBy(e => e.Id).ToListAsync();
         return await ResumirAsync(empresas);
     }
 
@@ -32,7 +32,8 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
     [HttpGet("~/api/plataforma/visao-geral")]
     public async Task<VisaoGeralResponse> VisaoGeral()
     {
-        var resumos = await ResumirAsync(await Clientes().AsNoTracking().OrderBy(e => e.Id).ToListAsync());
+        var empresas = await Clientes().AsNoTracking().Include(e => e.Plano).OrderBy(e => e.Id).ToListAsync();
+        var resumos = await ResumirAsync(empresas);
         var agora = DateTimeOffset.UtcNow;
         var reais = resumos.Where(r => !r.Demonstracao).ToList();
         return new VisaoGeralResponse(
@@ -41,14 +42,59 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             reais.Count(r => r.UltimoAcesso > agora.AddDays(-1)), reais.Count(r => r.UltimoAcesso > agora.AddDays(-7)),
             reais.Where(r => r.Ativa && (r.UltimoAcesso is null || r.UltimoAcesso < agora.AddDays(-7)))
                 .OrderBy(r => r.UltimoAcesso ?? DateTimeOffset.MinValue).ToList(),
-            reais.OrderByDescending(r => r.CriadoEm).Take(5).ToList());
+            reais.OrderByDescending(r => r.CriadoEm).Take(5).ToList(),
+            await FaturamentoAsync(empresas));
+    }
+
+    // O faturamento do DONO (mensalidades): receita mensal da carteira, recebido no mês, a receber, atrasado e 12 meses.
+    private async Task<FaturamentoPlataforma> FaturamentoAsync(List<Empresa> empresas)
+    {
+        var hoje = Relogio.Hoje;
+        var inicioMes = new DateOnly(hoje.Year, hoje.Month, 1);
+        var desde = inicioMes.AddMonths(-11);
+        var pagantes = empresas.Where(e => e.Ativa && CobrancasService.Cobra(e)).ToList();
+        var faturas = await db.Faturas.AsNoTracking().Where(f => f.Status != StatusFatura.Cancelada
+                && (f.Competencia >= desde || (f.PagaEm != null && f.PagaEm >= desde) || f.Status == StatusFatura.Aberta))
+            .Select(f => new { f.ClienteId, f.Competencia, f.Vencimento, f.Valor, f.Status, f.PagaEm, f.ValorPago }).ToListAsync();
+        var abertas = faturas.Where(f => f.Status == StatusFatura.Aberta).ToList();
+        var meses = Enumerable.Range(0, 12).Select(i => desde.AddMonths(i)).Select(m => new MesPlataforma(m,
+            faturas.Where(f => f.Competencia == m).Sum(f => f.Valor),
+            faturas.Where(f => f.PagaEm is { } p && p.Year == m.Year && p.Month == m.Month).Sum(f => f.ValorPago ?? 0))).ToList();
+        var porPlano = pagantes.GroupBy(e => e.Plano?.Nome ?? "Sem plano")
+            .Select(g => new PlanoNaCarteira(g.Key, g.Count(), g.Sum(e => CobrancasService.ValorMensal(e, e.Plano))))
+            .OrderByDescending(p => p.Receita).ToList();
+        return new FaturamentoPlataforma(
+            pagantes.Sum(e => CobrancasService.ValorMensal(e, e.Plano)), pagantes.Count,
+            meses[^1].Recebido,
+            abertas.Where(f => f.Vencimento >= hoje).Sum(f => f.Valor),
+            abertas.Where(f => f.Vencimento < hoje).Sum(f => f.Valor),
+            abertas.Where(f => f.Vencimento < hoje).Select(f => f.ClienteId).Distinct().Count(),
+            empresas.Count(e => !e.Ativa && e.MotivoSuspensao == MotivosSuspensao.Atraso),
+            meses, porPlano);
+    }
+
+    // PUT /api/plataforma/empresas/5/assinatura → plano, vencimento, teste grátis, valor combinado, cortesia
+    [HttpPut("{id:int}/assinatura")]
+    public async Task<ActionResult<ClienteDetalheResponse>> SalvarAssinatura(int id, AssinaturaRequest r)
+    {
+        var e = await Clientes().FirstOrDefaultAsync(x => x.Id == id);
+        if (e is null) return NotFound();
+        if (r.PlanoId is { } planoId && !await db.Planos.AnyAsync(p => p.Id == planoId))
+            return BadRequest(new { mensagem = "Plano não encontrado." });
+        if (!r.Cortesia && r.PlanoId is null && r.PrecoCombinado is null)
+            return BadRequest(new { mensagem = "Escolha um plano (ou marque cortesia)." });
+        (e.PlanoId, e.DiaVencimento, e.TesteAte, e.CobrarDesde, e.PrecoCombinado, e.Cortesia) =
+            (r.PlanoId, r.DiaVencimento, r.TesteAte, r.CobrarDesde, r.PrecoCombinado is > 0 ? Math.Round(r.PrecoCombinado.Value, 2) : null, r.Cortesia);
+        await db.SaveChangesAsync();
+        await cobrancas.GerarAsync(Relogio.Hoje, id); // se já é hora, a mensalidade aparece agora
+        return await DetalharAsync(e);
     }
 
     // GET /api/plataforma/empresas/5 → ficha + configurações da loja
     [HttpGet("{id:int}")]
     public async Task<ActionResult<ClienteDetalheResponse>> Detalhe(int id)
     {
-        var e = await Clientes().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+        var e = await Clientes().AsNoTracking().Include(x => x.Plano).FirstOrDefaultAsync(x => x.Id == id);
         return e is null ? NotFound() : await DetalharAsync(e);
     }
 
@@ -173,21 +219,10 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
 
     private async Task<ActionResult<EmpresaResumoResponse>> MudarSituacaoAsync(int id, bool ativa)
     {
-        var empresa = await Clientes().FirstOrDefaultAsync(e => e.Id == id);
+        var empresa = await Clientes().Include(e => e.Plano).FirstOrDefaultAsync(e => e.Id == id);
         if (empresa is null) return NotFound();
-        if (!ativa && id == Plataforma.EmpresaDona(config))
-            return BadRequest(new { mensagem = "Esta é a empresa da plataforma (a sua): ela não pode ser suspensa." });
-
-        empresa.Ativa = ativa;
-        await db.SaveChangesAsync();
-        if (!ativa)
-        {
-            // Troca o "carimbo de segurança" de todos: os cookies de quem está logado deixam de valer (cai em até 1 min).
-            using var escopo = services.CriarEscopo(id);
-            var daEmpresa = escopo.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-            foreach (var u in await escopo.ServiceProvider.GetRequiredService<AppDbContext>().Users.ToListAsync())
-                await daEmpresa.UpdateSecurityStampAsync(u);
-        }
+        if (ativa) await cobrancas.ReativarAsync(empresa);
+        else await cobrancas.SuspenderAsync(empresa, MotivosSuspensao.Manual);
         return (await ResumirAsync([empresa]))[0];
     }
 
@@ -215,10 +250,20 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         e.Observacoes = Limpo(f.Observacoes);
     }
 
-    private async Task<ClienteDetalheResponse> DetalharAsync(Empresa e) => new(
-        (await ResumirAsync([e]))[0],
-        new FichaCliente(e.RazaoSocial, e.Documento, e.Responsavel, e.Telefone, e.EmailContato, e.Endereco, e.Observacoes),
-        e.Uf, e.Fuso, e.Horario, Services.Expediente.Descricao(e.Horario));
+    private async Task<ClienteDetalheResponse> DetalharAsync(Empresa e)
+    {
+        e.Plano ??= e.PlanoId is null ? null : await db.Planos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == e.PlanoId);
+        var resumo = (await ResumirAsync([e]))[0];
+        var hoje = Relogio.Hoje;
+        var abertas = await db.Faturas.AsNoTracking().Where(f => f.ClienteId == e.Id && f.Status == StatusFatura.Aberta)
+            .Select(f => new { f.Valor, f.Vencimento }).ToListAsync();
+        var assinatura = new AssinaturaResponse(e.PlanoId, e.Plano?.Nome, e.DiaVencimento, e.TesteAte, e.CobrarDesde, e.PrecoCombinado,
+            e.Cortesia, CobrancasService.ValorMensal(e, e.Plano), e.MotivoSuspensao, abertas.Count, abertas.Sum(f => f.Valor),
+            abertas.Select(f => f.Vencimento < hoje ? hoje.DayNumber - f.Vencimento.DayNumber : 0).DefaultIfEmpty(0).Max());
+        return new(resumo,
+            new FichaCliente(e.RazaoSocial, e.Documento, e.Responsavel, e.Telefone, e.EmailContato, e.Endereco, e.Observacoes),
+            e.Uf, e.Fuso, e.Horario, Services.Expediente.Descricao(e.Horario), assinatura);
+    }
 
     // Números de USO de cada cliente. De propósito, nada de valores de venda: o dono do sistema não precisa (nem deve)
     // saber quanto cada mercado fatura. "Dias com movimento" mostra se o sistema está sendo usado, sem dizer quanto.
@@ -246,6 +291,10 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             .ToDictionaryAsync(x => x.Key);
         var caixas = await db.SessoesCaixa.IgnoreQueryFilters().Where(s => ids.Contains(s.EmpresaId) && s.Status == StatusSessao.Aberta)
             .GroupBy(s => s.EmpresaId).Select(g => new { g.Key, Total = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Total);
+        var hoje = Relogio.Hoje;
+        var atrasadas = await db.Faturas.Where(f => ids.Contains(f.ClienteId) && f.Status == StatusFatura.Aberta && f.Vencimento < hoje)
+            .GroupBy(f => f.ClienteId).Select(g => new { g.Key, Total = g.Count(), Mais = g.Min(f => f.Vencimento) })
+            .ToDictionaryAsync(x => x.Key);
 
         return empresas.Select(e =>
         {
@@ -254,7 +303,9 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             return new EmpresaResumoResponse(e.Id, e.Nome, e.Subdominio, e.LimiteCaixas, e.Ativa, e.Demonstracao, e.CriadoEm,
                 u?.Total ?? 0, u?.Ativos ?? 0, produtos.GetValueOrDefault(e.Id), m?.Dias ?? 0,
                 u?.UltimoAcesso, m?.Ultimo, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}",
-                e.VendasAutomaticas, e.Responsavel, e.Telefone);
+                e.VendasAutomaticas, e.Responsavel, e.Telefone, e.Plano?.Nome, CobrancasService.ValorMensal(e, e.Plano), e.Cortesia,
+                e.MotivoSuspensao, atrasadas.GetValueOrDefault(e.Id)?.Total ?? 0,
+                atrasadas.GetValueOrDefault(e.Id) is { } a ? hoje.DayNumber - a.Mais.DayNumber : 0);
         }).ToList();
     }
 }

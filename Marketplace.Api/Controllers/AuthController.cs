@@ -1,3 +1,4 @@
+using Marketplace.Api.Services;
 using Marketplace.Api.Contracts;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
@@ -72,7 +73,16 @@ public class AuthController(
             return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Usuário desativado. Fale com o administrador." });
 
         if (!await EmpresaAtivaAsync(usuario.EmpresaId))
-            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "O acesso desta empresa está suspenso." });
+        {
+            var porAtraso = await db.Empresas.AnyAsync(e => e.Id == usuario.EmpresaId && e.MotivoSuspensao == MotivosSuspensao.Atraso);
+            var contato = Documentos.Telefone((await db.ConfiguracoesPlataforma.AsNoTracking().FirstOrDefaultAsync())?.ContatoCobranca);
+            return StatusCode(StatusCodes.Status403Forbidden, new
+            {
+                mensagem = porAtraso
+                    ? "O acesso desta empresa está suspenso por falta de pagamento da mensalidade." + (contato is null ? "" : $" Fale com o suporte: {contato}.")
+                    : "O acesso desta empresa está suspenso.",
+            });
+        }
 
         await signInManager.SignInAsync(usuario, isPersistent: false);
         usuario.UltimoAcessoEm = DateTimeOffset.UtcNow;

@@ -55,6 +55,21 @@
       </div>
     }
 
+    @if (assinatura.value(); as a) {
+      @if (a.mensagem) {
+        <div class="faixa-assinatura" [class.perigo]="a.nivel === 'perigo'" role="status">
+          <app-icone [nome]="a.nivel === 'perigo' ? 'circle-alert' : 'calendar-clock'" />
+          <span>{{ a.mensagem }}</span>
+          @if (a.chavePix) {
+            <span class="pix">PIX: <b>{{ a.chavePix }}</b>@if (a.nomeRecebedor) { ({{ a.nomeRecebedor }}) }
+              <button type="button" class="botao pequeno" (click)="copiarPix(a.chavePix)"><app-icone [nome]="pixCopiado() ? 'check' : 'copy'" /> {{ pixCopiado() ? 'Copiada' : 'Copiar' }}</button>
+            </span>
+          }
+          @if (a.contato) { <span class="contato">Dúvidas: {{ a.contato }}</span> }
+        </div>
+      }
+    }
+
     <main class="conteudo">
       <router-outlet />
     </main>

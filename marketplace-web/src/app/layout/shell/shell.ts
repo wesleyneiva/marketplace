@@ -1,4 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { httpResource } from '@angular/common/http';
+import { copiarTexto } from '../../shared/copiar';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { MODULOS } from '../../core/modulos';
@@ -50,12 +52,24 @@ export class Shell {
   private readonly menuDono: ItemMenu[] = [
     { rotulo: 'Visão geral', icone: 'layout-dashboard', rota: '/plataforma', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Clientes', icone: 'store', rota: '/plataforma/clientes', perfis: ['Administrador'], pronto: true },
-    { rotulo: 'Planos', icone: 'tag', rota: '/plataforma/planos', perfis: ['Administrador'], pronto: false },
-    { rotulo: 'Cobranças', icone: 'receipt', rota: '/plataforma/cobrancas', perfis: ['Administrador'], pronto: false },
+    { rotulo: 'Cobranças', icone: 'receipt', rota: '/plataforma/cobrancas', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Planos', icone: 'tag', rota: '/plataforma/planos', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Sistema', icone: 'settings', rota: '/plataforma/sistema', perfis: ['Administrador'], pronto: false },
   ];
 
   protected readonly areaDoDono = computed(() => !!this.usuario()?.soPlataforma);
+
+  // Mensalidade do sistema: aviso para o ADMINISTRADOR do mercado (vence em breve / em atraso), com a chave PIX.
+  protected readonly assinatura = httpResource<{ nivel: string | null; mensagem: string | null; chavePix: string | null; nomeRecebedor: string | null; contato: string | null }>(
+    () => {
+      const u = this.usuario();
+      return u && !u.soPlataforma && !u.somenteLeitura && !u.trocarSenha && u.perfis.includes('Administrador') ? '/api/empresa/configuracao/assinatura' : undefined;
+    });
+  protected readonly pixCopiado = signal(false);
+
+  async copiarPix(chave: string): Promise<void> {
+    this.pixCopiado.set(await copiarTexto(chave));
+  }
   protected readonly inicio = computed(() => (this.areaDoDono() ? '/plataforma' : '/dashboard'));
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.

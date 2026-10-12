@@ -122,6 +122,33 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
             .ToList();
     }
 
+    // GET /api/empresa/configuracao/assinatura → a mensalidade do sistema (aviso no topo, só para o Administrador)
+    [HttpGet("assinatura")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<SituacaoAssinaturaResponse> Assinatura([FromServices] CobrancasService cobrancas)
+    {
+        var hoje = Relogio.Hoje;
+        var cfg = await cobrancas.ConfiguracaoAsync();
+        var abertas = (await db.Faturas.AsNoTracking()
+                .Where(f => f.ClienteId == contexto.EmpresaId && f.Status == StatusFatura.Aberta).OrderBy(f => f.Vencimento).ToListAsync())
+            .Select(f => new FaturaDoCliente(f.Competencia, f.Vencimento, f.Valor, f.Descricao, CobrancasService.DiasDeAtraso(f, hoje))).ToList();
+        string? nivel = null, mensagem = null;
+        if (abertas.FirstOrDefault(f => f.DiasAtraso > 0) is { } atrasada)
+        {
+            var faltam = cfg.DiasParaBloquear - atrasada.DiasAtraso;
+            nivel = "perigo";
+            mensagem = $"Mensalidade do sistema em atraso há {atrasada.DiasAtraso} dia(s)."
+                + (cfg.BloqueioAutomatico ? faltam > 0 ? $" O acesso será suspenso em {faltam} dia(s) se não for paga." : " O acesso pode ser suspenso a qualquer momento." : "");
+        }
+        else if (abertas.FirstOrDefault(f => f.Vencimento <= hoje.AddDays(cfg.DiasAvisoAntes)) is { } proxima)
+        {
+            var dias = proxima.Vencimento.DayNumber - hoje.DayNumber;
+            nivel = "info";
+            mensagem = $"Mensalidade do sistema ({proxima.Valor.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("pt-BR"))}) vence {(dias == 0 ? "hoje" : dias == 1 ? "amanhã" : $"em {dias} dias")}, {proxima.Vencimento:dd/MM}.";
+        }
+        return new SituacaoAssinaturaResponse(nivel, mensagem, abertas, cfg.ChavePix, cfg.NomeRecebedor, Documentos.Telefone(cfg.ContatoCobranca));
+    }
+
     private Task<Empresa> CarregarAsync() => db.Empresas.FirstAsync(e => e.Id == contexto.EmpresaId);
 
     // Exemplo para a tela mostrar como fica a etiqueta: produto 42, R$ 15,99 (ou 1,235 kg).

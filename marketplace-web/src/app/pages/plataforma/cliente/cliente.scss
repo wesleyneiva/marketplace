@@ -46,3 +46,12 @@
 .selo.suspensa { background: #fee2e2; color: var(--cor-erro); }
 .selo.demo { background: #ede9fe; color: #5b21b6; }
 .botao.perigo { color: var(--cor-erro); }
+
+.secao h3 { margin: 20px 0 8px; font-size: 15px; }
+.grade .marcar { flex-direction: row; align-items: center; gap: 8px; }
+.alerta { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #fee2e2; color: var(--cor-erro); font-size: 14px; }
+.alerta a { color: inherit; font-weight: 700; }
+.txt-perigo { color: var(--cor-erro); }
+.faturas { width: 100%; font-size: 14px; border-collapse: collapse; }
+.faturas th, .faturas td { padding: 6px 8px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
+.faturas .num { text-align: right; font-variant-numeric: tabular-nums; }

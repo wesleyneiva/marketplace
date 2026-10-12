@@ -7,6 +7,48 @@
 </header>
 
 @if (dados.value(); as d) {
+  @let f = d.faturamento;
+  <h2 class="secao-titulo"><app-icone nome="circle-dollar-sign" /> Meu faturamento</h2>
+  <section class="cartoes">
+    <div class="painel cartao destaque">
+      <span class="rotulo">Receita mensal da carteira</span>
+      <strong>{{ f.receitaMensal | currency: 'BRL' }}</strong>
+      <small>{{ f.clientesPagantes }} cliente{{ f.clientesPagantes === 1 ? '' : 's' }} pagante{{ f.clientesPagantes === 1 ? '' : 's' }}</small>
+    </div>
+    <div class="painel cartao">
+      <span class="rotulo">Recebido neste mês</span>
+      <strong>{{ f.recebidoMes | currency: 'BRL' }}</strong>
+      <small>mensalidades pagas</small>
+    </div>
+    <a class="painel cartao" routerLink="/plataforma/cobrancas">
+      <span class="rotulo">A receber</span>
+      <strong>{{ f.aReceber | currency: 'BRL' }}</strong>
+      <small>em aberto, ainda no prazo</small>
+    </a>
+    <a class="painel cartao" [class.perigo]="f.atrasado > 0" routerLink="/plataforma/cobrancas">
+      <span class="rotulo">Atrasado</span>
+      <strong>{{ f.atrasado | currency: 'BRL' }}</strong>
+      <small>{{ f.clientesAtrasados }} cliente{{ f.clientesAtrasados === 1 ? '' : 's' }} · {{ f.bloqueados }} bloqueado{{ f.bloqueados === 1 ? '' : 's' }}</small>
+    </a>
+  </section>
+
+  <div class="duas-colunas">
+    <section class="painel bloco grafico">
+      <h2>Recebido por mês</h2>
+      <app-grafico-colunas [dados]="recebidoPorMes()" descricao="Mensalidades recebidas por mês nos últimos 12 meses" />
+      <p class="nota">O mês atual (mais claro) ainda está em andamento.</p>
+    </section>
+    <section class="painel bloco">
+      <h2>Carteira por plano</h2>
+      @for (p of f.porPlano; track p.plano) {
+        <div class="linha"><span><b>{{ p.plano }}</b> <small>{{ p.clientes }} cliente{{ p.clientes === 1 ? '' : 's' }}</small></span><span>{{ p.receita | currency: 'BRL' }}/mês</span></div>
+      } @empty {
+        <p class="vazio">Nenhum cliente pagante ainda. Defina o plano na ficha do cliente.</p>
+      }
+    </section>
+  </div>
+
+  <h2 class="secao-titulo"><app-icone nome="store" /> Clientes e uso</h2>
   <section class="cartoes">
     <a class="painel cartao" routerLink="/plataforma/clientes">
       <span class="rotulo"><app-icone nome="store" /> Clientes ativos</span>
@@ -27,11 +69,6 @@
       <span class="rotulo"><app-icone nome="eye" /> Acessaram</span>
       <strong>{{ d.acessaramHoje }}</strong>
       <small>nas últimas 24 h · {{ d.acessaramSemana }} na semana</small>
-    </div>
-    <div class="painel cartao futuro">
-      <span class="rotulo"><app-icone nome="circle-dollar-sign" /> Meu faturamento</span>
-      <strong>—</strong>
-      <small>chega com Planos e Cobranças</small>
     </div>
   </section>
 

@@ -25,12 +25,14 @@
         <div class="selos">
           @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
           @if (e.vendasAutomaticas !== 'Desligado') { <span class="selo demo" title="Clientes simulados comprando no horário da loja"><app-icone nome="bot" /> vendas automáticas</span> }
-          @if (e.ativa) { <span class="selo ativa">ativa</span> } @else { <span class="selo suspensa">suspensa</span> }
+          @if (e.maiorAtraso > 0) { <span class="selo suspensa">{{ e.maiorAtraso }} dia(s) de atraso</span> }
+          @if (e.ativa) { <span class="selo ativa">ativa</span> } @else { <span class="selo suspensa">{{ e.motivoSuspensao === 'Atraso' ? 'bloqueada por atraso' : 'suspensa' }}</span> }
         </div>
       </header>
 
       <dl class="numeros">
-        <div><dt>Plano</dt><dd>{{ e.limiteCaixas }} {{ e.limiteCaixas === 1 ? 'caixa' : 'caixas' }}
+        <div><dt>Mensalidade</dt><dd>@if (e.cortesia) { cortesia } @else if (e.plano) { {{ e.valorMensal | currency: 'BRL' }} <small>{{ e.plano }}</small> } @else { <small>sem plano</small> }</dd></div>
+        <div><dt>Caixas</dt><dd>{{ e.limiteCaixas }}
           @if (e.caixasAbertos) { <small>({{ e.caixasAbertos }} aberto{{ e.caixasAbertos > 1 ? 's' : '' }} agora)</small> }</dd></div>
         <div><dt>Usuários</dt><dd>{{ e.usuariosAtivos }}<small> / {{ e.usuarios }}</small></dd></div>
         <div><dt>Produtos</dt><dd>{{ e.produtos }}</dd></div>

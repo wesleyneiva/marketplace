@@ -63,6 +63,17 @@ public class Empresa
     public string? EmailContato { get; set; }
     public string? Endereco { get; set; }
     public string? Observacoes { get; set; }
+
+    // Assinatura (área do dono). Sem plano = ainda não cobra.
+    public int? PlanoId { get; set; }
+    public Plano? Plano { get; set; }
+    public int DiaVencimento { get; set; } = 10;     // 1 a 28
+    public DateOnly? TesteAte { get; set; }          // teste grátis: não cobra mensalidades que vencem até esse dia
+    public DateOnly? CobrarDesde { get; set; }       // primeira mensalidade (vencimento) a partir desse dia
+    public decimal? PrecoCombinado { get; set; }     // valor especial (desconto); vazio = pelo plano
+    public bool Cortesia { get; set; }               // não cobra (demonstração, testes, parceiro)
+    public string? MotivoSuspensao { get; set; }     // Atraso (volta sozinho ao pagar) ou Manual
+    public DateTimeOffset? SuspensaEm { get; set; }
 }
 
 public static class ModosVendasAutomaticas

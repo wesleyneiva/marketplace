@@ -12,7 +12,7 @@
         <h1><app-icone nome="store" /> {{ r.nome }}</h1>
         <p>#{{ r.id }} · cliente desde {{ r.criadoEm | date: 'dd/MM/yyyy' }} · {{ r.cidade ?? 'cidade não definida' }}
           @if (r.demonstracao) { · <span class="selo demo">demonstração</span> }
-          @if (!r.ativa) { · <span class="selo suspensa">suspenso</span> }</p>
+          @if (!r.ativa) { · <span class="selo suspensa">{{ d.assinatura.motivoSuspensao === 'Atraso' ? 'bloqueado por atraso' : 'suspenso' }}</span> }</p>
       </div>
       <div class="acao-topo">
         <button type="button" class="botao" [class.perigo]="r.ativa" [disabled]="salvando() === 'situacao'" (click)="alternarSituacao(r)">
@@ -55,7 +55,11 @@
     </section>
 
     <section class="painel secao">
-      <h2><app-icone nome="tag" /> Plano</h2>
+      <h2><app-icone nome="tag" /> Plano e assinatura</h2>
+      @if (d.assinatura.maiorAtraso > 0) {
+        <p class="alerta"><app-icone nome="circle-alert" /> {{ d.assinatura.faturasAbertas }} mensalidade(s) em aberto, {{ d.assinatura.emAberto | currency: 'BRL' }};
+          a mais antiga com {{ d.assinatura.maiorAtraso }} dia(s) de atraso. <a routerLink="/plataforma/cobrancas">Ver cobranças</a></p>
+      }
       <div class="grade">
         <label>Caixas (PDVs) contratados<input type="number" min="1" max="999" [(ngModel)]="limiteCaixas" /></label>
         <label>Vendas automáticas <small>(clientes simulados no Caixa 9, no horário da loja)</small>
@@ -66,11 +70,61 @@
           </select>
         </label>
       </div>
-      <p class="dica">Preço, vencimento e cobranças vêm na próxima etapa (Planos e Cobranças).</p>
       <div class="salvar">
-        <button type="button" class="botao primario" [disabled]="salvando() === 'plano'" (click)="salvarDados('plano')">Salvar plano</button>
+        <button type="button" class="botao" [disabled]="salvando() === 'plano'" (click)="salvarDados('plano')">Salvar caixas e vendas automáticas</button>
         @if (avisoPlano(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
       </div>
+
+      <h3>Mensalidade</h3>
+      <div class="grade">
+        <label>Plano
+          <select [(ngModel)]="assinatura.planoId" [disabled]="assinatura.cortesia">
+            <option [ngValue]="null">Sem plano (não cobra)</option>
+            @for (p of planos.value() ?? []; track p.id) {
+              @if (p.ativo || p.id === assinatura.planoId) { <option [ngValue]="p.id">{{ p.nome }} · {{ p.precoMensal | currency: 'BRL' }}</option> }
+            }
+          </select>
+        </label>
+        <label>Dia do vencimento<input type="number" min="1" max="28" [(ngModel)]="assinatura.diaVencimento" /></label>
+        <label>Valor combinado (R$) <small>(desconto; vazio = pelo plano)</small><input type="number" min="0" step="0.01" [(ngModel)]="assinatura.precoCombinado" [disabled]="assinatura.cortesia" /></label>
+        <label>Teste grátis até <small>(não cobra o que vence até lá)</small><input type="date" [(ngModel)]="assinatura.testeAte" [disabled]="assinatura.cortesia" /></label>
+        <label>Cobrar a partir de <small>(primeiro vencimento)</small><input type="date" [(ngModel)]="assinatura.cobrarDesde" [disabled]="assinatura.cortesia" /></label>
+        <label class="marcar"><input type="checkbox" [(ngModel)]="assinatura.cortesia" /> Cortesia (não cobra: demonstração, teste, parceiro)</label>
+      </div>
+      <p class="atual">Mensalidade: <b>{{ assinatura.cortesia ? 'cortesia (sem cobrança)' : previa() === null ? 'escolha um plano' : (previa() | currency: 'BRL') }}</b>
+        @if (!assinatura.cortesia && previa()) { <small>· vence todo dia {{ assinatura.diaVencimento }}</small> }</p>
+      <div class="salvar">
+        <button type="button" class="botao primario" [disabled]="salvando() === 'assinatura'" (click)="salvarAssinatura()">Salvar assinatura</button>
+        @if (avisoAssinatura(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
+      </div>
+
+      <h3>Mensalidades</h3>
+      @if ((faturas.value() ?? []).length) {
+        <div class="tabela-rolagem">
+          <table class="faturas">
+            <thead><tr><th>Mês</th><th>Vencimento</th><th class="num">Valor</th><th>Situação</th></tr></thead>
+            <tbody>
+              @for (f of faturas.value() ?? []; track f.id) {
+                <tr>
+                  <td>{{ mesAno(f.competencia) }}</td>
+                  <td>{{ f.vencimento | dia }}</td>
+                  <td class="num">{{ f.valor | currency: 'BRL' }}</td>
+                  <td>
+                    @switch (f.status) {
+                      @case ('Paga') { recebida em {{ f.pagaEm | dia }} ({{ f.formaPagamento }}) }
+                      @case ('Cancelada') { cancelada }
+                      @default { @if (f.diasAtraso > 0) { <b class="txt-perigo">{{ f.diasAtraso }} dia(s) de atraso</b> } @else { em aberto } }
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="dica">Receber, cobrar no WhatsApp ou cancelar: em <a routerLink="/plataforma/cobrancas">Cobranças</a>.</p>
+      } @else {
+        <p class="dica">Nenhuma mensalidade ainda.</p>
+      }
     </section>
 
     <section class="painel secao">

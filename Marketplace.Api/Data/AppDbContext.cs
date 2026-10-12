@@ -48,6 +48,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Recebivel> Recebiveis => Set<Recebivel>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
+    public DbSet<Plano> Planos => Set<Plano>();
+    public DbSet<Fatura> Faturas => Set<Fatura>();
+    public DbSet<ConfiguracaoPlataforma> ConfiguracoesPlataforma => Set<ConfiguracaoPlataforma>();
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -81,6 +84,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.EmailContato).HasMaxLength(150);
             e.Property(x => x.Endereco).HasMaxLength(250);
             e.Property(x => x.Observacoes).HasMaxLength(1000);
+            e.Property(x => x.DiaVencimento).HasDefaultValue(10);
+            e.Property(x => x.PrecoCombinado).HasPrecision(10, 2);
+            e.Property(x => x.MotivoSuspensao).HasMaxLength(10);
+            e.HasOne(x => x.Plano).WithMany().HasForeignKey(x => x.PlanoId).OnDelete(DeleteBehavior.Restrict);
+
             // Horário: guardado como JSON (jsonb). O "comparador" compara o JSON, para o EF perceber quando muda.
             e.Property(x => x.Horario).HasColumnType("jsonb").HasConversion(
                 h => JsonSerializer.Serialize(h, Json),
@@ -89,6 +97,36 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
                     (a, b) => JsonSerializer.Serialize(a, Json) == JsonSerializer.Serialize(b, Json),
                     h => JsonSerializer.Serialize(h, Json).GetHashCode(),
                     h => JsonSerializer.Deserialize<HorarioFuncionamento>(JsonSerializer.Serialize(h, Json), Json)!));
+        });
+
+        // ----- Assinaturas do SaaS (da plataforma: sem filtro de empresa) -----
+        builder.Entity<Plano>(e =>
+        {
+            e.Property(x => x.Nome).HasMaxLength(60);
+            e.HasIndex(x => x.Nome).IsUnique();
+            e.Property(x => x.Descricao).HasMaxLength(300);
+            e.Property(x => x.PrecoMensal).HasPrecision(10, 2);
+            e.Property(x => x.PrecoCaixaExtra).HasPrecision(10, 2);
+        });
+        builder.Entity<Fatura>(e =>
+        {
+            e.HasOne(x => x.Cliente).WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(x => x.Valor).HasPrecision(10, 2);
+            e.Property(x => x.ValorPago).HasPrecision(10, 2);
+            e.Property(x => x.Descricao).HasMaxLength(150);
+            e.Property(x => x.Status).HasMaxLength(10);
+            e.Property(x => x.FormaPagamento).HasMaxLength(15);
+            e.Property(x => x.Observacao).HasMaxLength(300);
+            // Uma mensalidade (não cancelada) por cliente e mês.
+            e.HasIndex(x => new { x.ClienteId, x.Competencia }).IsUnique().HasFilter("\"Status\" <> 'Cancelada'");
+            e.HasIndex(x => new { x.Status, x.Vencimento });
+        });
+        builder.Entity<ConfiguracaoPlataforma>(e =>
+        {
+            e.Property(x => x.Id).ValueGeneratedNever();
+            e.Property(x => x.ChavePix).HasMaxLength(100);
+            e.Property(x => x.NomeRecebedor).HasMaxLength(100);
+            e.Property(x => x.ContatoCobranca).HasMaxLength(20);
         });
 
         builder.Entity<Usuario>()

@@ -19,6 +19,15 @@ public static class Documentos
         return Digito(12) == cnpj[12] - '0' && Digito(13) == cnpj[13] - '0';
     }
 
+    // "51988887777" → "(51) 98888-7777" (para mostrar; guardado só com números).
+    public static string? Telefone(string? digitos) => SoDigitos(digitos) switch
+    {
+        { Length: 11 } d => $"({d[..2]}) {d[2..7]}-{d[7..]}",
+        { Length: 10 } d => $"({d[..2]}) {d[2..6]}-{d[6..]}",
+        "" => null,
+        var d => d,
+    };
+
     // Vazio = sem documento (ok). Senão, CPF (11) ou CNPJ (14) válido.
     public static bool Valido(string digitos) =>
         digitos.Length == 0 || (digitos.Length == 11 ? CpfValido(digitos) : digitos.Length == 14 && CnpjValido(digitos));

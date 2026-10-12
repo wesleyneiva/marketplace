@@ -9,7 +9,8 @@ public record EmpresaResumoResponse(
     int Id, string Nome, string Subdominio, int LimiteCaixas, bool Ativa, bool Demonstracao, DateTimeOffset CriadoEm,
     int Usuarios, int UsuariosAtivos, int Produtos, int DiasComMovimento30,
     DateTimeOffset? UltimoAcesso, DateTimeOffset? UltimoMovimento, int CaixasAbertos, string? Cidade, string VendasAutomaticas,
-    string? Responsavel, string? Telefone);
+    string? Responsavel, string? Telefone, string? Plano, decimal ValorMensal, bool Cortesia, string? MotivoSuspensao,
+    int FaturasAtrasadas, int MaiorAtraso);
 
 // Ficha cadastral do cliente (só o dono vê e muda).
 public record FichaCliente(
@@ -24,11 +25,12 @@ public record FichaCliente(
 // Um cliente aberto na área do dono: resumo + ficha + configurações da loja.
 public record ClienteDetalheResponse(
     EmpresaResumoResponse Resumo, FichaCliente Ficha, string? Uf, string Fuso, Marketplace.Api.Models.HorarioFuncionamento Horario,
-    string HorarioResumo);
+    string HorarioResumo, AssinaturaResponse Assinatura);
 
 public record VisaoGeralResponse(
     int Clientes, int Ativos, int Suspensos, int Demonstracoes, int CaixasContratados, int UsuariosAtivos,
-    int AcessaramHoje, int AcessaramSemana, List<EmpresaResumoResponse> SemAcesso, List<EmpresaResumoResponse> Recentes);
+    int AcessaramHoje, int AcessaramSemana, List<EmpresaResumoResponse> SemAcesso, List<EmpresaResumoResponse> Recentes,
+    FaturamentoPlataforma Faturamento);
 
 public record NovaEmpresaRequest(
     [Required(ErrorMessage = "Informe o nome da empresa.")][StringLength(100, MinimumLength = 2)] string Nome,

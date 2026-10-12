@@ -1,5 +1,5 @@
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
@@ -28,6 +28,12 @@ interface EmpresaResumo {
   vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
   responsavel: string | null;
   telefone: string | null;
+  plano: string | null;
+  valorMensal: number;
+  cortesia: boolean;
+  motivoSuspensao: string | null;
+  faturasAtrasadas: number;
+  maiorAtraso: number;
 }
 
 interface UsuarioDaEmpresa {
@@ -56,7 +62,7 @@ export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
 // Mostra só o USO do sistema (acessos, dias com movimento), nunca quanto o cliente vende.
 @Component({
   selector: 'app-empresas',
-  imports: [Icone, FormsModule, DatePipe, CidadeBusca, RouterLink],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, CidadeBusca, RouterLink],
   templateUrl: './empresas.html',
   styleUrl: './empresas.scss',
 })

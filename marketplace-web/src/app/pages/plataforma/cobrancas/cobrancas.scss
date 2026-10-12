@@ -1,0 +1,47 @@
+@use '../../usuarios/usuarios.scss';
+
+.botoes { display: flex; flex-wrap: wrap; gap: 8px; }
+.aviso { margin-bottom: 12px; padding: 10px 12px; border-radius: 8px; background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.aviso.falhou { background: var(--cor-erro-fundo); color: var(--cor-erro); }
+
+.abas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+
+  button { border: 1px solid var(--cor-borda); background: var(--cor-superficie, #fff); border-radius: 99px; padding: 6px 14px; cursor: pointer; font: inherit; color: inherit; }
+  button.ativa { background: var(--cor-primaria); border-color: var(--cor-primaria); color: #fff; }
+  .total { margin-left: auto; font-size: 14px; color: var(--cor-texto-suave); }
+}
+
+table td small { display: block; color: var(--cor-texto-suave); font-size: 12px; }
+table td a { color: inherit; text-decoration: none; }
+table td a:hover b { text-decoration: underline; }
+.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+tr.atrasada td:first-child { box-shadow: inset 3px 0 0 var(--cor-erro); }
+.acoes { white-space: nowrap; text-align: right; }
+.acoes > * { margin-left: 4px; }
+
+.selo { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--cor-fundo); }
+.selo.ok { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.perigo { background: #fee2e2; color: var(--cor-erro); }
+
+.regras {
+  margin-top: 14px;
+  padding: 18px;
+  h2 { margin: 0 0 12px; font-size: 17px; display: flex; align-items: center; gap: 8px; }
+}
+.grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; min-width: 0; }
+  label small { font-weight: 400; color: var(--cor-texto-suave); }
+  .marcar { flex-direction: row; align-items: center; gap: 8px; }
+}
+.salvar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 14px; }
+.msg { font-size: 14px; }
+.msg.ok { color: var(--cor-primaria-escura); font-weight: 600; }
+.msg.falhou { color: var(--cor-erro); }

@@ -8,6 +8,9 @@ import { Icone } from '../../../shared/icone';
 import { Cidade, CidadeBusca, nomeDoFuso } from '../../../shared/cidade-busca';
 import { HorarioEditor } from '../../../shared/horario-editor/horario-editor';
 import { Horario, horarioParaServidor, horarioParaTela } from '../../../shared/horario-editor/horario';
+import { CurrencyPipe } from '@angular/common';
+import { DiaPipe } from '../../../shared/dia.pipe';
+import { API, Fatura, Plano, mesAno } from '../comum';
 
 // Formato igual a Contracts/PlataformaDtos.cs (ClienteDetalheResponse).
 interface Ficha {
@@ -25,7 +28,12 @@ interface Resumo {
   ultimoAcesso: string | null; ultimoMovimento: string | null; caixasAbertos: number; cidade: string | null;
   vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
 }
-interface Detalhe { resumo: Resumo; ficha: Ficha; uf: string | null; fuso: string; horario: Horario; horarioResumo: string }
+interface Assinatura {
+  planoId: number | null; plano: string | null; diaVencimento: number; testeAte: string | null; cobrarDesde: string | null;
+  precoCombinado: number | null; cortesia: boolean; valorMensal: number; motivoSuspensao: string | null;
+  faturasAbertas: number; emAberto: number; maiorAtraso: number;
+}
+interface Detalhe { resumo: Resumo; ficha: Ficha; uf: string | null; fuso: string; horario: Horario; horarioResumo: string; assinatura: Assinatura }
 type Aviso = { ok: boolean; texto: string } | null;
 
 const URL = '/api/plataforma/empresas';
@@ -33,7 +41,7 @@ const URL = '/api/plataforma/empresas';
 // Ficha do cliente na área do dono: dados cadastrais, plano, cidade, horário e uso do sistema (sem vendas: são do cliente).
 @Component({
   selector: 'app-cliente',
-  imports: [Icone, FormsModule, DatePipe, RouterLink, CidadeBusca, HorarioEditor],
+  imports: [Icone, FormsModule, DatePipe, RouterLink, CidadeBusca, HorarioEditor, CurrencyPipe, DiaPipe],
   templateUrl: './cliente.html',
   styleUrl: './cliente.scss',
 })
@@ -42,6 +50,29 @@ export class Cliente {
   readonly id = input.required<string>(); // vem da rota /plataforma/clientes/:id
 
   protected readonly detalhe = httpResource<Detalhe>(() => `${URL}/${this.id()}`);
+  protected readonly planos = httpResource<Plano[]>(() => `${API}/planos`);
+  protected readonly faturas = httpResource<Fatura[]>(() => `${API}/faturas?situacao=todas&clienteId=${this.id()}`);
+  protected readonly mesAno = mesAno;
+
+  protected assinatura = { planoId: null as number | null, diaVencimento: 10, testeAte: '', cobrarDesde: '', precoCombinado: null as number | null, cortesia: false };
+  protected readonly avisoAssinatura = signal<Aviso>(null);
+
+  // Prévia da mensalidade com o formulário atual (o servidor confirma ao salvar).
+  protected previa(): number | null {
+    if (this.assinatura.cortesia) return 0;
+    if (this.assinatura.precoCombinado) return this.assinatura.precoCombinado;
+    const p = this.planos.value()?.find((x) => x.id === this.assinatura.planoId);
+    return p ? p.precoMensal + Math.max(0, this.limiteCaixas - p.caixasIncluidos) * p.precoCaixaExtra : null;
+  }
+
+  async salvarAssinatura(): Promise<void> {
+    const a = this.assinatura;
+    await this.executar('assinatura', this.avisoAssinatura, () => firstValueFrom(this.http.put(`${URL}/${this.id()}/assinatura`, {
+      planoId: a.planoId, diaVencimento: a.diaVencimento, testeAte: a.testeAte || null, cobrarDesde: a.cobrarDesde || null,
+      precoCombinado: a.precoCombinado || null, cortesia: a.cortesia,
+    })), 'Assinatura salva.');
+    this.faturas.reload();
+  }
   protected readonly nomeDoFuso = nomeDoFuso;
 
   // Formulários (preenchidos uma vez quando o detalhe chega).
@@ -67,6 +98,9 @@ export class Cliente {
       this.vendasAutomaticas = d.resumo.vendasAutomaticas;
       this.ficha = { ...d.ficha };
       this.horario = horarioParaTela(d.horario);
+      const a = d.assinatura;
+      this.assinatura = { planoId: a.planoId, diaVencimento: a.diaVencimento, testeAte: a.testeAte ?? '', cobrarDesde: a.cobrarDesde ?? '',
+        precoCombinado: a.precoCombinado, cortesia: a.cortesia };
       this.carregadoId = d.resumo.id;
     }
     return true;
@@ -75,6 +109,7 @@ export class Cliente {
   // Dados cadastrais e plano usam o mesmo PUT (o servidor recebe tudo junto).
   async salvarDados(secao: 'dados' | 'plano'): Promise<void> {
     const aviso = secao === 'dados' ? this.avisoDados : this.avisoPlano;
+    if (secao === 'plano') this.faturas.reload();
     await this.executar(secao, aviso, () => firstValueFrom(this.http.put(`${URL}/${this.id()}`, {
       nome: this.nome, limiteCaixas: this.limiteCaixas, vendasAutomaticas: this.vendasAutomaticas, ficha: this.ficha,
     })), secao === 'dados' ? 'Dados salvos.' : 'Plano salvo.');

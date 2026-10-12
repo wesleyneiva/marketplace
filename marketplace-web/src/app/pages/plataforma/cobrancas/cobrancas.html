@@ -1,0 +1,133 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="receipt" /> Cobranças</h1>
+    <p>As mensalidades dos clientes. Elas aparecem sozinhas alguns dias antes do vencimento; quando o cliente pagar, marque <b>Recebi</b>.</p>
+  </div>
+  <div class="botoes">
+    <button type="button" class="botao" (click)="abrirNova()"><app-icone nome="plus" /> Cobrança avulsa</button>
+    <button type="button" class="botao primario" (click)="gerarAgora()"><app-icone nome="refresh-cw" /> Gerar mensalidades agora</button>
+  </div>
+</header>
+
+@if (aviso(); as a) { <div class="aviso" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</div> }
+
+<nav class="abas" role="tablist">
+  @for (a of [['abertas', 'Em aberto'], ['atrasadas', 'Atrasadas'], ['pagas', 'Recebidas'], ['todas', 'Todas']]; track a[0]) {
+    <button type="button" role="tab" [class.ativa]="aba() === a[0]" [attr.aria-selected]="aba() === a[0]" (click)="aba.set($any(a[0]))">{{ a[1] }}</button>
+  }
+  @if (aba() === 'abertas' || aba() === 'atrasadas') { <span class="total">Total: <b>{{ totalAberto() | currency: 'BRL' }}</b></span> }
+</nav>
+
+<section class="painel tabela-rolagem">
+  <table>
+    <thead>
+      <tr><th>Cliente</th><th>Mês</th><th>Vencimento</th><th class="num">Valor</th><th>Situação</th><th></th></tr>
+    </thead>
+    <tbody>
+      @for (f of faturas.value() ?? []; track f.id) {
+        <tr [class.atrasada]="f.diasAtraso > 0">
+          <td><a [routerLink]="['/plataforma/clientes', f.clienteId]"><b>{{ f.cliente }}</b></a><small>{{ f.descricao }}</small></td>
+          <td>{{ mesAno(f.competencia) }}</td>
+          <td>{{ f.vencimento | dia }}</td>
+          <td class="num">{{ f.valor | currency: 'BRL' }}</td>
+          <td>
+            @switch (f.status) {
+              @case ('Paga') { <span class="selo ok">recebida {{ f.pagaEm | dia }}</span> <small>{{ f.formaPagamento }}@if (f.valorPago !== f.valor) { · {{ f.valorPago | currency: 'BRL' }} }</small> }
+              @case ('Cancelada') { <span class="selo">cancelada</span> <small>{{ f.observacao }}</small> }
+              @default {
+                @if (f.diasAtraso > 0) { <span class="selo perigo">{{ f.diasAtraso }} dia(s) de atraso</span> }
+                @else { <span class="selo">em aberto</span> }
+              }
+            }
+          </td>
+          <td class="acoes">
+            @if (f.status === 'Aberta') {
+              <button type="button" class="botao pequeno primario" (click)="abrirPagar(f)"><app-icone nome="check" /> Recebi</button>
+              @if (whatsapp(f); as link) {
+                <a class="botao pequeno" [href]="link" target="_blank" rel="noopener"><app-icone nome="message-circle" /> Cobrar</a>
+              }
+              <button type="button" class="botao pequeno" [disabled]="processando() === f.id" (click)="cancelar(f)" aria-label="Cancelar mensalidade"><app-icone nome="x" /></button>
+            } @else if (f.status === 'Paga') {
+              <button type="button" class="botao pequeno" [disabled]="processando() === f.id" (click)="desfazer(f)"><app-icone nome="undo-2" /> Desfazer</button>
+            }
+          </td>
+        </tr>
+      } @empty {
+        <tr><td colspan="6" class="vazio">{{ faturas.isLoading() ? 'Carregando…' : 'Nenhuma mensalidade aqui.' }}</td></tr>
+      }
+    </tbody>
+  </table>
+</section>
+
+<section class="painel regras">
+  <h2><app-icone nome="settings" /> Regras de cobrança</h2>
+  @if (config.value(); as c) {
+    @if (preencherRegras(c) && regras; as r) {
+      <div class="grade">
+        <label>Gerar a mensalidade <small>(dias antes do vencimento)</small><input type="number" min="0" max="28" [(ngModel)]="r.diasGerarAntes" /></label>
+        <label>Avisar o cliente <small>(dias antes de vencer)</small><input type="number" min="0" max="28" [(ngModel)]="r.diasAvisoAntes" /></label>
+        <label>Bloquear depois de <small>(dias de atraso)</small><input type="number" min="1" max="90" [(ngModel)]="r.diasParaBloquear" [disabled]="!r.bloqueioAutomatico" /></label>
+        <label class="marcar"><input type="checkbox" [(ngModel)]="r.bloqueioAutomatico" /> Bloqueio automático por atraso <small>(ao pagar, libera sozinho)</small></label>
+        <label>Chave PIX para receber <small>(aparece no aviso do cliente e na mensagem)</small><input [(ngModel)]="r.chavePix" maxlength="100" /></label>
+        <label>Nome de quem recebe<input [(ngModel)]="r.nomeRecebedor" maxlength="100" placeholder="WN Labs" /></label>
+        <label>WhatsApp de contato <small>(o cliente bloqueado vê)</small><input [(ngModel)]="r.contatoCobranca" maxlength="20" inputmode="tel" /></label>
+      </div>
+      <div class="salvar">
+        <button type="button" class="botao primario" (click)="salvarRegras()">Salvar regras</button>
+        @if (avisoRegras(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status">{{ a.texto }}</span> }
+      </div>
+    }
+  }
+</section>
+
+<dialog #dlgPagar class="janela">
+  @if (pagando; as f) {
+    <form (ngSubmit)="confirmarPagamento()">
+      <header>
+        <h2>Recebi de {{ f.cliente }}</h2>
+        <button type="button" class="fechar" (click)="dlgPagar.close()" aria-label="Fechar"><app-icone nome="x" /></button>
+      </header>
+      <div class="corpo">
+        <p>{{ f.descricao }} · vencimento {{ f.vencimento | dia }} · {{ f.valor | currency: 'BRL' }}</p>
+        <label>Data do pagamento<input name="pagaEm" type="date" [(ngModel)]="pagamento.pagaEm" required /></label>
+        <label>Valor recebido (R$)<input name="valor" type="number" min="0" step="0.01" [(ngModel)]="pagamento.valorPago" required /></label>
+        <label>Forma
+          <select name="forma" [(ngModel)]="pagamento.forma">
+            @for (fm of formas; track fm.valor) { <option [value]="fm.valor">{{ fm.texto }}</option> }
+          </select>
+        </label>
+        <label>Observação <small>(opcional)</small><input name="obs" [(ngModel)]="pagamento.observacao" maxlength="300" /></label>
+        @if (erroPagar()) { <div class="erro" role="alert">{{ erroPagar() }}</div> }
+      </div>
+      <footer>
+        <button type="button" class="botao" (click)="dlgPagar.close()">Cancelar</button>
+        <button type="submit" class="botao primario">Confirmar recebimento</button>
+      </footer>
+    </form>
+  }
+</dialog>
+
+<dialog #dlgNova class="janela">
+  <form (ngSubmit)="criarNova()" #fn="ngForm">
+    <header>
+      <h2>Cobrança avulsa</h2>
+      <button type="button" class="fechar" (click)="dlgNova.close()" aria-label="Fechar"><app-icone nome="x" /></button>
+    </header>
+    <div class="corpo">
+      <label>Cliente
+        <select name="cliente" [(ngModel)]="nova.clienteId" required>
+          <option [ngValue]="0" disabled>Escolha…</option>
+          @for (c of clientes.value() ?? []; track c.id) { <option [ngValue]="c.id">{{ c.nome }}</option> }
+        </select>
+      </label>
+      <label>Mês<input name="mes" type="month" [(ngModel)]="nova.mes" required /></label>
+      <label>Valor (R$) <small>(vazio = valor do plano)</small><input name="valor" type="number" min="0" step="0.01" [(ngModel)]="nova.valor" /></label>
+      <label>Descrição <small>(vazio = "Plano … · mês")</small><input name="descricao" [(ngModel)]="nova.descricao" maxlength="150" /></label>
+      @if (erroNova()) { <div class="erro" role="alert">{{ erroNova() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlgNova.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="!nova.clienteId">Criar cobrança</button>
+    </footer>
+  </form>
+</dialog>
