@@ -58,9 +58,9 @@ public class AuthController(
         if (!resultado.Succeeded)
             return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
 
-        // Usuários da empresa de demonstração (o seu administrador, por exemplo) não entram pela internet,
-        // nem com a senha certa: o acesso de dono do sistema continua só pelo Tailscale.
-        if (HttpContext.VeioDaInternet() && await db.Empresas.AnyAsync(e => e.Id == usuario.EmpresaId && e.Demonstracao))
+        // Usuários da empresa de demonstração e o DONO DA PLATAFORMA não entram pela internet, nem com a senha certa:
+        // o acesso de dono do sistema continua só pelo Tailscale.
+        if (HttpContext.VeioDaInternet() && await db.Empresas.AnyAsync(e => e.Id == usuario.EmpresaId && (e.Demonstracao || e.Plataforma)))
             return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Este usuário só entra pela rede interna." });
 
         // Só depois da senha certa dizemos que a conta está desativada (senão qualquer um descobriria quem existe).
@@ -152,11 +152,12 @@ public class AuthController(
     private async Task<UsuarioLogadoResponse> MontarRespostaAsync(Usuario usuario)
     {
         var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == usuario.EmpresaId)
-            .Select(e => new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao)).FirstAsync();
+            .Select(e => new { Resposta = new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao), e.Plataforma }).FirstAsync();
         var perfis = await userManager.GetRolesAsync(usuario);
         var dono = !usuario.SomenteLeitura && perfis.Contains(Perfis.Administrador)
                    && usuario.EmpresaId == Plataforma.EmpresaDona(config) && !HttpContext.VeioDaInternet();
-        return new(usuario.Id, usuario.NomeCompleto, usuario.Email!, perfis, usuario.TrocarSenha, empresa, usuario.SomenteLeitura, dono);
+        return new(usuario.Id, usuario.NomeCompleto, usuario.Email!, perfis, usuario.TrocarSenha, empresa.Resposta, usuario.SomenteLeitura,
+            dono, empresa.Plataforma);
     }
 
     private Task<bool> EmpresaAtivaAsync(int empresaId) => db.Empresas.AnyAsync(e => e.Id == empresaId && e.Ativa);

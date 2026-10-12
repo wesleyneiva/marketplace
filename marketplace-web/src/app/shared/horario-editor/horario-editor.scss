@@ -1,0 +1,52 @@
+:host { display: block; }
+
+h3 { margin: 18px 0 8px; font-size: 15px; }
+.dica { margin: 10px 0 0; color: var(--cor-texto-suave); font-size: 13px; }
+
+.horario {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 440px;
+  margin-bottom: 10px;
+
+  .linha-dia {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: var(--cor-fundo);
+  }
+  .linha-dia.fechado { opacity: 0.75; }
+  .marcar { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 110px; }
+  .horas { display: flex; align-items: center; gap: 6px; }
+  .horas input { width: 8.5em; }
+  .txt-fechado { color: var(--cor-texto-suave); font-size: 14px; }
+}
+
+.regra { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; margin-top: 14px; max-width: 440px; }
+
+.feriados-locais {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 14px;
+
+  li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+}
+
+.novo-feriado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+
+  input[type='text'] { flex: 1 1 220px; min-width: 0; }
+}

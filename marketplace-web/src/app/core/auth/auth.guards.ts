@@ -24,7 +24,7 @@ export const logadoMesmoComSenhaProvisoria: CanActivateFn = async () => {
 export const somenteDeslogado: CanActivateFn = async () => {
   const auth = inject(AuthService);
   const router = inject(Router);
-  return (await auth.garantirSessao()) ? router.createUrlTree(['/dashboard']) : true;
+  return (await auth.garantirSessao()) ? router.createUrlTree([auth.inicio()]) : true;
 };
 
 // Páginas restritas a alguns perfis. Uso: canActivate: [precisaPerfil('Administrador', 'Gerente')]
@@ -35,7 +35,7 @@ export const precisaPerfil =
     const router = inject(Router);
     if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
     if (auth.usuario()?.trocarSenha) return router.createUrlTree(['/trocar-senha']);
-    return auth.temPerfil(...perfis) ? true : router.createUrlTree(['/dashboard']);
+    return auth.temPerfil(...perfis) ? true : router.createUrlTree([auth.inicio()]);
   };
 
 // Telas da plataforma (clientes do SaaS): só o dono, pela rede interna (a API confere de novo).
@@ -44,4 +44,12 @@ export const precisaSerDono: CanActivateFn = async () => {
   const router = inject(Router);
   if (!(await auth.garantirSessao())) return router.createUrlTree(['/login']);
   return auth.usuario()?.donoDaPlataforma ? true : router.createUrlTree(['/dashboard']);
+};
+
+// Telas de MERCADO (dashboard, PDV, produtos…): o login do dono da plataforma não é de um mercado → área do dono.
+export const soMercado: CanActivateFn = async () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  await auth.garantirSessao();
+  return auth.usuario()?.soPlataforma ? router.createUrlTree(['/plataforma']) : true;
 };

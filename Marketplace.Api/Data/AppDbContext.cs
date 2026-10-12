@@ -73,6 +73,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.SaldoMinimoCaixa).HasPrecision(14, 2).HasDefaultValue(0m);
             e.Property(x => x.AliquotaSimples).HasPrecision(6, 4).HasDefaultValue(0m);
             e.Property(x => x.VendasAutomaticas).HasMaxLength(12).HasDefaultValue(ModosVendasAutomaticas.Desligado);
+            e.HasIndex(x => x.Plataforma).IsUnique().HasFilter("\"Plataforma\""); // no máximo uma empresa da plataforma
+            e.Property(x => x.RazaoSocial).HasMaxLength(150);
+            e.Property(x => x.Documento).HasMaxLength(14);
+            e.Property(x => x.Responsavel).HasMaxLength(100);
+            e.Property(x => x.Telefone).HasMaxLength(13);
+            e.Property(x => x.EmailContato).HasMaxLength(150);
+            e.Property(x => x.Endereco).HasMaxLength(250);
+            e.Property(x => x.Observacoes).HasMaxLength(1000);
             // Horário: guardado como JSON (jsonb). O "comparador" compara o JSON, para o EF perceber quando muda.
             e.Property(x => x.Horario).HasColumnType("jsonb").HasConversion(
                 h => JsonSerializer.Serialize(h, Json),

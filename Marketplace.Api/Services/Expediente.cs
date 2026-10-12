@@ -51,9 +51,10 @@ public static class Expediente
     }
 
     // Para textos (insights da IA): "seg–sáb 8h–21h; domingo fechado; feriados: fechado".
-    public static string Descricao()
+    public static string Descricao(HorarioFuncionamento? horario = null)
     {
-        var h = Horario.Dias.Count == 7 ? Horario : Padrao;
+        horario ??= Horario;
+        var h = horario.Dias.Count == 7 ? horario : Padrao;
         string[] nomes = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
         var ordem = new[] { 1, 2, 3, 4, 5, 6, 0 }; // começa na segunda
         var partes = new List<string>();

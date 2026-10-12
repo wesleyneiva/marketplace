@@ -21,6 +21,8 @@
 
   h2 { margin: 0; font-size: 17px; }
   .nome small { color: var(--cor-texto-suave); font-size: 13px; }
+  .nome h2 a { color: inherit; text-decoration: none; }
+  .nome h2 a:hover { text-decoration: underline; }
   .selos { display: flex; gap: 6px; }
 }
 

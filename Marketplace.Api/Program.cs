@@ -132,6 +132,20 @@ if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
     await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
 }
 
+// Qual é a empresa do dono da plataforma (área do dono). Ver Seguranca/DonoDaPlataforma.cs.
+using (var scope = app.Services.CreateScope())
+{
+    Plataforma.Definir(await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas
+        .Where(e => e.Plataforma).Select(e => (int?)e.Id).FirstOrDefaultAsync());
+}
+
+// Linha de comando: "criar-dono --email ... --nome ..." cria a área do dono da plataforma e o login dele. Ver Data/CriarDono.cs.
+if (args.FirstOrDefault() == CriarDono.Comando)
+{
+    await SeedInicial.ExecutarAsync(app.Services);
+    Environment.Exit(await CriarDono.ExecutarAsync(app.Services, app.Configuration));
+}
+
 // Linha de comando: "nova-empresa ..." cadastra um cliente novo e sai (não liga o site). Ver Data/NovaEmpresa.cs.
 if (args.FirstOrDefault() == NovaEmpresa.Comando)
 {

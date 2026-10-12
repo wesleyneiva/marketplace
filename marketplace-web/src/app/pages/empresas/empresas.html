@@ -1,7 +1,8 @@
 <header class="titulo-pagina">
   <div>
-    <h1><app-icone nome="building-2" /> Empresas</h1>
-    <p>Os clientes do sistema. Todos entram pelo mesmo endereço: <strong>app.wnlabs.com.br</strong></p>
+    <h1><app-icone nome="store" /> Clientes</h1>
+    <p>Os mercados que usam o sistema. Todos entram pelo mesmo endereço: <strong>app.wnlabs.com.br</strong>.
+      Aqui aparece só o <b>uso</b> do sistema; o que cada cliente vende é dele.</p>
   </div>
   <button type="button" class="botao primario" (click)="abrirNova()">+ Novo cliente</button>
 </header>
@@ -17,8 +18,9 @@
     <article class="painel empresa" [class.suspensa]="!e.ativa">
       <header>
         <div class="nome">
-          <h2>{{ e.nome }}</h2>
-          <small>#{{ e.id }} · {{ e.subdominio }} · {{ e.cidade ?? 'cidade não definida' }} · cliente desde {{ e.criadoEm | date: 'dd/MM/yyyy' }}</small>
+          <h2><a [routerLink]="['/plataforma/clientes', e.id]">{{ e.nome }}</a></h2>
+          <small>#{{ e.id }} · {{ e.cidade ?? 'cidade não definida' }} · cliente desde {{ e.criadoEm | date: 'dd/MM/yyyy' }}
+            @if (e.responsavel) { · {{ e.responsavel }} }</small>
         </div>
         <div class="selos">
           @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
@@ -32,14 +34,14 @@
           @if (e.caixasAbertos) { <small>({{ e.caixasAbertos }} aberto{{ e.caixasAbertos > 1 ? 's' : '' }} agora)</small> }</dd></div>
         <div><dt>Usuários</dt><dd>{{ e.usuariosAtivos }}<small> / {{ e.usuarios }}</small></dd></div>
         <div><dt>Produtos</dt><dd>{{ e.produtos }}</dd></div>
-        <div><dt>Vendas (30 dias)</dt><dd>{{ e.vendas30Dias }} <small>· {{ e.faturamento30Dias | currency: 'BRL' }}</small></dd></div>
+        <div><dt>Dias com movimento</dt><dd>{{ e.diasComMovimento30 }} <small>de 30</small></dd></div>
         <div><dt>Último acesso</dt><dd [title]="e.ultimoAcesso | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(e.ultimoAcesso) }}</dd></div>
-        <div><dt>Última venda</dt><dd [title]="e.ultimaVenda | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(e.ultimaVenda) }}</dd></div>
+        <div><dt>Último movimento</dt><dd [title]="e.ultimoMovimento | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(e.ultimoMovimento) }}</dd></div>
       </dl>
 
       <div class="acoes">
         <button type="button" class="botao pequeno" (click)="alternarUsuarios(e)"><app-icone nome="users" /> Usuários <app-icone [nome]="aberta() === e.id ? 'chevron-up' : 'chevron-down'" /></button>
-        <button type="button" class="botao pequeno" (click)="abrirEdicao(e)"><app-icone nome="pencil" /> Editar / plano</button>
+        <a class="botao pequeno" [routerLink]="['/plataforma/clientes', e.id]"><app-icone nome="pencil" /> Ficha e configurações</a>
         <button type="button" class="botao pequeno" [class.perigo]="e.ativa" [disabled]="processando() === e.id" (click)="alternarSituacao(e)">
           <app-icone [nome]="e.ativa ? 'pause' : 'play'" /> {{ e.ativa ? 'Suspender' : 'Reativar' }}
         </button>
@@ -109,6 +111,12 @@
           <legend>Administrador do cliente</legend>
           <label>Nome<input name="adminNome" [(ngModel)]="adminNome" required minlength="2" maxlength="100" /></label>
           <label>E-mail (usado para entrar)<input name="adminEmail" type="email" [(ngModel)]="adminEmail" required maxlength="150" /></label>
+        </fieldset>
+        <fieldset>
+          <legend>Contato do cliente <small>(opcional; o resto da ficha fica na página do cliente)</small></legend>
+          <label>Responsável<input name="responsavel" [(ngModel)]="responsavel" maxlength="100" [placeholder]="adminNome || 'Nome do dono do mercado'" /></label>
+          <label>WhatsApp<input name="telefone" [(ngModel)]="telefone" maxlength="20" placeholder="51 99999-8888" inputmode="tel" /></label>
+          <label>CPF ou CNPJ<input name="documento" [(ngModel)]="documento" maxlength="18" inputmode="numeric" /></label>
         </fieldset>
         <p class="dica">O sistema cria a empresa com as categorias padrão e gera uma <b>senha provisória</b> para o administrador.</p>
       } @else if (limiteCaixas < editando()!.caixasAbertos) {

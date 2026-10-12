@@ -1,0 +1,47 @@
+.cartoes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.cartao {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  color: inherit;
+  text-decoration: none;
+
+  .rotulo { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cor-texto-suave); }
+  strong { font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  small { color: var(--cor-texto-suave); font-size: 13px; }
+  &.futuro { opacity: 0.7; border-style: dashed; }
+}
+a.cartao:hover { box-shadow: var(--sombra); }
+
+.duas-colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+}
+
+.bloco {
+  padding: 16px;
+
+  h2 { margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 0;
+    border-top: 1px solid var(--cor-borda);
+    color: inherit;
+    text-decoration: none;
+    font-size: 14px;
+  }
+  .linha:hover b { text-decoration: underline; }
+  small { color: var(--cor-texto-suave); }
+  .quando { color: var(--cor-texto-suave); white-space: nowrap; }
+  .vazio { color: var(--cor-texto-suave); font-size: 14px; margin: 0; }
+}

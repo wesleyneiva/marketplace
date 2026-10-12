@@ -50,6 +50,19 @@ public class Empresa
     // Desligado (clientes de verdade) · SoVendas (testar o sistema: o bot vende, as pessoas cuidam de compras e contas)
     // · Completo (a demonstração: o bot também compra, recebe entregas, paga contas e usa o fiado).
     public string VendasAutomaticas { get; set; } = ModosVendasAutomaticas.Desligado;
+
+    // A "empresa" do DONO DA PLATAFORMA (WN Labs): não é um mercado. Quem é Administrador dela entra na área do dono
+    // (clientes, planos, cobranças) e não vê telas de mercado. Só existe uma (criada pelo comando criar-dono).
+    public bool Plataforma { get; set; }
+
+    // Ficha do cliente (preenchida pelo dono da plataforma; o cliente não vê nem muda).
+    public string? RazaoSocial { get; set; }
+    public string? Documento { get; set; }   // CPF ou CNPJ, só números
+    public string? Responsavel { get; set; }
+    public string? Telefone { get; set; }    // WhatsApp, só números com DDD
+    public string? EmailContato { get; set; }
+    public string? Endereco { get; set; }
+    public string? Observacoes { get; set; }
 }
 
 public static class ModosVendasAutomaticas

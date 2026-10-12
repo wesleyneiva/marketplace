@@ -42,12 +42,27 @@ export class Shell {
     { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Usuários', icone: 'users', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Configurações', icone: 'settings', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Empresas', icone: 'building-2', rota: '/empresas', perfis: ['Administrador'], pronto: true, soDono: true },
+    // Enquanto a área do dono não é separada (sem login próprio do dono), o dono chega nela por aqui.
+    { rotulo: 'Área do dono', icone: 'building-2', rota: '/plataforma', perfis: ['Administrador'], pronto: true, soDono: true },
   ];
+
+  // Menu da ÁREA DO DONO da plataforma (login do dono: não é de um mercado).
+  private readonly menuDono: ItemMenu[] = [
+    { rotulo: 'Visão geral', icone: 'layout-dashboard', rota: '/plataforma', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Clientes', icone: 'store', rota: '/plataforma/clientes', perfis: ['Administrador'], pronto: true },
+    { rotulo: 'Planos', icone: 'tag', rota: '/plataforma/planos', perfis: ['Administrador'], pronto: false },
+    { rotulo: 'Cobranças', icone: 'receipt', rota: '/plataforma/cobrancas', perfis: ['Administrador'], pronto: false },
+    { rotulo: 'Sistema', icone: 'settings', rota: '/plataforma/sistema', perfis: ['Administrador'], pronto: false },
+  ];
+
+  protected readonly areaDoDono = computed(() => !!this.usuario()?.soPlataforma);
+  protected readonly inicio = computed(() => (this.areaDoDono() ? '/plataforma' : '/dashboard'));
 
   // computed = recalcula sozinho quando o usuário muda. Cada perfil vê só o que pode usar.
   protected readonly itensVisiveis = computed(() =>
-    this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || MODULOS[item.modulo])),
+    this.areaDoDono()
+      ? this.menuDono
+      : this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || MODULOS[item.modulo])),
   );
 
   protected readonly iniciais = computed(() =>

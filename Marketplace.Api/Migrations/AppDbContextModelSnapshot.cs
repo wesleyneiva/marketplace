@@ -439,6 +439,18 @@ namespace Marketplace.Api.Migrations
                     b.Property<bool>("Demonstracao")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Documento")
+                        .HasMaxLength(14)
+                        .HasColumnType("character varying(14)");
+
+                    b.Property<string>("EmailContato")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Endereco")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.Property<string>("Fuso")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -466,6 +478,21 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("Observacoes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("Plataforma")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("RazaoSocial")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("Responsavel")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
                     b.Property<decimal>("SaldoMinimoCaixa")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(14, 2)
@@ -476,6 +503,10 @@ namespace Marketplace.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
+
+                    b.Property<string>("Telefone")
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)");
 
                     b.Property<string>("Uf")
                         .HasMaxLength(2)
@@ -489,6 +520,10 @@ namespace Marketplace.Api.Migrations
                         .HasDefaultValue("Desligado");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Plataforma")
+                        .IsUnique()
+                        .HasFilter("\"Plataforma\"");
 
                     b.HasIndex("Subdominio")
                         .IsUnique();

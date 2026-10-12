@@ -47,7 +47,7 @@ export class TrocarSenha {
     this.salvando.set(true);
     try {
       await this.auth.trocarSenha(this.senhaAtual, this.novaSenha());
-      await this.router.navigateByUrl('/dashboard');
+      await this.router.navigateByUrl(this.auth.inicio());
     } catch (e) {
       this.erro.set(e instanceof HttpErrorResponse && e.error?.mensagem ? e.error.mensagem : 'Não foi possível trocar a senha.');
     } finally {

@@ -1,16 +1,20 @@
 <div class="layout" [class.menu-aberto]="menuAberto()">
   <aside class="lateral">
-    <a class="marca" routerLink="/dashboard" aria-label="Marketplace — ir para o início">
+    <a class="marca" [routerLink]="inicio()" aria-label="Ir para o início">
       <app-logo [tamanho]="38" tema="escuro" />
     </a>
     @if (usuario(); as u) {
-      <p class="empresa" title="Empresa"><app-icone nome="store" /> {{ u.empresa.nome }}</p>
+      @if (areaDoDono()) {
+        <p class="empresa" title="Área do dono da plataforma"><app-icone nome="building-2" /> Área do dono</p>
+      } @else {
+        <p class="empresa" title="Empresa"><app-icone nome="store" /> {{ u.empresa.nome }}</p>
+      }
     }
 
     <nav>
       @for (item of itensVisiveis(); track item.rota) {
         @if (item.pronto) {
-          <a [routerLink]="item.rota" routerLinkActive="ativo" (click)="menuAberto.set(false)">
+          <a [routerLink]="item.rota" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: item.rota === '/plataforma' }" (click)="menuAberto.set(false)">
             <app-icone class="icone" [nome]="item.icone" />{{ item.rotulo }}
           </a>
         } @else {

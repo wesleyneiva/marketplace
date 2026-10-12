@@ -1,0 +1,58 @@
+@let h = horario();
+<div class="horario">
+  @for (d of diasSemana; track d.indice) {
+    <div class="linha-dia" [class.fechado]="!h.dias[d.indice].aberto">
+      <label class="marcar"><input type="checkbox" [(ngModel)]="h.dias[d.indice].aberto" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': abre'" /> {{ d.nome }}</label>
+      @if (h.dias[d.indice].aberto) {
+        <span class="horas">
+          <input type="time" step="900" [(ngModel)]="h.dias[d.indice].abre" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': abre às'" />
+          <span>às</span>
+          <input type="time" step="900" [(ngModel)]="h.dias[d.indice].fecha" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': fecha às'" />
+        </span>
+      } @else {
+        <span class="txt-fechado">Fechado</span>
+      }
+    </div>
+  }
+</div>
+@if (podeEditar()) {
+  <button type="button" class="botao pequeno" (click)="copiarSegunda()"><app-icone nome="copy" /> Usar o horário de segunda nos outros dias abertos</button>
+}
+
+<label class="regra">Nos feriados
+  <select [(ngModel)]="h.feriados" [disabled]="!podeEditar()">
+    <option ngValue="Fechado">Fecha</option>
+    <option ngValue="Domingo">Abre no horário de domingo</option>
+    <option ngValue="Normal">Abre normalmente (horário do dia)</option>
+  </select>
+</label>
+<p class="dica">Os feriados nacionais o sistema já conhece (inclusive a Sexta-feira Santa). Cadastre abaixo os da cidade e do estado.
+  Carnaval e Corpus Christi são ponto facultativo: se a loja fecha, cadastre como feriado da cidade.</p>
+
+<h3>Feriados da cidade e do estado</h3>
+@if (h.feriadosLocais.length) {
+  <ul class="feriados-locais">
+    @for (f of h.feriadosLocais; track f.dia + '-' + f.mes) {
+      <li>
+        <b>{{ f.dia }} de {{ meses[f.mes - 1] }}</b> · {{ f.nome }}
+        @if (podeEditar()) {
+          <button type="button" class="botao pequeno" (click)="removerFeriado(f)" [attr.aria-label]="'Tirar ' + f.nome"><app-icone nome="trash-2" /></button>
+        }
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="dica">Nenhum feriado da cidade cadastrado.</p>
+}
+@if (podeEditar()) {
+  <div class="novo-feriado">
+    <select [(ngModel)]="novoFeriado.dia" aria-label="Dia do feriado">
+      @for (n of diasDoMes(novoFeriado.mes); track n) { <option [ngValue]="n">{{ n }}</option> }
+    </select>
+    <select [(ngModel)]="novoFeriado.mes" aria-label="Mês do feriado">
+      @for (m of meses; track $index) { <option [ngValue]="$index + 1">{{ m }}</option> }
+    </select>
+    <input type="text" maxlength="60" placeholder="Nome (ex.: Aniversário da cidade)" [(ngModel)]="novoFeriado.nome" (keydown.enter)="adicionarFeriado()" />
+    <button type="button" class="botao pequeno" (click)="adicionarFeriado()" [disabled]="!novoFeriado.nome.trim()"><app-icone nome="plus" /> Incluir</button>
+  </div>
+}

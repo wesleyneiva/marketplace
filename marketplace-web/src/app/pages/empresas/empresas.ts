@@ -1,5 +1,6 @@
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -19,13 +20,14 @@ interface EmpresaResumo {
   usuarios: number;
   usuariosAtivos: number;
   produtos: number;
-  vendas30Dias: number;
-  faturamento30Dias: number;
+  diasComMovimento30: number; // uso do sistema, sem valores: o faturamento do cliente é sigiloso
   ultimoAcesso: string | null;
-  ultimaVenda: string | null;
+  ultimoMovimento: string | null;
   caixasAbertos: number;
   cidade: string | null;
   vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
+  responsavel: string | null;
+  telefone: string | null;
 }
 
 interface UsuarioDaEmpresa {
@@ -50,10 +52,11 @@ interface Credencial {
 const URL = '/api/plataforma/empresas';
 export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
 
-// Clientes do SaaS: cadastrar, mudar o plano, suspender/reativar e gerar senha nova para quem esqueceu.
+// Área do dono → Clientes: cadastrar, abrir a ficha, suspender/reativar e gerar senha nova para quem esqueceu.
+// Mostra só o USO do sistema (acessos, dias com movimento), nunca quanto o cliente vende.
 @Component({
   selector: 'app-empresas',
-  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, CidadeBusca],
+  imports: [Icone, FormsModule, DatePipe, CidadeBusca, RouterLink],
   templateUrl: './empresas.html',
   styleUrl: './empresas.scss',
 })
@@ -77,6 +80,9 @@ export class Empresas {
   protected subdominio = '';
   protected limiteCaixas = 2;
   protected vendasAutomaticas: EmpresaResumo['vendasAutomaticas'] = 'Desligado';
+  protected responsavel = '';
+  protected telefone = '';
+  protected documento = '';
   protected adminNome = '';
   protected adminEmail = '';
   protected readonly cidade = signal<Cidade | null>(null);
@@ -94,6 +100,9 @@ export class Empresas {
     this.limiteCaixas = 2;
     this.adminNome = '';
     this.adminEmail = '';
+    this.responsavel = '';
+    this.telefone = '';
+    this.documento = '';
     this.cidade.set(null);
     this.erro.set(null);
     this.dlgEmpresa()?.nativeElement.showModal();
@@ -126,6 +135,7 @@ export class Empresas {
         const r = await firstValueFrom(this.http.post<{ empresa: EmpresaResumo; adminEmail: string; senhaProvisoria: string }>(URL, {
           nome: this.nome, subdominio: this.subdominio || null, limiteCaixas: this.limiteCaixas,
           adminNome: this.adminNome, adminEmail: this.adminEmail,
+          ficha: { responsavel: this.responsavel || this.adminNome, telefone: this.telefone || null, documento: this.documento || null },
           cidade: this.cidade() ? { nome: this.cidade()!.nome, uf: this.cidade()!.uf, latitude: this.cidade()!.latitude, longitude: this.cidade()!.longitude, fuso: this.cidade()!.fuso } : null,
         }));
         this.mostrarSenha({ titulo: 'Cliente cadastrado', empresa: r.empresa.nome, nome: this.adminNome, email: r.adminEmail, senha: r.senhaProvisoria });

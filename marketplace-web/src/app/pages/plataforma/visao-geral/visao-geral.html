@@ -1,0 +1,64 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="layout-dashboard" /> Visão geral</h1>
+    <p>Olá, {{ auth.usuario()?.nome?.split(' ')?.[0] }}. O sistema inteiro num olhar (só uso: as vendas de cada cliente são dele).</p>
+  </div>
+  <a class="botao primario" routerLink="/plataforma/clientes"><app-icone nome="plus" /> Novo cliente</a>
+</header>
+
+@if (dados.value(); as d) {
+  <section class="cartoes">
+    <a class="painel cartao" routerLink="/plataforma/clientes">
+      <span class="rotulo"><app-icone nome="store" /> Clientes ativos</span>
+      <strong>{{ d.ativos }}</strong>
+      <small>{{ d.suspensos }} suspenso{{ d.suspensos === 1 ? '' : 's' }} · {{ d.demonstracoes }} demonstração</small>
+    </a>
+    <div class="painel cartao">
+      <span class="rotulo"><app-icone nome="receipt" /> Caixas contratados</span>
+      <strong>{{ d.caixasContratados }}</strong>
+      <small>nos clientes ativos</small>
+    </div>
+    <div class="painel cartao">
+      <span class="rotulo"><app-icone nome="users" /> Usuários ativos</span>
+      <strong>{{ d.usuariosAtivos }}</strong>
+      <small>nos clientes ativos</small>
+    </div>
+    <div class="painel cartao">
+      <span class="rotulo"><app-icone nome="eye" /> Acessaram</span>
+      <strong>{{ d.acessaramHoje }}</strong>
+      <small>nas últimas 24 h · {{ d.acessaramSemana }} na semana</small>
+    </div>
+    <div class="painel cartao futuro">
+      <span class="rotulo"><app-icone nome="circle-dollar-sign" /> Meu faturamento</span>
+      <strong>—</strong>
+      <small>chega com Planos e Cobranças</small>
+    </div>
+  </section>
+
+  <div class="duas-colunas">
+    <section class="painel bloco">
+      <h2><app-icone nome="triangle-alert" /> Sem acessar há 7 dias ou mais</h2>
+      @for (c of d.semAcesso; track c.id) {
+        <a class="linha" [routerLink]="['/plataforma/clientes', c.id]">
+          <span><b>{{ c.nome }}</b> <small>{{ c.responsavel ?? c.cidade ?? '' }}</small></span>
+          <span class="quando">{{ tempoDesde(c.ultimoAcesso) }}</span>
+        </a>
+      } @empty {
+        <p class="vazio">Todos os clientes ativos entraram nos últimos 7 dias.</p>
+      }
+    </section>
+    <section class="painel bloco">
+      <h2><app-icone nome="sparkles" /> Clientes mais novos</h2>
+      @for (c of d.recentes; track c.id) {
+        <a class="linha" [routerLink]="['/plataforma/clientes', c.id]">
+          <span><b>{{ c.nome }}</b> <small>{{ c.cidade ?? '' }}</small></span>
+          <span class="quando">desde {{ c.criadoEm | date: 'dd/MM/yyyy' }}</span>
+        </a>
+      } @empty {
+        <p class="vazio">Nenhum cliente ainda. Comece em <a routerLink="/plataforma/clientes">Clientes → Novo cliente</a>.</p>
+      }
+    </section>
+  </div>
+} @else if (dados.error()) {
+  <p class="vazio">Não foi possível carregar. <button class="botao pequeno" (click)="dados.reload()">Tentar de novo</button></p>
+}

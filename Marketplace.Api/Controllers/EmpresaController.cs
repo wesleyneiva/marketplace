@@ -73,13 +73,7 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
     {
         if (ValidarHorario(r) is { } erro) return BadRequest(new { mensagem = erro });
         var empresa = await CarregarAsync();
-        empresa.Horario = new HorarioFuncionamento
-        {
-            Dias = r.Dias.Select(d => d.Aberto ? d : d with { Abre = new TimeOnly(8, 0), Fecha = new TimeOnly(19, 0) }).ToList(),
-            Feriados = r.Feriados,
-            FeriadosLocais = r.FeriadosLocais.Select(f => f with { Nome = f.Nome.Trim() })
-                .OrderBy(f => f.Mes).ThenBy(f => f.Dia).ToList(),
-        };
+        empresa.Horario = Normalizar(r);
         await db.SaveChangesAsync();
         locais.Esquecer(empresa.Id);
         locais.Aplicar(empresa.Id); // a resposta já sai com o horário novo
@@ -88,7 +82,15 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
 
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
-    private static string? ValidarHorario(HorarioFuncionamento h)
+    // Dia fechado guarda o horário padrão; feriados da cidade em ordem do calendário. (Também usado pela área do dono.)
+    public static HorarioFuncionamento Normalizar(HorarioFuncionamento r) => new()
+    {
+        Dias = r.Dias.Select(d => d.Aberto ? d : d with { Abre = new TimeOnly(8, 0), Fecha = new TimeOnly(19, 0) }).ToList(),
+        Feriados = r.Feriados,
+        FeriadosLocais = r.FeriadosLocais.Select(f => f with { Nome = f.Nome.Trim() }).OrderBy(f => f.Mes).ThenBy(f => f.Dia).ToList(),
+    };
+
+    public static string? ValidarHorario(HorarioFuncionamento h)
     {
         if (h.Dias is not { Count: 7 }) return "Informe o horário dos 7 dias da semana.";
         if (h.Dias.All(d => !d.Aberto)) return "A loja precisa abrir em pelo menos um dia da semana.";

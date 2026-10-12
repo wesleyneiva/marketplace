@@ -1,0 +1,137 @@
+import { Component, WritableSignal, inject, input, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
+import { Icone } from '../../../shared/icone';
+import { Cidade, CidadeBusca, nomeDoFuso } from '../../../shared/cidade-busca';
+import { HorarioEditor } from '../../../shared/horario-editor/horario-editor';
+import { Horario, horarioParaServidor, horarioParaTela } from '../../../shared/horario-editor/horario';
+
+// Formato igual a Contracts/PlataformaDtos.cs (ClienteDetalheResponse).
+interface Ficha {
+  razaoSocial: string | null;
+  documento: string | null;
+  responsavel: string | null;
+  telefone: string | null;
+  emailContato: string | null;
+  endereco: string | null;
+  observacoes: string | null;
+}
+interface Resumo {
+  id: number; nome: string; limiteCaixas: number; ativa: boolean; demonstracao: boolean; criadoEm: string;
+  usuarios: number; usuariosAtivos: number; produtos: number; diasComMovimento30: number;
+  ultimoAcesso: string | null; ultimoMovimento: string | null; caixasAbertos: number; cidade: string | null;
+  vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
+}
+interface Detalhe { resumo: Resumo; ficha: Ficha; uf: string | null; fuso: string; horario: Horario; horarioResumo: string }
+type Aviso = { ok: boolean; texto: string } | null;
+
+const URL = '/api/plataforma/empresas';
+
+// Ficha do cliente na área do dono: dados cadastrais, plano, cidade, horário e uso do sistema (sem vendas: são do cliente).
+@Component({
+  selector: 'app-cliente',
+  imports: [Icone, FormsModule, DatePipe, RouterLink, CidadeBusca, HorarioEditor],
+  templateUrl: './cliente.html',
+  styleUrl: './cliente.scss',
+})
+export class Cliente {
+  private readonly http = inject(HttpClient);
+  readonly id = input.required<string>(); // vem da rota /plataforma/clientes/:id
+
+  protected readonly detalhe = httpResource<Detalhe>(() => `${URL}/${this.id()}`);
+  protected readonly nomeDoFuso = nomeDoFuso;
+
+  // Formulários (preenchidos uma vez quando o detalhe chega).
+  protected nome = '';
+  protected limiteCaixas = 1;
+  protected vendasAutomaticas: Resumo['vendasAutomaticas'] = 'Desligado';
+  protected ficha: Ficha = { razaoSocial: null, documento: null, responsavel: null, telefone: null, emailContato: null, endereco: null, observacoes: null };
+  protected horario: Horario | null = null;
+  protected readonly cidade = signal<Cidade | null>(null);
+  private carregadoId: number | null = null;
+
+  protected readonly salvando = signal<string | null>(null); // qual seção está salvando
+  protected readonly avisoDados = signal<Aviso>(null);
+  protected readonly avisoPlano = signal<Aviso>(null);
+  protected readonly avisoCidade = signal<Aviso>(null);
+  protected readonly avisoHorario = signal<Aviso>(null);
+  protected readonly avisoSituacao = signal<Aviso>(null);
+
+  protected preencher(d: Detalhe): boolean {
+    if (this.carregadoId !== d.resumo.id) {
+      this.nome = d.resumo.nome;
+      this.limiteCaixas = d.resumo.limiteCaixas;
+      this.vendasAutomaticas = d.resumo.vendasAutomaticas;
+      this.ficha = { ...d.ficha };
+      this.horario = horarioParaTela(d.horario);
+      this.carregadoId = d.resumo.id;
+    }
+    return true;
+  }
+
+  // Dados cadastrais e plano usam o mesmo PUT (o servidor recebe tudo junto).
+  async salvarDados(secao: 'dados' | 'plano'): Promise<void> {
+    const aviso = secao === 'dados' ? this.avisoDados : this.avisoPlano;
+    await this.executar(secao, aviso, () => firstValueFrom(this.http.put(`${URL}/${this.id()}`, {
+      nome: this.nome, limiteCaixas: this.limiteCaixas, vendasAutomaticas: this.vendasAutomaticas, ficha: this.ficha,
+    })), secao === 'dados' ? 'Dados salvos.' : 'Plano salvo.');
+  }
+
+  async salvarCidade(): Promise<void> {
+    const c = this.cidade();
+    if (!c) return;
+    await this.executar('cidade', this.avisoCidade, () => firstValueFrom(this.http.put(`${URL}/${this.id()}/cidade`,
+      { nome: c.nome, uf: c.uf, latitude: c.latitude, longitude: c.longitude, fuso: c.fuso })), `Cidade salva: ${c.nome}/${c.uf}.`);
+    this.cidade.set(null);
+  }
+
+  async salvarHorario(): Promise<void> {
+    if (!this.horario) return;
+    await this.executar('horario', this.avisoHorario,
+      () => firstValueFrom(this.http.put(`${URL}/${this.id()}/horario`, horarioParaServidor(this.horario!))), 'Horário salvo.');
+  }
+
+  async alternarSituacao(r: Resumo): Promise<void> {
+    if (r.ativa && !confirm(`Suspender "${r.nome}"?\n\nNinguém da empresa consegue entrar, e quem está usando agora sai em até 1 minuto. Os dados ficam guardados.`)) return;
+    await this.executar('situacao', this.avisoSituacao,
+      () => firstValueFrom(this.http.post(`${URL}/${r.id}/${r.ativa ? 'suspender' : 'reativar'}`, {})),
+      r.ativa ? 'Cliente suspenso.' : 'Cliente reativado.');
+  }
+
+  private async executar(secao: string, aviso: WritableSignal<Aviso>, acao: () => Promise<unknown>, ok: string): Promise<void> {
+    this.salvando.set(secao);
+    aviso.set(null);
+    try {
+      await acao();
+      aviso.set({ ok: true, texto: ok });
+      this.detalhe.reload(); // o formulário não é refeito (carregadoId): só o resumo e os textos se atualizam
+    } catch (e) {
+      aviso.set({ ok: false, texto: this.mensagem(e) });
+    } finally {
+      this.salvando.set(null);
+    }
+  }
+
+  protected tempoDesde(data: string | null): string {
+    if (!data) return 'nunca';
+    const minutos = Math.round((Date.now() - new Date(data).getTime()) / 60000);
+    if (minutos < 2) return 'agora';
+    if (minutos < 60) return `há ${minutos} min`;
+    const horas = Math.round(minutos / 60);
+    if (horas < 24) return `há ${horas} h`;
+    const dias = Math.round(horas / 24);
+    return dias === 1 ? 'ontem' : `há ${dias} dias`;
+  }
+
+  private mensagem(e: unknown): string {
+    if (e instanceof HttpErrorResponse) {
+      if (e.error?.mensagem) return e.error.mensagem;
+      const erros = e.error?.errors as Record<string, string[]> | undefined;
+      if (erros) return Object.values(erros).flat().join(' ');
+    }
+    return 'Não foi possível salvar. Tente de novo.';
+  }
+}

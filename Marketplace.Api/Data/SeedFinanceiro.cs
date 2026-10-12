@@ -64,6 +64,7 @@ public static class SeedFinanceiro
         using (var scope = services.CreateScope())
         {
             empresas = (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
+                .Where(e => !e.Plataforma) // a empresa do dono da plataforma não é um mercado
                 .Select(e => new { e.Id, e.Fuso }).ToListAsync()).Select(e => (e.Id, e.Fuso)).ToList();
         }
         foreach (var (id, fuso) in empresas)

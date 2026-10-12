@@ -5,11 +5,20 @@ using Microsoft.AspNetCore.Mvc.Filters;
 
 namespace Marketplace.Api.Seguranca;
 
-// "Dono da plataforma" = quem administra o SaaS (cadastra e suspende clientes): Administrador da empresa
-// configurada em Plataforma:EmpresaId (padrão 1, a "Marketplace"). Nenhum cliente enxerga isso.
+// "Dono da plataforma" = quem administra o SaaS (clientes, planos, cobranças): Administrador da empresa marcada
+// como Plataforma no banco (criada pelo comando criar-dono). Enquanto ela não existir, vale Plataforma:EmpresaId
+// (padrão 1, a demonstração) — o jeito antigo. Nenhum cliente enxerga isso.
 public static class Plataforma
 {
-    public static int EmpresaDona(IConfiguration config) => config.GetValue("Plataforma:EmpresaId", 1);
+    private static int? _doBanco;
+
+    // Lida ao ligar a API (Program.cs) e atualizada pelo criar-dono.
+    public static void Definir(int? empresaId) => _doBanco = empresaId;
+
+    public static int EmpresaDona(IConfiguration config) => _doBanco ?? config.GetValue("Plataforma:EmpresaId", 1);
+
+    // true quando a área do dono já é separada (existe a empresa da plataforma).
+    public static bool Separada => _doBanco is not null;
 
     public static bool EhDono(ClaimsPrincipal usuario, IConfiguration config) =>
         usuario.Identity?.IsAuthenticated == true

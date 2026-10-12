@@ -1,0 +1,100 @@
+<a class="voltar" routerLink="/plataforma/clientes"><app-icone nome="arrow-left" /> Clientes</a>
+
+@if (detalhe.error()) {
+  <p class="vazio">Cliente não encontrado. <a routerLink="/plataforma/clientes">Voltar à lista</a></p>
+}
+
+@if (detalhe.value(); as d) {
+  @if (preencher(d)) {
+    @let r = d.resumo;
+    <header class="titulo-pagina">
+      <div>
+        <h1><app-icone nome="store" /> {{ r.nome }}</h1>
+        <p>#{{ r.id }} · cliente desde {{ r.criadoEm | date: 'dd/MM/yyyy' }} · {{ r.cidade ?? 'cidade não definida' }}
+          @if (r.demonstracao) { · <span class="selo demo">demonstração</span> }
+          @if (!r.ativa) { · <span class="selo suspensa">suspenso</span> }</p>
+      </div>
+      <div class="acao-topo">
+        <button type="button" class="botao" [class.perigo]="r.ativa" [disabled]="salvando() === 'situacao'" (click)="alternarSituacao(r)">
+          <app-icone [nome]="r.ativa ? 'pause' : 'play'" /> {{ r.ativa ? 'Suspender' : 'Reativar' }}
+        </button>
+        @if (avisoSituacao(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok">{{ a.texto }}</span> }
+      </div>
+    </header>
+
+    <section class="painel secao">
+      <h2><app-icone nome="chart-column" /> Uso do sistema</h2>
+      <p class="explica">Só o uso: o que o cliente vende e quanto fatura é dele.</p>
+      <dl class="numeros">
+        <div><dt>Último acesso</dt><dd [title]="r.ultimoAcesso | date: 'dd/MM/yyyy HH:mm'">{{ tempoDesde(r.ultimoAcesso) }}</dd></div>
+        <div><dt>Dias com movimento</dt><dd>{{ r.diasComMovimento30 }} <small>de 30</small></dd></div>
+        <div><dt>Último movimento</dt><dd>{{ tempoDesde(r.ultimoMovimento) }}</dd></div>
+        <div><dt>Usuários ativos</dt><dd>{{ r.usuariosAtivos }} <small>de {{ r.usuarios }}</small></dd></div>
+        <div><dt>Produtos</dt><dd>{{ r.produtos }}</dd></div>
+        <div><dt>Caixas abertos agora</dt><dd>{{ r.caixasAbertos }}</dd></div>
+      </dl>
+      <p class="dica">Usuários, senha nova e acesso: na <a routerLink="/plataforma/clientes">lista de clientes</a> → Usuários.</p>
+    </section>
+
+    <section class="painel secao">
+      <h2><app-icone nome="file-text" /> Dados do cliente</h2>
+      <div class="grade">
+        <label>Nome do mercado (aparece no sistema e no cupom)<input [(ngModel)]="nome" maxlength="100" /></label>
+        <label>Razão social<input [(ngModel)]="ficha.razaoSocial" maxlength="150" /></label>
+        <label>CPF ou CNPJ<input [(ngModel)]="ficha.documento" maxlength="18" inputmode="numeric" /></label>
+        <label>Responsável<input [(ngModel)]="ficha.responsavel" maxlength="100" /></label>
+        <label>WhatsApp<input [(ngModel)]="ficha.telefone" maxlength="20" inputmode="tel" placeholder="51 99999-8888" /></label>
+        <label>E-mail de contato<input type="email" [(ngModel)]="ficha.emailContato" maxlength="150" /></label>
+        <label class="largo">Endereço<input [(ngModel)]="ficha.endereco" maxlength="250" /></label>
+        <label class="largo">Observações (só você vê)<textarea rows="3" [(ngModel)]="ficha.observacoes" maxlength="1000"></textarea></label>
+      </div>
+      <div class="salvar">
+        <button type="button" class="botao primario" [disabled]="salvando() === 'dados'" (click)="salvarDados('dados')">Salvar dados</button>
+        @if (avisoDados(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
+      </div>
+    </section>
+
+    <section class="painel secao">
+      <h2><app-icone nome="tag" /> Plano</h2>
+      <div class="grade">
+        <label>Caixas (PDVs) contratados<input type="number" min="1" max="999" [(ngModel)]="limiteCaixas" /></label>
+        <label>Vendas automáticas <small>(clientes simulados no Caixa 9, no horário da loja)</small>
+          <select [(ngModel)]="vendasAutomaticas">
+            <option value="Desligado">Desligado (cliente de verdade)</option>
+            <option value="SoVendas">Só vendas (teste: compras, estoque e contas ficam com as pessoas)</option>
+            @if (r.demonstracao) { <option value="Completo">Completo (demonstração)</option> }
+          </select>
+        </label>
+      </div>
+      <p class="dica">Preço, vencimento e cobranças vêm na próxima etapa (Planos e Cobranças).</p>
+      <div class="salvar">
+        <button type="button" class="botao primario" [disabled]="salvando() === 'plano'" (click)="salvarDados('plano')">Salvar plano</button>
+        @if (avisoPlano(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
+      </div>
+    </section>
+
+    <section class="painel secao">
+      <h2><app-icone nome="map-pin" /> Cidade da loja</h2>
+      <p class="explica">Define o clima dos relatórios e o fuso horário ("hoje", vendas do dia).</p>
+      <p class="atual"><b>{{ r.cidade ?? 'Não definida' }}</b> · horário de {{ nomeDoFuso(d.fuso) }}</p>
+      <div class="grade"><label>{{ r.cidade ? 'Mudar para' : 'Cidade' }}<app-cidade-busca (selecionada)="cidade.set($event)" /></label></div>
+      @if (cidade(); as c) {
+        <div class="salvar">
+          <span>Escolhida: <b>{{ c.nome }}/{{ c.uf }}</b></span>
+          <button type="button" class="botao primario" [disabled]="salvando() === 'cidade'" (click)="salvarCidade()">Salvar cidade</button>
+        </div>
+      }
+      @if (avisoCidade(); as a) { <p class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status">{{ a.texto }}</p> }
+    </section>
+
+    <section class="painel secao">
+      <h2><app-icone nome="clock" /> Horário de funcionamento</h2>
+      <p class="atual">Agora: <b>{{ d.horarioResumo }}</b></p>
+      @if (horario; as h) { <app-horario-editor [horario]="h" /> }
+      <div class="salvar">
+        <button type="button" class="botao primario" [disabled]="salvando() === 'horario'" (click)="salvarHorario()">Salvar horário</button>
+        @if (avisoHorario(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
+      </div>
+    </section>
+  }
+}

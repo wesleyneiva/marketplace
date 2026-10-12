@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, precisaSerDono, somenteDeslogado } from './core/auth/auth.guards';
+import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, precisaSerDono, soMercado, somenteDeslogado } from './core/auth/auth.guards';
 import { MODULOS } from './core/modulos';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
@@ -21,6 +21,22 @@ export const routes: Routes = [
     canActivate: [precisaLogin],
     loadComponent: () => import('./layout/shell/shell').then((m) => m.Shell),
     children: [
+      {
+        // ÁREA DO DONO da plataforma: clientes do sistema, planos, cobranças. Só o dono, pela rede interna.
+        path: 'plataforma',
+        canActivate: [precisaSerDono],
+        children: [
+          { path: '', loadComponent: () => import('./pages/plataforma/visao-geral/visao-geral').then((m) => m.VisaoGeral) },
+          { path: 'clientes', loadComponent: () => import('./pages/empresas/empresas').then((m) => m.Empresas) },
+          { path: 'clientes/:id', loadComponent: () => import('./pages/plataforma/cliente/cliente').then((m) => m.Cliente) },
+        ],
+      },
+      { path: 'empresas', redirectTo: 'plataforma/clientes' },
+      {
+        // Telas do MERCADO.
+        path: '',
+        canActivateChild: [soMercado],
+        children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {
         path: 'dashboard',
@@ -90,15 +106,11 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),
       },
       {
-        // Clientes do SaaS (só o dono da plataforma).
-        path: 'empresas',
-        canActivate: [precisaSerDono],
-        loadComponent: () => import('./pages/empresas/empresas').then((m) => m.Empresas),
-      },
-      {
         path: 'estoque',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/estoque/estoque').then((m) => m.Estoque),
+      },
+        ],
       },
     ],
   },

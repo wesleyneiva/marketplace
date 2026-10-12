@@ -11,7 +11,8 @@ export interface UsuarioLogado {
   trocarSenha: boolean; // senha provisória: precisa trocar antes de usar o sistema
   empresa: Empresa;      // o mercado onde a pessoa trabalha (multi-tenant)
   somenteLeitura: boolean; // visitante da demonstração: só olha
-  donoDaPlataforma: boolean; // administra os clientes do SaaS (tela "Empresas")
+  donoDaPlataforma: boolean; // administra os clientes do SaaS (área do dono)
+  soPlataforma: boolean;     // login do dono da plataforma: não é de um mercado, só vê a área do dono
 }
 
 export interface Empresa {
@@ -38,6 +39,11 @@ export class AuthService {
 
   readonly usuario = this.usuarioAtual.asReadonly();
   readonly logado = computed(() => this.usuarioAtual() !== null);
+
+  // Para onde a pessoa vai depois de entrar: o dono da plataforma para a área do dono; os demais, para o painel do mercado.
+  inicio(): string {
+    return this.usuarioAtual()?.soPlataforma ? '/plataforma' : '/dashboard';
+  }
 
   async login(email: string, senha: string): Promise<void> {
     const usuario = await firstValueFrom(
