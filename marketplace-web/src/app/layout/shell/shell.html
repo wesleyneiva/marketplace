@@ -1,7 +1,7 @@
 <div class="layout" [class.menu-aberto]="menuAberto()">
   <aside class="lateral">
     <a class="marca" [routerLink]="inicio()" aria-label="Ir para o início">
-      <app-logo [tamanho]="38" tema="escuro" />
+      <app-logo [tamanho]="38" tema="escuro" [slogan]="false" />
     </a>
     @if (usuario(); as u) {
       @if (areaDoDono()) {

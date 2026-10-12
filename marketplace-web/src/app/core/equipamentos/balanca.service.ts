@@ -14,7 +14,8 @@ interface ConfigBalanca {
   pesoSimulado: number;
 }
 
-const CHAVE = 'marketplace.balanca';
+const CHAVE = 'marcus.balanca';
+const CHAVE_ANTIGA = 'marketplace.balanca'; // antes da troca de nome (lida uma vez e migrada)
 const PADRAO: ConfigBalanca = { modo: 'nenhuma', velocidade: 9600, pesoSimulado: 0.75 };
 
 // A Web Serial ainda não está nos tipos padrão do TypeScript: só o que usamos.
@@ -151,7 +152,7 @@ export class BalancaService {
 
   private carregar(): ConfigBalanca {
     try {
-      return { ...PADRAO, ...JSON.parse(localStorage.getItem(CHAVE) ?? '{}') };
+      return { ...PADRAO, ...JSON.parse(localStorage.getItem(CHAVE) ?? localStorage.getItem(CHAVE_ANTIGA) ?? '{}') };
     } catch {
       return PADRAO;
     }

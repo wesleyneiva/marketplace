@@ -1,4 +1,4 @@
-// Estilos globais do Marketplace.
+// Estilos globais do Marcus.
 // As cores ficam em "variáveis CSS" (--nome) para trocar o tema num lugar só.
 :root {
   --cor-primaria: #15803d;        // verde "mercado"
@@ -167,7 +167,7 @@ summary > app-icone {
 // ---------- Gráficos (SVG desenhado pelos componentes em shared/graficos) ----------
 // Regras: marcas finas, grade e eixos discretos, texto sempre em cor de TEXTO (nunca na cor da barra).
 :root {
-  --grafico-serie: #15803d;        // verde do Marketplace (gráficos de uma série)
+  --grafico-serie: #15803d;        // verde do Marcus (gráficos de uma série)
   --grafico-serie-ativa: #0f5f2d;
   --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
   --grafico-saidas: #4a3aa7;       // fluxo de caixa: saídas (o mesmo violeta validado; vermelho/laranja reprovam p/ deutan)

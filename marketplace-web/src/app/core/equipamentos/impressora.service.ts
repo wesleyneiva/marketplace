@@ -13,7 +13,8 @@ export interface ConfigImpressora {
   rodape: string;          // mensagem no fim do cupom
 }
 
-const CHAVE = 'marketplace.impressora';
+const CHAVE = 'marcus.impressora';
+const CHAVE_ANTIGA = 'marketplace.impressora'; // antes da troca de nome (lida uma vez e migrada)
 const PADRAO: ConfigImpressora = { largura: 80, automatica: false, vias: 1, rodape: 'Obrigado pela preferência! Volte sempre.' };
 
 @Injectable({ providedIn: 'root' })
@@ -213,7 +214,7 @@ export class ImpressoraService {
 
   private carregar(): ConfigImpressora {
     try {
-      return { ...PADRAO, ...JSON.parse(localStorage.getItem(CHAVE) ?? '{}') };
+      return { ...PADRAO, ...JSON.parse(localStorage.getItem(CHAVE) ?? localStorage.getItem(CHAVE_ANTIGA) ?? '{}') };
     } catch {
       return PADRAO;
     }

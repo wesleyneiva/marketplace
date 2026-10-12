@@ -5,7 +5,7 @@ using static Marketplace.Api.Models.ChavesFinanceiras;
 
 namespace Marketplace.Api.Services.Simulador;
 
-// O dinheiro do mercadinho de DEMONSTRAÇÃO (fictício), para o Financeiro e a DRE terem o que mostrar:
+// O dinheiro do mercado de DEMONSTRAÇÃO, para o Financeiro e a DRE terem o que mostrar:
 //  • depósito diário do dinheiro da gaveta no banco (fica o troco);
 //  • despesas fixas do mês (aluguel, folha, energia, Simples...) como contas a pagar, pagas no vencimento;
 //  • boletos dos fornecedores (no histórico: pelo custo do que foi vendido na semana; ao vivo: pelos pedidos recebidos).
@@ -32,7 +32,7 @@ public class FinanceiroDemonstracao(AppDbContext db, ILogger<FinanceiroDemonstra
         ("AGUA", "Água e esgoto (DMAE)", 12, "Água e esgoto", (_, _) => 240m),
         ("INTERNET", "Internet e telefone", 18, "Internet e telefone", (_, _) => 189.90m),
         ("CONTADOR", "Honorários do contador", 10, "Contabilidade", (_, _) => 950m),
-        ("SISTEMA", "Sistema Marketplace (mensalidade)", 10, "Sistemas e software", (_, _) => 199m),
+        ("SISTEMA", "Sistema Marcus (mensalidade)", 10, "Sistemas e software", (_, _) => 199m),
         ("IPTU", "IPTU (parcela)", 10, "IPTU e condomínio", (_, _) => 180m),
         ("TARIFA", "Tarifa do pacote de serviços do banco", 1, "Tarifas bancárias", (_, _) => 59.90m),
         ("SACOLAS", "Sacolas e bobinas", 25, "Sacolas e embalagens", (_, _) => 420m),

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Data;
 
-// Dá um "começo de história" ao estoque do catálogo fictício. Só roda se não houver movimentações:
+// Dá um "começo de história" ao estoque do catálogo de exemplo. Só roda se não houver movimentações:
 //  1. uma movimentação de Inventário para cada produto (o saldo atual passa a ter origem);
 //  2. lotes de validade para os perecíveis — alguns vencendo/vencidos DE PROPÓSITO, para testar alertas.
 public static class SeedEstoque

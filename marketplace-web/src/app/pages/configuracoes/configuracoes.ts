@@ -1,3 +1,4 @@
+import { MARCA } from '../../shared/marca';
 import { Component, computed, inject, signal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
@@ -63,7 +64,7 @@ export class Configuracoes {
   };
   protected readonly previaCupom = computed(() => {
     this.impressora.config(); // refaz quando a configuração muda
-    return this.sanitizer.bypassSecurityTrustHtml(this.impressora.htmlCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? 'Marketplace'));
+    return this.sanitizer.bypassSecurityTrustHtml(this.impressora.htmlCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? MARCA.nome));
   });
   protected readonly config = httpResource<Configuracao>(() => '/api/empresa/configuracao');
   protected readonly aviso = signal<string | null>(null);
@@ -198,7 +199,7 @@ export class Configuracoes {
   }
 
   imprimirTeste(): void {
-    this.impressora.imprimirCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? 'Marketplace');
+    this.impressora.imprimirCupom(this.cupomExemplo, this.auth.usuario()?.empresa.nome ?? MARCA.nome);
   }
 
   async copiar(texto: string): Promise<void> {

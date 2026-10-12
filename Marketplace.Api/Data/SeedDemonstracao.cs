@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Data;
 
-// A empresa 1 (criada pela migration MultiEmpresa) é o "Marketplace" de demonstração: o simulador vende nela.
+// A empresa 1 (criada pela migration MultiEmpresa) é o mercado de demonstração: o simulador vende nela.
 // Aqui criamos o VISITANTE da demonstração: perfil Gerente (vê quase todas as telas), SOMENTE LEITURA
 // (não grava nada) e SEM senha (entra só pelo botão "Ver demonstração", quando Demonstracao:Ativa = true).
 public static class SeedDemonstracao
 {
     public const int EmpresaId = 1;
-    public const string EmailPadrao = "visitante@marketplace.demo";
+    public const string EmailPadrao = "visitante@demo.wnlabs.com.br";
 
     public static async Task ExecutarAsync(IServiceProvider services)
     {

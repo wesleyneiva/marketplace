@@ -47,7 +47,7 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         var opcoes = produtos.Select(p => (Produto: p, Habito: PerfilConsumo.Para(p), Disponivel: 9999m)).ToList();
         var porId = produtos.ToDictionary(p => p.Id);
 
-        // Caderneta: os clientes fictícios e o que cada um está devendo, compra a compra (em memória, dia a dia).
+        // Caderneta: os clientes de demonstração e o que cada um está devendo, compra a compra (em memória, dia a dia).
         var clientesFiado = (await fiadoDemo.GarantirClientesAsync(robo.Id)).ToDictionary(c => c.Id);
         var cadernetas = clientesFiado.Keys.ToDictionary(id => id, _ => new List<CompraFiado>());
         int comprasFiado = 0, pagamentosFiado = 0, baixas = 0;

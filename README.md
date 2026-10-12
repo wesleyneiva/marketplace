@@ -1,7 +1,11 @@
-# 🛒 Marketplace — ERP de mercadinho (projeto de estudo)
+# Marcus — gestão inteligente para o seu negócio
 
-Sistema web de gestão para um mercadinho **fictício**: produtos, estoque com validade, caixa (PDV),
-dashboard e, em breve, automações com n8n/Telegram e insights com IA.
+Sistema web de gestão (ERP) para mercados e mercadinhos, oferecido como serviço (SaaS) pela WN Labs: produtos,
+estoque com validade, caixa (PDV), compras, financeiro com DRE, relatórios com clima e insights com IA.
+O nome é uma homenagem a Marco Aurélio, o imperador filósofo: decidir com calma, com informação e com sabedoria.
+
+Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **https://demo.wnlabs.com.br**.
+(Pastas, serviço e banco ainda usam o nome técnico antigo, `marketplace`.)
 
 | Camada | Tecnologia |
 |---|---|
@@ -17,7 +21,8 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
   primeiro); histórico completo de "quem mexeu, quando e por quê"; alertas de validade e estoque baixo.
 - **Caixa (PDV)** — feito para teclado e leitor de código de barras; venda por peso (KG); desconto
   limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**.
-- **Simulador de clientes** — trabalhador em segundo plano que "abre" o Caixa 9 às 07:00 e vende o dia todo:
+- **Vendas automáticas (simulador)** — por empresa (`Empresa.VendasAutomaticas`: Desligado, SoVendas, Completo), no
+  horário de funcionamento de cada loja; o robô abre o Caixa 9 (fora do plano) e vende o dia todo:
   clientes por hora (picos no almoço e às 18h, sábado mais forte, começo do mês), cesta sorteada por
   popularidade e pelo **clima real de Porto Alegre** (calor → bebidas geladas; frio → café; chuva → menos
   gente; fim de semana → churrasco), pagamentos realistas com troco, fornecedor repondo às 07:00 e
@@ -73,10 +78,12 @@ dashboard e, em breve, automações com n8n/Telegram e insights com IA.
 - **PDV filtra enquanto digita** — busca por palavras em qualquer ordem; só números (leitor) espera o Enter.
 - **Dados fiscais do produto** (preparação da NFC-e, que será por serviço fiscal pronto quando houver CNPJ): NCM, CEST,
   CFOP (padrão 5102), origem e CSOSN/CST; NCM e CEST vêm sozinhos da NF-e de compra; coluna NCM na planilha de importação.
-- **Empresas** (🏢, só o dono da plataforma = Administrador da empresa `Plataforma:EmpresaId`, padrão 1, e só pela
-  rede interna) — clientes com plano, uso e último acesso; cadastrar (mesmo código do `nova-empresa.sh`), editar
-  plano, suspender (troca o carimbo de segurança: as sessões caem em até 1 min) e "Senha nova" para quem esqueceu.
-  Gravação em usuário de outra empresa só por `CriarEscopo(id)` (o carimbo de empresa recusa o resto).
+- **Área do dono da plataforma** (`/plataforma`, login próprio criado por `./criar-dono.sh`, só pela rede interna:
+  com `Publico__RedeInternaSoDono=true`, a rede interna aceita só o dono e os mercados entram só por app.wnlabs.com.br)
+  — Visão geral (o faturamento do dono: receita mensal, recebido, a receber, atrasado, 12 meses), Clientes (ficha,
+  plano/assinatura, cidade, horário, usuários, suspender), Cobranças (mensalidades geradas sozinhas, recebimento,
+  cobrança no WhatsApp, bloqueio automático por atraso e liberação ao pagar), Planos e Sistema (endereços no ar,
+  backups, disco, espaço por cliente). Só USO dos clientes: as vendas e o faturamento de cada mercado são dele.
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
   simulador vende. Pela internet (Cloudflare Tunnel, cabeçalho `CF-Connecting-IP`): `/api/integracao` fechado,
@@ -127,5 +134,5 @@ cd marketplace-web && npx ng serve --host 0.0.0.0        # Angular (repassa /api
 
 Em desenvolvimento, a conexão com o banco vem do `dotnet user-secrets` (`ConnectionStrings:Marketplace`).
 
-> Os dados são fictícios: o catálogo inicial (55 produtos, 8 categorias, lotes de validade) é criado
-> automaticamente na primeira execução.
+> A empresa de demonstração ganha um catálogo de exemplo (55 produtos, 8 categorias, lotes de validade) na
+> primeira execução.

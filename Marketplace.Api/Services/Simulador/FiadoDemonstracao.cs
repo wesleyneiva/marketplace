@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services.Simulador;
 
-// A caderneta do mercadinho de DEMONSTRAÇÃO: 25 clientes FICTÍCIOS (sem telefone, de propósito: o botão "Cobrar no
+// A caderneta do mercadinho de DEMONSTRAÇÃO: 25 clientes de exemplo (sem telefone, de propósito: o botão "Cobrar no
 // WhatsApp" do demo nunca pode mandar mensagem para um número real), cada um com um jeito de pagar:
 //   em dia (paga no vencimento ou até 3 dias depois), costuma atrasar (12 a 20 dias), não paga (calote → baixa em 45 dias)
 //   e bloqueado (não compra). Cerca de 3% das compras são no fiado.
 public class FiadoDemonstracao(AppDbContext db, FiadoService fiado)
 {
-    public const string Marca = "Cliente fictício (demonstração)";
+    public const string Marca = "Cliente de demonstração";
     public const double ChanceFiado = 0.03;
     public const int DiasParaBaixa = 45;
 
@@ -133,7 +133,7 @@ public class FiadoDemonstracao(AppDbContext db, FiadoService fiado)
     }
 
     // Para "refazer o histórico": apaga a caderneta GERADA (compras das vendas do histórico, pagamentos nos caixas do
-    // histórico e as baixas dos clientes fictícios). Os clientes ficam.
+    // histórico e as baixas dos clientes de demonstração). Os clientes ficam.
     public Task<int> ApagarHistoricoAsync(CancellationToken ct) =>
         db.LancamentosFiado.Where(l =>
                 (l.Venda != null && l.Venda.Origem == OrigemVenda.Historico)

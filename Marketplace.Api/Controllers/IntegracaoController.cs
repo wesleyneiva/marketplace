@@ -67,7 +67,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
 
         // ----- Mensagem pronta -----
         var m = new StringBuilder();
-        m.AppendLine($"🛒 Marketplace — resumo de {dia.ToDateTime(TimeOnly.MinValue):dddd, dd/MM}");
+        m.AppendLine($"🛒 Marcus — resumo de {dia.ToDateTime(TimeOnly.MinValue):dddd, dd/MM}");
         if (quantidade == 0)
         {
             m.AppendLine("Nenhuma venda registrada no dia.");
@@ -145,7 +145,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
         string? mensagem = null;
         if (total > 0)
         {
-            var m = new StringBuilder($"🚨 Marketplace — {total} alerta(s)\n");
+            var m = new StringBuilder($"🚨 Marcus — {total} alerta(s)\n");
             if (baixo.Count > 0)
             {
                 m.AppendLine($"\n📦 Estoque baixo ({baixo.Count}):");
@@ -249,7 +249,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
         string Variacao(decimal? v) => v is null ? "" : $" ({(v >= 0 ? "▲" : "▼")} {Math.Abs(v.Value):0.#}% vs semana anterior)";
 
         var m = new StringBuilder();
-        m.AppendLine($"📅 Marketplace — semana de {periodo.De:dd/MM} a {periodo.Ate:dd/MM}");
+        m.AppendLine($"📅 Marcus — semana de {periodo.De:dd/MM} a {periodo.Ate:dd/MM}");
         m.AppendLine($"💰 Faturamento: {i.Faturamento:C}{Variacao(i.VariacaoFaturamento)}");
         m.AppendLine($"🧾 {i.Vendas} vendas · ticket médio {i.TicketMedio:C}{Variacao(i.VariacaoTicket)}");
         m.AppendLine($"📈 Lucro bruto: {i.LucroBruto:C} (margem {i.MargemPercentual:0.#}%)");

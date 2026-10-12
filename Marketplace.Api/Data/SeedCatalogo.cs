@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Data;
 
-// Catálogo FICTÍCIO do mercadinho, para estudo. Só roda se ainda não houver nenhuma categoria.
+// Catálogo de exemplo da empresa de demonstração. Só roda se ainda não houver nenhuma categoria.
 // Os códigos de barras começam com "20": faixa do EAN-13 reservada para uso interno da loja,
 // então nunca coincidem com produtos reais.
 public static class SeedCatalogo

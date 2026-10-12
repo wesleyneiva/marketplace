@@ -1,3 +1,4 @@
+import { MARCA } from '../../shared/marca';
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
@@ -720,7 +721,7 @@ export class Pdv {
   }
 
   private loja(): string {
-    return this.auth.usuario()?.empresa.nome ?? 'Marketplace';
+    return this.auth.usuario()?.empresa.nome ?? MARCA.nome;
   }
 
   protected rotuloForma(forma: string): string {

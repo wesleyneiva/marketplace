@@ -12,8 +12,8 @@ namespace Marketplace.Api.Services.Simulador;
 // robô de caixa, o seu horário e o seu clima. Simulador:Ativo é a chave geral (desligada = nenhuma empresa).
 public class SimuladorEstado(IConfiguration config)
 {
-    // O robô da demonstração tem este e-mail desde o começo; os das outras empresas, caixa-automatico-<id>@sistema.local.
-    public const string Email = "simulador@marketplace.local";
+    // O robô da demonstração (empresa 1); o de cada empresa é caixa-automatico-<id>@sistema.local.
+    public const string Email = "caixa-automatico-1@sistema.local";
     public const int NumeroCaixa = 9; // fora dos caixas do plano: o caixa 1 continua livre para as pessoas
 
     public static string EmailDoRobo(int empresaId) =>

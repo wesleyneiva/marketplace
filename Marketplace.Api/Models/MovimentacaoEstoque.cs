@@ -34,7 +34,7 @@ public class MovimentacaoEstoque : IDaEmpresa
     public int? VendaId { get; set; }
     public Venda? Venda { get; set; }
 
-    // Quem fez. Nulo = o próprio sistema (ex.: inventário inicial do catálogo fictício).
+    // Quem fez. Nulo = o próprio sistema (ex.: inventário inicial do catálogo de exemplo).
     public string? UsuarioId { get; set; }
     public Usuario? Usuario { get; set; }
 
