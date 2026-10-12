@@ -188,16 +188,17 @@ if (app.Environment.IsDevelopment())
 }
 
 // ----- Telas do Angular (já compiladas) servidas pela própria API, na pasta wwwroot -----
-// Arquivos com "hash" no nome (main-ABC123.js) podem ficar 1 ano no cache do navegador;
-// o index.html nunca fica em cache, para cada publicação nova aparecer na hora.
+// Arquivos com "hash" no nome (main-ABC123.js) podem ficar 1 ano no cache (navegador e Cloudflare): o nome muda a
+// cada publicação. O index.html nunca fica em cache; os outros (favicon.svg…) só 1 hora — se não, um logo novo
+// demoraria até 1 ano para aparecer (aconteceu na troca para o Marcus).
 var arquivosEstaticos = new StaticFileOptions
 {
     OnPrepareResponse = ctx =>
     {
         var nome = ctx.File.Name;
-        ctx.Context.Response.Headers.CacheControl = nome == "index.html"
-            ? "no-cache"
-            : "public, max-age=31536000, immutable";
+        ctx.Context.Response.Headers.CacheControl = nome == "index.html" ? "no-cache"
+            : System.Text.RegularExpressions.Regex.IsMatch(nome, @"^(main|chunk|styles|polyfills)-[A-Za-z0-9_-]{8}\.(js|css)$") ? "public, max-age=31536000, immutable"
+            : "public, max-age=3600";
     },
 };
 app.UseDefaultFiles();
