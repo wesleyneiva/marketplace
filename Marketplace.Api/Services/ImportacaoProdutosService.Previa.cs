@@ -16,7 +16,7 @@ public partial class ImportacaoProdutosService
 
     // Posição de cada campo no array Colunas (e no array de valores de cada linha).
     private const int CodigoBarras = 0, Nome = 1, Categoria = 2, Unidade = 3, PrecoCusto = 4, PrecoVenda = 5,
-        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10;
+        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10, Fornecedor = 11, PrazoFornecedor = 12;
 
     // Outros nomes aceitos no cabeçalho (planilha exportada de outro sistema). Comparados sem acento e sem maiúsculas.
     private static readonly Dictionary<string, int> NomesDasColunas = new()
@@ -34,6 +34,9 @@ public partial class ImportacaoProdutosService
         ["qtd"] = EstoqueInicial, ["estoque atual"] = EstoqueInicial,
         ["validade"] = Validade, ["data de validade"] = Validade, ["vencimento"] = Validade,
         ["ncm"] = Ncm, ["classificacao fiscal"] = Ncm, ["cod ncm"] = Ncm,
+        ["fornecedor"] = Fornecedor, ["distribuidor"] = Fornecedor, ["fornecedor principal"] = Fornecedor,
+        ["prazo de entrega (dias)"] = PrazoFornecedor, ["prazo de entrega"] = PrazoFornecedor, ["prazo"] = PrazoFornecedor,
+        ["prazo do fornecedor"] = PrazoFornecedor,
     };
 
     // O que a análise descobriu sobre uma linha (a prévia mostra; a gravação usa).
@@ -51,13 +54,15 @@ public partial class ImportacaoProdutosService
         public decimal? EstoqueInicial { get; set; }
         public DateOnly? Validade { get; set; }
         public string? Ncm { get; set; }
+        public string? Fornecedor { get; set; }
         public int? ProdutoExistenteId { get; set; } // preenchido = atualiza esse produto
         public List<string> Erros { get; } = [];
         public List<string> Avisos { get; } = [];
         public string Acao => Erros.Count > 0 ? "Erro" : ProdutoExistenteId is null ? "Novo" : "Atualizar";
     }
 
-    internal record Analise(List<LinhaAnalisada> Linhas, List<string> CategoriasNovas, List<string> ErrosGerais, List<string> AvisosGerais);
+    internal record Analise(List<LinhaAnalisada> Linhas, List<string> CategoriasNovas, List<string> ErrosGerais, List<string> AvisosGerais,
+        List<(string Nome, int Prazo)>? FornecedoresNovos = null);
 
     public async Task<PreviaImportacaoResponse> GerarPreviaAsync(Stream arquivo, string nomeDoArquivo)
     {
@@ -66,6 +71,7 @@ public partial class ImportacaoProdutosService
         return new(nomeDoArquivo, linhas.Count,
             linhas.Count(l => l.Acao == "Novo"), linhas.Count(l => l.Acao == "Atualizar"), linhas.Count(l => l.Acao == "Erro"),
             linhas.Count(l => l.Avisos.Count > 0), analise.CategoriasNovas, analise.ErrosGerais, analise.AvisosGerais,
+            [.. (analise.FornecedoresNovos ?? []).Select(f => $"{f.Nome} (entrega em {f.Prazo} dia{(f.Prazo == 1 ? "" : "s")})")],
             linhas.Select(l => new LinhaPreviaResponse(l.Linha, l.Acao, l.CodigoBarras, l.Nome, l.Categoria, l.Unidade,
                 l.PrecoCusto, l.PrecoVenda, l.EstoqueMinimo, l.ControlaValidade, l.EstoqueInicial, l.Validade,
                 l.Erros, l.Avisos)).ToList());
@@ -103,6 +109,9 @@ public partial class ImportacaoProdutosService
         var comCodigoPorNome = produtos.Where(p => p.CodigoBarras != null).ToLookup(p => Normalizar(p.Nome));
         var categorias = await db.Categorias.AsNoTracking().Select(c => new { c.Nome, c.Ativa }).ToListAsync();
         var categoriaPorNome = categorias.GroupBy(c => Normalizar(c.Nome)).ToDictionary(g => g.Key, g => g.First());
+        var fornecedorPorNome = (await db.Fornecedores.AsNoTracking().Select(f => f.Nome).ToListAsync())
+            .GroupBy(Normalizar).ToDictionary(g => g.Key, g => g.First());
+        var fornecedoresNovos = new Dictionary<string, (string Nome, int Prazo)>();
 
         var hoje = Relogio.Hoje;
         var codigosVistos = new Dictionary<string, int>();
@@ -176,6 +185,23 @@ public partial class ImportacaoProdutosService
                 else a.Erros.Add("NCM deve ter 8 dígitos (ex.: 10063021).");
             }
 
+            // Fornecedor (opcional): o que já existe (pelo nome, sem acento/maiúscula) ou um novo, criado na importação.
+            a.Fornecedor = Valor(Fornecedor).Texto?.Trim();
+            if (string.IsNullOrWhiteSpace(a.Fornecedor)) a.Fornecedor = null;
+            else if (a.Fornecedor.Length > 120) a.Erros.Add("O nome do fornecedor pode ter no máximo 120 letras.");
+            else if (fornecedorPorNome.TryGetValue(Normalizar(a.Fornecedor), out var fornecedorExistente)) a.Fornecedor = fornecedorExistente;
+            else
+            {
+                int? prazo = null;
+                try { prazo = LerNumero(Valor(PrazoFornecedor)) is decimal pz ? (int)pz : null; }
+                catch (FormatException) { a.Erros.Add("Prazo de entrega: use um número de dias."); }
+                if (prazo is < 0 or > 60) { a.Erros.Add("Prazo de entrega: de 0 a 60 dias."); prazo = null; }
+                var chaveF = Normalizar(a.Fornecedor);
+                if (fornecedoresNovos.TryGetValue(chaveF, out var jaVisto)) a.Fornecedor = jaVisto.Nome;
+                else fornecedoresNovos[chaveF] = (a.Fornecedor, prazo ?? 2);
+                // (sem aviso por linha: a prévia já lista os fornecedores novos no resumo)
+            }
+
             if (a.Validade is DateOnly v)
             {
                 if (a.ControlaValidade != true) a.Avisos.Add("Tem validade, mas \"Controla validade\" não é Sim: a data será ignorada.");
@@ -224,7 +250,9 @@ public partial class ImportacaoProdutosService
         // Só conta como categoria nova se alguma linha SEM erro precisar dela.
         var usadas = resultado.Where(l => l.Erros.Count == 0).Select(l => Normalizar(l.Categoria ?? "")).ToHashSet();
         var novas = categoriasNovas.Where(c => usadas.Contains(c.Key)).Select(c => c.Value).Order().ToList();
-        return new(resultado, novas, [], avisosGerais);
+        var fornecedoresUsados = resultado.Where(l => l.Erros.Count == 0 && l.Fornecedor is not null).Select(l => Normalizar(l.Fornecedor!)).ToHashSet();
+        var fornecedores = fornecedoresNovos.Where(f => fornecedoresUsados.Contains(f.Key)).Select(f => f.Value).OrderBy(f => f.Nome).ToList();
+        return new(resultado, novas, [], avisosGerais, fornecedores);
     }
 
     // "Hortifrúti " → "hortifruti" (para comparar nomes sem ligar para acento, maiúscula e espaços).

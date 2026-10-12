@@ -32,6 +32,18 @@ public partial class ImportacaoProdutosService
             criadas.Add(nome);
         }
 
+        // Fornecedores: os que já existem + os novos (criados junto, no mesmo SaveChanges).
+        var fornecedores = (await db.Fornecedores.ToListAsync()).GroupBy(f => Normalizar(f.Nome)).ToDictionary(g => g.Key, g => g.First());
+        var fornecedoresCriados = new List<string>();
+        foreach (var (nome, prazo) in analise.FornecedoresNovos ?? [])
+        {
+            var novo = new Fornecedor { Nome = nome, PrazoEntregaDias = prazo };
+            db.Fornecedores.Add(novo);
+            fornecedores[Normalizar(nome)] = novo;
+            fornecedoresCriados.Add(nome);
+        }
+        Fornecedor? FornecedorDa(LinhaAnalisada l) => l.Fornecedor is null ? null : fornecedores[Normalizar(l.Fornecedor)];
+
         var idsExistentes = validas.Where(l => l.ProdutoExistenteId is not null).Select(l => l.ProdutoExistenteId!.Value).ToList();
         var existentes = await db.Produtos.Where(p => idsExistentes.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
 
@@ -56,6 +68,7 @@ public partial class ImportacaoProdutosService
                 if (l.EstoqueMinimo is decimal minimo) p.EstoqueMinimo = minimo;
                 if (l.ControlaValidade is bool controla) p.ControlaValidade = controla;
                 if (l.Ncm is not null) p.Ncm = l.Ncm;
+                if (FornecedorDa(l) is { } f) p.Fornecedor = f;
                 p.Ativo = true;
                 p.AtualizadoEm = agora;
                 atualizados++;
@@ -73,6 +86,7 @@ public partial class ImportacaoProdutosService
                 EstoqueMinimo = l.EstoqueMinimo ?? 0,
                 ControlaValidade = l.ControlaValidade ?? false,
                 Ncm = l.Ncm,
+                Fornecedor = FornecedorDa(l),
             };
             db.Produtos.Add(produto);
             novos++;
@@ -120,7 +134,7 @@ public partial class ImportacaoProdutosService
                 "Alguém mexeu nos produtos ao mesmo tempo e nada foi gravado. Envie a planilha de novo.");
         }
 
-        return new(novos, atualizados, analise.Linhas.Count - validas.Count, criadas, comEstoque);
+        return new(novos, atualizados, analise.Linhas.Count - validas.Count, criadas, comEstoque, fornecedoresCriados);
     }
 
     private static string Cortar(string texto, int maximo) => texto.Length <= maximo ? texto : texto[..maximo];

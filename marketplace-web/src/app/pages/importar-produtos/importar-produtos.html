@@ -19,6 +19,9 @@
         @if (r.categoriasCriadas.length) {
           <li>Categorias criadas: <strong>{{ r.categoriasCriadas.join(', ') }}</strong></li>
         }
+        @if (r.fornecedoresCriados?.length) {
+          <li>Fornecedores criados: <strong>{{ r.fornecedoresCriados.join(', ') }}</strong> (confira os prazos em Fornecedores)</li>
+        }
         @if (r.ignorados) {
           <li class="ignorados"><strong>{{ r.ignorados }}</strong> {{ r.ignorados === 1 ? 'linha com erro foi ignorada' : 'linhas com erro foram ignoradas' }}: corrija e importe de novo (o que já entrou é atualizado, não duplica)</li>
         }
@@ -100,6 +103,9 @@
 
     @if (p.categoriasNovas.length) {
       <p class="nota"><app-icone nome="sparkles" /> Categorias novas que serão criadas: <strong>{{ p.categoriasNovas.join(', ') }}</strong></p>
+    }
+    @if (p.fornecedoresNovos?.length) {
+      <p class="nota"><app-icone nome="truck" /> Fornecedores novos que serão criados: <strong>{{ p.fornecedoresNovos.join(', ') }}</strong></p>
     }
     @for (a of p.avisosGerais; track a) {
       <p class="nota"><app-icone nome="triangle-alert" /> {{ a }}</p>

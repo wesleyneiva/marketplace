@@ -98,6 +98,7 @@ export interface PreviaImportacao {
   comErro: number;
   comAviso: number;
   categoriasNovas: string[];
+  fornecedoresNovos: string[];
   errosGerais: string[];
   avisosGerais: string[];
   linhas: LinhaPrevia[];
@@ -108,6 +109,7 @@ export interface ResultadoImportacao {
   atualizados: number;
   ignorados: number;
   categoriasCriadas: string[];
+  fornecedoresCriados: string[];
   produtosComEstoqueInicial: number;
 }
 

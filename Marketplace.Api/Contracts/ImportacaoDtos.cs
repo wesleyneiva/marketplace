@@ -11,6 +11,7 @@ public record PreviaImportacaoResponse(
     List<string> CategoriasNovas,
     List<string> ErrosGerais,   // problema no arquivo inteiro (ex.: falta a coluna "Nome")
     List<string> AvisosGerais,  // ex.: coluna desconhecida ignorada
+    List<string> FornecedoresNovos, // "Distribuidora X (entrega em 3 dias)"
     List<LinhaPreviaResponse> Linhas);
 
 // Acao: "Novo", "Atualizar" ou "Erro". Os valores vêm já interpretados (null = célula vazia).
@@ -36,4 +37,5 @@ public record ResultadoImportacaoResponse(
     int Atualizados,
     int Ignorados,              // linhas com erro (não gravadas)
     List<string> CategoriasCriadas,
-    int ProdutosComEstoqueInicial);
+    int ProdutosComEstoqueInicial,
+    List<string> FornecedoresCriados);
