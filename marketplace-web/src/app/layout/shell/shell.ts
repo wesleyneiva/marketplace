@@ -38,7 +38,7 @@ export class Shell {
     { rotulo: 'Estoque', icone: 'tag', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Compras', icone: 'shopping-bag', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Financeiro', icone: 'landmark', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Financeiro', icone: 'circle-dollar-sign', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Contas a pagar', icone: 'calendar-clock', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Fiado', icone: 'notebook-pen', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'fiado' },
     { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },

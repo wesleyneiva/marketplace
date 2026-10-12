@@ -18,7 +18,7 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
   template: `
     <header class="titulo-pagina">
       <div>
-        <h1><app-icone nome="landmark" /> Financeiro</h1>
+        <h1><app-icone nome="circle-dollar-sign" /> Financeiro</h1>
         <p>Todo dinheiro que entra e sai: de qual conta e por quê.</p>
       </div>
     </header>
