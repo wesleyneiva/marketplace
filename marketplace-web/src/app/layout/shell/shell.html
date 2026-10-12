@@ -25,6 +25,12 @@
         }
       }
     </nav>
+
+    <!-- Recolher o menu (só ícones). No celular não aparece: lá o menu já é uma gaveta. -->
+    <button type="button" class="recolher" (click)="alternarMenu()" [title]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'"
+            [attr.aria-label]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'">
+      <app-icone class="icone" [nome]="recolhido() ? 'panel-left-open' : 'panel-left-close'" /><span class="rotulo">Recolher menu</span>
+    </button>
   </aside>
 
   <div class="fundo-menu" (click)="menuAberto.set(false)"></div>
@@ -32,10 +38,7 @@
   <div class="principal">
     <header class="topo">
       <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu"><app-icone nome="menu" /></button>
-      <button type="button" class="botao-recolher" (click)="alternarMenu()" [attr.aria-label]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'"
-              [title]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'">
-        <app-icone [nome]="recolhido() ? 'panel-left-open' : 'panel-left-close'" />
-      </button>
+
       <div class="espaco"></div>
       @if (usuario(); as u) {
         <div class="usuario">
