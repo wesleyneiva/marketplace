@@ -1,3 +1,4 @@
+using Marketplace.Api.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace Marketplace.Api.Contracts;
@@ -87,9 +88,13 @@ public record EtiquetaResponse(
 // Etiqueta da balança lida no PDV: o produto e a quantidade (o peso; se a etiqueta traz o preço, o peso é calculado).
 public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidade, decimal? PrecoEtiqueta, decimal? PesoEtiqueta);
 
-// Configuração da empresa usada pelas telas (por enquanto, o formato da etiqueta da balança).
+// Configuração da empresa usada pelas telas: etiqueta da balança, cidade e horário de funcionamento.
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
-    string? Cidade, string? Uf, string Fuso, string HoraLocal);
+    string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
+    List<ProximoFeriado> ProximosFeriados);
+
+// Os próximos feriados (nacionais + da cidade) e se a loja abre neles, pela regra escolhida.
+public record ProximoFeriado(DateOnly Data, string Nome, string Situacao);
 
 // Cidade do Brasil (busca da Open-Meteo): define o clima e o fuso horário da loja.
 public record CidadeResponse(string Nome, string Uf, string Estado, decimal Latitude, decimal Longitude, string Fuso, int? Populacao);

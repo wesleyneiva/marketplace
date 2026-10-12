@@ -50,7 +50,7 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
             """).ToListAsync();
 
         // Médias só com os dias em que o mercado ABRIU (domingo e feriado fechado não puxam a média para baixo).
-        var abertos = dias.Where(d => ComportamentoCliente.AbertoNoDia(d.Data)).ToList();
+        var abertos = dias.Where(d => Expediente.AbertoNoDia(d.Data)).ToList();
 
         // Quantas vezes cada dia da semana aparece no período (para tirar a MÉDIA, e não a soma).
         var ocorrencias = abertos.GroupBy(d => (int)d.Data.DayOfWeek).ToDictionary(g => g.Key, g => g.Count());
@@ -130,7 +130,6 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
         var (ini, fim) = Utc(periodo);
         // O clima é o da CIDADE da loja (sem cidade cadastrada, não há o que cruzar: coordenadas impossíveis = nenhuma linha).
         var (lat, lon) = CoordenadasDoClima();
-        var demonstracao = await db.Empresas.AsNoTracking().AnyAsync(e => e.Id == db.EmpresaAtual && e.Demonstracao);
 
         // Cada hora do período, com o clima e quantas vendas houve nela.
         var horas = await db.Database.SqlQuery<LinhaClimaHora>($"""
@@ -142,13 +141,13 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
             GROUP BY c."DataHora", c."Temperatura", c."Chuva", c."CodigoTempo"
             """).ToListAsync();
 
-        // Só interessam as horas em que o mercado estava ABERTO. Na demonstração, o horário do simulador;
-        // numa loja de verdade (cada uma tem o seu horário), as horas em que houve pelo menos uma venda.
+        // Só interessam as horas em que o mercado estava ABERTO: as do horário de funcionamento da loja
+        // (uma hora aberta sem venda também conta: é informação) e as que tiveram venda fora dele.
         var abertas = horas.Where(h =>
         {
-            if (!demonstracao) return h.Vendas > 0;
+            if (h.Vendas > 0) return true;
             var local = TimeZoneInfo.ConvertTime(h.Hora, Relogio.Fuso);
-            return ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(local.DateTime), local.Hour);
+            return Expediente.AbertoNaHora(DateOnly.FromDateTime(local.DateTime), local.Hour);
         }).ToList();
 
         var faturamentoPorHora = await FaturamentoPorHoraAsync(ini, fim);

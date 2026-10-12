@@ -42,6 +42,9 @@ public class Empresa
     // DRE: alíquota EFETIVA do Simples Nacional (% do faturamento), informada pelo contador. 0 = ainda não informada
     // (a DRE usa os DAS lançados no mês e avisa). Ex.: 7,3 = 7,3% das vendas do mês.
     public decimal AliquotaSimples { get; set; }
+
+    // Dias e horas em que a loja abre, regra dos feriados e feriados da cidade (ver HorarioFuncionamento).
+    public HorarioFuncionamento Horario { get; set; } = HorarioFuncionamento.Padrao();
 }
 
 public static class EtiquetaBalancaTipos

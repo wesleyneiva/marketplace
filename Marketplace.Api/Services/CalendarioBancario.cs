@@ -7,6 +7,19 @@ public static class CalendarioBancario
     private static readonly HashSet<(int Dia, int Mes)> Fixos =
         [(1, 1), (21, 4), (1, 5), (7, 9), (12, 10), (2, 11), (15, 11), (20, 11), (25, 12)];
 
+    // Feriado nacional de verdade (lei), para o horário das LOJAS: os fixos + Sexta-feira Santa.
+    // Carnaval e Corpus Christi são "ponto facultativo": quem fecha neles cadastra como feriado local.
+    public static string? FeriadoNacional(DateOnly dia) =>
+        NomesFixos.TryGetValue((dia.Day, dia.Month), out var nome) ? nome
+        : dia == Pascoa(dia.Year).AddDays(-2) ? "Sexta-feira Santa" : null;
+
+    private static readonly Dictionary<(int Dia, int Mes), string> NomesFixos = new()
+    {
+        [(1, 1)] = "Confraternização Universal", [(21, 4)] = "Tiradentes", [(1, 5)] = "Dia do Trabalho",
+        [(7, 9)] = "Independência", [(12, 10)] = "Nossa Senhora Aparecida", [(2, 11)] = "Finados",
+        [(15, 11)] = "Proclamação da República", [(20, 11)] = "Consciência Negra", [(25, 12)] = "Natal",
+    };
+
     public static bool DiaUtil(DateOnly dia)
     {
         if (dia.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday) return false;

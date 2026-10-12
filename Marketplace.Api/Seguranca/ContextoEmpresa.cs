@@ -22,8 +22,9 @@ public class ContextoEmpresa(LocaisDasLojas locais)
         if (EmpresaId is not null && EmpresaId != empresaId)
             throw new InvalidOperationException("A empresa desta requisição já foi definida (e é outra).");
         EmpresaId = empresaId;
-        // O relógio passa a usar o fuso da cidade da loja (Manaus, Acre…) até o fim desta requisição/trabalho.
-        Relogio.UsarFuso(locais.Fuso(empresaId));
+        // O relógio passa a usar o fuso da cidade da loja (Manaus, Acre…) e o horário de funcionamento dela,
+        // até o fim desta requisição/trabalho.
+        locais.Aplicar(empresaId);
     }
 
     // Depois do login (UseAuthentication): lê a empresa do cookie. Cookies antigos (de antes do

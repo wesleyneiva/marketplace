@@ -4,8 +4,21 @@
     {
       "name": "web-dev",
       "runtimeExecutable": "bash",
-      "runtimeArgs": ["-c", "export NVM_DIR=$HOME/.config/nvm; . $NVM_DIR/nvm.sh >/dev/null; cd marketplace-web && npx ng serve --host 0.0.0.0 --port 4200"],
+      "runtimeArgs": [
+        "-c",
+        "export NVM_DIR=$HOME/.config/nvm; . $NVM_DIR/nvm.sh >/dev/null; cd marketplace-web && npx ng serve --host 0.0.0.0 --port 4200"
+      ],
       "port": 4200
+    },
+    {
+      "name": "api-dev",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd Marketplace.Api && dotnet run --launch-profile http"
+      ],
+      "port": 5200,
+      "url": "http://localhost:5200"
     }
   ]
 }

@@ -7,28 +7,13 @@ namespace Marketplace.Api.Services.Simulador;
 // Regras num lugar só: se mudar aqui, muda nos dois.
 public static class ComportamentoCliente
 {
-    // Clientes por hora num dia comum (pico no almoço e na saída do trabalho, antes de fechar às 19h).
+    // Clientes por hora num dia comum (pico no almoço e na saída do trabalho). Se a loja abre mais cedo ou fecha
+    // mais tarde, as horas da ponta têm pouco movimento. O horário de cada loja está no Expediente.
     private static readonly Dictionary<int, double> ClientesPorHora = new()
     {
-        [8] = 6, [9] = 6, [10] = 6, [11] = 9, [12] = 12, [13] = 8,
-        [14] = 5, [15] = 5, [16] = 7, [17] = 12, [18] = 15,
+        [6] = 3, [7] = 4, [8] = 6, [9] = 6, [10] = 6, [11] = 9, [12] = 12, [13] = 8,
+        [14] = 5, [15] = 5, [16] = 7, [17] = 12, [18] = 15, [19] = 12, [20] = 7, [21] = 4,
     };
-
-    // Feriados (mercado FECHADO): nacionais + os de Porto Alegre / RS.
-    private static readonly HashSet<(int Dia, int Mes)> Feriados =
-    [
-        (1, 1), (2, 2) /* Navegantes, POA */, (21, 4), (1, 5), (7, 9), (20, 9) /* Farroupilha, RS */,
-        (12, 10), (2, 11), (15, 11), (20, 11), (25, 12),
-    ];
-
-    public static bool Feriado(DateOnly dia) => Feriados.Contains((dia.Day, dia.Month));
-
-    // Horário do mercado: segunda a sábado, das 8h às 19h. Domingo e feriado: fechado.
-    public const int Abre = 8, Fecha = 19;
-
-    public static bool AbertoNoDia(DateOnly dia) => dia.DayOfWeek != DayOfWeek.Sunday && !Feriado(dia);
-
-    public static bool AbertoNaHora(DateOnly dia, int hora) => AbertoNoDia(dia) && hora >= Abre && hora < Fecha;
 
     // Média de clientes que chegam NESTA HORA (o simulador ao vivo divide por 60 para ter "por minuto").
     public static double ClientesNaHora(DateOnly dia, int hora, ClimaAgora clima, double intensidade)

@@ -22,7 +22,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         var hoje = Relogio.Hoje;
         var inicio = Relogio.InicioDoDiaUtc(hoje.AddDays(-DiasDeHistorico));
         var fim = Relogio.InicioDoDiaUtc(hoje);
-        var diasAbertos = Enumerable.Range(1, DiasDeHistorico).Count(i => ComportamentoCliente.AbertoNoDia(hoje.AddDays(-i)));
+        var diasAbertos = Enumerable.Range(1, DiasDeHistorico).Count(i => Expediente.AbertoNoDia(hoje.AddDays(-i)));
 
         var vendido = await db.ItensVenda.AsNoTracking()
             .Where(i => i.Venda!.Status == StatusVenda.Concluida && i.Venda.DataHora >= inicio && i.Venda.DataHora < fim)
@@ -163,7 +163,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         pedido.EnviadoEm = DateTimeOffset.UtcNow;
         // Entrega: hoje + prazo; se cair em dia fechado (domingo/feriado), vai para o próximo dia aberto.
         var entrega = Relogio.Hoje.AddDays(fornecedor.PrazoEntregaDias);
-        while (!ComportamentoCliente.AbertoNoDia(entrega)) entrega = entrega.AddDays(1);
+        while (!Expediente.AbertoNoDia(entrega)) entrega = entrega.AddDays(1);
         pedido.PrevisaoEntrega = entrega;
     }
 

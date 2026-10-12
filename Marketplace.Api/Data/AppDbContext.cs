@@ -1,9 +1,11 @@
 using System.Linq.Expressions;
+using System.Text.Json;
 using Marketplace.Api.Models;
 using Marketplace.Api.Seguranca;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 
 namespace Marketplace.Api.Data;
 
@@ -47,6 +49,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
 
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -68,6 +72,14 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.Fuso).HasMaxLength(40).HasDefaultValue("America/Sao_Paulo");
             e.Property(x => x.SaldoMinimoCaixa).HasPrecision(14, 2).HasDefaultValue(0m);
             e.Property(x => x.AliquotaSimples).HasPrecision(6, 4).HasDefaultValue(0m);
+            // Horário: guardado como JSON (jsonb). O "comparador" compara o JSON, para o EF perceber quando muda.
+            e.Property(x => x.Horario).HasColumnType("jsonb").HasConversion(
+                h => JsonSerializer.Serialize(h, Json),
+                texto => JsonSerializer.Deserialize<HorarioFuncionamento>(texto, Json) ?? HorarioFuncionamento.Padrao(),
+                new ValueComparer<HorarioFuncionamento>(
+                    (a, b) => JsonSerializer.Serialize(a, Json) == JsonSerializer.Serialize(b, Json),
+                    h => JsonSerializer.Serialize(h, Json).GetHashCode(),
+                    h => JsonSerializer.Deserialize<HorarioFuncionamento>(JsonSerializer.Serialize(h, Json), Json)!));
         });
 
         builder.Entity<Usuario>()

@@ -57,12 +57,12 @@ public class InsightsService(
 
         // Dicionário com nomes EM PORTUGUÊS: a IA lê como texto e não copia nomes técnicos ("variacaoPct") na resposta.
         var agora = Relogio.Agora;
-        var hojeParcial = periodo.Ate == hoje && ComportamentoCliente.AbertoNaHora(hoje, agora.Hour);
+        var hojeParcial = periodo.Ate == hoje && Expediente.AbertoNaHora(hoje, agora.Hour);
         var dados = new Dictionary<string, object?>
         {
             ["Mercado"] = empresa.Demonstracao
-                ? $"Mercadinho de bairro em {local?.Nome ?? "Porto Alegre/RS"} (mercado de demonstração). Abre seg–sáb 8h–19h; domingo e feriado fechado."
-                : $"Mercado \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + ".",
+                ? $"Mercadinho de bairro em {local?.Nome ?? "Porto Alegre/RS"} (mercado de demonstração). Horário: {Expediente.Descricao()}."
+                : $"Mercado \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + $". Horário: {Expediente.Descricao()}.",
             ["Período analisado"] = $"{periodo.De:dd/MM/yyyy} a {periodo.Ate:dd/MM/yyyy} ({periodo.Dias} dias)",
             ["Atenção"] = hojeParcial
                 ? $"O dia de hoje ({hoje:dd/MM}) ainda está em andamento (agora são {agora:HH:mm}): os números de hoje são PARCIAIS, não compare hoje com dias inteiros."
@@ -85,7 +85,7 @@ public class InsightsService(
             ["Produtos que vendem mais no frio"] = efeitoClima.SobemNoFrio.Select(p => $"{p.Nome}: {p.Fator}x no frio"),
             ["Produtos que vendem mais na chuva"] = efeitoClima.SobemNaChuva.Select(p => $"{p.Nome}: {p.Fator}x na chuva"),
             ["Previsão do tempo"] = previsao.Select(p =>
-                $"{p.Data:dd/MM} {NomesDias[(int)p.Data.DayOfWeek]}{(ComportamentoCliente.AbertoNoDia(p.Data) ? "" : " (FECHADO)")}: " +
+                $"{p.Data:dd/MM} {NomesDias[(int)p.Data.DayOfWeek]}{(Expediente.AbertoNoDia(p.Data) ? "" : " (FECHADO)")}: " +
                 $"{p.Minima}–{p.Maxima} °C, {p.Tempo}, chuva {p.ChanceChuva}% ({p.Chuva} mm)"),
             ["Produtos abaixo do estoque mínimo"] = estoqueBaixo,
             ["Lotes vencendo em até 2 dias"] = vencendo,

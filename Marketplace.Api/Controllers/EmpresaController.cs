@@ -66,10 +66,64 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
         return Resposta(empresa);
     }
 
+    // PUT /api/empresa/configuracao/horario → dias e horas em que a loja abre, feriados
+    [HttpPut("horario")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<ActionResult<ConfiguracaoEmpresaResponse>> SalvarHorario(HorarioFuncionamento r)
+    {
+        if (ValidarHorario(r) is { } erro) return BadRequest(new { mensagem = erro });
+        var empresa = await CarregarAsync();
+        empresa.Horario = new HorarioFuncionamento
+        {
+            Dias = r.Dias.Select(d => d.Aberto ? d : d with { Abre = new TimeOnly(8, 0), Fecha = new TimeOnly(19, 0) }).ToList(),
+            Feriados = r.Feriados,
+            FeriadosLocais = r.FeriadosLocais.Select(f => f with { Nome = f.Nome.Trim() })
+                .OrderBy(f => f.Mes).ThenBy(f => f.Dia).ToList(),
+        };
+        await db.SaveChangesAsync();
+        locais.Esquecer(empresa.Id);
+        locais.Aplicar(empresa.Id); // a resposta já sai com o horário novo
+        return Resposta(empresa);
+    }
+
+    private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+    private static string? ValidarHorario(HorarioFuncionamento h)
+    {
+        if (h.Dias is not { Count: 7 }) return "Informe o horário dos 7 dias da semana.";
+        if (h.Dias.All(d => !d.Aberto)) return "A loja precisa abrir em pelo menos um dia da semana.";
+        for (var i = 0; i < 7; i++)
+            if (h.Dias[i] is { Aberto: true } d && d.Fecha <= d.Abre)
+                return $"{NomesDias[i]}: a hora de fechar precisa ser depois da hora de abrir (depois da meia-noite não dá).";
+        if (h.Feriados is not (RegrasFeriado.Fechado or RegrasFeriado.Domingo or RegrasFeriado.Normal))
+            return "Regra dos feriados: Fechado, Domingo ou Normal.";
+        if (h.FeriadosLocais is null || h.FeriadosLocais.Count > 30) return "No máximo 30 feriados da cidade.";
+        foreach (var f in h.FeriadosLocais)
+        {
+            if (string.IsNullOrWhiteSpace(f.Nome) || f.Nome.Trim().Length > 60) return "Cada feriado da cidade precisa de um nome (até 60 letras).";
+            if (f.Mes is < 1 or > 12 || f.Dia < 1 || f.Dia > DateTime.DaysInMonth(2024, f.Mes)) return $"Data inválida no feriado \"{f.Nome.Trim()}\".";
+        }
+        if (h.FeriadosLocais.GroupBy(f => (f.Dia, f.Mes)).Any(g => g.Count() > 1)) return "Há dois feriados da cidade no mesmo dia.";
+        return null;
+    }
+
+    // Os feriados dos próximos 12 meses (nacionais + da cidade), para a tela mostrar o que vai acontecer.
+    private static List<ProximoFeriado> ProximosFeriados()
+    {
+        var hoje = Relogio.Hoje;
+        return Enumerable.Range(0, 366).Select(hoje.AddDays)
+            .Select(d => (Dia: d, Nome: Expediente.Feriado(d)))
+            .Where(x => x.Nome is not null)
+            .Take(6)
+            .Select(x => new ProximoFeriado(x.Dia, x.Nome!, Expediente.DoDia(x.Dia) is { } h
+                ? $"abre {Expediente.Hora(h.Abre)}–{Expediente.Hora(h.Fecha)}" : "fechado"))
+            .ToList();
+    }
+
     private Task<Empresa> CarregarAsync() => db.Empresas.FirstAsync(e => e.Id == contexto.EmpresaId);
 
     // Exemplo para a tela mostrar como fica a etiqueta: produto 42, R$ 15,99 (ou 1,235 kg).
     private static ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
-        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"));
+        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados());
 }

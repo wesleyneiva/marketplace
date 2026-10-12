@@ -446,6 +446,10 @@ namespace Marketplace.Api.Migrations
                         .HasColumnType("character varying(40)")
                         .HasDefaultValue("America/Sao_Paulo");
 
+                    b.Property<string>("Horario")
+                        .IsRequired()
+                        .HasColumnType("jsonb");
+
                     b.Property<decimal?>("Latitude")
                         .HasPrecision(8, 5)
                         .HasColumnType("numeric(8,5)");

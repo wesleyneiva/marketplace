@@ -15,6 +15,7 @@ import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Cupom } from '../../core/api/pdv.api';
 import { Icone } from '../../shared/icone';
+import { DiaPipe } from '../../shared/dia.pipe';
 
 interface Configuracao {
   balancaDigitosCodigo: number;
@@ -24,12 +25,20 @@ interface Configuracao {
   uf: string | null;
   fuso: string;
   horaLocal: string;
+  horario: Horario;
+  horarioResumo: string;
+  proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
+
+// Horário de funcionamento (o servidor manda as horas como "08:00:00"; a tela trabalha com "08:00").
+interface HorarioDia { aberto: boolean; abre: string; fecha: string }
+interface FeriadoLocal { dia: number; mes: number; nome: string }
+interface Horario { dias: HorarioDia[]; feriados: 'Fechado' | 'Domingo' | 'Normal'; feriadosLocais: FeriadoLocal[] }
 
 // Configurações da loja e dos equipamentos: balança (etiqueta e caixa) e impressora.
 @Component({
   selector: 'app-configuracoes',
-  imports: [Icone, FormsModule, CurrencyPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
+  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, DecimalPipe, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
   templateUrl: './configuracoes.html',
   styleUrl: './configuracoes.scss',
 })
@@ -96,6 +105,61 @@ export class Configuracoes {
     }
   }
 
+  // ----- Horário de funcionamento -----
+  // Linhas na ordem da semana do comércio (segunda primeiro); "indice" é o do servidor (0 = domingo).
+  protected readonly diasSemana = [
+    { indice: 1, nome: 'Segunda' }, { indice: 2, nome: 'Terça' }, { indice: 3, nome: 'Quarta' }, { indice: 4, nome: 'Quinta' },
+    { indice: 5, nome: 'Sexta' }, { indice: 6, nome: 'Sábado' }, { indice: 0, nome: 'Domingo' },
+  ];
+  protected readonly meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  protected horario: Horario | null = null;
+  protected novoFeriado: FeriadoLocal = { dia: 1, mes: 1, nome: '' };
+  protected readonly salvandoHorario = signal(false);
+  protected readonly avisoHorario = signal<{ ok: boolean; texto: string } | null>(null);
+
+  // Segunda-feira vale para todos os dias abertos (o caso mais comum: "todo dia das 8 às 21").
+  copiarSegunda(): void {
+    const h = this.horario;
+    if (!h) return;
+    const seg = h.dias[1];
+    h.dias.forEach((d, i) => { if (i !== 1 && d.aberto) { d.abre = seg.abre; d.fecha = seg.fecha; } });
+  }
+
+  adicionarFeriado(): void {
+    const h = this.horario;
+    const f = this.novoFeriado;
+    if (!h || !f.nome.trim()) return;
+    h.feriadosLocais = [...h.feriadosLocais.filter(x => !(x.dia === f.dia && x.mes === f.mes)), { ...f, nome: f.nome.trim() }]
+      .sort((a, b) => a.mes - b.mes || a.dia - b.dia);
+    this.novoFeriado = { dia: 1, mes: 1, nome: '' };
+  }
+
+  removerFeriado(f: FeriadoLocal): void {
+    if (this.horario) this.horario.feriadosLocais = this.horario.feriadosLocais.filter(x => x !== f);
+  }
+
+  async salvarHorario(): Promise<void> {
+    const h = this.horario;
+    if (!h) return;
+    this.salvandoHorario.set(true);
+    this.avisoHorario.set(null);
+    try {
+      const corpo = { ...h, dias: h.dias.map(d => ({ aberto: d.aberto, abre: `${d.abre}:00`, fecha: `${d.fecha}:00` })) };
+      // A resposta já é a configuração gravada: vira o valor da tela (um reload() aqui ainda devolveria o valor antigo
+      // enquanto carrega, e o formulário seria preenchido de novo com o horário de antes).
+      const gravada = await firstValueFrom(this.http.put<Configuracao>('/api/empresa/configuracao/horario', corpo));
+      this.config.set(gravada);
+      this.horario = this.paraTela(gravada.horario);
+      this.avisoHorario.set({ ok: true, texto: 'Horário salvo. Relatórios, compras e insights já seguem o horário novo.' });
+    } catch (e) {
+      this.avisoHorario.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar o horário.' });
+    } finally {
+      this.salvandoHorario.set(false);
+    }
+  }
+
+  private carregadoHorario = false;
+
   // Preenche o formulário quando a configuração chega (uma vez).
   protected formulario(c: Configuracao): boolean {
     if (!this.carregado) {
@@ -103,7 +167,30 @@ export class Configuracoes {
       this.tipo = c.balancaEtiqueta;
       this.carregado = true;
     }
+    if (!this.carregadoHorario) {
+      this.horario = this.paraTela(c.horario);
+      this.carregadoHorario = true;
+    }
     return true;
+  }
+
+  // Cópia editável do horário, com as horas no formato do campo da tela ("08:00").
+  private paraTela(h: Horario): Horario {
+    return {
+      feriados: h.feriados,
+      feriadosLocais: h.feriadosLocais.map(f => ({ ...f })),
+      dias: h.dias.map(d => ({ aberto: d.aberto, abre: d.abre.slice(0, 5), fecha: d.fecha.slice(0, 5) })),
+    };
+  }
+
+  // "2026-11-02" → "seg" (montando a data no fuso local: new Date('2026-11-02') seria o dia 1º às 21h em Brasília).
+  protected diaDaSemana(data: string): string {
+    const [ano, mes, dia] = data.split('-').map(Number);
+    return ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'][new Date(ano, mes - 1, dia).getDay()];
+  }
+
+  protected diasDoMes(mes: number): number[] {
+    return Array.from({ length: new Date(2024, mes, 0).getDate() }, (_, i) => i + 1);
   }
 
   async salvar(): Promise<void> {

@@ -59,9 +59,10 @@ public class SimuladorClientes(
     // Uma "rodada" = um minuto do mercado.
     private async Task RodadaAsync(CancellationToken ct)
     {
+        locais.Aplicar(estado.EmpresaId); // relógio e horário de funcionamento da loja simulada
         var agora = Relogio.Agora;
         estado.UltimaRodada = agora;
-        var aberto = ComportamentoCliente.AbertoNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour);
+        var aberto = Expediente.AbertoAgora(agora);
         var usuarioId = await UsuarioIdAsync();
 
         using (var scope = escopos.CriarEscopo(estado.EmpresaId))
@@ -109,6 +110,7 @@ public class SimuladorClientes(
     // Usado pelo botão "atender clientes agora" (testes e demonstrações).
     public async Task<int> AtenderAgoraAsync(int quantidade, CancellationToken ct)
     {
+        locais.Aplicar(estado.EmpresaId);
         var usuarioId = await UsuarioIdAsync();
         using (var scope = escopos.CriarEscopo(estado.EmpresaId))
         {
@@ -170,7 +172,7 @@ public class SimuladorClientes(
 
     // ------------------------------------------------------------------ abertura e fechamento
 
-    // Na abertura (8h), a rotina do "gerente automático":
+    // Na abertura, a rotina do "gerente automático":
     //  1. recebe os pedidos AUTOMÁTICOS que chegaram hoje (confere tudo e informa a validade dos perecíveis);
     //  2. o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível, para os alertas);
     //  3. faz os pedidos novos pela SUGESTÃO DE COMPRA e envia aos fornecedores (chegam em 1 a 4 dias).

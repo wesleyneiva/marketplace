@@ -10,7 +10,7 @@ public record ResultadoHistorico(DateOnly De, DateOnly Ate, int Dias, int Vendas
 // Gera o PASSADO do mercadinho: N dias de vendas, com o clima REAL de cada hora em Porto Alegre.
 // Usa as mesmas regras do cliente ao vivo (ComportamentoCliente), mas:
 //  • NÃO mexe no estoque (as vendas são marcadas com Origem = Historico);
-//  • cria uma sessão do Caixa 9 por dia aberto (seg–sáb, 8h às 19h), já fechada.
+//  • cria uma sessão do Caixa 9 por dia aberto (pelo horário de funcionamento da loja), já fechada.
 public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios,
     FinanceiroDemonstracao financeiro, FiadoDemonstracao fiadoDemo, ILogger<GeradorHistorico> log)
 {
@@ -58,16 +58,17 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
 
         for (var dia = de; dia <= ate; dia = dia.AddDays(1))
         {
-            if (!ComportamentoCliente.AbertoNoDia(dia)) continue; // domingo e feriado: fechado
-            var (abre, fecha) = (ComportamentoCliente.Abre, ComportamentoCliente.Fecha);
+            if (Expediente.DoDia(dia) is not { } expediente) continue; // dia fechado (domingo, feriado…)
+            var (abre, fecha) = (expediente.Abre.ToTimeSpan(), expediente.Fecha.ToTimeSpan());
+            var abreHora = (int)abre.TotalHours; // hora "cheia" em que abre (7:30 → 7)
             var sessao = new SessaoCaixa
             {
                 NumeroCaixa = SimuladorEstado.NumeroCaixa,
                 UsuarioId = robo.Id,
                 Status = StatusSessao.Fechada,
                 ValorAbertura = 200,
-                AbertaEm = MomentoUtc(dia, abre, 0),
-                FechadaEm = MomentoUtc(dia, fecha, 0),
+                AbertaEm = MomentoUtc(dia, abre),
+                FechadaEm = MomentoUtc(dia, fecha),
                 ObservacaoFechamento = Marca,
             };
 
@@ -91,7 +92,7 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
                     caderneta.Add(new LancamentoFiado
                     {
                         ClienteId = id, Tipo = TipoLancamentoFiado.Pagamento, Valor = valor, Forma = forma, SessaoCaixa = sessao,
-                        DataHora = MomentoUtc(dia, Random.Shared.Next(abre + 1, fecha - 1), Random.Shared.Next(60)), UsuarioId = robo.Id,
+                        DataHora = MomentoUtc(dia, abre + (fecha - abre) * (0.1 + Random.Shared.NextDouble() * 0.8)), UsuarioId = robo.Id,
                         Observacao = $"Recebido no Caixa {SimuladorEstado.NumeroCaixa}",
                     });
                     pagamentosFiado++;
@@ -103,7 +104,7 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
                     caderneta.Add(new LancamentoFiado
                     {
                         ClienteId = id, Tipo = TipoLancamentoFiado.Baixa, Valor = caloteadas.Sum(x => x.Aberto), UsuarioId = robo.Id,
-                        DataHora = MomentoUtc(dia, abre + 1, 0),
+                        DataHora = MomentoUtc(dia, abre + TimeSpan.FromHours(1)),
                         Observacao = $"Sem pagar há mais de {FiadoDemonstracao.DiasParaBaixa} dias e sem resposta: baixa (calote).",
                     });
                     caloteadas.ForEach(x => x.Aberto = 0);
@@ -111,15 +112,19 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
                 }
             }
 
-            for (var hora = abre; hora < fecha; hora++)
+            for (var hora = abreHora; hora < Math.Ceiling(fecha.TotalHours); hora++)
             {
-                var momentoHora = MomentoUtc(dia, hora, 0);
+                // A parte desta hora em que a loja está aberta (abre 7:30 → só meia hora às 7).
+                var inicio = TimeSpan.FromHours(hora) < abre ? abre : TimeSpan.FromHours(hora);
+                var termino = TimeSpan.FromHours(hora + 1) > fecha ? fecha : TimeSpan.FromHours(hora + 1);
+                var momentoHora = MomentoUtc(dia, TimeSpan.FromHours(hora));
                 var tempo = climaPorHora.GetValueOrDefault(momentoHora) ?? ClimaAgora.Neutro;
-                var clientes = ComportamentoCliente.Poisson(ComportamentoCliente.ClientesNaHora(dia, hora, tempo, 1.0));
+                var fracao = (termino - inicio).TotalHours;
+                var clientes = ComportamentoCliente.Poisson(ComportamentoCliente.ClientesNaHora(dia, hora, tempo, 1.0) * fracao);
 
                 for (var c = 0; c < clientes; c++)
                 {
-                    var momento = momentoHora.AddSeconds(Random.Shared.Next(3600));
+                    var momento = MomentoUtc(dia, inicio).AddSeconds(Random.Shared.Next((int)(termino - inicio).TotalSeconds));
                     var cesta = ComportamentoCliente.MontarCesta(opcoes, tempo, momento.ToOffset(TimeSpan.FromHours(-3)));
                     if (cesta.Count == 0) continue;
 
@@ -224,6 +229,6 @@ public class GeradorHistorico(AppDbContext db, ClimaService clima, LocaisDasLoja
         return podem.Count == 0 ? null : podem[Random.Shared.Next(podem.Count)].Id;
     }
 
-    private static DateTimeOffset MomentoUtc(DateOnly dia, int hora, int minuto) =>
-        Relogio.InicioDoDiaUtc(dia).AddHours(hora).AddMinutes(minuto);
+    private static DateTimeOffset MomentoUtc(DateOnly dia, TimeSpan horaDoDia) =>
+        Relogio.InicioDoDiaUtc(dia).Add(horaDoDia);
 }
