@@ -110,6 +110,11 @@ body {
   height: 100%;
 }
 
+// Caixas de marcar e botões de opção no verde da marca (sem isso, o navegador usa a cor dele: azul ou laranja).
+:root {
+  accent-color: var(--cor-primaria);
+}
+
 body {
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   background: var(--cor-fundo);

@@ -16,7 +16,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/plataforma/empresas")]
 [DonoDaPlataforma]
-public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios, IConfiguration config, IServiceProvider services,
+public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios, IServiceProvider services,
     LocaisDasLojas locais, ColetorClima coletor, CobrancasService cobrancas)
     : ControllerBase
 {
