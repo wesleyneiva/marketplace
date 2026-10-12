@@ -1,0 +1,63 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="settings" /> Sistema</h1>
+    <p>A saúde da plataforma num olhar.</p>
+  </div>
+  <button type="button" class="botao" (click)="dados.reload()" [disabled]="dados.isLoading()"><app-icone nome="refresh-cw" [attr.girando]="dados.isLoading() ? '' : null" /> Atualizar</button>
+</header>
+
+@if (dados.value(); as s) {
+  <section class="cartoes">
+    @for (e of s.enderecos; track e.endereco) {
+      <div class="painel cartao" [class.perigo]="!e.noAr">
+        <span class="rotulo"><app-icone [nome]="e.noAr ? 'circle-check' : 'circle-x'" /> {{ e.endereco }}</span>
+        <strong>{{ e.noAr ? 'no ar' : 'fora do ar' }}</strong>
+        <small>{{ e.noAr ? e.ms + ' ms pela internet' : e.erro }}</small>
+      </div>
+    }
+    <div class="painel cartao" [class.perigo]="!s.backup.nuvemOk || !s.backup.ultimoLocal">
+      <span class="rotulo"><app-icone nome="history" /> Backup do banco</span>
+      <strong>{{ dataPasta(s.backup.ultimoLocal) }}</strong>
+      <small>{{ s.backup.ultimoLocalKb ?? 0 | number }} KB · {{ s.backup.copiasLocais }} cópias na VM ·
+        nuvem: {{ s.backup.nuvemOk ? 'ok' : 'FALHOU' }} {{ s.backup.nuvem }}</small>
+    </div>
+    <div class="painel cartao" [class.perigo]="s.discoLivreGb < 10">
+      <span class="rotulo"><app-icone nome="package" /> Disco livre</span>
+      <strong>{{ s.discoLivreGb | number: '1.0-1' }} GB</strong>
+      <small>de {{ s.discoTotalGb | number: '1.0-0' }} GB</small>
+    </div>
+    <div class="painel cartao">
+      <span class="rotulo"><app-icone nome="circle-dollar-sign" /> Banco de dados</span>
+      <strong>{{ s.bancoMb }} MB</strong>
+      <small>{{ s.banco }}</small>
+    </div>
+    <div class="painel cartao">
+      <span class="rotulo"><app-icone nome="clock" /> Serviço</span>
+      <strong>{{ s.memoriaMb }} MB</strong>
+      <small>ligado desde {{ s.ligadoDesde | date: 'dd/MM HH:mm' }}</small>
+    </div>
+  </section>
+
+  <div class="duas-colunas">
+    <section class="painel bloco">
+      <h2>Rotinas automáticas</h2>
+      @for (r of s.rotinas; track r.nome) {
+        <div class="linha"><span>{{ r.nome }}</span><span class="suave">{{ r.situacao }}</span></div>
+      }
+    </section>
+    <section class="painel bloco">
+      <h2>Espaço por cliente <small>(registros no banco: vendas, itens, produtos, estoque, financeiro)</small></h2>
+      @for (u of s.usoPorCliente; track u.id) {
+        <a class="linha" [routerLink]="['/plataforma/clientes', u.id]">
+          <span><b>{{ u.nome }}</b></span>
+          <span class="barra"><span [style.width.%]="u.percentual"></span></span>
+          <span class="suave num">{{ u.registros | number }} · {{ u.percentual | number: '1.0-1' }}%</span>
+        </a>
+      }
+    </section>
+  </div>
+} @else if (dados.error()) {
+  <p class="vazio">Não foi possível carregar. <button class="botao pequeno" (click)="dados.reload()">Tentar de novo</button></p>
+} @else {
+  <p class="vazio">Verificando a plataforma…</p>
+}

@@ -54,7 +54,7 @@ export class Shell {
     { rotulo: 'Clientes', icone: 'store', rota: '/plataforma/clientes', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Cobranças', icone: 'receipt', rota: '/plataforma/cobrancas', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Planos', icone: 'tag', rota: '/plataforma/planos', perfis: ['Administrador'], pronto: true },
-    { rotulo: 'Sistema', icone: 'settings', rota: '/plataforma/sistema', perfis: ['Administrador'], pronto: false },
+    { rotulo: 'Sistema', icone: 'settings', rota: '/plataforma/sistema', perfis: ['Administrador'], pronto: true },
   ];
 
   protected readonly areaDoDono = computed(() => !!this.usuario()?.soPlataforma);

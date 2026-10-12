@@ -31,6 +31,7 @@ export const routes: Routes = [
           { path: 'clientes/:id', loadComponent: () => import('./pages/plataforma/cliente/cliente').then((m) => m.Cliente) },
           { path: 'planos', loadComponent: () => import('./pages/plataforma/planos/planos').then((m) => m.Planos) },
           { path: 'cobrancas', loadComponent: () => import('./pages/plataforma/cobrancas/cobrancas').then((m) => m.Cobrancas) },
+          { path: 'sistema', loadComponent: () => import('./pages/plataforma/sistema/sistema').then((m) => m.SistemaPagina) },
         ],
       },
       { path: 'empresas', redirectTo: 'plataforma/clientes' },

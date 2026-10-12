@@ -126,6 +126,8 @@ public class CobrancasService(AppDbContext db, IServiceProvider services, ILogge
 // Roda sozinho: 1 minuto depois de ligar e a cada hora — gera as mensalidades e aplica o bloqueio por atraso.
 public class CobrancasTrabalhador(IServiceScopeFactory escopos, ILogger<CobrancasTrabalhador> log) : BackgroundService
 {
+    public static DateTimeOffset? UltimaRodada { get; private set; } // para a tela Sistema
+
     protected override async Task ExecuteAsync(CancellationToken parar)
     {
         await Task.Delay(TimeSpan.FromMinutes(1), parar);
@@ -139,6 +141,7 @@ public class CobrancasTrabalhador(IServiceScopeFactory escopos, ILogger<Cobranca
                 var cobrancas = scope.ServiceProvider.GetRequiredService<CobrancasService>();
                 await cobrancas.GerarAsync(Relogio.Hoje);
                 await cobrancas.BloquearAtrasadosAsync(Relogio.Hoje);
+                UltimaRodada = DateTimeOffset.UtcNow;
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
