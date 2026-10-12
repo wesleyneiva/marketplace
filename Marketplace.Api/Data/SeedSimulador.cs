@@ -9,17 +9,22 @@ namespace Marketplace.Api.Data;
 // Ele existe só para as vendas simuladas terem um responsável ("Caixa Automático").
 public static class SeedSimulador
 {
-    public static async Task ExecutarAsync(IServiceProvider services)
+    public static async Task ExecutarAsync(IServiceProvider services) =>
+        await GarantirRoboAsync(services.GetRequiredService<IServiceScopeFactory>(), SeedDemonstracao.EmpresaId);
+
+    // Cria (se ainda não existir) o robô de caixa da empresa e devolve o Id dele.
+    public static async Task<string> GarantirRoboAsync(IServiceScopeFactory escopos, int empresaId)
     {
-        using var scope = services.CriarEscopo(SeedDemonstracao.EmpresaId);
+        using var scope = escopos.CriarEscopo(empresaId);
         var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-        if (await usuarios.FindByEmailAsync(SimuladorEstado.Email) is not null)
-            return;
+        var email = SimuladorEstado.EmailDoRobo(empresaId);
+        if (await usuarios.FindByEmailAsync(email) is { } existente)
+            return existente.Id;
 
         var robo = new Usuario
         {
-            UserName = SimuladorEstado.Email,
-            Email = SimuladorEstado.Email,
+            UserName = email,
+            Email = email,
             EmailConfirmed = true,
             NomeCompleto = "Caixa Automático (simulador)",
             LockoutEnabled = true,
@@ -27,5 +32,6 @@ public static class SeedSimulador
         };
         await usuarios.CreateAsync(robo); // sem senha
         await usuarios.AddToRoleAsync(robo, Perfis.Caixa);
+        return robo.Id;
     }
 }

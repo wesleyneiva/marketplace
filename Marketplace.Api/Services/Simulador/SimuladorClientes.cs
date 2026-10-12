@@ -8,23 +8,41 @@ using Microsoft.EntityFrameworkCore;
 namespace Marketplace.Api.Services.Simulador;
 
 // Estado do simulador, compartilhado (singleton) entre o "trabalhador" e o controller.
+// O bot trabalha em TODAS as empresas com "Vendas automáticas" ligadas (Empresa.VendasAutomaticas), cada uma com o seu
+// robô de caixa, o seu horário e o seu clima. Simulador:Ativo é a chave geral (desligada = nenhuma empresa).
 public class SimuladorEstado(IConfiguration config)
 {
+    // O robô da demonstração tem este e-mail desde o começo; os das outras empresas, caixa-automatico-<id>@sistema.local.
     public const string Email = "simulador@marketplace.local";
-    public const int NumeroCaixa = 9;
+    public const int NumeroCaixa = 9; // fora dos caixas do plano: o caixa 1 continua livre para as pessoas
 
-    // Em qual empresa (mercado) o simulador trabalha. Padrão: 1 (o Marketplace de demonstração).
+    public static string EmailDoRobo(int empresaId) =>
+        empresaId == SeedDemonstracao.EmpresaId ? Email : $"caixa-automatico-{empresaId}@sistema.local";
+
+    public static bool EhRobo(string? email) =>
+        email == Email || (email?.StartsWith("caixa-automatico-") == true && email.EndsWith("@sistema.local"));
+
+    // Empresa da demonstração (gerar-historico e o financeiro de demonstração). Padrão: 1.
     public int EmpresaId { get; } = config.GetValue("Simulador:EmpresaId", 1);
 
-    // Liga/desliga em tempo real (o botão do dashboard). Ao reiniciar, volta ao valor da configuração.
+    // Chave geral. Ao reiniciar, volta ao valor da configuração.
     public bool Ativo { get; set; } = config.GetValue("Simulador:Ativo", false);
 
     // 1.0 = movimento normal de um mercadinho. 2.0 = o dobro de clientes (bom para gerar dados rápido).
     public double Intensidade { get; set; } = config.GetValue("Simulador:Intensidade", 1.0);
 
-    public DateTimeOffset? UltimaRodada { get; set; }
-    public string? UltimoErro { get; set; }
-    public DateOnly? UltimaRotinaDaManha { get; set; }
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<int, Loja> _lojas = new();
+    public Loja DaEmpresa(int empresaId) => _lojas.GetOrAdd(empresaId, _ => new Loja());
+
+    // O que o bot sabe de cada loja (em memória: ao reiniciar, "pausado" volta a falso).
+    public class Loja
+    {
+        public bool Pausado { get; set; }
+        public DateTimeOffset? UltimaRodada { get; set; }
+        public string? UltimoErro { get; set; }
+        public DateOnly? UltimaRotinaDaManha { get; set; }
+        public string? UsuarioId { get; set; }
+    }
 }
 
 // "Trabalhador em segundo plano" (BackgroundService): roda junto com a API, a cada minuto,
@@ -43,29 +61,43 @@ public class SimuladorClientes(
         do
         {
             if (!estado.Ativo) continue;
-            try
+            List<(int Id, string Modo)> lojas;
+            using (var scope = escopos.CreateScope())
             {
-                await RodadaAsync(parar);
-                estado.UltimoErro = null;
+                lojas = (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
+                    .Where(e => e.Ativa && e.VendasAutomaticas != ModosVendasAutomaticas.Desligado)
+                    .Select(e => new { e.Id, e.VendasAutomaticas }).ToListAsync(parar))
+                    .Select(e => (e.Id, e.VendasAutomaticas)).ToList();
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            foreach (var (empresaId, modo) in lojas)
             {
-                estado.UltimoErro = e.Message;
-                log.LogError(e, "Erro na rodada do simulador");
+                var loja = estado.DaEmpresa(empresaId);
+                if (loja.Pausado) continue;
+                try
+                {
+                    await RodadaAsync(empresaId, modo == ModosVendasAutomaticas.Completo, parar);
+                    loja.UltimoErro = null;
+                }
+                catch (Exception e) when (e is not OperationCanceledException)
+                {
+                    loja.UltimoErro = e.Message;
+                    log.LogError(e, "Erro na rodada do simulador (empresa {Empresa})", empresaId);
+                }
             }
         } while (await relogio.WaitForNextTickAsync(parar));
     }
 
-    // Uma "rodada" = um minuto do mercado.
-    private async Task RodadaAsync(CancellationToken ct)
+    // Uma "rodada" = um minuto da loja. "completo" = a demonstração (compras, contas, fiado e depósitos também).
+    private async Task RodadaAsync(int empresaId, bool completo, CancellationToken ct)
     {
-        locais.Aplicar(estado.EmpresaId); // relógio e horário de funcionamento da loja simulada
+        locais.Aplicar(empresaId); // relógio e horário de funcionamento desta loja
+        var loja = estado.DaEmpresa(empresaId);
         var agora = Relogio.Agora;
-        estado.UltimaRodada = agora;
+        loja.UltimaRodada = agora;
         var aberto = Expediente.AbertoAgora(agora);
-        var usuarioId = await UsuarioIdAsync();
+        var usuarioId = await UsuarioIdAsync(empresaId);
 
-        using (var scope = escopos.CriarEscopo(estado.EmpresaId))
+        using (var scope = escopos.CriarEscopo(empresaId))
         {
             var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
             var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId);
@@ -74,63 +106,71 @@ public class SimuladorClientes(
             {
                 if (sessao is not null)
                 {
-                    await FecharCaixaAsync(caixa, usuarioId);
-                    // Fim do dia: o dinheiro da gaveta vai para o banco (fica o troco de amanhã).
-                    var financeiro = scope.ServiceProvider.GetRequiredService<FinanceiroDemonstracao>();
-                    if (await financeiro.DepositarAsync(sessao))
-                        await scope.ServiceProvider.GetRequiredService<AppDbContext>().SaveChangesAsync(ct);
+                    await FecharCaixaAsync(caixa, usuarioId, empresaId);
+                    if (completo)
+                    {
+                        // Fim do dia: o dinheiro da gaveta vai para o banco (fica o troco de amanhã).
+                        var financeiro = scope.ServiceProvider.GetRequiredService<FinanceiroDemonstracao>();
+                        if (await financeiro.DepositarAsync(sessao))
+                            await scope.ServiceProvider.GetRequiredService<AppDbContext>().SaveChangesAsync(ct);
+                    }
                 }
                 return;
             }
             if (sessao is null)
             {
-                await RotinaDaManhaAsync(usuarioId, ct);
-                var aberta = await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m);
-                // Caderneta: quem chegou no "dia de pagar" vem acertar o fiado; calote antigo vira baixa.
-                var fiadoDemo = scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>();
-                await fiadoDemo.GarantirClientesAsync(usuarioId);
-                var pagaram = await fiadoDemo.ReceberDoDiaAsync(aberta, Relogio.Hoje, usuarioId);
-                var baixas = await fiadoDemo.BaixarCalotesAsync(Relogio.Hoje, usuarioId);
-                log.LogInformation("Simulador abriu o Caixa {Numero} ({Pagaram} cliente(s) pagaram o fiado, {Baixas} baixa(s)).",
-                    SimuladorEstado.NumeroCaixa, pagaram, baixas);
+                if (completo) await RotinaDaManhaAsync(empresaId, usuarioId, ct);
+                var aberta = await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m, foraDoPlano: true);
+                if (completo)
+                {
+                    // Caderneta: quem chegou no "dia de pagar" vem acertar o fiado; calote antigo vira baixa.
+                    var fiadoDemo = scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>();
+                    await fiadoDemo.GarantirClientesAsync(usuarioId);
+                    var pagaram = await fiadoDemo.ReceberDoDiaAsync(aberta, Relogio.Hoje, usuarioId);
+                    var baixas = await fiadoDemo.BaixarCalotesAsync(Relogio.Hoje, usuarioId);
+                    log.LogInformation("Simulador abriu o Caixa {Numero} ({Pagaram} cliente(s) pagaram o fiado, {Baixas} baixa(s)).",
+                        SimuladorEstado.NumeroCaixa, pagaram, baixas);
+                }
+                else
+                    log.LogInformation("Simulador abriu o Caixa {Numero} da empresa {Empresa}.", SimuladorEstado.NumeroCaixa, empresaId);
             }
         }
 
-        var tempo = await ClimaDaLojaAsync(ct);
+        var tempo = await ClimaDaLojaAsync(empresaId, ct);
         var porMinuto = ComportamentoCliente.ClientesNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour, tempo, estado.Intensidade) / 60;
         var clientes = ComportamentoCliente.Poisson(porMinuto);
         for (var i = 0; i < clientes; i++)
-            await AtenderClienteAsync(usuarioId, tempo, agora, ct);
+            await AtenderClienteAsync(empresaId, completo, usuarioId, tempo, agora, ct);
     }
 
-    // O clima da cidade da loja simulada (sem cidade cadastrada: um dia "neutro").
-    private async Task<ClimaAgora> ClimaDaLojaAsync(CancellationToken ct) =>
-        locais.Local(estado.EmpresaId) is { } local ? await clima.ObterAsync(local, ct) : ClimaAgora.Neutro;
+    // O clima da cidade da loja (sem cidade cadastrada: um dia "neutro").
+    private async Task<ClimaAgora> ClimaDaLojaAsync(int empresaId, CancellationToken ct) =>
+        locais.Local(empresaId) is { } local ? await clima.ObterAsync(local, ct) : ClimaAgora.Neutro;
 
-    // Usado pelo botão "atender clientes agora" (testes e demonstrações).
-    public async Task<int> AtenderAgoraAsync(int quantidade, CancellationToken ct)
+    // Usado pelo botão "atender clientes agora" (testes e demonstrações), na empresa de quem clicou.
+    public async Task<int> AtenderAgoraAsync(int empresaId, bool completo, int quantidade, CancellationToken ct)
     {
-        locais.Aplicar(estado.EmpresaId);
-        var usuarioId = await UsuarioIdAsync();
-        using (var scope = escopos.CriarEscopo(estado.EmpresaId))
+        locais.Aplicar(empresaId);
+        var usuarioId = await UsuarioIdAsync(empresaId);
+        using (var scope = escopos.CriarEscopo(empresaId))
         {
             var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
             if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null)
-                await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m);
+                await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m, foraDoPlano: true);
         }
-        var tempo = await ClimaDaLojaAsync(ct);
+        var tempo = await ClimaDaLojaAsync(empresaId, ct);
         var vendidos = 0;
         for (var i = 0; i < quantidade; i++)
-            if (await AtenderClienteAsync(usuarioId, tempo, Relogio.Agora, ct)) vendidos++;
+            if (await AtenderClienteAsync(empresaId, completo, usuarioId, tempo, Relogio.Agora, ct)) vendidos++;
         return vendidos;
     }
 
     // ------------------------------------------------------------------ um cliente
 
-    private async Task<bool> AtenderClienteAsync(string usuarioId, ClimaAgora tempo, DateTimeOffset agora, CancellationToken ct)
+    private async Task<bool> AtenderClienteAsync(int empresaId, bool completo, string usuarioId, ClimaAgora tempo, DateTimeOffset agora, CancellationToken ct)
     {
         // Um "escopo" por cliente: cada venda com o seu próprio DbContext, limpinho.
-        using var scope = escopos.CriarEscopo(estado.EmpresaId);
+        using var scope = escopos.CriarEscopo(empresaId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var vendas = scope.ServiceProvider.GetRequiredService<VendaService>();
 
@@ -154,8 +194,8 @@ public class SimuladorClientes(
 
         try
         {
-            // ~3% levam no fiado (um cliente da caderneta que pode comprar); o resto paga como sempre.
-            var noFiado = await scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>().EscolherClienteAsync(total);
+            // Na demonstração, ~3% levam no fiado (um cliente da caderneta que pode comprar); o resto paga como sempre.
+            var noFiado = completo ? await scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>().EscolherClienteAsync(total) : null;
             var pedido = noFiado is int clienteId
                 ? new NovaVendaRequest(itens, 0, [new PagamentoRequest("Fiado", total)], clienteId)
                 : new NovaVendaRequest(itens, 0, [ComportamentoCliente.Pagamento(total)]);
@@ -177,12 +217,13 @@ public class SimuladorClientes(
     //  2. o repositor tira da prateleira o que venceu há mais de 1 dia (fica 1 dia visível, para os alertas);
     //  3. faz os pedidos novos pela SUGESTÃO DE COMPRA e envia aos fornecedores (chegam em 1 a 4 dias).
     // Nada de estoque "mágico": se o pedido demora, o produto pode faltar — como num mercado de verdade.
-    private async Task RotinaDaManhaAsync(string usuarioId, CancellationToken ct)
+    private async Task RotinaDaManhaAsync(int empresaId, string usuarioId, CancellationToken ct)
     {
         var hoje = Relogio.Hoje;
-        if (estado.UltimaRotinaDaManha == hoje) return;
+        var loja = estado.DaEmpresa(empresaId);
+        if (loja.UltimaRotinaDaManha == hoje) return;
 
-        using var scope = escopos.CriarEscopo(estado.EmpresaId);
+        using var scope = escopos.CriarEscopo(empresaId);
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         var estoque = scope.ServiceProvider.GetRequiredService<EstoqueService>();
         var compras = scope.ServiceProvider.GetRequiredService<ComprasService>();
@@ -222,7 +263,7 @@ public class SimuladorClientes(
         var fixas = await financeiro.ContasFixasAsync(hoje, hoje.AddDays(35), usuarioId);
         var pagas = await financeiro.PagarVencidasAsync(hoje, usuarioId);
 
-        estado.UltimaRotinaDaManha = hoje;
+        loja.UltimaRotinaDaManha = hoje;
         log.LogInformation("Rotina da manhã: {Recebidos} pedido(s) recebido(s), {Vencidos} lote(s) vencido(s) retirado(s), {Novos} pedido(s) novo(s); "
             + "{Boletos} boleto(s), {Fixas} conta(s) fixa(s) nova(s), {Pagas} conta(s) paga(s).",
             chegaram.Count, vencidos.Count, novos, boletos, fixas, pagas);
@@ -244,7 +285,7 @@ public class SimuladorClientes(
         };
     }
 
-    private async Task FecharCaixaAsync(CaixaService caixa, string usuarioId)
+    private async Task FecharCaixaAsync(CaixaService caixa, string usuarioId, int empresaId)
     {
         var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId);
         var esperado = (await caixa.ResumirAsync(sessao!.Id)).DinheiroEsperado;
@@ -252,21 +293,16 @@ public class SimuladorClientes(
         // 1 em cada 10 dias o "operador" erra um troco: diferença pequena, para os relatórios terem o que mostrar.
         var diferenca = Random.Shared.NextDouble() < 0.10 ? Math.Round((decimal)(Random.Shared.NextDouble() * 4 - 2), 2) : 0;
         var resumo = await caixa.FecharAsync(usuarioId, Math.Max(0, esperado + diferenca), "Fechamento automático (simulador)");
-        log.LogInformation("Simulador fechou o caixa: {Vendas} vendas, {Total:C}, diferença {Diferenca:C}.",
-            resumo.QuantidadeVendas, resumo.TotalVendido, resumo.Diferenca);
+        log.LogInformation("Simulador fechou o caixa da empresa {Empresa}: {Vendas} vendas, {Total:C}, diferença {Diferenca:C}.",
+            empresaId, resumo.QuantidadeVendas, resumo.TotalVendido, resumo.Diferenca);
     }
 
     // ------------------------------------------------------------------ utilidades
 
-    private string? _usuarioId;
-
-    private async Task<string> UsuarioIdAsync()
+    // O robô de caixa da empresa (criado na primeira vez: perfil Caixa, sem senha, bloqueado para login).
+    private async Task<string> UsuarioIdAsync(int empresaId)
     {
-        if (_usuarioId is not null) return _usuarioId;
-        using var scope = escopos.CriarEscopo(estado.EmpresaId);
-        var usuarios = scope.ServiceProvider.GetRequiredService<UserManager<Usuario>>();
-        _usuarioId = (await usuarios.FindByEmailAsync(SimuladorEstado.Email))?.Id
-            ?? throw new InvalidOperationException("Usuário do simulador não existe (SeedSimulador).");
-        return _usuarioId;
+        var loja = estado.DaEmpresa(empresaId);
+        return loja.UsuarioId ??= await SeedSimulador.GarantirRoboAsync(escopos, empresaId);
     }
 }

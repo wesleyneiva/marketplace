@@ -25,6 +25,7 @@ interface EmpresaResumo {
   ultimaVenda: string | null;
   caixasAbertos: number;
   cidade: string | null;
+  vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
 }
 
 interface UsuarioDaEmpresa {
@@ -75,6 +76,7 @@ export class Empresas {
   protected nome = '';
   protected subdominio = '';
   protected limiteCaixas = 2;
+  protected vendasAutomaticas: EmpresaResumo['vendasAutomaticas'] = 'Desligado';
   protected adminNome = '';
   protected adminEmail = '';
   protected readonly cidade = signal<Cidade | null>(null);
@@ -101,6 +103,7 @@ export class Empresas {
     this.editando.set(e);
     this.nome = e.nome;
     this.limiteCaixas = e.limiteCaixas;
+    this.vendasAutomaticas = e.vendasAutomaticas;
     this.erro.set(null);
     this.dlgEmpresa()?.nativeElement.showModal();
   }
@@ -117,7 +120,7 @@ export class Empresas {
     try {
       const e = this.editando();
       if (e) {
-        await firstValueFrom(this.http.put(`${URL}/${e.id}`, { nome: this.nome, limiteCaixas: this.limiteCaixas }));
+        await firstValueFrom(this.http.put(`${URL}/${e.id}`, { nome: this.nome, limiteCaixas: this.limiteCaixas, vendasAutomaticas: this.vendasAutomaticas }));
         this.aviso.set(`"${this.nome}" atualizada.`);
       } else {
         const r = await firstValueFrom(this.http.post<{ empresa: EmpresaResumo; adminEmail: string; senhaProvisoria: string }>(URL, {

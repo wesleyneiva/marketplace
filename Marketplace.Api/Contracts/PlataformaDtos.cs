@@ -7,7 +7,7 @@ namespace Marketplace.Api.Contracts;
 public record EmpresaResumoResponse(
     int Id, string Nome, string Subdominio, int LimiteCaixas, bool Ativa, bool Demonstracao, DateTimeOffset CriadoEm,
     int Usuarios, int UsuariosAtivos, int Produtos, int Vendas30Dias, decimal Faturamento30Dias,
-    DateTimeOffset? UltimoAcesso, DateTimeOffset? UltimaVenda, int CaixasAbertos, string? Cidade);
+    DateTimeOffset? UltimoAcesso, DateTimeOffset? UltimaVenda, int CaixasAbertos, string? Cidade, string VendasAutomaticas);
 
 public record NovaEmpresaRequest(
     [Required(ErrorMessage = "Informe o nome da empresa.")][StringLength(100, MinimumLength = 2)] string Nome,
@@ -19,7 +19,8 @@ public record NovaEmpresaRequest(
 
 public record EditarEmpresaRequest(
     [Required][StringLength(100, MinimumLength = 2)] string Nome,
-    [Range(1, 999, ErrorMessage = "Caixas: de 1 a 999.")] int LimiteCaixas);
+    [Range(1, 999, ErrorMessage = "Caixas: de 1 a 999.")] int LimiteCaixas,
+    string? VendasAutomaticas = null); // null = não muda
 
 public record EmpresaCriadaResponse(EmpresaResumoResponse Empresa, string AdminEmail, string SenhaProvisoria);
 

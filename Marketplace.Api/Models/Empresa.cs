@@ -45,6 +45,20 @@ public class Empresa
 
     // Dias e horas em que a loja abre, regra dos feriados e feriados da cidade (ver HorarioFuncionamento).
     public HorarioFuncionamento Horario { get; set; } = HorarioFuncionamento.Padrao();
+
+    // Vendas automáticas (o "bot"): clientes simulados comprando no horário da loja. Só o dono da plataforma liga.
+    // Desligado (clientes de verdade) · SoVendas (testar o sistema: o bot vende, as pessoas cuidam de compras e contas)
+    // · Completo (a demonstração: o bot também compra, recebe entregas, paga contas e usa o fiado).
+    public string VendasAutomaticas { get; set; } = ModosVendasAutomaticas.Desligado;
+}
+
+public static class ModosVendasAutomaticas
+{
+    public const string Desligado = "Desligado";
+    public const string SoVendas = "SoVendas";
+    public const string Completo = "Completo";
+
+    public static bool Valido(string? modo) => modo is Desligado or SoVendas or Completo;
 }
 
 public static class EtiquetaBalancaTipos

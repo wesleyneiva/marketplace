@@ -1,3 +1,4 @@
+using Marketplace.Api.Services.Simulador;
 using Marketplace.Api.Contracts;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
@@ -48,8 +49,13 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
     {
         var empresa = await db.Empresas.FirstOrDefaultAsync(e => e.Id == id);
         if (empresa is null) return NotFound();
+        if (r.VendasAutomaticas is not null && !ModosVendasAutomaticas.Valido(r.VendasAutomaticas))
+            return BadRequest(new { mensagem = "Vendas automáticas: Desligado, SoVendas ou Completo." });
+        if (r.VendasAutomaticas == ModosVendasAutomaticas.Completo && !empresa.Demonstracao)
+            return BadRequest(new { mensagem = "O modo completo (compras, contas e fiado automáticos) é só da demonstração." });
         empresa.Nome = r.Nome.Trim();
         empresa.LimiteCaixas = r.LimiteCaixas;
+        if (r.VendasAutomaticas is not null) empresa.VendasAutomaticas = r.VendasAutomaticas;
         await db.SaveChangesAsync();
         return (await ResumirAsync([empresa]))[0];
     }
@@ -127,7 +133,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         var ids = empresas.Select(e => e.Id).ToList();
         var desde = DateTimeOffset.UtcNow.AddDays(-30);
 
-        var usuariosPorEmpresa = await db.Users.IgnoreQueryFilters().Where(u => ids.Contains(u.EmpresaId) && !u.SomenteLeitura)
+        var usuariosPorEmpresa = await db.Users.IgnoreQueryFilters().Where(u => ids.Contains(u.EmpresaId) && !u.SomenteLeitura && u.Email != SimuladorEstado.Email && !u.Email!.EndsWith("@sistema.local"))
             .GroupBy(u => u.EmpresaId)
             .Select(g => new { g.Key, Total = g.Count(), Ativos = g.Count(u => u.Ativo), UltimoAcesso = g.Max(u => u.UltimoAcessoEm) })
             .ToDictionaryAsync(x => x.Key);
@@ -153,7 +159,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             var v = vendas.GetValueOrDefault(e.Id);
             return new EmpresaResumoResponse(e.Id, e.Nome, e.Subdominio, e.LimiteCaixas, e.Ativa, e.Demonstracao, e.CriadoEm,
                 u?.Total ?? 0, u?.Ativos ?? 0, produtos.GetValueOrDefault(e.Id), v?.Quantidade ?? 0, v?.Total ?? 0,
-                u?.UltimoAcesso, v?.Ultima, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}");
+                u?.UltimoAcesso, v?.Ultima, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}", e.VendasAutomaticas);
         }).ToList();
     }
 }

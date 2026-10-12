@@ -481,6 +481,13 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
 
+                    b.Property<string>("VendasAutomaticas")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasDefaultValue("Desligado");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Subdominio")

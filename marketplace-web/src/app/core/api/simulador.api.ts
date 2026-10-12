@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 export interface SimuladorStatus {
+  disponivel: boolean; // esta empresa tem vendas automáticas
   ativo: boolean;
   intensidade: number;
   caixaAberto: boolean;

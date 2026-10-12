@@ -134,7 +134,7 @@ public class UsuariosController(UserManager<Usuario> usuarios, AppDbContext db) 
     // ---------------------------------------------------------------- apoio
 
     // Usuários "do sistema" (o robô do simulador e o visitante da demonstração) não podem ser mexidos por aqui.
-    private static bool DoSistema(Usuario u) => u.Email == SimuladorEstado.Email || u.SomenteLeitura;
+    private static bool DoSistema(Usuario u) => SimuladorEstado.EhRobo(u.Email) || u.SomenteLeitura;
 
     private async Task<Usuario?> CarregarAsync(string id)
     {

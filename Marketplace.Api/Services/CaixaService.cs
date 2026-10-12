@@ -28,10 +28,11 @@ public class CaixaService(AppDbContext db)
             .ToList();
     }
 
-    public async Task<SessaoCaixa> AbrirAsync(string usuarioId, int numeroCaixa, decimal valorAbertura)
+    // foraDoPlano: só o robô das vendas automáticas (Caixa 9), para não ocupar um caixa que as pessoas usam.
+    public async Task<SessaoCaixa> AbrirAsync(string usuarioId, int numeroCaixa, decimal valorAbertura, bool foraDoPlano = false)
     {
         var limite = await LimiteCaixasAsync();
-        if (numeroCaixa < 1 || numeroCaixa > limite)
+        if (!foraDoPlano && (numeroCaixa < 1 || numeroCaixa > limite))
             throw new CaixaException(limite == 1
                 ? "Este mercado tem só o Caixa 1."
                 : $"Este mercado tem {limite} caixas: escolha de 1 a {limite}.");

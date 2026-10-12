@@ -6,7 +6,7 @@
   <app-logo class="marca-inicio" [tamanho]="52" />
 </header>
 
-@if (simulador.value(); as sim) {
+@if (simulador.value(); as sim) { @if (sim.disponivel) {
   <section class="simulador" [class.pausado]="!sim.ativo">
     <span class="robo"><app-icone nome="bot" /></span>
     <div class="info">
@@ -26,7 +26,7 @@
       </button>
     }
   </section>
-}
+} }
 
 <section class="indicadores">
   <a class="cartao clicavel" routerLink="/pdv">

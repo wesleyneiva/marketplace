@@ -22,6 +22,7 @@
         </div>
         <div class="selos">
           @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
+          @if (e.vendasAutomaticas !== 'Desligado') { <span class="selo demo" title="Clientes simulados comprando no horário da loja"><app-icone nome="bot" /> vendas automáticas</span> }
           @if (e.ativa) { <span class="selo ativa">ativa</span> } @else { <span class="selo suspensa">suspensa</span> }
         </div>
       </header>
@@ -94,6 +95,15 @@
         </label>
       }
       <label>Plano: quantos caixas (PDVs)<input name="caixas" type="number" min="1" max="999" [(ngModel)]="limiteCaixas" required /></label>
+      @if (editando(); as ed) {
+        <label>Vendas automáticas <small>(clientes simulados comprando no horário da loja, no Caixa 9)</small>
+          <select name="vendasAutomaticas" [(ngModel)]="vendasAutomaticas">
+            <option value="Desligado">Desligado (cliente de verdade)</option>
+            <option value="SoVendas">Só vendas (teste: compras, estoque e contas ficam com as pessoas)</option>
+            @if (ed.demonstracao) { <option value="Completo">Completo (demonstração: compra, recebe, paga contas e fiado)</option> }
+          </select>
+        </label>
+      }
       @if (!editando()) {
         <fieldset>
           <legend>Administrador do cliente</legend>
