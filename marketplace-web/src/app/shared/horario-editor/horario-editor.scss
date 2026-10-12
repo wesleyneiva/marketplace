@@ -23,6 +23,7 @@ h3 { margin: 18px 0 8px; font-size: 15px; }
   .linha-dia.fechado { opacity: 0.75; }
   .marcar { display: flex; align-items: center; gap: 8px; font-weight: 600; min-width: 110px; }
   .horas { display: flex; align-items: center; gap: 6px; }
+  .horas input { width: 8.5em; }
   .txt-fechado { color: var(--cor-texto-suave); font-size: 14px; }
 }
 

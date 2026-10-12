@@ -1,14 +1,13 @@
 import { Component, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Icone } from '../icone';
-import { CampoHora } from '../campo-hora';
 import { FeriadoLocal, Horario } from './horario';
 
 // Os campos do horário de funcionamento (dias da semana, regra dos feriados, feriados da cidade). Edita o objeto
 // recebido "no lugar"; quem usa decide quando salvar. Usado em Configurações (loja) e na ficha do cliente (dono).
 @Component({
   selector: 'app-horario-editor',
-  imports: [FormsModule, Icone, CampoHora],
+  imports: [FormsModule, Icone],
   templateUrl: './horario-editor.html',
   styleUrl: './horario-editor.scss',
 })

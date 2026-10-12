@@ -5,9 +5,9 @@
       <label class="marcar"><input type="checkbox" [(ngModel)]="h.dias[d.indice].aberto" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': abre'" /> {{ d.nome }}</label>
       @if (h.dias[d.indice].aberto) {
         <span class="horas">
-          <app-campo-hora [(valor)]="h.dias[d.indice].abre" [desabilitado]="!podeEditar()" [rotulo]="d.nome + ': abre às'" />
+          <input type="time" step="900" [(ngModel)]="h.dias[d.indice].abre" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': abre às'" />
           <span>às</span>
-          <app-campo-hora [(valor)]="h.dias[d.indice].fecha" [desabilitado]="!podeEditar()" [rotulo]="d.nome + ': fecha às'" />
+          <input type="time" step="900" [(ngModel)]="h.dias[d.indice].fecha" [disabled]="!podeEditar()" [attr.aria-label]="d.nome + ': fecha às'" />
         </span>
       } @else {
         <span class="txt-fechado">Fechado</span>
