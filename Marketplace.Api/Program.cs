@@ -154,6 +154,12 @@ if (args.FirstOrDefault() == ImportarProdutosCli.Comando)
     Environment.Exit(await ImportarProdutosCli.ExecutarAsync(app.Services, app.Configuration));
 }
 
+// Linha de comando: "implantar-financeiro --arquivo X [--gravar true]" — saldos iniciais e contas fixas. Ver Data/ImplantarFinanceiroCli.cs.
+if (args.FirstOrDefault() == ImplantarFinanceiroCli.Comando)
+{
+    Environment.Exit(await ImplantarFinanceiroCli.ExecutarAsync(app.Services, app.Configuration));
+}
+
 // Linha de comando: "nova-empresa ..." cadastra um cliente novo e sai (não liga o site). Ver Data/NovaEmpresa.cs.
 if (args.FirstOrDefault() == NovaEmpresa.Comando)
 {
