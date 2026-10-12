@@ -7,9 +7,11 @@ $largura-menu: 236px;
 
 .lateral {
   width: $largura-menu;
+  transition: width 0.15s;
   flex-shrink: 0;
   background: #12261c;
   color: #d7e6dd;
+  border-right: 1px solid rgb(255 255 255 / 0.06); // separa do fundo no modo escuro
   padding: 18px 12px;
   position: sticky;
   top: 0;
@@ -99,6 +101,35 @@ nav {
 
 .espaco {
   flex: 1;
+}
+
+// Botão de recolher o menu (só no computador; no celular o menu já é uma gaveta).
+.botao-recolher {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cor-texto-suave);
+  font-size: 18px;
+  cursor: pointer;
+
+  &:hover { border-color: var(--cor-primaria); color: var(--cor-primaria); }
+}
+
+.botao-tema { background: transparent; cursor: pointer; }
+
+// Menu recolhido: só os ícones (o nome aparece ao passar o mouse).
+.recolhido .lateral {
+  width: 72px;
+  padding: 18px 10px;
+
+  .marca { padding: 2px 6px 18px; }
+  .rotulo { display: none; }
+  .empresa { justify-content: center; margin: -4px 0 12px; padding: 8px 0; }
+  nav a, nav .item-futuro { justify-content: center; padding: 10px 0; }
 }
 
 .botao-menu {
@@ -207,6 +238,19 @@ nav {
     display: inline-flex;
   }
 
+  .botao-recolher {
+    display: none;
+  }
+
+  // No celular a gaveta abre sempre inteira, mesmo com o menu recolhido no computador.
+  .recolhido .lateral {
+    width: $largura-menu;
+    padding: 18px 12px;
+    .rotulo { display: revert; }
+    .empresa { justify-content: flex-start; margin: -4px 16px 12px; padding: 6px 10px; }
+    nav a, nav .item-futuro { justify-content: flex-start; padding: 10px 12px; }
+  }
+
   .usuario .dados {
     display: none;
   }
@@ -240,9 +284,9 @@ nav {
 // Faixa do visitante da demonstração.
 .faixa-demo {
   padding: 8px 16px;
-  background: #fef9c3;
-  color: #713f12;
-  border-bottom: 1px solid #fde68a;
+  background: var(--cor-alerta-fundo);
+  color: var(--cor-alerta);
+  border-bottom: 1px solid var(--cor-alerta-borda);
   font-size: 13px;
   line-height: 1.4;
 }
@@ -253,12 +297,12 @@ nav {
   align-items: center;
   gap: 8px 14px;
   padding: 10px 16px;
-  background: #fffbeb;
-  color: #92400e;
-  border-bottom: 1px solid #fde68a;
+  background: var(--cor-alerta-fundo);
+  color: var(--cor-alerta);
+  border-bottom: 1px solid var(--cor-alerta-borda);
   font-size: 14px;
 
-  &.perigo { background: #fee2e2; color: var(--cor-erro); border-bottom-color: #fecaca; }
+  &.perigo { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); border-bottom-color: var(--cor-erro-borda); }
   .pix { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .contato { opacity: 0.85; }
 }

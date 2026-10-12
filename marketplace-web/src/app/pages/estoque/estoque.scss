@@ -74,7 +74,7 @@
   }
 
   &.amarelo strong {
-    color: #b45309;
+    color: var(--cor-alerta-medio);
   }
 }
 
@@ -215,18 +215,18 @@ tbody tr:last-child td {
   }
 
   &.shoje {
-    background: #ffedd5;
-    color: #9a3412;
+    background: var(--cor-alerta-fundo-forte);
+    color: var(--cor-alerta);
   }
 
   &.surgente {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--cor-alerta-fundo-forte);
+    color: var(--cor-alerta);
   }
 
   &.sproximo {
-    background: #fefce8;
-    color: #854d0e;
+    background: var(--cor-alerta-fundo);
+    color: var(--cor-alerta);
   }
 }
 

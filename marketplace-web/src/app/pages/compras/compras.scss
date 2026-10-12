@@ -43,7 +43,7 @@
 
 .qtd { width: 84px; text-align: right; padding: 5px 8px; }
 
-.urgente { color: #b45309 !important; font-weight: 600; }
+.urgente { color: var(--cor-alerta-medio) !important; font-weight: 600; }
 
 tr.desmarcado td { opacity: 0.45; }
 
@@ -55,12 +55,12 @@ tr.desmarcado td { opacity: 0.45; }
 
 .forte { font-weight: 600; }
 
-.linha-pedido { cursor: pointer; &:hover td { background: #fafcfb; } }
+.linha-pedido { cursor: pointer; &:hover td { background: var(--cor-verde-fundo); } }
 
 .status {
   display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 12px; font-weight: 700; margin-right: 4px;
-  &.s-Rascunho { background: #f3f4f6; color: #4b5563; }
-  &.s-Enviado { background: #dbeafe; color: #1e40af; }
+  &.s-Rascunho { background: var(--cor-fundo); color: var(--cor-texto-suave); }
+  &.s-Enviado { background: var(--cor-info-fundo); color: var(--cor-info); }
   &.s-Recebido { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
   &.s-Cancelado { background: var(--cor-erro-fundo); color: var(--cor-erro); }
 }
@@ -71,4 +71,4 @@ tr.desmarcado td { opacity: 0.45; }
 
 .janela.larga { width: min(760px, calc(100vw - 32px)); }
 
-input.falta { border-color: #b45309; }
+input.falta { border-color: var(--cor-alerta-medio); }

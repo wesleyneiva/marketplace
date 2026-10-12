@@ -1,26 +1,26 @@
-<div class="layout" [class.menu-aberto]="menuAberto()">
+<div class="layout" [class.menu-aberto]="menuAberto()" [class.recolhido]="recolhido()">
   <aside class="lateral">
     <a class="marca" [routerLink]="inicio()" aria-label="Ir para o início">
-      <app-logo [tamanho]="38" tema="escuro" [slogan]="false" />
+      <app-logo [tamanho]="recolhido() ? 40 : 42" tema="escuro" [nome]="!recolhido()" [duasLinhas]="true" />
     </a>
     @if (usuario(); as u) {
       @if (areaDoDono()) {
-        <p class="empresa" title="Área do dono da plataforma"><app-icone nome="building-2" /> Área do dono</p>
+        <p class="empresa" title="Área do dono da plataforma"><app-icone nome="building-2" /> <span class="rotulo">Área do dono</span></p>
       } @else {
-        <p class="empresa" title="Empresa"><app-icone nome="store" /> {{ u.empresa.nome }}</p>
+        <p class="empresa" [title]="u.empresa.nome"><app-icone nome="store" /> <span class="rotulo">{{ u.empresa.nome }}</span></p>
       }
     }
 
     <nav>
       @for (item of itensVisiveis(); track item.rota) {
         @if (item.pronto) {
-          <a [routerLink]="item.rota" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: item.rota === '/plataforma' }" (click)="menuAberto.set(false)">
-            <app-icone class="icone" [nome]="item.icone" />{{ item.rotulo }}
+          <a [routerLink]="item.rota" [attr.title]="recolhido() ? item.rotulo : null" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: item.rota === '/plataforma' }" (click)="menuAberto.set(false)">
+            <app-icone class="icone" [nome]="item.icone" /><span class="rotulo">{{ item.rotulo }}</span>
           </a>
         } @else {
           <span class="item-futuro" title="Em breve">
-            <app-icone class="icone" [nome]="item.icone" />{{ item.rotulo }}
-            <em>em breve</em>
+            <app-icone class="icone" [nome]="item.icone" /><span class="rotulo">{{ item.rotulo }}</span>
+            <em class="rotulo">em breve</em>
           </span>
         }
       }
@@ -32,6 +32,10 @@
   <div class="principal">
     <header class="topo">
       <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu"><app-icone nome="menu" /></button>
+      <button type="button" class="botao-recolher" (click)="alternarMenu()" [attr.aria-label]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'"
+              [title]="recolhido() ? 'Mostrar o menu' : 'Recolher o menu'">
+        <app-icone [nome]="recolhido() ? 'panel-left-open' : 'panel-left-close'" />
+      </button>
       <div class="espaco"></div>
       @if (usuario(); as u) {
         <div class="usuario">
@@ -42,6 +46,9 @@
           </div>
         </div>
       }
+      <button type="button" class="trocar-senha botao-tema" (click)="tema.alternar()" [title]="textoTema()" [attr.aria-label]="textoTema()">
+        <app-icone [nome]="tema.preferencia() === 'claro' ? 'sun' : tema.preferencia() === 'escuro' ? 'moon' : 'monitor'" />
+      </button>
       @if (!usuario()?.somenteLeitura) {
       <a class="trocar-senha" routerLink="/trocar-senha" title="Trocar minha senha" aria-label="Trocar minha senha"><app-icone nome="key-round" /></a>
       }

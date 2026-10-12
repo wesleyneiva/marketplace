@@ -23,7 +23,7 @@
 
     &:hover { border-color: var(--cor-primaria); }
     &.perigo strong { color: var(--cor-erro); }
-    &.alerta strong { color: #b45309; }
+    &.alerta strong { color: var(--cor-alerta-medio); }
   }
 }
 
@@ -40,7 +40,7 @@ th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: 
 tbody tr:last-child td { border-bottom: 0; }
 
 tr.vencida { background: var(--cor-erro-fundo); }
-tr.vencehoje { background: #fffbeb; }
+tr.vencehoje { background: var(--cor-alerta-fundo); }
 tr.paga { color: var(--cor-texto-suave); }
 
 .data { white-space: nowrap; small { display: block; font-size: 12px; color: var(--cor-texto-suave); } }
@@ -52,8 +52,8 @@ tr.paga { color: var(--cor-texto-suave); }
 .acoes { white-space: nowrap; text-align: right; display: table-cell; button + button { margin-left: 4px; } }
 
 .selo.paga { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
-.selo.vencida { background: #fee2e2; color: var(--cor-erro); }
-.selo.hoje { background: #fef3c7; color: #92400e; }
+.selo.vencida { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); }
+.selo.hoje { background: var(--cor-alerta-fundo-forte); color: var(--cor-alerta); }
 
 .vazio { padding: 24px; text-align: center; color: var(--cor-texto-suave); }
 

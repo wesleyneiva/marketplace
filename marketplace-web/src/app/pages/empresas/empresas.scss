@@ -27,8 +27,8 @@
 }
 
 .selo.ativa { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
-.selo.suspensa { background: #fee2e2; color: var(--cor-erro); }
-.selo.demo { background: #ede9fe; color: #5b21b6; }
+.selo.suspensa { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); }
+.selo.demo { background: var(--cor-roxo-fundo); color: var(--cor-roxo); }
 
 .numeros {
   display: grid;

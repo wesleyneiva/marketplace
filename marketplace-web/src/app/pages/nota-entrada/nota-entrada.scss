@@ -140,7 +140,7 @@ th {
 .nota-aviso {
   margin: 8px 0 0;
   font-size: 13px;
-  color: #92400e;
+  color: var(--cor-alerta);
 }
 
 .item {
@@ -148,7 +148,7 @@ th {
   margin-bottom: 10px;
   border-left: 4px solid var(--cor-primaria);
 
-  &.pendente { border-left-color: #d97706; }
+  &.pendente { border-left-color: var(--cor-alerta-medio); }
   &.ignorado { opacity: 0.6; border-left-color: var(--cor-borda); }
 
   > header {
@@ -273,7 +273,7 @@ th {
   margin: 10px 0 0;
   font-size: 13px;
   font-weight: 600;
-  color: #b45309;
+  color: var(--cor-alerta-medio);
 }
 
 .confirmar {

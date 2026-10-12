@@ -99,8 +99,8 @@ footer {
   color: var(--cor-texto);
 
   &.urgente {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--cor-alerta-fundo-forte);
+    color: var(--cor-alerta);
   }
 
   &.vencido {

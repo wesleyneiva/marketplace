@@ -26,10 +26,10 @@
 }
 
 .explica { margin: 0 0 10px; font-size: 13px; }
-.aviso-corte { color: #92400e; }
+.aviso-corte { color: var(--cor-alerta); }
 
-tr.implantacao td { background: #f0fdf4; }
-tr.transferencia td { background: #fafafa; }
+tr.implantacao td { background: var(--cor-verde-fundo); }
+tr.transferencia td { background: var(--cor-fundo); }
 td.conta { white-space: nowrap; font-size: 13px; color: var(--cor-texto-suave); }
 td.saldo { font-weight: 600; }
 .retorno { display: block; margin-top: 4px; font-size: 12px; }

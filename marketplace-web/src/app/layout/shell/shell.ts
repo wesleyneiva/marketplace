@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { copiarTexto } from '../../shared/copiar';
+import { TemaService } from '../../core/tema.service';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { MODULOS } from '../../core/modulos';
@@ -30,6 +31,21 @@ export class Shell {
 
   protected readonly usuario = this.auth.usuario;
   protected readonly menuAberto = signal(false);
+  protected readonly tema = inject(TemaService);
+  protected readonly textoTema = computed(() =>
+    ({ claro: 'Modo claro (clique para escuro)', escuro: 'Modo escuro (clique para automático)', automatico: 'Automático: segue o computador (clique para claro)' })[this.tema.preferencia()]);
+
+  // Menu recolhido (só os ícones), lembrado neste navegador.
+  protected readonly recolhido = signal(this.lerRecolhido());
+
+  alternarMenu(): void {
+    this.recolhido.set(!this.recolhido());
+    try { localStorage.setItem('marcus.menuRecolhido', this.recolhido() ? '1' : '0'); } catch { /* sem armazenamento */ }
+  }
+
+  private lerRecolhido(): boolean {
+    try { return localStorage.getItem('marcus.menuRecolhido') === '1'; } catch { return false; }
+  }
 
   private readonly menu: ItemMenu[] = [
     { rotulo: 'Dashboard', icone: 'layout-dashboard', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },

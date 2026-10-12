@@ -127,9 +127,9 @@
   }
 
   &.novo strong { color: var(--cor-primaria); }
-  &.atualizar strong { color: #1d4ed8; }
+  &.atualizar strong { color: var(--cor-info); }
   &.erro strong { color: var(--cor-erro); }
-  &.aviso strong { color: #92400e; }
+  &.aviso strong { color: var(--cor-alerta); }
 
   &.ligado {
     border-color: var(--cor-primaria);
@@ -181,7 +181,7 @@ tr.erro {
 }
 
 tr.aviso {
-  background: #fffbeb;
+  background: var(--cor-alerta-fundo);
 }
 
 .num {
@@ -226,7 +226,7 @@ tr.aviso {
 }
 
 .msg-aviso {
-  color: #92400e;
+  color: var(--cor-alerta);
 }
 
 .selo.novo {
@@ -235,12 +235,12 @@ tr.aviso {
 }
 
 .selo.atualizar {
-  background: #dbeafe;
-  color: #1e40af;
+  background: var(--cor-info-fundo);
+  color: var(--cor-info);
 }
 
 .selo.erro {
-  background: #fee2e2;
+  background: var(--cor-erro-fundo-forte);
   color: var(--cor-erro);
 }
 
@@ -293,7 +293,7 @@ tr.aviso {
   }
 
   .ignorados {
-    color: #92400e;
+    color: var(--cor-alerta);
   }
 
   .botoes {

@@ -5,14 +5,14 @@
 .aliquota {
   display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 14px; margin-bottom: 12px;
   border: 1px solid var(--cor-borda); border-radius: 12px; background: var(--cor-superficie); font-size: 14px;
-  &.falta { border-color: #f59e0b; background: #fffbeb; color: #78350f; }
+  &.falta { border-color: var(--cor-alerta-icone); background: var(--cor-alerta-fundo); color: var(--cor-alerta); }
   .editar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 6px;
     label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; }
     input { width: 120px; padding: 5px 8px; } }
   small { flex-basis: 100%; font-size: 12px; color: var(--cor-texto-suave); }
 }
 
-.aviso-parcial { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: #fffbeb; color: #78350f; font-size: 13px; }
+.aviso-parcial { margin: 0 0 12px; padding: 10px 14px; border-radius: 10px; background: var(--cor-alerta-fundo); color: var(--cor-alerta); font-size: 13px; }
 
 .cem {
   padding: 14px 16px; margin-bottom: 12px;
@@ -24,7 +24,7 @@
 .dre table, .fora table, .caixa table { font-size: 14px; }
 th.nome, td.nome { min-width: 260px; }
 th small { display: block; font-weight: 400; text-transform: none; letter-spacing: 0; }
-th.mes.parcial, td.parcial { background: #fffbeb; }
+th.mes.parcial, td.parcial { background: var(--cor-alerta-fundo); }
 th.var, td.var { width: 90px; font-size: 12px; }
 
 td.valor { white-space: nowrap; small { display: block; font-size: 11px; color: var(--cor-texto-suave); } }

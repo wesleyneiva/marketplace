@@ -113,7 +113,7 @@ input {
   cursor: pointer;
 
   &:hover:not(:disabled) {
-    background: var(--cor-primaria-escura);
+    background: var(--cor-primaria-hover);
   }
 
   &:disabled {

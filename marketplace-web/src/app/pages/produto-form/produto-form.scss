@@ -169,13 +169,13 @@
     }
 
     &.urgente {
-      background: #fef3c7;
-      border-color: #fde68a;
+      background: var(--cor-alerta-fundo-forte);
+      border-color: var(--cor-alerta-borda);
     }
 
     &.vencido {
       background: var(--cor-erro-fundo);
-      border-color: #fecaca;
+      border-color: var(--cor-erro-borda);
       color: var(--cor-erro);
     }
   }

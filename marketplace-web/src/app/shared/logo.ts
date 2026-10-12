@@ -35,7 +35,13 @@ import { MARCA } from './marca';
       @if (nome()) {
         <span class="texto">
           <span class="nome" [style.font-size.px]="tamanho() * 0.5">Marcus</span>
-          @if (slogan()) { <span class="slogan" [style.font-size.px]="tamanho() * 0.22">{{ frase }}</span> }
+          @if (slogan()) {
+            @if (duasLinhas()) {
+              <span class="slogan" [style.font-size.px]="tamanho() * 0.25">{{ fraseLinha1 }}<br />{{ fraseLinha2 }}</span>
+            } @else {
+              <span class="slogan" [style.font-size.px]="tamanho() * 0.22">{{ frase }}</span>
+            }
+          }
         </span>
       }
     </span>
@@ -46,7 +52,7 @@ import { MARCA } from './marca';
     svg { flex-shrink: 0; display: block; }
     .texto { display: flex; flex-direction: column; align-items: flex-start; text-align: left; line-height: 1.05; }
     .nome { font-weight: 750; letter-spacing: -0.02em; }
-    .slogan { color: var(--cor-texto-suave); font-weight: 500; margin-top: 2px; white-space: nowrap; }
+    .slogan { color: var(--cor-texto-suave); font-weight: 500; margin-top: 3px; white-space: nowrap; line-height: 1.2; }
     .escuro { color: #fff; }
     .escuro .slogan { color: #a7c4b2; }
   `,
@@ -56,5 +62,8 @@ export class Logo {
   readonly nome = input(true);
   readonly slogan = input(true);
   readonly tema = input<'claro' | 'escuro'>('claro');
+  readonly duasLinhas = input(false); // espaço estreito (menu lateral): "gestão inteligente" / "para o seu negócio"
   protected readonly frase = MARCA.frase;
+  protected readonly fraseLinha1 = MARCA.frase.split(' ').slice(0, 2).join(' ');
+  protected readonly fraseLinha2 = MARCA.frase.split(' ').slice(2).join(' ');
 }

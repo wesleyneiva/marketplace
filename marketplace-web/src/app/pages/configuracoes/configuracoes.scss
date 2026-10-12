@@ -105,8 +105,8 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
   margin: 0 0 10px;
   padding: 10px 12px;
   border-radius: 8px;
-  background: #fffbeb;
-  color: #92400e;
+  background: var(--cor-alerta-fundo);
+  color: var(--cor-alerta);
   font-size: 14px;
 
   a { color: inherit; font-weight: 700; }
@@ -120,7 +120,7 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
   font-size: 14px;
 
   .ok { color: var(--cor-primaria-escura); font-weight: 600; }
-  .falhou { color: #92400e; }
+  .falhou { color: var(--cor-alerta); }
 }
 
 .cidade-atual { margin: 0 0 12px; font-size: 15px; }

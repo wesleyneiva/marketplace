@@ -8,7 +8,7 @@ export interface CelulaMapa {
 }
 
 // Rampa SEQUENCIAL de um tom só (azul), do claro (pouco) ao escuro (muito) — validada para daltonismo.
-const RAMPA = ['#cde2fb', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
+const RAMPA = ['#dbeafe', '#9ec5f4', '#6da7ec', '#3987e5', '#256abf', '#184f95', '#0d366b'];
 
 // Mapa de calor: linhas × colunas, a cor mostra a intensidade. Células separadas por 2px de "ar".
 @Component({

@@ -24,9 +24,9 @@
 }
 
 .selo.entrada { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
-.selo.saida { background: #fee2e2; color: var(--cor-erro); }
-.selo.origem { background: #eef2ff; color: #3730a3; }
-.selo.sistema { background: #f3f4f6; color: #4b5563; }
+.selo.saida { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); }
+.selo.origem { background: var(--cor-info-fundo); color: var(--cor-info); }
+.selo.sistema { background: var(--cor-fundo); color: var(--cor-texto-suave); }
 
 .erro-linha { display: block; margin-top: 4px; font-size: 12px; color: var(--cor-erro); }
 

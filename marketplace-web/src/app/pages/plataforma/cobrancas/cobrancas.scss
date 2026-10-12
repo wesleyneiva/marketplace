@@ -26,7 +26,7 @@ tr.atrasada td:first-child { box-shadow: inset 3px 0 0 var(--cor-erro); }
 
 .selo { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 99px; background: var(--cor-fundo); }
 .selo.ok { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
-.selo.perigo { background: #fee2e2; color: var(--cor-erro); }
+.selo.perigo { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); }
 
 .regras {
   margin-top: 14px;

@@ -1,9 +1,14 @@
 // Estilos globais do Marcus.
 // As cores ficam em "variáveis CSS" (--nome) para trocar o tema num lugar só.
-:root {
-  --cor-primaria: #15803d;        // verde "mercado"
-  --cor-primaria-escura: #166534;
+// ---------- Tema: claro e escuro ----------
+// Cada cor tem um NOME (o que ela significa) e dois valores. O tema vem do atributo data-tema no <html>
+// (colocado antes da página desenhar, em index.html, e trocado pelo botão do topo: core/tema.service.ts).
+@mixin tema-claro {
+  color-scheme: light;
+  --cor-primaria: #15803d;        // verde da marca
+  --cor-primaria-escura: #166534; // verde para texto sobre fundo claro
   --cor-primaria-clara: #dcfce7;
+  --cor-primaria-hover: #166534;  // botão verde com o mouse em cima
   --cor-fundo: #f4f6f5;
   --cor-superficie: #ffffff;
   --cor-texto: #1c2321;
@@ -11,8 +16,86 @@
   --cor-borda: #e2e8e5;
   --cor-erro: #b91c1c;
   --cor-erro-fundo: #fef2f2;
-  --raio: 10px;
+  --cor-erro-fundo-forte: #fee2e2;
+  --cor-erro-borda: #fecaca;
+  --cor-alerta: #92400e;          // texto de aviso (amarelo/laranja)
+  --cor-alerta-medio: #b45309;
+  --cor-alerta-icone: #f59e0b;
+  --cor-alerta-fundo: #fffbeb;
+  --cor-alerta-fundo-forte: #fef3c7;
+  --cor-alerta-borda: #fde68a;
+  --cor-info: #1e40af;
+  --cor-info-fundo: #dbeafe;
+  --cor-roxo: #5b21b6;
+  --cor-roxo-fundo: #ede9fe;
+  --cor-verde-fundo: #f0fdf4;
+  --cor-verde-borda: #bbf7d0;
+  --cor-cinza-fundo: #e5e7eb;
   --sombra: 0 1px 3px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.04);
+  // gráficos
+  --grafico-serie: #15803d;        // verde do Marcus (gráficos de uma série)
+  --grafico-serie-ativa: #0f5f2d;
+  --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
+  --grafico-saidas: #4a3aa7;       // fluxo de caixa: saídas (o mesmo violeta validado; vermelho/laranja reprovam p/ deutan)
+  --grafico-estimado: #4caf6e;     // fluxo de caixa: entradas ESTIMADAS (verde mais claro = incerteza)
+  --grafico-faixa-minimo: #fef3c7; // região abaixo do saldo mínimo (com rótulo)
+  --grafico-faixa-negativo: #fee2e2; // região abaixo de zero (com rótulo)
+  --grafico-grade: #e9e8e2;
+  --grafico-base: #c3c2b7;
+  --grafico-texto-eixo: #898781;
+}
+
+@mixin tema-escuro {
+  color-scheme: dark;
+  --cor-primaria: #16a34a;
+  --cor-primaria-escura: #86efac;
+  --cor-primaria-clara: #14301f;
+  --cor-primaria-hover: #15803d;
+  --cor-fundo: #0e1311;
+  --cor-superficie: #171e1a;
+  --cor-texto: #e4ebe7;
+  --cor-texto-suave: #9aa8a1;
+  --cor-borda: #2a3530;
+  --cor-erro: #f87171;
+  --cor-erro-fundo: #2a1515;
+  --cor-erro-fundo-forte: #3a1818;
+  --cor-erro-borda: #5c2424;
+  --cor-alerta: #fcd34d;
+  --cor-alerta-medio: #fbbf24;
+  --cor-alerta-icone: #fbbf24;
+  --cor-alerta-fundo: #2a2311;
+  --cor-alerta-fundo-forte: #3a2e10;
+  --cor-alerta-borda: #5c4813;
+  --cor-info: #93c5fd;
+  --cor-info-fundo: #172338;
+  --cor-roxo: #c4b5fd;
+  --cor-roxo-fundo: #261f40;
+  --cor-verde-fundo: #12221a;
+  --cor-verde-borda: #1f4630;
+  --cor-cinza-fundo: #262e2a;
+  --sombra: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 16px rgb(0 0 0 / 0.3);
+  --grafico-serie: #22c55e;
+  --grafico-serie-ativa: #4ade80;
+  --grafico-temperatura: #a78bfa;
+  --grafico-saidas: #a78bfa;
+  --grafico-estimado: #4caf6e;
+  --grafico-faixa-minimo: #3a2e10;
+  --grafico-faixa-negativo: #3a1818;
+  --grafico-grade: #29322d;
+  --grafico-base: #3d4842;
+  --grafico-texto-eixo: #8b978f;
+}
+
+:root {
+  @include tema-claro;
+  --raio: 10px;
+}
+:root[data-tema='escuro'] {
+  @include tema-escuro;
+}
+// Impressão é sempre no papel branco, mesmo com o modo escuro ligado.
+@media print {
+  :root[data-tema='escuro'] { @include tema-claro; }
 }
 
 *,
@@ -35,8 +118,17 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+textarea {
+  background: var(--cor-superficie);
+  color: var(--cor-texto);
+  border: 1px solid var(--cor-borda);
+  border-radius: 8px;
 }
 
 // ---------- Peças reaproveitadas em várias telas ----------
@@ -89,7 +181,7 @@ input {
     font-weight: 600;
 
     &:hover:not(:disabled) {
-      background: var(--cor-primaria-escura);
+      background: var(--cor-primaria-hover);
     }
   }
 
@@ -130,13 +222,13 @@ input {
   color: var(--cor-texto-suave);
 
   &.alerta {
-    background: #fef3c7;
-    color: #92400e;
+    background: var(--cor-alerta-fundo-forte);
+    color: var(--cor-alerta);
   }
 
   &.inativo {
-    background: #e5e7eb;
-    color: #4b5563;
+    background: var(--cor-cinza-fundo);
+    color: var(--cor-texto-suave);
   }
 }
 
@@ -166,18 +258,7 @@ summary > app-icone {
 
 // ---------- Gráficos (SVG desenhado pelos componentes em shared/graficos) ----------
 // Regras: marcas finas, grade e eixos discretos, texto sempre em cor de TEXTO (nunca na cor da barra).
-:root {
-  --grafico-serie: #15803d;        // verde do Marcus (gráficos de uma série)
-  --grafico-serie-ativa: #0f5f2d;
-  --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
-  --grafico-saidas: #4a3aa7;       // fluxo de caixa: saídas (o mesmo violeta validado; vermelho/laranja reprovam p/ deutan)
-  --grafico-estimado: #4caf6e;     // fluxo de caixa: entradas ESTIMADAS (verde mais claro = incerteza; validado; contraste 2,67 → tabela obrigatória)
-  --grafico-faixa-minimo: #fef3c7; // região abaixo do saldo mínimo (com rótulo)
-  --grafico-faixa-negativo: #fee2e2; // região abaixo de zero (com rótulo)
-  --grafico-grade: #e9e8e2;
-  --grafico-base: #c3c2b7;
-  --grafico-texto-eixo: #898781;
-}
+
 
 // Componentes Angular são "inline" por padrão: aí a largura não pode ser medida e o gráfico
 // fica com o tamanho inicial (e vaza da tela). Como bloco, ele ocupa a largura do espaço que tem.
@@ -224,7 +305,7 @@ app-mapa-calor {
   .ponto-saldo { fill: var(--grafico-serie); stroke: var(--cor-superficie); stroke-width: 2; }
   .regiao-minimo { fill: var(--grafico-faixa-minimo); }
   .regiao-negativo { fill: var(--grafico-faixa-negativo); }
-  .ref-minimo { stroke: #b45309; stroke-width: 1; stroke-dasharray: 4 3; }
+  .ref-minimo { stroke: var(--cor-alerta-medio); stroke-width: 1; stroke-dasharray: 4 3; }
   .ref-zero { stroke: var(--grafico-texto-eixo); stroke-width: 1; }
   .rotulo-ref { fill: var(--cor-texto-suave); font-size: 11px; }
   .coluna-saida { fill: var(--grafico-saidas); }
@@ -244,6 +325,7 @@ app-mapa-calor {
   border-radius: 8px;
   background: #12261c;
   color: #fff;
+  border: 1px solid rgb(255 255 255 / 0.12);
   font-size: 12px;
   line-height: 1.35;
   white-space: nowrap;
