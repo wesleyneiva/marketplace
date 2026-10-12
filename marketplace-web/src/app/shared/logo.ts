@@ -44,7 +44,7 @@ import { MARCA } from './marca';
     :host { display: inline-flex; }
     .logo { display: inline-flex; align-items: center; color: var(--cor-texto); }
     svg { flex-shrink: 0; display: block; }
-    .texto { display: flex; flex-direction: column; line-height: 1.05; }
+    .texto { display: flex; flex-direction: column; align-items: flex-start; text-align: left; line-height: 1.05; }
     .nome { font-weight: 750; letter-spacing: -0.02em; }
     .slogan { color: var(--cor-texto-suave); font-weight: 500; margin-top: 2px; white-space: nowrap; }
     .escuro { color: #fff; }
