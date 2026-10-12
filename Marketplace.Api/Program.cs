@@ -203,6 +203,7 @@ app.UseStaticFiles(arquivosEstaticos);
 
 app.UseAuthentication();
 app.Use(ContextoEmpresa.Middleware);      // de qual empresa é quem está logado
+app.Use(RedeInterna.Middleware);          // rede interna: só o dono da plataforma
 app.Use(MarcaSenhaProvisoria.Middleware); // senha provisória: só deixa trocar a senha
 app.Use(SomenteLeitura.Middleware);       // visitante da demonstração: só olha
 app.UseAuthorization();

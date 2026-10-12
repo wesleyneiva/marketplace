@@ -27,7 +27,7 @@ export class Login {
   protected readonly mostrarSenha = signal(false);
 
   // Começa como "tudo liberado" (rede interna) e se ajusta com a resposta da API.
-  protected readonly acesso = signal<AcessoInfo>({ demonstracao: false, loginComSenha: true });
+  protected readonly acesso = signal<AcessoInfo>({ demonstracao: false, loginComSenha: true, areaDoDono: false });
 
   constructor() {
     this.auth.acesso().then((a) => this.acesso.set(a)).catch(() => {});

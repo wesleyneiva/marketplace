@@ -26,6 +26,7 @@ export interface Empresa {
 export interface AcessoInfo {
   demonstracao: boolean;
   loginComSenha: boolean;
+  areaDoDono: boolean; // endereço da rede interna: só o dono da plataforma entra
 }
 
 // Serviço de autenticação: fala com /api/auth e guarda "quem está logado" num signal.

@@ -2,7 +2,7 @@
   <section class="cartao">
     <header class="marca">
       <app-logo [tamanho]="60" />
-      <p>Sistema de gestão do mercado</p>
+      <p>{{ acesso().areaDoDono ? "Área do dono da plataforma" : "Sistema de gestão do mercado" }}</p>
     </header>
 
     @if (acesso().demonstracao) {

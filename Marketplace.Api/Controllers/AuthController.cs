@@ -32,7 +32,7 @@ public class AuthController(
 
     // GET /api/auth/acesso → a tela de login pergunta o que mostrar
     [HttpGet("acesso")]
-    public AcessoInfoResponse Acesso() => new(DemonstracaoLigada, LoginComSenhaLiberado);
+    public AcessoInfoResponse Acesso() => new(DemonstracaoLigada, LoginComSenhaLiberado, HttpContext.SoDono());
 
     // POST /api/auth/login   { "email": "...", "senha": "..." }
     [HttpPost("login")]
@@ -62,6 +62,10 @@ public class AuthController(
         // o acesso de dono do sistema continua só pelo Tailscale.
         if (HttpContext.VeioDaInternet() && await db.Empresas.AnyAsync(e => e.Id == usuario.EmpresaId && (e.Demonstracao || e.Plataforma)))
             return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = "Este usuário só entra pela rede interna." });
+
+        // Pela rede interna (oracle-a1:5100) só o dono da plataforma; os mercados usam app.wnlabs.com.br.
+        if (HttpContext.SoDono() && !RedeInterna.EhDaPlataforma(usuario.EmpresaId, config))
+            return StatusCode(StatusCodes.Status403Forbidden, new { mensagem = RedeInterna.MensagemMercado });
 
         // Só depois da senha certa dizemos que a conta está desativada (senão qualquer um descobriria quem existe).
         if (!usuario.Ativo)

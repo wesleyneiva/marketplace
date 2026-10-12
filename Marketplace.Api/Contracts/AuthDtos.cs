@@ -15,7 +15,7 @@ public record UsuarioLogadoResponse(
 public record EmpresaResponse(int Id, string Nome, int LimiteCaixas, bool Demonstracao);
 
 // Para a tela de login, antes de logar: mostrar o botão "Ver demonstração"? Login com senha liberado?
-public record AcessoInfoResponse(bool Demonstracao, bool LoginComSenha);
+public record AcessoInfoResponse(bool Demonstracao, bool LoginComSenha, bool AreaDoDono); // AreaDoDono: endereço só do dono
 
 public record TrocarSenhaRequest(
     [Required(ErrorMessage = "Informe a senha atual.")] string SenhaAtual,
