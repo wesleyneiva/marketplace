@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 
 export interface SimuladorStatus {
   disponivel: boolean; // esta empresa tem vendas automáticas
+  numeroCaixa: number; // o caixa que o robô usa
   ativo: boolean;
   intensidade: number;
   caixaAberto: boolean;

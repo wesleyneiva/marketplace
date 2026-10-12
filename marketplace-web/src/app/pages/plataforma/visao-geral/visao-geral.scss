@@ -41,7 +41,7 @@ a.cartao:hover { box-shadow: var(--sombra); }
     font-size: 14px;
   }
   .linha:hover b { text-decoration: underline; }
-  small { color: var(--cor-texto-suave); }
+  small { color: var(--cor-texto-suave); margin-left: 6px; }
   .quando { color: var(--cor-texto-suave); white-space: nowrap; }
   .vazio { color: var(--cor-texto-suave); font-size: 14px; margin: 0; }
 }

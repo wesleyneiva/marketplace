@@ -10,7 +10,7 @@ namespace Marketplace.Api.Controllers;
 
 // Disponivel = esta empresa tem vendas automáticas (senão o painel nem mostra o cartão do simulador).
 public record SimuladorStatus(
-    bool Disponivel, bool Ativo, double Intensidade, bool CaixaAberto, DateTimeOffset? UltimaRodada, string? UltimoErro,
+    bool Disponivel, int NumeroCaixa, bool Ativo, double Intensidade, bool CaixaAberto, DateTimeOffset? UltimaRodada, string? UltimoErro,
     decimal? Temperatura, string? Tempo, bool ClimaReal, string? Cidade, int VendasHoje, decimal FaturamentoHoje);
 
 [ApiController]
@@ -34,7 +34,9 @@ public class SimuladorController(SimuladorEstado estado, SimuladorClientes simul
         var local = locais.Local(empresaId);
         var tempo = local is null ? null : clima.Ultimo(local) ?? await clima.ObterAsync(local, HttpContext.RequestAborted);
 
+        var limite = await db.Empresas.Where(e => e.Id == empresaId).Select(e => e.LimiteCaixas).FirstAsync();
         return new SimuladorStatus(modo != ModosVendasAutomaticas.Desligado,
+            SimuladorEstado.CaixaDoRobo(modo == ModosVendasAutomaticas.Completo, limite),
             estado.Ativo && modo != ModosVendasAutomaticas.Desligado && !loja.Pausado,
             estado.Intensidade, aberto, loja.UltimaRodada, loja.UltimoErro,
             tempo?.Temperatura, tempo?.Descricao, tempo?.Real ?? false, local?.Nome,
@@ -44,7 +46,12 @@ public class SimuladorController(SimuladorEstado estado, SimuladorClientes simul
     // POST /api/simulador/pausar  e  /retomar  (só Administrador; só nesta empresa, até o sistema reiniciar)
     [HttpPost("pausar")]
     [Authorize(Roles = Perfis.Administrador)]
-    public Task<SimuladorStatus> Pausar() { estado.DaEmpresa(db.EmpresaAtual).Pausado = true; return Status(); }
+    public async Task<SimuladorStatus> Pausar()
+    {
+        estado.DaEmpresa(db.EmpresaAtual).Pausado = true;
+        await simulador.FecharCaixaDoRoboAsync(db.EmpresaAtual); // libera o caixa para uma pessoa
+        return await Status();
+    }
 
     [HttpPost("retomar")]
     [Authorize(Roles = Perfis.Administrador)]
@@ -58,8 +65,17 @@ public class SimuladorController(SimuladorEstado estado, SimuladorClientes simul
         var modo = await ModoAsync();
         if (modo == ModosVendasAutomaticas.Desligado)
             return BadRequest(new { mensagem = "Esta empresa não tem vendas automáticas." });
-        var vendidos = await simulador.AtenderAgoraAsync(db.EmpresaAtual, modo == ModosVendasAutomaticas.Completo,
-            Math.Clamp(quantidade, 1, 50), HttpContext.RequestAborted);
+        var limite = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.LimiteCaixas).FirstAsync();
+        int vendidos;
+        try
+        {
+            vendidos = await simulador.AtenderAgoraAsync(db.EmpresaAtual, modo == ModosVendasAutomaticas.Completo, limite,
+                Math.Clamp(quantidade, 1, 50), HttpContext.RequestAborted);
+        }
+        catch (CaixaException e)
+        {
+            return BadRequest(new { mensagem = e.Message }); // ex.: o caixa está com uma pessoa
+        }
         return Ok(new { clientes = quantidade, vendasFeitas = vendidos });
     }
 

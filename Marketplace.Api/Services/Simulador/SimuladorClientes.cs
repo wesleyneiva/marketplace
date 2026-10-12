@@ -14,7 +14,11 @@ public class SimuladorEstado(IConfiguration config)
 {
     // O robô da demonstração (empresa 1); o de cada empresa é caixa-automatico-<id>@sistema.local.
     public const string Email = "caixa-automatico-1@sistema.local";
-    public const int NumeroCaixa = 9; // fora dos caixas do plano: o caixa 1 continua livre para as pessoas
+    // Caixa do robô. Na demonstração (modo Completo), o Caixa 9, fora do plano. Nas lojas em teste (Só vendas), o ÚLTIMO
+    // caixa do plano (num mercadinho de 1 caixa, o Caixa 1): o robô faz o papel do operador. Se uma pessoa estiver usando
+    // esse caixa, o robô espera; pausar o robô fecha o caixa dele para a pessoa poder abrir.
+    public const int NumeroCaixa = 9;
+    public static int CaixaDoRobo(bool completo, int limiteCaixas) => completo ? NumeroCaixa : Math.Max(1, limiteCaixas);
 
     public static string EmailDoRobo(int empresaId) =>
         empresaId == SeedDemonstracao.EmpresaId ? Email : $"caixa-automatico-{empresaId}@sistema.local";
@@ -61,21 +65,21 @@ public class SimuladorClientes(
         do
         {
             if (!estado.Ativo) continue;
-            List<(int Id, string Modo)> lojas;
+            List<(int Id, string Modo, int Caixas)> lojas;
             using (var scope = escopos.CreateScope())
             {
                 lojas = (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
                     .Where(e => e.Ativa && e.VendasAutomaticas != ModosVendasAutomaticas.Desligado)
-                    .Select(e => new { e.Id, e.VendasAutomaticas }).ToListAsync(parar))
-                    .Select(e => (e.Id, e.VendasAutomaticas)).ToList();
+                    .Select(e => new { e.Id, e.VendasAutomaticas, e.LimiteCaixas }).ToListAsync(parar))
+                    .Select(e => (e.Id, e.VendasAutomaticas, e.LimiteCaixas)).ToList();
             }
-            foreach (var (empresaId, modo) in lojas)
+            foreach (var (empresaId, modo, caixas) in lojas)
             {
                 var loja = estado.DaEmpresa(empresaId);
                 if (loja.Pausado) continue;
                 try
                 {
-                    await RodadaAsync(empresaId, modo == ModosVendasAutomaticas.Completo, parar);
+                    await RodadaAsync(empresaId, modo == ModosVendasAutomaticas.Completo, caixas, parar);
                     loja.UltimoErro = null;
                 }
                 catch (Exception e) when (e is not OperationCanceledException)
@@ -88,7 +92,7 @@ public class SimuladorClientes(
     }
 
     // Uma "rodada" = um minuto da loja. "completo" = a demonstração (compras, contas, fiado e depósitos também).
-    private async Task RodadaAsync(int empresaId, bool completo, CancellationToken ct)
+    private async Task RodadaAsync(int empresaId, bool completo, int limiteCaixas, CancellationToken ct)
     {
         locais.Aplicar(empresaId); // relógio e horário de funcionamento desta loja
         var loja = estado.DaEmpresa(empresaId);
@@ -120,7 +124,18 @@ public class SimuladorClientes(
             if (sessao is null)
             {
                 if (completo) await RotinaDaManhaAsync(empresaId, usuarioId, ct);
-                var aberta = await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m, foraDoPlano: true);
+                var numero = SimuladorEstado.CaixaDoRobo(completo, limiteCaixas);
+                SessaoCaixa aberta;
+                try
+                {
+                    aberta = await caixa.AbrirAsync(usuarioId, numero, 200m, foraDoPlano: completo);
+                }
+                catch (CaixaException e)
+                {
+                    // Ex.: uma pessoa está usando o caixa agora. O robô tenta de novo no próximo minuto.
+                    log.LogDebug("Simulador não abriu o Caixa {Numero} da empresa {Empresa}: {Motivo}", numero, empresaId, e.Message);
+                    return;
+                }
                 if (completo)
                 {
                     // Caderneta: quem chegou no "dia de pagar" vem acertar o fiado; calote antigo vira baixa.
@@ -129,10 +144,10 @@ public class SimuladorClientes(
                     var pagaram = await fiadoDemo.ReceberDoDiaAsync(aberta, Relogio.Hoje, usuarioId);
                     var baixas = await fiadoDemo.BaixarCalotesAsync(Relogio.Hoje, usuarioId);
                     log.LogInformation("Simulador abriu o Caixa {Numero} ({Pagaram} cliente(s) pagaram o fiado, {Baixas} baixa(s)).",
-                        SimuladorEstado.NumeroCaixa, pagaram, baixas);
+                        numero, pagaram, baixas);
                 }
                 else
-                    log.LogInformation("Simulador abriu o Caixa {Numero} da empresa {Empresa}.", SimuladorEstado.NumeroCaixa, empresaId);
+                    log.LogInformation("Simulador abriu o Caixa {Numero} da empresa {Empresa}.", numero, empresaId);
             }
         }
 
@@ -143,12 +158,24 @@ public class SimuladorClientes(
             await AtenderClienteAsync(empresaId, completo, usuarioId, tempo, agora, ct);
     }
 
+    // Pausar: o robô fecha o caixa dele agora (fechamento normal, vai para o Financeiro), para uma pessoa poder usar.
+    public async Task<bool> FecharCaixaDoRoboAsync(int empresaId)
+    {
+        locais.Aplicar(empresaId);
+        var usuarioId = await UsuarioIdAsync(empresaId);
+        using var scope = escopos.CriarEscopo(empresaId);
+        var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
+        if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null) return false;
+        await FecharCaixaAsync(caixa, usuarioId, empresaId);
+        return true;
+    }
+
     // O clima da cidade da loja (sem cidade cadastrada: um dia "neutro").
     private async Task<ClimaAgora> ClimaDaLojaAsync(int empresaId, CancellationToken ct) =>
         locais.Local(empresaId) is { } local ? await clima.ObterAsync(local, ct) : ClimaAgora.Neutro;
 
     // Usado pelo botão "atender clientes agora" (testes e demonstrações), na empresa de quem clicou.
-    public async Task<int> AtenderAgoraAsync(int empresaId, bool completo, int quantidade, CancellationToken ct)
+    public async Task<int> AtenderAgoraAsync(int empresaId, bool completo, int limiteCaixas, int quantidade, CancellationToken ct)
     {
         locais.Aplicar(empresaId);
         var usuarioId = await UsuarioIdAsync(empresaId);
@@ -156,7 +183,7 @@ public class SimuladorClientes(
         {
             var caixa = scope.ServiceProvider.GetRequiredService<CaixaService>();
             if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null)
-                await caixa.AbrirAsync(usuarioId, SimuladorEstado.NumeroCaixa, 200m, foraDoPlano: true);
+                await caixa.AbrirAsync(usuarioId, SimuladorEstado.CaixaDoRobo(completo, limiteCaixas), 200m, foraDoPlano: completo);
         }
         var tempo = await ClimaDaLojaAsync(empresaId, ct);
         var vendidos = 0;

@@ -148,6 +148,12 @@ if (args.FirstOrDefault() == CriarDono.Comando)
     Environment.Exit(await CriarDono.ExecutarAsync(app.Services, app.Configuration));
 }
 
+// Linha de comando: "importar-produtos --empresa N --arquivo X [--gravar true]" — implantação de um cliente. Ver Data/ImportarProdutosCli.cs.
+if (args.FirstOrDefault() == ImportarProdutosCli.Comando)
+{
+    Environment.Exit(await ImportarProdutosCli.ExecutarAsync(app.Services, app.Configuration));
+}
+
 // Linha de comando: "nova-empresa ..." cadastra um cliente novo e sai (não liga o site). Ver Data/NovaEmpresa.cs.
 if (args.FirstOrDefault() == NovaEmpresa.Comando)
 {
