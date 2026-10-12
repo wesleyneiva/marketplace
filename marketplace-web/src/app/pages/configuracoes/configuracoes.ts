@@ -30,6 +30,7 @@ interface Configuracao {
   horaLocal: string;
   horario: Horario;
   horarioResumo: string;
+  comprasAutomaticas: boolean;
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
 
@@ -100,6 +101,19 @@ export class Configuracoes {
       this.avisoCidade.set((e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a cidade.');
     } finally {
       this.salvandoCidade.set(false);
+    }
+  }
+
+  // ----- Compras automáticas (rascunhos ao abrir a loja) -----
+  protected readonly avisoCompras = signal<{ ok: boolean; texto: string } | null>(null);
+
+  async ligarComprasAutomaticas(ligada: boolean): Promise<void> {
+    this.avisoCompras.set(null);
+    try {
+      this.config.set(await firstValueFrom(this.http.put<Configuracao>('/api/empresa/configuracao/compras-automaticas', { ligada })));
+      this.avisoCompras.set({ ok: true, texto: ligada ? 'Ligado: amanhã, ao abrir a loja, os pedidos aparecem em Compras.' : 'Desligado.' });
+    } catch (e) {
+      this.avisoCompras.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar.' });
     }
   }
 

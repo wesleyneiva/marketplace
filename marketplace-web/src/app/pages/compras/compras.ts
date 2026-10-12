@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, inject, input, signal, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -21,7 +21,33 @@ interface Conferencia { itemId: number; produto: string; unidade: string; pereci
 export class Compras {
   private readonly http = inject(HttpClient);
 
+  // ?aba=pedidos (vindo do aviso do painel) abre direto nos pedidos.
+  readonly abaInicial = input<string | undefined>(undefined, { alias: 'aba' });
   protected readonly aba = signal<'sugestao' | 'pedidos'>('sugestao');
+
+  ngOnInit(): void {
+    if (this.abaInicial() === 'pedidos') this.aba.set('pedidos');
+  }
+
+  // ----- Rascunho: mudar quantidades antes de enviar -----
+  protected readonly editando = signal<number | null>(null);
+  protected quantidades: Record<number, number> = {};
+
+  editarRascunho(p: Pedido): void {
+    this.quantidades = Object.fromEntries(p.itens.map((i) => [i.produtoId, i.quantidade]));
+    this.editando.set(p.id);
+    this.aberto.set(p.id);
+  }
+
+  async salvarRascunho(p: Pedido): Promise<void> {
+    const itens = p.itens.map((i) => ({ produtoId: i.produtoId, quantidade: Number(this.quantidades[i.produtoId]) || 0, custoUnitario: i.custoUnitario }));
+    await this.executar(async () => {
+      await firstValueFrom(this.http.put<Pedido>(`/api/compras/pedidos/${p.id}/itens`, itens));
+      this.editando.set(null);
+      this.mostrarAviso(`Pedido #${p.id} atualizado. Confira e envie ao fornecedor.`);
+      this.pedidos.reload();
+    });
+  }
   protected readonly aviso = signal<string | null>(null);
   protected readonly ocupado = signal(false);
 

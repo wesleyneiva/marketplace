@@ -470,6 +470,11 @@ namespace Marketplace.Api.Migrations
                     b.Property<DateOnly?>("CobrarDesde")
                         .HasColumnType("date");
 
+                    b.Property<bool>("ComprasAutomaticas")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<bool>("Cortesia")
                         .HasColumnType("boolean");
 
@@ -1261,6 +1266,9 @@ namespace Marketplace.Api.Migrations
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<bool>("SugestaoAutomatica")
+                        .HasColumnType("boolean");
 
                     b.HasKey("Id");
 

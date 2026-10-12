@@ -35,7 +35,8 @@ builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CobrancasService>(); // mensalidades dos clientes (área do dono)
-builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>(); // gera mensalidades e bloqueia atraso, de hora em hora
+builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>();
+builder.Services.AddHostedService<Marketplace.Api.Services.ComprasAutomaticas>(); // rascunhos de compra ao abrir a loja // gera mensalidades e bloqueia atraso, de hora em hora
 builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoProdutosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.NotaFiscal.EntradaNotaService>();
 

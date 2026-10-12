@@ -38,6 +38,31 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
     public Task<IActionResult> Criar(NovoPedidoRequest r) =>
         Executar(async () => (await compras.CriarAsync(r, UsuarioId)).Id);
 
+    [HttpPut("pedidos/{id:int}/itens")]
+    public Task<IActionResult> EditarRascunho(int id, List<ItemPedidoRequest> itens) =>
+        Executar(async () => { await compras.EditarRascunhoAsync(id, itens); return id; });
+
+    // GET /api/compras/sugestao-do-dia → rascunhos montados sozinhos ao abrir a loja (aviso do painel)
+    [HttpGet("sugestao-do-dia")]
+    public async Task<SugestaoDoDiaResponse> SugestaoDoDia()
+    {
+        var ligada = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.ComprasAutomaticas).FirstAsync();
+        var rascunhos = await db.PedidosCompra.AsNoTracking()
+            .Where(p => p.SugestaoAutomatica && p.Status == StatusPedido.Rascunho)
+            .Select(p => new { p.CriadoEm, Itens = p.Itens.Count, Total = p.Itens.Sum(i => i.Quantidade * i.CustoUnitario) })
+            .ToListAsync();
+        return new(rascunhos.Count, rascunhos.Sum(r => r.Itens), Math.Round(rascunhos.Sum(r => r.Total), 2),
+            rascunhos.Count == 0 ? null : rascunhos.Max(r => r.CriadoEm), ligada);
+    }
+
+    // POST /api/compras/sugestao-do-dia/refazer → monta os rascunhos agora (troca os automáticos não enviados)
+    [HttpPost("sugestao-do-dia/refazer")]
+    public async Task<SugestaoDoDiaResponse> RefazerSugestaoDoDia([FromServices] IServiceProvider servicos)
+    {
+        await Services.ComprasAutomaticas.GerarAsync(servicos, Services.Relogio.Hoje, HttpContext.RequestAborted);
+        return await SugestaoDoDia();
+    }
+
     [HttpPost("pedidos/{id:int}/enviar")]
     public Task<IActionResult> Enviar(int id) => Executar(async () => { await compras.EnviarAsync(id); return id; });
 
@@ -66,7 +91,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
             .Where(p => ids.Contains(p.Id))
             .Select(p => new
             {
-                p.Id, p.FornecedorId, Fornecedor = p.Fornecedor!.Nome, p.Status, p.Automatico, p.Observacao,
+                p.Id, p.FornecedorId, Fornecedor = p.Fornecedor!.Nome, p.Status, p.Automatico, p.SugestaoAutomatica, p.Observacao,
                 p.CriadoEm, CriadoPor = p.CriadoPor!.NomeCompleto, p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm,
                 RecebidoPor = p.RecebidoPor != null ? p.RecebidoPor.NomeCompleto : null,
                 Itens = p.Itens.OrderBy(i => i.Produto!.Nome).Select(i => new ItemPedidoResponse(
@@ -77,7 +102,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
             .ToListAsync();
 
         return pedidos.OrderByDescending(p => p.Id).Select(p => new PedidoResponse(
-            p.Id, p.FornecedorId, p.Fornecedor, p.Status.ToString(), p.Automatico, p.Observacao, p.CriadoEm, p.CriadoPor,
+            p.Id, p.FornecedorId, p.Fornecedor, p.Status.ToString(), p.Automatico, p.SugestaoAutomatica, p.Observacao, p.CriadoEm, p.CriadoPor,
             p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm, p.RecebidoPor, p.Itens.Sum(i => i.Total),
             p.Status == StatusPedido.Enviado && p.PrevisaoEntrega < hoje, p.Itens)).ToList();
     }

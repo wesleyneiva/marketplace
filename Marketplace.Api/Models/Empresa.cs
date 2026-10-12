@@ -51,6 +51,10 @@ public class Empresa
     // · Completo (a demonstração: o bot também compra, recebe entregas, paga contas e usa o fiado).
     public string VendasAutomaticas { get; set; } = ModosVendasAutomaticas.Desligado;
 
+    // Compras automáticas: todo dia, ao abrir a loja, o sistema monta os pedidos de compra em RASCUNHO pela sugestão
+    // (um por fornecedor). A pessoa confere, ajusta e envia. Nada é enviado sozinho.
+    public bool ComprasAutomaticas { get; set; } = true;
+
     // A "empresa" do DONO DA PLATAFORMA (WN Labs): não é um mercado. Quem é Administrador dela entra na área do dono
     // (clientes, planos, cobranças) e não vê telas de mercado. Só existe uma (criada pelo comando criar-dono).
     public bool Plataforma { get; set; }

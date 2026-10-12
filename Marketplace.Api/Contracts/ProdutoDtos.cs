@@ -91,7 +91,9 @@ public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidad
 // Configuração da empresa usada pelas telas: etiqueta da balança, cidade e horário de funcionamento.
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
     string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
-    List<ProximoFeriado> ProximosFeriados);
+    List<ProximoFeriado> ProximosFeriados, bool ComprasAutomaticas);
+
+public record LigarRequest(bool Ligada);
 
 // Os próximos feriados (nacionais + da cidade) e se a loja abre neles, pela regra escolhida.
 public record ProximoFeriado(DateOnly Data, string Nome, string Situacao);

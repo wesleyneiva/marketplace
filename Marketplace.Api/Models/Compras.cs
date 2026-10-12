@@ -29,6 +29,7 @@ public class PedidoCompra : IDaEmpresa
 
     public StatusPedido Status { get; set; } = StatusPedido.Rascunho;
     public bool Automatico { get; set; } // feito pelo simulador ("gerente automático")
+    public bool SugestaoAutomatica { get; set; } // rascunho montado sozinho ao abrir a loja (a pessoa confere e envia)
     public string? Observacao { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;

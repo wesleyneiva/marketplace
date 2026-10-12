@@ -210,3 +210,22 @@
     background: var(--cor-superficie);
   }
 }
+
+.aviso-compras {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+  border-radius: var(--raio);
+  border: 1px solid var(--cor-info-fundo);
+  background: var(--cor-info-fundo);
+  color: var(--cor-texto);
+  text-decoration: none;
+
+  .icone-aviso { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: var(--cor-superficie); color: var(--cor-info); font-size: 20px; flex-shrink: 0; }
+  .texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  small { color: var(--cor-texto-suave); }
+  .ir { margin-left: auto; display: inline-flex; align-items: center; gap: 4px; font-weight: 600; color: var(--cor-info); white-space: nowrap; }
+  &:hover { border-color: var(--cor-info); }
+}

@@ -21,7 +21,7 @@ export interface ItemPedido {
 export type StatusPedido = 'Rascunho' | 'Enviado' | 'Recebido' | 'Cancelado';
 
 export interface Pedido {
-  id: number; fornecedorId: number; fornecedor: string; status: StatusPedido; automatico: boolean; observacao: string | null;
+  id: number; fornecedorId: number; fornecedor: string; status: StatusPedido; automatico: boolean; sugestaoAutomatica: boolean; observacao: string | null;
   criadoEm: string; criadoPor: string; enviadoEm: string | null; previsaoEntrega: string | null;
   recebidoEm: string | null; recebidoPor: string | null; total: number; atrasado: boolean; itens: ItemPedido[];
 }

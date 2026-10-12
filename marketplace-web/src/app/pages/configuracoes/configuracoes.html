@@ -68,6 +68,20 @@
 </section>
 
 <section class="painel secao">
+  <h2><app-icone nome="shopping-bag" /> Compras automáticas</h2>
+  <p class="explica">Todo dia, quando a loja abre, o sistema monta os <b>pedidos de compra em rascunho</b> pela sugestão de compra
+    (um por fornecedor), contando o que vende por dia, o estoque e o prazo de entrega. <b>Nada é enviado sozinho</b>: você confere,
+    ajusta as quantidades e envia. O painel avisa quando há pedidos prontos.</p>
+  @if (config.value(); as c) {
+    <label class="marcar-linha">
+      <input type="checkbox" [checked]="c.comprasAutomaticas" [disabled]="!ehAdmin()" (change)="ligarComprasAutomaticas($any($event.target).checked)" />
+      Montar os pedidos de compra ao abrir a loja
+    </label>
+    @if (avisoCompras(); as a) { <p class="dica" [class.txt-erro]="!a.ok">{{ a.texto }}</p> }
+  }
+</section>
+
+<section class="painel secao">
   <h2><app-icone nome="tag" /> Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
   <p class="explica">
     A balança imprime uma etiqueta com código de barras começando com <b>2</b>. O caixa passa o leitor e o produto entra com o

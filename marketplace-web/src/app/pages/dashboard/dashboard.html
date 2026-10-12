@@ -28,6 +28,19 @@
   </section>
 } }
 
+@if (comprasDoDia.value(); as cd) {
+  @if (cd.pedidos > 0) {
+    <a class="aviso-compras" routerLink="/compras" [queryParams]="{ aba: 'pedidos' }">
+      <span class="icone-aviso"><app-icone nome="shopping-bag" /></span>
+      <span class="texto">
+        <strong>{{ cd.pedidos }} {{ cd.pedidos === 1 ? 'pedido de compra pronto' : 'pedidos de compra prontos' }} para conferir</strong>
+        <small>{{ cd.itens }} itens · {{ cd.total | currency: 'BRL' }} · montados pela sugestão de compra ao abrir a loja. Ajuste se quiser e envie aos fornecedores.</small>
+      </span>
+      <span class="ir">Conferir <app-icone nome="chevron-right" /></span>
+    </a>
+  }
+}
+
 <section class="indicadores">
   <a class="cartao clicavel" routerLink="/pdv">
     <div class="topo-cartao"><span>Vendas hoje</span><span class="icone"><app-icone nome="circle-dollar-sign" /></span></div>

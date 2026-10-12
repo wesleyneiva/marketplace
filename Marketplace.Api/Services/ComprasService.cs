@@ -106,6 +106,26 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         return pedido;
     }
 
+    // Rascunho: muda quantidades/custos (quantidade 0 tira o item). Um rascunho automático editado vira da pessoa
+    // (não é mais trocado pelo do dia seguinte).
+    public async Task EditarRascunhoAsync(int id, List<ItemPedidoRequest> itens)
+    {
+        var pedido = await CarregarAsync(id);
+        if (pedido.Status != StatusPedido.Rascunho) throw new EstoqueException("Só dá para mudar pedido em rascunho.");
+        var novos = itens.Where(i => i.Quantidade > 0).GroupBy(i => i.ProdutoId).ToDictionary(g => g.Key, g => g.Last());
+        if (novos.Count == 0) throw new EstoqueException("O pedido precisa de pelo menos um item (ou cancele o pedido).");
+        foreach (var item in pedido.Itens.ToList())
+        {
+            if (!novos.TryGetValue(item.ProdutoId, out var novo)) { pedido.Itens.Remove(item); db.ItensPedidoCompra.Remove(item); continue; }
+            if (item.Produto!.Unidade is not (Unidades.Quilo or Unidades.Litro) && novo.Quantidade % 1 != 0)
+                throw new EstoqueException($"\"{item.Produto.Nome}\" é comprado por {item.Produto.Unidade}: use número inteiro.");
+            item.Quantidade = novo.Quantidade;
+            if (novo.CustoUnitario is > 0) item.CustoUnitario = novo.CustoUnitario.Value;
+        }
+        pedido.SugestaoAutomatica = false;
+        await db.SaveChangesAsync();
+    }
+
     public async Task EnviarAsync(int id)
     {
         var pedido = await CarregarAsync(id);
