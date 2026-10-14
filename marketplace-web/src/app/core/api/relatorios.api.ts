@@ -43,4 +43,5 @@ export interface RelatorioClima {
   sobemNoCalor: ProdutoSensivel[];
   sobemNoFrio: ProdutoSensivel[];
   sobemNaChuva: ProdutoSensivel[];
+  cidade: string | null; // a cidade da loja (de onde vem o clima)
 }

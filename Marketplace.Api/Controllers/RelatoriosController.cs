@@ -11,7 +11,8 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/relatorios")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class RelatoriosController(RelatoriosService relatorios, InsightsService insights) : ControllerBase
+public class RelatoriosController(RelatoriosService relatorios, InsightsService insights, InsightsTarefas tarefas,
+    Marketplace.Api.Data.AppDbContext db) : ControllerBase
 {
     // GET /api/relatorios/vendas?de=2026-09-09&ate=2026-10-08
     [HttpGet("vendas")]
@@ -25,15 +26,21 @@ public class RelatoriosController(RelatoriosService relatorios, InsightsService 
     [HttpGet("clima")]
     public Task<RelatorioClima> Clima(DateOnly? de, DateOnly? ate) => relatorios.Clima(de, ate);
 
-    // POST /api/relatorios/insights?de=…&ate=… → a IA (Gemini, no n8n) comenta o período e sugere ações.
+    // POST /api/relatorios/insights?de=…&ate=… → começa a análise da IA (Gemini, no n8n) em segundo plano.
+    // Devolve { id }: a tela pergunta em GET /api/relatorios/insights/{id} até ficar pronto.
     [HttpPost("insights")]
-    public async Task<IActionResult> Insights(DateOnly? de, DateOnly? ate, CancellationToken ct)
+    public IActionResult Insights(DateOnly? de, DateOnly? ate)
     {
-        var periodo = RelatoriosService.Ler(de, ate);
-        var (dados, prompt) = await insights.MontarAsync(periodo, "", ct);
-        var r = await insights.PedirAoN8nAsync(dados, prompt, ct);
-        return r.Ok
-            ? Ok(new { insights = r.Texto, periodo, geradoEm = DateTimeOffset.UtcNow })
-            : StatusCode(r.Status, new { mensagem = r.Mensagem });
+        var tarefa = tarefas.Iniciar(db.EmpresaAtual, RelatoriosService.Ler(de, ate));
+        return Accepted(new { id = tarefa.Id });
+    }
+
+    // GET /api/relatorios/insights/{id} → { situacao: andamento | pronto | erro, insights?, mensagem? }
+    [HttpGet("insights/{id}")]
+    public IActionResult InsightsSituacao(string id)
+    {
+        var t = tarefas.Obter(id, db.EmpresaAtual);
+        if (t is null) return NotFound(new { mensagem = "Essa análise não existe mais. Peça de novo." });
+        return Ok(new { situacao = t.Situacao, insights = t.Texto, mensagem = t.Erro, segundos = (int)(DateTimeOffset.UtcNow - t.Iniciada).TotalSeconds });
     }
 }

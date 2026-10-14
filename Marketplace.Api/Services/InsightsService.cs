@@ -129,7 +129,7 @@ public class InsightsService(
     {
         var url = config["Integracao:N8nInsightsUrl"] ?? "http://127.0.0.1:5678/webhook/marketplace-insights";
         var cliente = http.CreateClient();
-        cliente.Timeout = TimeSpan.FromSeconds(90);
+        cliente.Timeout = TimeSpan.FromMinutes(4); // em segundo plano (InsightsTarefas): pode esperar o Google sobrecarregado
         // StringContent (e não JsonContent): manda o JSON inteiro com Content-Length, o formato mais compatível.
         using var pedido = new HttpRequestMessage(HttpMethod.Post, url)
         {
@@ -143,7 +143,11 @@ public class InsightsService(
             if (resposta.StatusCode == System.Net.HttpStatusCode.NotFound)
                 return new(false, null, 503, "O fluxo de insights ainda não está publicado no n8n.");
             if (!resposta.IsSuccessStatusCode)
-                return new(false, null, 502, $"O n8n respondeu com erro {(int)resposta.StatusCode}. Veja as execuções do fluxo no n8n.");
+            {
+                log.LogWarning("Insights: o n8n respondeu {Status}", (int)resposta.StatusCode);
+                // O fluxo falha quando o Google (Gemini) responde 503 = sobrecarregado (mesmo depois das novas tentativas).
+                return new(false, null, 502, "A IA do Google está sobrecarregada agora e não respondeu. Tente de novo em alguns minutos.");
+            }
 
             var corpo = await resposta.Content.ReadFromJsonAsync<JsonElement>(ct);
             var texto = corpo.TryGetProperty("insights", out var t) ? t.GetString() : null;
@@ -153,7 +157,7 @@ public class InsightsService(
         }
         catch (TaskCanceledException) when (!ct.IsCancellationRequested)
         {
-            return new(false, null, 504, "A IA demorou demais para responder (mais de 90 s). Tente de novo.");
+            return new(false, null, 504, "A IA demorou demais para responder (mais de 4 minutos). Tente de novo em alguns minutos.");
         }
         catch (HttpRequestException e)
         {

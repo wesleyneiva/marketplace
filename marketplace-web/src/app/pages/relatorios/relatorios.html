@@ -62,7 +62,9 @@
         </button>
       </header>
       @if (gerando()) {
-        <p class="aguarde"><app-icone nome="loader-circle" girando /> A IA está analisando {{ dias() }} dias de vendas, os produtos e o clima… (uns 10 a 20 segundos)</p>
+        <p class="aguarde"><app-icone nome="loader-circle" girando /> A IA está analisando {{ dias() }} dias de vendas, os produtos e o clima…
+          @if (segundosIa() < 30) { (costuma levar de 10 a 30 segundos) }
+          @else { {{ segundosIa() }} s — o Google está lento agora; pode levar alguns minutos, pode continuar usando o sistema e voltar depois. }</p>
       } @else if (erroInsights()) {
         <div class="mensagem-erro" role="alert">{{ erroInsights() }}</div>
       } @else if (insights(); as ins) {
@@ -80,7 +82,7 @@
         <p>Passe o mouse sobre um dia para ver os detalhes. A coluna clara é hoje, ainda em andamento.</p>
       </header>
       <app-grafico-colunas [dados]="colunasDia()" formato="moeda" descricao="Faturamento por dia" />
-      <h3 class="sub">Temperatura em Porto Alegre (mínima e máxima do dia)</h3>
+      <h3 class="sub">Temperatura {{ clima.value()?.cidade ? 'em ' + clima.value()!.cidade : 'na cidade da loja' }} (mínima e máxima do dia)</h3>
       <app-grafico-faixa [dados]="faixaTemperatura()" descricao="Temperatura mínima e máxima por dia" />
       <details class="tabela-dados">
         <summary>Ver os dados em tabela</summary>
@@ -177,7 +179,7 @@
     <section class="painel bloco">
       <header>
         <h2><app-icone nome="cloud-sun-rain" /> O clima influenciou as vendas?</h2>
-        <p>Cruzamos cada venda com o clima real daquela hora em Porto Alegre.
+        <p>Cruzamos cada venda com o clima real daquela hora {{ c.cidade ? 'em ' + c.cidade : 'na cidade da loja' }}.
           @if (efeitoChuva() !== null) { Com chuva, o movimento foi <b>{{ efeitoChuva()! > 0 ? '+' : '' }}{{ efeitoChuva() }}%</b> em relação às horas secas. }</p>
       </header>
 

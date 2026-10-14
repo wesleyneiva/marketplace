@@ -157,14 +157,26 @@ export class Relatorios {
       .filter(Boolean),
   );
 
+  protected readonly segundosIa = signal(0);
+
+  // A análise roda no servidor em segundo plano (o Google às vezes leva minutos): pede, e pergunta a cada 3 s se ficou pronta.
   async gerarInsights(): Promise<void> {
     this.gerando.set(true);
     this.erroInsights.set(null);
+    this.segundosIa.set(0);
     try {
-      const r = await firstValueFrom(
-        this.http.post<{ insights: string }>('/api/relatorios/insights', {}, { params: this.periodo() }),
+      const { id } = await firstValueFrom(
+        this.http.post<{ id: string }>('/api/relatorios/insights', {}, { params: this.periodo() }),
       );
-      this.insights.set({ texto: r.insights, periodo: `${this.dias()} dias` });
+      const inicio = Date.now();
+      while (Date.now() - inicio < 5 * 60_000) {
+        await new Promise((ok) => setTimeout(ok, 3000));
+        this.segundosIa.set(Math.round((Date.now() - inicio) / 1000));
+        const t = await firstValueFrom(this.http.get<{ situacao: string; insights: string | null; mensagem: string | null }>(`/api/relatorios/insights/${id}`));
+        if (t.situacao === 'pronto') { this.insights.set({ texto: t.insights ?? '', periodo: `${this.dias()} dias` }); return; }
+        if (t.situacao === 'erro') { this.erroInsights.set(t.mensagem ?? 'Não foi possível gerar os insights agora.'); return; }
+      }
+      this.erroInsights.set('A IA não respondeu em 5 minutos. Tente de novo mais tarde.');
     } catch (e) {
       this.erroInsights.set(
         e instanceof HttpErrorResponse && e.error?.mensagem ? e.error.mensagem : 'Não foi possível gerar os insights agora.',

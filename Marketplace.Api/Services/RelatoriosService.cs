@@ -223,7 +223,8 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
         return new RelatorioClima(periodo, porTemperatura, porChuva,
             Top(s => (s.ComCalor, s.ComFrio), vendasCalor, vendasFrio, $"com {Quente:0} °C ou mais", $"abaixo de {Frio:0} °C"),
             Top(s => (s.ComFrio, s.ComCalor), vendasFrio, vendasCalor, $"abaixo de {Frio:0} °C", $"com {Quente:0} °C ou mais"),
-            Top(s => (s.ComChuva, s.SemChuva), vendasChuva, vendasSeco, "com chuva", "sem chuva"));
+            Top(s => (s.ComChuva, s.SemChuva), vendasChuva, vendasSeco, "com chuva", "sem chuva"),
+            locais.Local(db.EmpresaAtual)?.Nome);
     }
 
     // ------------------------------------------------------------------ apoio

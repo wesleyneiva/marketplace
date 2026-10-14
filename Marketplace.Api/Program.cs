@@ -34,6 +34,7 @@ builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
+builder.Services.AddSingleton<Marketplace.Api.Services.InsightsTarefas>(); // insights da IA em segundo plano
 builder.Services.AddScoped<Marketplace.Api.Services.CobrancasService>(); // mensalidades dos clientes (área do dono)
 builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>();
 builder.Services.AddHostedService<Marketplace.Api.Services.ComprasAutomaticas>(); // rascunhos de compra ao abrir a loja // gera mensalidades e bloqueia atraso, de hora em hora
