@@ -87,8 +87,8 @@
         </label>
         <label>Dia do vencimento<input type="number" min="1" max="28" [(ngModel)]="assinatura.diaVencimento" /></label>
         <label>Valor combinado (R$) <small>(desconto; vazio = pelo plano)</small><input type="number" min="0" step="0.01" [(ngModel)]="assinatura.precoCombinado" [disabled]="assinatura.cortesia" /></label>
-        <label>Teste grátis até <small>(não cobra o que vence até lá)</small><input type="date" [(ngModel)]="assinatura.testeAte" [disabled]="assinatura.cortesia" /></label>
-        <label>Cobrar a partir de <small>(primeiro vencimento)</small><input type="date" [(ngModel)]="assinatura.cobrarDesde" [disabled]="assinatura.cortesia" /></label>
+        <label>Teste grátis até <small>(não cobra o que vence até lá)</small><app-campo-data [(ngModel)]="assinatura.testeAte" [disabled]="assinatura.cortesia" /></label>
+        <label>Cobrar a partir de <small>(primeiro vencimento)</small><app-campo-data [(ngModel)]="assinatura.cobrarDesde" [disabled]="assinatura.cortesia" /></label>
         <label class="marcar"><input type="checkbox" [(ngModel)]="assinatura.cortesia" /> Cortesia (não cobra: demonstração, teste, parceiro)</label>
       </div>
       <p class="atual">Mensalidade: <b>{{ assinatura.cortesia ? 'cortesia (sem cobrança)' : previa() === null ? 'escolha um plano' : (previa() | currency: 'BRL') }}</b>

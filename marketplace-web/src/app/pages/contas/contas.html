@@ -109,7 +109,7 @@
         @if (sugerida()) { <small class="sugerida"><app-icone nome="lightbulb" /> Sugerida pela descrição. Pode trocar.</small> }
       </label>
       <div class="duas">
-        <label>Vencimento<input name="vencimento" type="date" [(ngModel)]="form.vencimento" required /></label>
+        <label>Vencimento<app-campo-data name="vencimento" [(ngModel)]="form.vencimento" required /></label>
         <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" required /></label>
       </div>
       <div class="duas">
@@ -144,7 +144,7 @@
       <div class="corpo">
         <p><b>{{ c.descricao }}</b><br /><small>Vencimento {{ c.vencimento | dia }} · {{ c.valor | currency: 'BRL' }}</small></p>
         <div class="duas">
-          <label>Pago em<input name="pagaEm" type="date" [max]="hoje" [(ngModel)]="pagamento.pagaEm" required /></label>
+          <label>Pago em<app-campo-data name="pagaEm" [max]="hoje" [(ngModel)]="pagamento.pagaEm" required /></label>
           <label>Valor pago (R$)<input name="valorPago" type="number" min="0.01" step="0.01" [(ngModel)]="pagamento.valorPago" required /></label>
         </div>
         @if (pagamento.valorPago && pagamento.valorPago !== c.valor) {

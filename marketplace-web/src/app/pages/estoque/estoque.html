@@ -93,8 +93,8 @@
       <option value="">Todos os tipos</option>
       @for (t of tipos; track t.valor) { <option [value]="t.valor">{{ t.rotulo }}</option> }
     </select>
-    <label class="data">De <input type="date" (change)="mudarFiltro(() => filtroDe.set($any($event.target).value))" /></label>
-    <label class="data">Até <input type="date" (change)="mudarFiltro(() => filtroAte.set($any($event.target).value))" /></label>
+    <label class="data">De <app-campo-data [ngModel]="filtroDe()" (ngModelChange)="mudarFiltro(() => filtroDe.set($event))" /></label>
+    <label class="data">Até <app-campo-data [ngModel]="filtroAte()" (ngModelChange)="mudarFiltro(() => filtroAte.set($event))" /></label>
   </section>
 
   <section class="painel tabela-rolagem" [class.carregando]="movimentacoes.isLoading()">

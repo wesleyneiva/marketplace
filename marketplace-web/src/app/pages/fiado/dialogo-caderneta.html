@@ -48,7 +48,7 @@
           <h3><app-icone nome="banknote" /> Receber fora do caixa <small>(ex.: PIX que caiu direto no banco)</small></h3>
           <div class="grade">
             <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [max]="c.saldo" [(ngModel)]="receber.valor" required /></label>
-            <label>Data<input name="data" type="date" [max]="hoje" [(ngModel)]="receber.data" required /></label>
+            <label>Data<app-campo-data name="data" [max]="hoje" [(ngModel)]="receber.data" required /></label>
             <label>Forma
               <select name="forma" [ngModel]="receber.forma" (ngModelChange)="formaMudou($event)">
                 <option value="Pix">PIX</option><option value="Dinheiro">Dinheiro</option>

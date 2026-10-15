@@ -12,6 +12,7 @@ import {
 import { DialogoLancamento } from './dialogo-lancamento';
 import { DialogoTransferencia } from './dialogo-transferencia';
 import { Icone } from '../../shared/icone';
+import { CampoData } from '../../shared/campo-data';
 
 type Periodo = 'mes' | 'mesPassado' | '30dias' | 'outro';
 // Uma linha da tabela: um movimento ou a linha do saldo de implantação.
@@ -20,7 +21,7 @@ type Linha = { tipo: 'mov'; mov: Movimento } | { tipo: 'implantacao'; data: stri
 // Aba "Lançamentos": o livro (extrato). Com uma conta escolhida, mostra o saldo linha a linha, como o extrato do banco.
 @Component({
   selector: 'app-lancamentos',
-  imports: [Icone, CurrencyPipe, FormsModule, DiaPipe, RouterLink, DialogoLancamento, DialogoTransferencia],
+  imports: [Icone, CurrencyPipe, FormsModule, DiaPipe, RouterLink, DialogoLancamento, DialogoTransferencia, CampoData],
   templateUrl: './lancamentos.html',
   styleUrls: ['./financeiro.scss', './lancamentos.scss'],
 })

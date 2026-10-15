@@ -103,7 +103,7 @@
         <span class="ajuda">Quanto havia nesta conta no dia em que a empresa começou a usar o sistema. Lançamentos antes desta data não entram no saldo.</span>
         <div class="duas">
           <label>Valor (R$)<input name="saldoInicial" type="number" step="0.01" [(ngModel)]="form.saldoInicial" /></label>
-          <label>Em<input name="saldoInicialEm" type="date" [max]="hoje" [(ngModel)]="form.saldoInicialEm" required /></label>
+          <label>Em<app-campo-data name="saldoInicialEm" [max]="hoje" [(ngModel)]="form.saldoInicialEm" required /></label>
         </div>
       </fieldset>
       @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }

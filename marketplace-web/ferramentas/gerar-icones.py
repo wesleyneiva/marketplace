@@ -11,7 +11,7 @@ import pathlib, re, subprocess, sys, tarfile, tempfile
 VERSAO = "0.460.0"
 ICONES = sorted(set("""
 arrow-down-to-line arrow-left arrow-left-right arrow-up-from-line ban banknote bot building
-building-2 calendar-clock chart-column chart-line check chevron-down chevron-right chevron-up
+building-2 calendar calendar-clock chart-column chart-line check chevron-down chevron-right chevron-up
 circle circle-alert circle-check circle-dollar-sign circle-x clipboard-list clock cloud-rain
 cloud-sun-rain copy credit-card download eye file-text flag flask-conical folder hand-coins history
 import key-round landmark layout-dashboard lightbulb loader-circle lock lock-open log-out map-pin

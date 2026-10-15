@@ -212,7 +212,7 @@
           }
           @if (precisaValidade(i)) {
             <label class="validade">Validade
-              <input type="date" [min]="hoje" [ngModel]="i.validade" (ngModelChange)="i.validade = $event || null; mexeu()" />
+              <app-campo-data [min]="hoje" [ngModel]="i.validade" (ngModelChange)="i.validade = $event || null; mexeu()" />
             </label>
           }
         </div>

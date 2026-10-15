@@ -8,12 +8,13 @@ import {
   categoriasPorGrupo, hojeIso, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
+import { CampoData } from '../../shared/campo-data';
 
 // Receita ou despesa avulsa, já paga/recebida (ex.: comprou material de limpeza no PIX, rendimento do banco).
 // Para algo a pagar DEPOIS, o lugar é Contas a pagar.
 @Component({
   selector: 'app-dialogo-lancamento',
-  imports: [Icone, FormsModule, CurrencyPipe],
+  imports: [Icone, FormsModule, CurrencyPipe, CampoData],
   styleUrl: './financeiro.scss',
   template: `
     <dialog #dlg class="janela" (close)="erro.set(null)">
@@ -29,7 +30,7 @@ import { Icone } from '../../shared/icone';
           </label>
           <div class="duas">
             <label>Valor (R$)<input name="valor" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" required /></label>
-            <label>Data<input name="data" type="date" [max]="hoje" [(ngModel)]="form.data" required /></label>
+            <label>Data<app-campo-data name="data" [max]="hoje" [(ngModel)]="form.data" required /></label>
           </div>
           <label>Categoria
             <select name="categoria" [(ngModel)]="form.categoriaId" (ngModelChange)="escolheuCategoria.set(true)" required>

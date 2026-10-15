@@ -55,7 +55,7 @@
           @if (precisaValidade()) {
             <div class="campo">
               <label for="validade">Validade *</label>
-              <input id="validade" name="validade" type="date" [min]="hoje" [(ngModel)]="validade" required />
+              <app-campo-data id="validade" name="validade" [min]="hoje" [(ngModel)]="validade" required />
             </div>
           }
 

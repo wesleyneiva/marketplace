@@ -11,8 +11,8 @@
     <button type="button" class="botao pequeno" [class.ligado]="periodo() === 'mes'" (click)="escolherPeriodo('mes')">Este mês</button>
     <button type="button" class="botao pequeno" [class.ligado]="periodo() === 'mesPassado'" (click)="escolherPeriodo('mesPassado')">Mês passado</button>
     <button type="button" class="botao pequeno" [class.ligado]="periodo() === '30dias'" (click)="escolherPeriodo('30dias')">Últimos 30 dias</button>
-    <label>de <input type="date" [ngModel]="de()" (ngModelChange)="mudouData('de', $event)" /></label>
-    <label>até <input type="date" [ngModel]="ate()" (ngModelChange)="mudouData('ate', $event)" /></label>
+    <label>de <app-campo-data [ngModel]="de()" (ngModelChange)="mudouData('de', $event)" /></label>
+    <label>até <app-campo-data [ngModel]="ate()" (ngModelChange)="mudouData('ate', $event)" /></label>
   </div>
   <div class="campos">
     <label>Conta

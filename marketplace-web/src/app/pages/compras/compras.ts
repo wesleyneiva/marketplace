@@ -8,13 +8,14 @@ import { ItemSugestao, Pedido, SugestaoFornecedor } from '../../core/api/compras
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
+import { CampoData } from '../../shared/campo-data';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
 interface Conferencia { itemId: number; produto: string; unidade: string; perecivel: boolean; pedido: number; recebido: number; validade: string; custo: number }
 
 @Component({
   selector: 'app-compras',
-  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe],
+  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe, CampoData],
   templateUrl: './compras.html',
   styleUrl: './compras.scss',
 })

@@ -11,7 +11,7 @@
     <div class="bloco">
       <h2>Preço alterado desde</h2>
       <div class="linha">
-        <input type="date" [(ngModel)]="dataAlteracao" [max]="hoje" />
+        <app-campo-data [(ngModel)]="dataAlteracao" [max]="hoje" />
         <button type="button" class="botao" (click)="adicionarAlterados()" [disabled]="carregando()">+ Adicionar</button>
       </div>
       <small>Produtos novos ou com preço trocado (tela, planilha ou nota).</small>

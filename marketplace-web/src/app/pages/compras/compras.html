@@ -161,7 +161,7 @@
                 <td class="num">{{ c.pedido | quantidade: c.unidade }}</td>
                 <td class="num"><input class="qtd" type="number" min="0" [step]="c.unidade === 'KG' || c.unidade === 'L' ? 0.001 : 1" [(ngModel)]="c.recebido" [class.falta]="faltou(c)" />
                   @if (faltou(c)) { <small class="urgente">faltou {{ c.pedido - c.recebido | quantidade: c.unidade }}</small> }</td>
-                <td>@if (c.perecivel) { <input type="date" [(ngModel)]="c.validade" /> } @else { <small>não perecível</small> }</td>
+                <td>@if (c.perecivel) { <app-campo-data [(ngModel)]="c.validade" /> } @else { <small>não perecível</small> }</td>
                 <td class="num"><input class="qtd" type="number" min="0" step="0.01" [(ngModel)]="c.custo" /></td>
               </tr>
             }

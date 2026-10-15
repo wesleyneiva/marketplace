@@ -89,7 +89,7 @@
       </header>
       <div class="corpo">
         <p>{{ f.descricao }} · vencimento {{ f.vencimento | dia }} · {{ f.valor | currency: 'BRL' }}</p>
-        <label>Data do pagamento<input name="pagaEm" type="date" [(ngModel)]="pagamento.pagaEm" required /></label>
+        <label>Data do pagamento<app-campo-data name="pagaEm" [(ngModel)]="pagamento.pagaEm" required /></label>
         <label>Valor recebido (R$)<input name="valor" type="number" min="0" step="0.01" [(ngModel)]="pagamento.valorPago" required /></label>
         <label>Forma
           <select name="forma" [(ngModel)]="pagamento.forma">

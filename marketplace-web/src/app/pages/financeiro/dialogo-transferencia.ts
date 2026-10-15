@@ -5,11 +5,12 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
+import { CampoData } from '../../shared/campo-data';
 
 // Transferência entre contas (ex.: levar o dinheiro do cofre para o banco). Não é receita nem despesa.
 @Component({
   selector: 'app-dialogo-transferencia',
-  imports: [Icone, FormsModule, CurrencyPipe],
+  imports: [Icone, FormsModule, CurrencyPipe, CampoData],
   styleUrl: './financeiro.scss',
   template: `
     <dialog #dlg class="janela" (close)="erro.set(null)">
@@ -34,7 +35,7 @@ import { Icone } from '../../shared/icone';
             </label>
           </div>
           <div class="duas">
-            <label>Data<input name="data" type="date" [max]="hoje" [(ngModel)]="form.data" required /></label>
+            <label>Data<app-campo-data name="data" [max]="hoje" [(ngModel)]="form.data" required /></label>
             <label>Valor (R$)<input #campoValor name="valor" type="number" min="0.01" step="0.01" [(ngModel)]="form.valor" required /></label>
           </div>
           <label>Descrição <small>(opcional)</small>

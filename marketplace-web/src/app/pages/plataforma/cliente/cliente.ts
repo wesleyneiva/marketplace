@@ -11,6 +11,7 @@ import { Horario, horarioParaServidor, horarioParaTela } from '../../../shared/h
 import { CurrencyPipe } from '@angular/common';
 import { DiaPipe } from '../../../shared/dia.pipe';
 import { API, Fatura, Plano, mesAno } from '../comum';
+import { CampoData } from '../../../shared/campo-data';
 
 // Formato igual a Contracts/PlataformaDtos.cs (ClienteDetalheResponse).
 interface Ficha {
@@ -41,7 +42,7 @@ const URL = '/api/plataforma/empresas';
 // Ficha do cliente na área do dono: dados cadastrais, plano, cidade, horário e uso do sistema (sem vendas: são do cliente).
 @Component({
   selector: 'app-cliente',
-  imports: [Icone, FormsModule, DatePipe, RouterLink, CidadeBusca, HorarioEditor, CurrencyPipe, DiaPipe],
+  imports: [Icone, FormsModule, DatePipe, RouterLink, CidadeBusca, HorarioEditor, CurrencyPipe, DiaPipe, CampoData],
   templateUrl: './cliente.html',
   styleUrl: './cliente.scss',
 })
