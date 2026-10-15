@@ -50,6 +50,9 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
             if (p.EstoqueAtual + pedido > pontoDePedido) continue;
 
             var necessario = consumo * (prazo + DiasDeCobertura) + p.EstoqueMinimo - p.EstoqueAtual - pedido;
+            // No mínimo (ou abaixo) e sem venda recente, a conta acima dá zero: repõe até o dobro do mínimo.
+            if (p.EstoqueAtual + pedido <= p.EstoqueMinimo)
+                necessario = Math.Max(necessario, 2 * p.EstoqueMinimo - p.EstoqueAtual - pedido);
             var sugerido = Arredondar(p, necessario);
             if (sugerido <= 0) continue;
 

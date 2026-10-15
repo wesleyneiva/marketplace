@@ -9,13 +9,17 @@ import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { ProdutoBusca } from '../../shared/produto-busca';
+import { Produto } from '../../core/api/produtos.api';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
+interface ItemNovo { produtoId: number; produto: string; unidade: string; estoqueAtual: number; estoqueMinimo: number; fornecedorId: number | null; fornecedor: string | null; quantidade: number; custo: number }
+interface Fornecedor { id: number; nome: string; prazoEntregaDias: number; ativo: boolean }
 interface Conferencia { itemId: number; produto: string; unidade: string; perecivel: boolean; pedido: number; recebido: number; validade: string; custo: number }
 
 @Component({
   selector: 'app-compras',
-  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe, CampoData],
+  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe, CampoData, ProdutoBusca],
   templateUrl: './compras.html',
   styleUrl: './compras.scss',
 })
@@ -122,6 +126,70 @@ export class Compras {
       this.mostrarAviso(`Pedido #${p.id} cancelado.`);
       this.pedidos.reload();
     });
+  }
+
+  // ----- Pedido manual (sem passar pela sugestão) -----
+  private readonly dlgNovo = viewChild<ElementRef<HTMLDialogElement>>('dlgNovo');
+  private readonly carregarFornecedores = signal(false);
+  protected readonly fornecedores = httpResource<Fornecedor[]>(() => (this.carregarFornecedores() ? '/api/fornecedores' : undefined));
+  protected readonly fornecedoresAtivos = computed(() => (this.fornecedores.value() ?? []).filter((f) => f.ativo));
+  protected novoFornecedorId: number | null = null;
+  protected novaObservacao = '';
+  protected readonly novosItens = signal<ItemNovo[]>([]);
+  protected readonly erroNovo = signal<string | null>(null);
+
+  abrirNovoPedido(): void {
+    this.carregarFornecedores.set(true);
+    this.novoFornecedorId = null;
+    this.novaObservacao = '';
+    this.novosItens.set([]);
+    this.erroNovo.set(null);
+    this.dlgNovo()?.nativeElement.showModal();
+  }
+
+  adicionarItem(p: Produto): void {
+    this.erroNovo.set(null);
+    if (this.novosItens().some((i) => i.produtoId === p.id)) return;
+    if (this.novoFornecedorId === null && p.fornecedorId) this.novoFornecedorId = p.fornecedorId;
+    // Sugere repor até o dobro do mínimo; senão, 1.
+    const repor = p.estoqueMinimo * 2 - p.estoqueAtual;
+    const quantidade = repor > 0 ? (p.unidade === 'KG' || p.unidade === 'L' ? Math.ceil(repor * 2) / 2 : Math.ceil(repor)) : 1;
+    this.novosItens.update((l) => [...l, {
+      produtoId: p.id, produto: p.nome, unidade: p.unidade, estoqueAtual: p.estoqueAtual, estoqueMinimo: p.estoqueMinimo,
+      fornecedorId: p.fornecedorId, fornecedor: p.fornecedor, quantidade, custo: p.precoCusto,
+    }]);
+  }
+
+  removerItem(i: ItemNovo): void {
+    this.novosItens.update((l) => l.filter((x) => x !== i));
+  }
+
+  protected totalNovo(): number {
+    return this.novosItens().reduce((t, i) => t + (Number(i.quantidade) || 0) * (Number(i.custo) || 0), 0);
+  }
+
+  async salvarNovo(enviar: boolean): Promise<void> {
+    if (this.novoFornecedorId === null) return this.erroNovo.set('Escolha o fornecedor.');
+    const itens = this.novosItens().filter((i) => Number(i.quantidade) > 0)
+      .map((i) => ({ produtoId: i.produtoId, quantidade: Number(i.quantidade), custoUnitario: Number(i.custo) || null }));
+    if (!itens.length) return this.erroNovo.set('Adicione pelo menos um produto com quantidade.');
+
+    this.ocupado.set(true);
+    try {
+      const p = await firstValueFrom(this.http.post<Pedido>('/api/compras/pedidos',
+        { fornecedorId: this.novoFornecedorId, itens, enviar, observacao: this.novaObservacao }));
+      this.dlgNovo()?.nativeElement.close();
+      this.mostrarAviso(enviar
+        ? `Pedido #${p.id} enviado para ${p.fornecedor}: entrega prevista em ${this.dia(p.previsaoEntrega)}.`
+        : `Pedido #${p.id} salvo como rascunho.`);
+      this.aba.set('pedidos');
+      this.filtro.set('abertos');
+      this.pedidos.reload();
+    } catch (e) {
+      this.erroNovo.set(this.mensagem(e));
+    } finally {
+      this.ocupado.set(false);
+    }
   }
 
   // ----- Conferência na entrega -----

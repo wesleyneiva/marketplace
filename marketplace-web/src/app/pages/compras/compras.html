@@ -4,7 +4,8 @@
     <p>O que comprar, de quem, e a conferência quando a mercadoria chega.</p>
   </div>
   <div class="botoes-topo">
-    <a class="botao primario" routerLink="/compras/nota"><app-icone nome="file-text" /> Entrada por NF-e (XML)</a>
+    <button type="button" class="botao primario" (click)="abrirNovoPedido()"><app-icone nome="plus" /> Novo pedido</button>
+    <a class="botao" routerLink="/compras/nota"><app-icone nome="file-text" /> Entrada por NF-e (XML)</a>
     <a class="botao" routerLink="/fornecedores"><app-icone nome="truck" /> Fornecedores</a>
   </div>
 </header>
@@ -175,4 +176,47 @@
       <button type="button" class="botao primario" (click)="confirmarRecebimento()" [disabled]="ocupado()">{{ ocupado() ? 'Registrando…' : 'Confirmar entrada no estoque' }}</button>
     </footer>
   }
+</dialog>
+
+<!-- ======================= NOVO PEDIDO (MANUAL) ======================= -->
+<dialog #dlgNovo class="janela larga" (close)="erroNovo.set(null)">
+  <header><h2><app-icone nome="clipboard-list" /> Novo pedido de compra</h2><button type="button" class="fechar" (click)="dlgNovo.close()" aria-label="Fechar"><app-icone nome="x" /></button></header>
+  <div class="corpo">
+    <label>Fornecedor
+      <select [(ngModel)]="novoFornecedorId">
+        <option [ngValue]="null" disabled>Escolha o fornecedor…</option>
+        @for (f of fornecedoresAtivos(); track f.id) { <option [ngValue]="f.id">{{ f.nome }} · entrega em {{ f.prazoEntregaDias }} {{ f.prazoEntregaDias === 1 ? 'dia' : 'dias' }}</option> }
+      </select>
+    </label>
+    <label>Adicionar produto</label>
+    <app-produto-busca [flutuante]="false" (selecionado)="adicionarItem($event)" />
+    @if (novosItens().length) {
+      <div class="rolagem">
+        <table>
+          <thead><tr><th>Produto</th><th class="num">Estoque</th><th class="num">Comprar</th><th class="num">Custo</th><th></th></tr></thead>
+          <tbody>
+            @for (i of novosItens(); track i.produtoId) {
+              <tr>
+                <td><span class="nome">{{ i.produto }}</span>
+                  @if (i.fornecedorId && novoFornecedorId && i.fornecedorId !== novoFornecedorId) { <small class="urgente">o fornecedor deste produto é {{ i.fornecedor }}</small> }</td>
+                <td class="num">{{ i.estoqueAtual | quantidade: i.unidade }}<small>mín. {{ i.estoqueMinimo | quantidade: i.unidade }}</small></td>
+                <td class="num"><input class="qtd" type="number" min="0" [step]="i.unidade === 'KG' || i.unidade === 'L' ? 0.5 : 1" [(ngModel)]="i.quantidade" [attr.aria-label]="'Quantidade de ' + i.produto" /> {{ i.unidade }}</td>
+                <td class="num"><input class="qtd" type="number" min="0" step="0.01" [(ngModel)]="i.custo" [attr.aria-label]="'Custo de ' + i.produto" /></td>
+                <td class="num"><button type="button" class="fechar" (click)="removerItem(i)" [attr.aria-label]="'Tirar ' + i.produto"><app-icone nome="trash-2" /></button></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <div class="total-pedido"><span>{{ novosItens().length }} {{ novosItens().length === 1 ? 'item' : 'itens' }}</span><strong>{{ totalNovo() | currency: 'BRL' }}</strong></div>
+    } @else {
+      <p class="dica">Procure os produtos pelo nome ou bipe o código de barras. O fornecedor é preenchido pelo cadastro do primeiro produto.</p>
+    }
+    <label>Observação <input type="text" [(ngModel)]="novaObservacao" placeholder="Opcional: ex.: entregar pela manhã" /></label>
+  </div>
+  <footer>
+    @if (erroNovo()) { <div class="erro" role="alert">{{ erroNovo() }}</div> }
+    <button type="button" class="botao" (click)="salvarNovo(false)" [disabled]="ocupado()">Salvar rascunho</button>
+    <button type="button" class="botao primario" (click)="salvarNovo(true)" [disabled]="ocupado()"><app-icone nome="send" /> Criar e enviar ao fornecedor</button>
+  </footer>
 </dialog>
