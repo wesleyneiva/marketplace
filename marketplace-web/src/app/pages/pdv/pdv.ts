@@ -91,6 +91,12 @@ export class Pdv {
   // Pix automático (Mercado Pago) ligado nas Configurações? E os Pix já pagos que ainda não entraram em venda.
   protected readonly pixAutomatico = signal<string | null>(null);
   protected readonly pixSoltos = signal<CobrancaPix[]>([]);
+  // Pix que entraram nesta venda pelo aviso do Mercado Pago (a janela mostra a confirmação em destaque).
+  protected readonly pixConfirmados = computed(() => {
+    const ids = new Set(this.pagamentos().filter((p) => p.cobrancaPixId).map((p) => p.cobrancaPixId));
+    return this.pixRecebidos().filter((c) => ids.has(c.id));
+  });
+  private readonly pixRecebidos = signal<CobrancaPix[]>([]);
   protected readonly pago = computed(() => arredondar(this.pagamentos().reduce((s, p) => s + p.valor, 0)));
   protected readonly falta = computed(() => arredondar(Math.max(0, this.total() - this.pago())));
   protected readonly troco = computed(() => arredondar(Math.max(0, this.pago() - this.total())));
@@ -458,6 +464,7 @@ export class Pdv {
     }
     this.erro.set(null);
     this.pagamentos.update((p) => [...p, { forma: 'Pix', valor: c.valor, cobrancaPixId: c.id }]);
+    this.pixRecebidos.update((l) => [...l.filter((x) => x.id !== c.id), c]);
     this.pixSoltos.update((l) => l.filter((x) => x.id !== c.id));
     if (this.falta() > 0) this.escolherForma('Dinheiro');
     else { this.textoValor = ''; setTimeout(() => this.btnConfirmar()?.nativeElement.focus()); }

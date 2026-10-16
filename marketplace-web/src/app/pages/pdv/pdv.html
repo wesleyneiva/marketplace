@@ -227,9 +227,15 @@
       }
 
       @if (pagamentos().length) {
+        @for (c of pixConfirmados(); track c.id) {
+          <div class="pix-confirmado" role="status">
+            <app-icone nome="circle-check" />
+            <span><b>Pix de {{ c.valor | currency: 'BRL' }} recebido</b> · confirmado pelo Mercado Pago{{ c.pagaEm ? ' às ' + (c.pagaEm | date: 'HH:mm') : '' }}</span>
+          </div>
+        }
         <ul class="lista-pagamentos">
           @for (p of pagamentos(); track $index) {
-            <li><span>{{ rotuloForma(p.forma) }}@if (p.forma === 'Fiado' && clienteFiado()) { · {{ clienteFiado()!.nome }} }</span><b>{{ p.valor | currency: 'BRL' }}</b>
+            <li><span>{{ rotuloForma(p.forma) }}@if (p.forma === 'Fiado' && clienteFiado()) { · {{ clienteFiado()!.nome }} }@if (p.cobrancaPixId) { <small class="selo-confirmado"><app-icone nome="check" /> confirmado</small> }</span><b>{{ p.valor | currency: 'BRL' }}</b>
               <button type="button" class="remover" (click)="removerPagamento($index)" aria-label="Remover pagamento"><app-icone nome="x" /></button></li>
           }
         </ul>
