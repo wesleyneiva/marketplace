@@ -6,15 +6,16 @@ import { PlanoContas } from './plano-contas';
 import { AReceber } from './a-receber';
 import { FluxoCaixa } from './fluxo-caixa';
 import { DreAba } from './dre';
+import { ConciliacaoAba } from './conciliacao';
 import { Icone } from '../../shared/icone';
 
-type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
+type Aba = 'saldos' | 'lancamentos' | 'conciliacao' | 'fluxo' | 'dre' | 'receber' | 'plano';
 
 // Financeiro: onde o dinheiro está (saldos), cada entrada e saída (lançamentos) e o porquê (plano de contas).
 // A aba e a conta ficam no ENDEREÇO (?aba=lancamentos&conta=3): dá para favoritar e o "voltar" do navegador funciona.
 @Component({
   selector: 'app-financeiro',
-  imports: [Icone, RouterLink, Saldos, Lancamentos, FluxoCaixa, DreAba, AReceber, PlanoContas],
+  imports: [Icone, RouterLink, Saldos, Lancamentos, ConciliacaoAba, FluxoCaixa, DreAba, AReceber, PlanoContas],
   template: `
     <header class="titulo-pagina">
       <div>
@@ -26,6 +27,7 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
     <nav class="abas nao-imprimir" role="tablist">
       <a role="tab" routerLink="." [queryParams]="{ aba: 'saldos' }" [class.ativa]="abaAtual() === 'saldos'"><app-icone nome="circle-dollar-sign" /> Saldos</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'lancamentos' }" [class.ativa]="abaAtual() === 'lancamentos'"><app-icone nome="notebook-pen" /> Lançamentos</a>
+      <a role="tab" routerLink="." [queryParams]="{ aba: 'conciliacao' }" [class.ativa]="abaAtual() === 'conciliacao'"><app-icone nome="landmark" /> Extrato do banco</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'fluxo' }" [class.ativa]="abaAtual() === 'fluxo'"><app-icone nome="chart-line" /> Fluxo de caixa</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'dre' }" [class.ativa]="abaAtual() === 'dre'"><app-icone nome="chart-column" /> DRE</a>
       <a role="tab" routerLink="." [queryParams]="{ aba: 'receber' }" [class.ativa]="abaAtual() === 'receber'"><app-icone nome="credit-card" /> A receber</a>
@@ -34,6 +36,7 @@ type Aba = 'saldos' | 'lancamentos' | 'fluxo' | 'dre' | 'receber' | 'plano';
 
     @switch (abaAtual()) {
       @case ('lancamentos') { <app-lancamentos [contaInicial]="conta() ?? null" /> }
+      @case ('conciliacao') { <app-conciliacao [contaInicial]="conta() ?? null" /> }
       @case ('fluxo') { <app-fluxo-caixa /> }
       @case ('dre') { <app-dre /> }
       @case ('receber') { <app-a-receber /> }
@@ -59,6 +62,6 @@ export class Financeiro {
 
   protected readonly abaAtual = computed<Aba>(() => {
     const a = this.aba();
-    return a === 'lancamentos' || a === 'fluxo' || a === 'dre' || a === 'receber' || a === 'plano' ? a : 'saldos';
+    return a === 'lancamentos' || a === 'conciliacao' || a === 'fluxo' || a === 'dre' || a === 'receber' || a === 'plano' ? a : 'saldos';
   });
 }

@@ -106,8 +106,10 @@ public class MovimentoFinanceiro : IDaEmpresa
     public SessaoCaixa? SessaoCaixa { get; set; }
     public Guid? LiquidacaoId { get; set; }         // recebimento da maquininha: os recebíveis desse depósito têm o mesmo Guid
 
-    // Conferido com o extrato do banco (Etapa 5: conciliação por OFX).
+    // Conferido com o extrato do banco (conciliação por OFX). As linhas do extrato conferidas junto com este
+    // lançamento têm o mesmo ConciliacaoId (ver Models/Conciliacao.cs). Conciliado = ConciliacaoId preenchido.
     public bool Conciliado { get; set; }
+    public Guid? ConciliacaoId { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
     public string? CriadoPorId { get; set; }

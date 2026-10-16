@@ -60,6 +60,16 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   parcelas vira uma conta "à vista" (que pode entrar já paga). Contas lançadas à mão (aluguel, luz) com repetição
   mensal; pagar (data, valor com juros/desconto, forma), desfazer, editar e excluir só em aberto. Resumo no topo e
   no dashboard; vencidas, de hoje e de amanhã entram no `/api/integracao/alertas` (Telegram às 08:00 e 15:00).
+- **Conciliação bancária (extrato OFX)** (Financeiro → Extrato do banco) — o cliente baixa o extrato no internet banking
+  (formato OFX, que todo banco gera: Bradesco, Caixa, BB, Itaú, Sicredi…) e envia. `Services/Conciliacao/LeitorOfx.cs` lê
+  OFX 1.x (SGML, tags sem fechar) e 2.x (XML), Latin-1 ou UTF-8, valor com ponto ou vírgula; a conta é achada pelo número
+  (ACCTID) e, na primeira vez, banco/agência/número ficam gravados na conta. Linha repetida não entra de novo (FITID e, como
+  garantia, contagem de linhas iguais). `ConciliacaoService` sugere: 1 linha = 1 lançamento (mesmo valor, até 3 dias),
+  depósito da maquininha (bruto − taxa = o líquido do banco), vários PIX do banco = o PIX do dia de um ou mais caixas. As linhas e
+  os lançamentos conferidos juntos compartilham um `ConciliacaoId`; o que só o banco tem (tarifa, PIX avulso) é lançado dali mesmo
+  com categoria sugerida pela descrição; mostra saldo do banco × sistema na mesma data e o que está no sistema e não veio no
+  banco. Lançamento conferido não pode ser excluído nem ter valor/conta mudados sem desfazer a conferência.
+  Arquivo de teste: `~/projetos/marketplace-testes/conciliacao/gerar-ofx-teste.py`.
 - **Etiquetas de gôndola** (Produtos → 🏷️ Etiquetas) — `Produto.PrecoAlteradoEm` é preenchido sozinho pelo
   `AppDbContext` quando o preço de venda muda; a tela junta os produtos alterados desde um dia, uma categoria ou um
   a um, e imprime em folha A4 (3×8 de 70×37 mm ou 4×10 de 52×29 mm) com código de barras EAN-13/EAN-8 em SVG próprio.

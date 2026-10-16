@@ -1,0 +1,246 @@
+<!-- Conta + envio do extrato -->
+<section class="painel envio">
+  <div class="topo">
+    <label>Conta do banco
+      <select [ngModel]="dados.value()?.contaId ?? null" (ngModelChange)="mudouConta($event)" [disabled]="enviando()">
+        @for (c of dados.value()?.contas ?? []; track c.id) {
+          <option [ngValue]="c.id">{{ c.nome }}{{ c.banco ? ' · ' + c.banco : '' }}{{ c.pendentes ? ' (' + c.pendentes + ' a conferir)' : '' }}</option>
+        }
+      </select>
+    </label>
+    @if (conta()?.ultimoExtratoAte; as ate) { <span class="ultimo">Último extrato até {{ ate | dia }}</span> }
+  </div>
+
+  <label class="area-envio" [class.arrastando]="arrastando()" [class.enviando]="enviando()"
+         (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
+    <input type="file" accept=".ofx,.OFX,application/x-ofx" (change)="escolherArquivo($event)" [disabled]="enviando()" class="sr-only" />
+    @if (enviando()) {
+      <strong><app-icone nome="loader-circle" girando /> Lendo o extrato…</strong>
+      <span>Procurando cada lançamento do banco no sistema.</span>
+    } @else {
+      <strong><app-icone nome="landmark" /> Clique para escolher o extrato do banco (.ofx)</strong>
+      <span>ou arraste o arquivo para cá · no internet banking: Extrato → Exportar / Salvar como → <b>OFX</b> (às vezes "Money")</span>
+    }
+  </label>
+
+  @if (importou(); as r) {
+    <p class="retorno" role="status"><app-icone nome="circle-check" />
+      Extrato {{ r.banco ? 'do ' + r.banco + ' ' : '' }}de {{ r.de | dia }} a {{ r.ate | dia }} importado em "{{ r.conta }}":
+      {{ r.novas }} lançamento(s) novo(s){{ r.repetidas ? ', ' + r.repetidas + ' já tinham vindo antes' : '' }}.
+      {{ r.sugestoes ? r.sugestoes + ' encontrado(s) no sistema — confira abaixo.' : '' }}
+    </p>
+    @if (r.aviso) { <p class="retorno ruim"><app-icone nome="triangle-alert" /> {{ r.aviso }}</p> }
+  }
+  @if (erroImportar()) {
+    <p class="retorno ruim" role="alert"><app-icone nome="circle-alert" /> {{ erroImportar() }}</p>
+    @if (pedirConta() && dados.value()?.contaId) {
+      <button type="button" class="botao primario" (click)="importarNaConta()">Importar em "{{ conta()?.nome }}"</button>
+    }
+  }
+</section>
+
+@if (dados.value(); as d) {
+  @if (!d.contas.length) {
+    <section class="painel vazio">
+      <p><app-icone nome="landmark" /> Cadastre a conta do banco em <b>Saldos → Nova conta</b> (tipo Banco) para conferir o extrato.</p>
+    </section>
+  } @else if (d.contaId) {
+    <!-- Banco × sistema -->
+    <section class="resumo-extrato">
+      @if (d.saldoBanco != null) {
+        <div><span>Saldo no banco em {{ d.saldoBancoEm | dia }}</span><strong [class.negativo]="d.saldoBanco < 0">{{ d.saldoBanco | currency: 'BRL' }}</strong></div>
+        <div><span>Saldo no Marcus na mesma data</span><strong [class.negativo]="(d.saldoSistema ?? 0) < 0">{{ d.saldoSistema | currency: 'BRL' }}</strong></div>
+        <div class="destaque" [class.bateu]="diferenca() === 0" [class.diferente]="diferenca() !== 0">
+          <span>Diferença</span>
+          <strong>{{ diferenca() === 0 ? 'Tudo batendo' : (diferenca() | currency: 'BRL') }}</strong>
+        </div>
+      }
+      <div><span>A conferir</span><strong>{{ d.pendentes.length }}</strong></div>
+      <div><span>Conferidos</span><strong class="valor-entrada">{{ d.conciliadas }}</strong></div>
+    </section>
+    @if (d.saldoBanco != null && diferenca() !== 0) {
+      <p class="explica">A diferença some quando cada linha do extrato estiver conferida e cada lançamento do sistema tiver aparecido no banco.</p>
+    }
+
+    <!-- Pendentes -->
+    <section class="painel">
+      <header class="cabeca">
+        <h2>Lançamentos do banco a conferir</h2>
+        @if (qtdSugestoes()) {
+          <button type="button" class="botao primario" (click)="aceitarSugestoes()" [disabled]="aceitando()">
+            @if (aceitando()) { <app-icone nome="loader-circle" girando /> } @else { <app-icone nome="check" /> } {{ qtdSugestoes() === 1 ? 'Conferir a sugestão' : 'Conferir as ' + qtdSugestoes() + ' sugestões' }}
+          </button>
+        }
+      </header>
+      @if (retorno()) { <p class="retorno" role="status"><app-icone nome="circle-check" /> {{ retorno() }}</p> }
+      @if (retornoErro()) { <p class="retorno ruim" role="alert">{{ retornoErro() }}</p> }
+
+      @if (!d.pendentes.length) {
+        <p class="vazio-texto"><app-icone nome="circle-check" /> Nada a conferir{{ d.conciliadas ? ': todo o extrato importado já bate com o sistema.' : '. Importe o extrato do banco acima.' }}</p>
+      } @else {
+        <div class="tabela-rolagem">
+          <table class="linhas">
+            <thead><tr><th>Data</th><th>No banco</th><th class="num">Valor</th><th>No sistema</th><th></th></tr></thead>
+            <tbody>
+              @for (l of d.pendentes; track l.id) {
+                <tr [class.com-sugestao]="l.sugestao">
+                  <td class="data">{{ l.data | dia }}</td>
+                  <td><span class="descricao">{{ l.descricao }}</span>@if (l.documento) { <small class="detalhe">doc. {{ l.documento }}</small> }</td>
+                  <td class="num forte" [class.valor-entrada]="l.valor > 0" [class.valor-saida]="l.valor < 0">{{ l.valor | currency: 'BRL' }}</td>
+                  <td class="sistema">
+                    @if (l.sugestao; as s) {
+                      @for (m of s.movimentos; track m.id) {
+                        <span class="mov"><app-icone nome="check" /> {{ m.descricao }} <small>{{ m.data | dia }} · {{ comSinal(m) | currency: 'BRL' }}</small></span>
+                      }
+                      <small class="explicacao">{{ s.explicacao }}</small>
+                    } @else {
+                      <small class="nao-achou">Não encontrado no sistema</small>
+                    }
+                  </td>
+                  <td class="acoes">
+                    @if (l.sugestao) {
+                      <button type="button" class="botao pequeno primario" (click)="confirmar(l)" [disabled]="ocupado() === l.id">Confirmar</button>
+                    } @else {
+                      <button type="button" class="botao pequeno primario" (click)="abrir(l, 'lancar')">Lançar</button>
+                    }
+                    <button type="button" class="botao pequeno" (click)="abrir(l, 'escolher')">Escolher</button>
+                    <button type="button" class="botao pequeno" (click)="ignorar(l)" [disabled]="ocupado() === l.id" title="Não precisa conferir esta linha">Ignorar</button>
+                  </td>
+                </tr>
+                @if (erroLinha()?.id === l.id) {
+                  <tr class="painel-linha"><td colspan="5"><span class="erro-linha">{{ erroLinha()!.texto }}</span></td></tr>
+                }
+                @if (painel()?.id === l.id) {
+                  <tr class="painel-linha">
+                    <td colspan="5">
+                      @if (painel()!.modo === 'lancar') {
+                        <div class="lancar">
+                          <label>Categoria
+                            <select [ngModel]="categoriaId()" (ngModelChange)="categoriaId.set($event)">
+                              <option [ngValue]="null">Escolha…</option>
+                              @for (c of categoriasDa(l); track c.id) { <option [ngValue]="c.id">{{ c.codigo }} · {{ c.nome }}</option> }
+                            </select>
+                          </label>
+                          <label class="largo">Descrição
+                            <input [ngModel]="descricao()" (ngModelChange)="descricao.set($event)" maxlength="200" />
+                          </label>
+                          <button type="button" class="botao primario" (click)="lancar(l)" [disabled]="ocupado() === l.id">
+                            {{ l.valor > 0 ? 'Lançar receita' : 'Lançar despesa' }} de {{ (l.valor < 0 ? -l.valor : l.valor) | currency: 'BRL' }}
+                          </button>
+                          <button type="button" class="botao" (click)="painel.set(null)">Cancelar</button>
+                        </div>
+                        @if (l.categoriaSugeridaId) { <small class="sugerida">Categoria sugerida pela descrição do banco.</small> }
+                      } @else {
+                        @if (candidatos(); as cs) {
+                          @if (!cs.length) {
+                            <p class="vazio-texto">Nenhum lançamento livre nesta conta perto desta data. Use <b>Lançar</b>.</p>
+                          } @else {
+                            <p class="ajuda">Marque o(s) lançamento(s) do sistema que somam {{ l.valor | currency: 'BRL' }}:</p>
+                            <ul class="candidatos">
+                              @for (m of cs; track m.id) {
+                                <li>
+                                  <label>
+                                    <input type="checkbox" [checked]="escolhidos().has(m.id)" (change)="alternarEscolhido(m.id)" />
+                                    <span class="data">{{ m.data | dia }}</span>
+                                    <span class="descricao">{{ m.descricao }}@if (m.categoria) { <small> · {{ m.categoria }}</small> }</span>
+                                    <span class="num">{{ comSinal(m) | currency: 'BRL' }}</span>
+                                  </label>
+                                </li>
+                              }
+                            </ul>
+                            <div class="lancar">
+                              <span [class.valor-entrada]="bate(l)" [class.valor-saida]="escolhidos().size && !bate(l)">
+                                Marcado: {{ somaEscolhidos() | currency: 'BRL' }} de {{ l.valor | currency: 'BRL' }}
+                              </span>
+                              <button type="button" class="botao primario" (click)="conciliarEscolhidos(l)" [disabled]="!bate(l) || ocupado() === l.id">Conferir</button>
+                              <button type="button" class="botao" (click)="painel.set(null)">Cancelar</button>
+                            </div>
+                          }
+                        } @else {
+                          <p class="ajuda"><app-icone nome="loader-circle" girando /> Procurando…</p>
+                        }
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </section>
+
+    <!-- No sistema, mas não no banco -->
+    @if (d.semExtrato.length) {
+      <section class="painel">
+        <header class="cabeca"><h2>No sistema, mas não apareceu no banco</h2></header>
+        <p class="explica">Lançamentos desta conta entre {{ d.de | dia }} e {{ d.ate | dia }} que o extrato não trouxe: pagamento ainda não compensado, lançado na conta errada ou que não aconteceu.</p>
+        <div class="tabela-rolagem">
+          <table>
+            <thead><tr><th>Data</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th></tr></thead>
+            <tbody>
+              @for (m of d.semExtrato; track m.id) {
+                <tr>
+                  <td class="data">{{ m.data | dia }}</td>
+                  <td>{{ m.descricao }}</td>
+                  <td class="suave">{{ m.categoria ?? '—' }}</td>
+                  <td class="num" [class.valor-entrada]="m.tipo === 'Entrada'" [class.valor-saida]="m.tipo === 'Saida'">{{ comSinal(m) | currency: 'BRL' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    <!-- Conferidos (para desfazer) -->
+    @if (d.recentes.length) {
+      <section class="painel">
+        <header class="cabeca">
+          <h2>Conferidos recentemente</h2>
+          @if (d.recentes.length > 8) {
+            <button type="button" class="botao pequeno" (click)="verTodosConferidos.set(!verTodosConferidos())">{{ verTodosConferidos() ? 'Ver menos' : 'Ver todos (' + d.recentes.length + ')' }}</button>
+          }
+        </header>
+        <div class="tabela-rolagem">
+          <table>
+            <thead><tr><th>No banco</th><th>No sistema</th><th class="num">Valor</th><th></th></tr></thead>
+            <tbody>
+              @for (g of verTodosConferidos() ? d.recentes : d.recentes.slice(0, 8); track g.id) {
+                <tr>
+                  <td>@for (l of g.linhas; track l.id) { <span class="mov">{{ l.data | dia }} · {{ l.descricao }}</span> }</td>
+                  <td>@for (m of g.movimentos; track m.id) { <span class="mov">{{ m.descricao }}</span> }</td>
+                  <td class="num">{{ soma(g.linhas) | currency: 'BRL' }}</td>
+                  <td class="acoes"><button type="button" class="botao pequeno" (click)="desfazer(g.id)">Desfazer</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+
+    @if (d.ignoradas) {
+      <section class="painel">
+        <header class="cabeca">
+          <h2>Ignorados ({{ d.ignoradas }})</h2>
+          <button type="button" class="botao pequeno" (click)="verIgnoradas.set(!verIgnoradas())">{{ verIgnoradas() ? 'Esconder' : 'Ver' }}</button>
+        </header>
+        @if (verIgnoradas()) {
+          <div class="tabela-rolagem">
+            <table>
+              <tbody>
+                @for (l of d.ignoradasLista; track l.id) {
+                  <tr>
+                    <td class="data">{{ l.data | dia }}</td><td>{{ l.descricao }}</td><td class="num">{{ l.valor | currency: 'BRL' }}</td>
+                    <td class="acoes"><button type="button" class="botao pequeno" (click)="ignorar(l, false)">Voltar a conferir</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </section>
+    }
+  }
+}

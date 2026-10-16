@@ -32,6 +32,7 @@ builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
+builder.Services.AddScoped<Marketplace.Api.Services.Conciliacao.ConciliacaoService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
 builder.Services.AddSingleton<Marketplace.Api.Services.InsightsTarefas>(); // insights da IA em segundo plano

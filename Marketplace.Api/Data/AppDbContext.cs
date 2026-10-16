@@ -46,6 +46,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<MovimentoFinanceiro> MovimentosFinanceiros => Set<MovimentoFinanceiro>();
     public DbSet<ConfiguracaoRecebimento> ConfiguracoesRecebimento => Set<ConfiguracaoRecebimento>();
     public DbSet<Recebivel> Recebiveis => Set<Recebivel>();
+    public DbSet<ExtratoBancario> ExtratosBancarios => Set<ExtratoBancario>();
+    public DbSet<LinhaExtrato> LinhasExtrato => Set<LinhaExtrato>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
     public DbSet<Plano> Planos => Set<Plano>();
@@ -335,11 +337,42 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasIndex(m => m.TransferenciaId);
             e.HasIndex(m => m.SessaoCaixaId);
             e.HasIndex(m => m.LiquidacaoId);
+            e.HasIndex(m => m.ConciliacaoId);
             e.HasOne(m => m.SessaoCaixa).WithMany().HasForeignKey(m => m.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaFinanceira).WithMany().HasForeignKey(m => m.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CategoriaFinanceira).WithMany().HasForeignKey(m => m.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaPagar).WithMany().HasForeignKey(m => m.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CriadoPor).WithMany().HasForeignKey(m => m.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- Conciliação bancária (extrato OFX) -----
+        builder.Entity<ExtratoBancario>(e =>
+        {
+            e.ToTable("ExtratosBancarios");
+            e.Property(x => x.NomeArquivo).HasMaxLength(200);
+            e.Property(x => x.Banco).HasMaxLength(10);
+            e.Property(x => x.Agencia).HasMaxLength(20);
+            e.Property(x => x.NumeroConta).HasMaxLength(40);
+            e.Property(x => x.SaldoFinal).HasPrecision(14, 2);
+            e.HasIndex(x => new { x.ContaFinanceiraId, x.ImportadoEm });
+            e.HasOne(x => x.ContaFinanceira).WithMany().HasForeignKey(x => x.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.ImportadoPor).WithMany().HasForeignKey(x => x.ImportadoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<LinhaExtrato>(e =>
+        {
+            e.ToTable("LinhasExtrato");
+            e.Property(x => x.Valor).HasPrecision(14, 2);
+            e.Property(x => x.Descricao).HasMaxLength(200);
+            e.Property(x => x.Documento).HasMaxLength(60);
+            e.Property(x => x.TipoBanco).HasMaxLength(20);
+            e.Property(x => x.Chave).HasMaxLength(120);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(12);
+            e.HasIndex(x => new { x.ContaFinanceiraId, x.Chave }).IsUnique(); // a mesma linha não entra duas vezes
+            e.HasIndex(x => new { x.ContaFinanceiraId, x.Status, x.Data });
+            e.HasIndex(x => x.ConciliacaoId);
+            e.HasOne(x => x.ExtratoBancario).WithMany().HasForeignKey(x => x.ExtratoBancarioId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ContaFinanceira>().WithMany().HasForeignKey(x => x.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<ConfiguracaoRecebimento>(e =>

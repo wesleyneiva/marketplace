@@ -248,6 +248,8 @@ public class FinanceiroController(AppDbContext db) : ControllerBase
         var m = await db.MovimentosFinanceiros.FirstOrDefaultAsync(x => x.Id == id);
         if (m is null) return NotFound();
         if (m.Origem != OrigemMovimentoFinanceiro.Manual) return BadRequest(new { mensagem = MotivoNaoEditavel(m) });
+        if (m.Conciliado && (m.Valor != r.Valor || m.Tipo != r.Tipo || m.ContaFinanceiraId != r.ContaId))
+            return BadRequest(new { mensagem = "Lançamento já conferido com o extrato do banco: para mudar valor, tipo ou conta, desfaça a conciliação antes." });
         var erro = await ValidarAsync(r, m);
         if (erro is null)
         {
