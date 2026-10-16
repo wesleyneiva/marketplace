@@ -69,8 +69,10 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   automática: ver Pix automático (Mercado Pago).
 - **Pix automático (Mercado Pago)** (Configurações → Pix da loja → Confirmação automática) — o administrador cola o Access
   Token da aplicação do Mercado Pago (conferido em `/users/me` e guardado CRIPTOGRAFADO com DataProtection; a tela só mostra o
-  final). No caixa, ao escolher Pix: "Gerar QR do Pix" cria uma `CobrancaPix` no Mercado Pago (`POST /v1/payments`, pix,
-  external_reference = Guid da cobrança, validade 15 min, notification_url com o segredo da loja) e a tela fica em "Aguardando
+  final). No caixa, ao escolher Pix: "Gerar QR do Pix" cria uma `CobrancaPix` no Mercado Pago pela API de Orders (`POST /v1/orders`, pix,
+  external_reference = Guid da cobrança, validade 30 min; pago = `processed/accredited`; no modo teste o comprador é
+  test@testuser.com com nome APRO, que o Mercado Pago aprova sozinho). O endereço do aviso da loja aparece em Configurações para
+  colar no painel do Mercado Pago (Webhooks, evento Order) e a tela fica em "Aguardando
   o pagamento…"; o caixa pergunta a cada 2,5 s (`GET /api/pix/cobrancas/{id}`, o servidor vai ao Mercado Pago no máximo a cada
   3 s) e o aviso `POST /api/pix/mercadopago/aviso/{segredo}` (sem login) adianta. **O aviso nunca é prova**: o servidor sempre
   consulta o pagamento com o token da loja e confere valor e referência. A venda só aceita o Pix com `cobrancaPixId` de cobrança

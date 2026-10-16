@@ -11,9 +11,9 @@ namespace Marketplace.Api.Services.Pix;
 // REGRA DE SEGURANÇA: o Marcus só considera um Pix pago depois de PERGUNTAR ao Mercado Pago, com o token da loja,
 // e conferir valor e referência. O aviso (webhook) só diz "olhe o pagamento X" — nunca é tomado como prova.
 public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, MercadoPago mp, IDataProtectionProvider protecao,
-    IConfiguration config, IWebHostEnvironment ambiente, ILogger<PixAutomaticoService> log)
+    IConfiguration config, ILogger<PixAutomaticoService> log)
 {
-    public static readonly TimeSpan Validade = TimeSpan.FromMinutes(15);
+    public static readonly TimeSpan Validade = TimeSpan.FromMinutes(30); // mínimo do Mercado Pago (API de Orders)
     private static readonly TimeSpan IntervaloConsulta = TimeSpan.FromSeconds(3);
     private IDataProtector Cofre => protecao.CreateProtector("Marcus.PixAutomatico.MercadoPago.v1");
 
@@ -54,8 +54,8 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         if (sessaoCaixaId is int s && !await db.SessoesCaixa.AnyAsync(x => x.Id == s)) throw new PixException("Caixa não encontrado.");
 
         var c = new CobrancaPix { Valor = valor, ExpiraEm = DateTimeOffset.UtcNow + Validade, SessaoCaixaId = sessaoCaixaId, CriadaPorId = usuarioId };
-        var pg = await mp.CriarPixAsync(token, valor, Cortar($"{e.Nome} · compra no caixa", 120), c.Referencia, c.ExpiraEm,
-            AvisoUrl(e), e.EmailContato is { Length: > 3 } em && em.Contains('@') ? em : "cliente.pix@wnlabs.com.br", e.MercadoPagoTeste);
+        var pg = await mp.CriarPixAsync(token, valor, Cortar($"{e.Nome} · compra no caixa", 120), c.Referencia, Validade,
+            e.EmailContato is { Length: > 3 } em && em.Contains('@') ? em : "cliente.pix@wnlabs.com.br", e.MercadoPagoTeste);
         if (string.IsNullOrEmpty(pg.CopiaECola)) throw new PixException("O Mercado Pago não devolveu o QR Code. Confira se a conta tem uma chave Pix cadastrada.");
         c.IdExterno = pg.Id;
         c.CopiaECola = pg.CopiaECola;
@@ -172,10 +172,10 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         catch (CryptographicException) { throw new PixException("Não foi possível ler o token do Mercado Pago: cole-o de novo em Configurações → Pix da loja."); }
     }
 
-    // Endereço do aviso desta loja. No desenvolvimento (localhost) o Mercado Pago não alcança: fica só a consulta.
-    private string? AvisoUrl(Empresa e) =>
-        ambiente.IsDevelopment() || e.PixAvisoToken is null ? null
-            : $"https://{config["Publico:HostClientes"] ?? "app.wnlabs.com.br"}/api/pix/mercadopago/aviso/{e.PixAvisoToken}";
+    // Endereço do aviso desta loja: o administrador cola no painel do Mercado Pago (Webhooks, evento "Order").
+    // Sem ele funciona do mesmo jeito (o caixa pergunta a cada poucos segundos); com ele, o aviso chega na hora.
+    public string? AvisoUrl(Empresa e) =>
+        e.PixAvisoToken is null ? null : $"https://{config["Publico:HostClientes"] ?? "app.wnlabs.com.br"}/api/pix/mercadopago/aviso/{e.PixAvisoToken}";
 
     private static string Cortar(string v, int max) => v.Length <= max ? v : v[..max];
 }

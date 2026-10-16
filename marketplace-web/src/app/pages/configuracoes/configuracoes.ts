@@ -39,6 +39,7 @@ interface Configuracao {
   mercadoPagoConta: string | null;
   mercadoPagoTokenFinal: string | null;
   mercadoPagoTeste: boolean;
+  pixAvisoUrl: string | null;
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
 
@@ -177,6 +178,9 @@ export class Configuracoes {
       this.salvandoMp.set(false);
     }
   }
+
+  protected readonly avisoCopiado = signal(false);
+  async copiarAviso(url: string): Promise<void> { this.avisoCopiado.set(await copiarTexto(url)); }
 
   async desligarMercadoPago(): Promise<void> {
     if (!confirm('Desligar o Pix automático? O caixa volta ao Pix manual (QR da chave da loja) e o token do Mercado Pago é apagado.')) return;

@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace Marketplace.Api.Services.Pix;
 
 // Conversa com a API do Mercado Pago (https://api.mercadopago.com) usando o Access Token DA LOJA.
-// Só três coisas: criar um Pix (QR único com o valor), consultar um pagamento e cancelar um Pix que não foi pago.
+// Só três coisas: criar um Pix (QR único com o valor), consultar e cancelar um Pix que não foi pago (API de Orders).
 public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILogger<MercadoPago> log)
 {
     // Endereço da API (MercadoPago:Url só muda nos testes, com o simulador local).
@@ -25,42 +25,61 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
         return new Conta(nome, j["email"]?.GetValue<string>(), tags.Contains("test_user") || nome.StartsWith("TESTUSER", StringComparison.OrdinalIgnoreCase));
     }
 
-    // POST /v1/payments com payment_method_id = pix → o QR Code (copia e cola) desta venda.
-    public async Task<Pagamento> CriarPixAsync(string token, decimal valor, string descricao, Guid referencia, DateTimeOffset expira,
-        string? avisoUrl, string emailPagador, bool teste, CancellationToken ct = default)
+    // POST /v1/orders com um pagamento Pix (API de Orders, a atual do Mercado Pago; é a que aceita as credenciais de teste).
+    public async Task<Pagamento> CriarPixAsync(string token, decimal valor, string descricao, Guid referencia, TimeSpan validade,
+        string emailPagador, bool teste, CancellationToken ct = default)
     {
+        var total = valor.ToString("0.00", CultureInfo.InvariantCulture);
         var corpo = new JsonObject
         {
-            ["transaction_amount"] = valor,
-            ["description"] = descricao,
-            ["payment_method_id"] = "pix",
+            ["type"] = "online",
+            ["processing_mode"] = "automatic",
+            ["total_amount"] = total,
             ["external_reference"] = referencia.ToString(),
-            ["date_of_expiration"] = expira.ToOffset(TimeSpan.FromHours(-3)).ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture),
-            // No modo de teste do Mercado Pago, o nome "APRO" faz o Pix ser aprovado sozinho (para testar sem dinheiro).
-            // Teste: o comprador TEM de ser o de teste (test@testuser.com); com e-mail "de verdade" o Mercado Pago recusa
-            // com "Unauthorized use of live credentials" (mistura de conta de teste com conta real).
+            ["description"] = descricao,
+            ["transactions"] = new JsonObject
+            {
+                ["payments"] = new JsonArray(new JsonObject
+                {
+                    ["amount"] = total,
+                    ["payment_method"] = new JsonObject { ["id"] = "pix", ["type"] = "bank_transfer" },
+                    ["expiration_time"] = $"PT{(int)Math.Ceiling(validade.TotalMinutes)}M", // duração ISO 8601 (mínimo 30 min)
+                }),
+            },
+            // Teste: comprador de teste (test@testuser.com) e nome "APRO" → o Mercado Pago aprova sozinho em poucos segundos.
             ["payer"] = new JsonObject { ["email"] = teste ? "test@testuser.com" : emailPagador, ["first_name"] = teste ? "APRO" : "Cliente" },
         };
-        if (avisoUrl is not null) corpo["notification_url"] = avisoUrl;
         // A mesma referência = o mesmo Pix: se a rede cair e o Marcus tentar de novo, o Mercado Pago não cria dois.
-        var j = await EnviarAsync(HttpMethod.Post, "/v1/payments", token, corpo, referencia.ToString(), ct);
-        return Ler(j);
+        return Ler(await EnviarAsync(HttpMethod.Post, "/v1/orders", token, corpo, referencia.ToString(), ct));
     }
 
     public async Task<Pagamento> ConsultarAsync(string token, string id, CancellationToken ct = default) =>
-        Ler(await EnviarAsync(HttpMethod.Get, $"/v1/payments/{Uri.EscapeDataString(id)}", token, null, null, ct));
+        Ler(await EnviarAsync(HttpMethod.Get, $"/v1/orders/{Uri.EscapeDataString(id)}", token, null, null, ct));
 
     public async Task<Pagamento> CancelarAsync(string token, string id, CancellationToken ct = default) =>
-        Ler(await EnviarAsync(HttpMethod.Put, $"/v1/payments/{Uri.EscapeDataString(id)}", token, new JsonObject { ["status"] = "cancelled" }, null, ct));
+        Ler(await EnviarAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(id)}/cancel", token, null, Guid.NewGuid().ToString(), ct));
 
-    private static Pagamento Ler(JsonNode j) => new(
-        j["id"]?.ToString() ?? throw new MercadoPagoException("O Mercado Pago não devolveu o número do pagamento."),
-        j["status"]?.GetValue<string>() ?? "",
-        j["status_detail"]?.GetValue<string>(),
-        j["transaction_amount"]?.GetValue<decimal>() ?? 0,
-        j["external_reference"]?.GetValue<string>(),
-        DateTimeOffset.TryParse(j["date_approved"]?.GetValue<string>(), CultureInfo.InvariantCulture, DateTimeStyles.None, out var a) ? a : null,
-        j["point_of_interaction"]?["transaction_data"]?["qr_code"]?.GetValue<string>());
+    // Status da order → o "idioma" de sempre: processed/accredited = pago (approved); expired; canceled/failed/refunded = cancelado.
+    private static Pagamento Ler(JsonNode j)
+    {
+        var status = j["status"]?.GetValue<string>() ?? "";
+        var detalhe = j["status_detail"]?.GetValue<string>();
+        var pagamento = j["transactions"]?["payments"]?.AsArray().FirstOrDefault();
+        var normal = status switch
+        {
+            "processed" => "approved",
+            "expired" => "expired",
+            "canceled" or "failed" or "refunded" or "charged_back" => "cancelled",
+            _ => "pending",
+        };
+        return new Pagamento(
+            j["id"]?.ToString() ?? throw new MercadoPagoException("O Mercado Pago não devolveu o número do pedido."),
+            normal, detalhe,
+            decimal.TryParse(j["total_amount"]?.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : 0,
+            j["external_reference"]?.GetValue<string>(),
+            null,
+            pagamento?["payment_method"]?["qr_code"]?.GetValue<string>());
+    }
 
     private async Task<JsonNode> EnviarAsync(HttpMethod metodo, string caminho, string token, JsonNode? corpo, string? idempotencia, CancellationToken ct)
     {

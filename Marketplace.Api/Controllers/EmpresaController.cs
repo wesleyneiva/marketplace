@@ -13,7 +13,8 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/empresa/configuracao")]
 [Authorize]
-public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, LocaisDasLojas locais, ColetorClima coletor, IHttpClientFactory http) : ControllerBase
+public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, LocaisDasLojas locais, ColetorClima coletor, IHttpClientFactory http,
+    Services.Pix.PixAutomaticoService pixAutomatico) : ControllerBase
 {
     [HttpGet]
     public async Task<ConfiguracaoEmpresaResponse> Obter() => Resposta(await CarregarAsync());
@@ -201,8 +202,9 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
     private Task<Empresa> CarregarAsync() => db.Empresas.FirstAsync(e => e.Id == contexto.EmpresaId);
 
     // Exemplo para a tela mostrar como fica a etiqueta: produto 42, R$ 15,99 (ou 1,235 kg).
-    private static ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
+    private ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
         e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.ComprasAutomaticas,
-        e.PixTipoChave, e.PixChave, e.PixNomeRecebedor, e.PixAutomatico, e.MercadoPagoConta, e.MercadoPagoTokenFinal, e.MercadoPagoTeste);
+        e.PixTipoChave, e.PixChave, e.PixNomeRecebedor, e.PixAutomatico, e.MercadoPagoConta, e.MercadoPagoTokenFinal, e.MercadoPagoTeste,
+        e.PixAutomatico is null ? null : pixAutomatico.AvisoUrl(e));
 }

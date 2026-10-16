@@ -120,6 +120,15 @@
           o Mercado Pago avisa e o caixa mostra <b>"Pix recebido"</b> sozinho — ninguém precisa olhar o celular.
           @if (c.mercadoPagoTeste) { <br />Modo teste: o Pix é aprovado sozinho em poucos segundos, sem dinheiro de verdade. Troque pelas credenciais de produção para receber de verdade. }
         </p>
+        @if (c.pixAvisoUrl && ehAdmin()) {
+          <div class="aviso-url">
+            <span>Endereço do aviso (para o caixa saber <b>na hora</b>):</span>
+            <code>{{ c.pixAvisoUrl }}</code>
+            <button type="button" class="botao pequeno" (click)="copiarAviso(c.pixAvisoUrl)"><app-icone nome="copy" /> {{ avisoCopiado() ? 'Copiado' : 'Copiar' }}</button>
+            <small>No painel do Mercado Pago: a aplicação → <b>Webhooks</b> → Configurar notificações → cole em <b>URL</b> (teste e produção)
+              e marque o evento <b>Order</b>. Sem isso também funciona: o caixa pergunta ao Mercado Pago a cada poucos segundos.</small>
+          </div>
+        }
       } @else {
         <p class="dica">Com o Mercado Pago, o caixa é avisado sozinho quando o Pix cai (sem conferir no celular). Cole aqui o
           <b>Access Token</b> da aplicação do Mercado Pago (Suas integrações → a aplicação → Credenciais). Ele fica guardado
