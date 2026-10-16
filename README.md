@@ -124,6 +124,50 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   - cancelamento devolve a mercadoria ao **mesmo lote** e exige dinheiro na gaveta;
   - concorrência: `xmin` (otimista) nas operações de estoque e `SELECT … FOR UPDATE` (pessimista) na venda.
 
+## Últimas atualizações
+
+### 16/10/2026
+Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migration, em `~/backup/marketplace-antes-*-2026-10-16.dump`).
+
+- **Fonte do sistema: Space Grotesk** (a mesma do site tech.wnlabs.com.br), embutida em `marketplace-web/public/fontes`
+  (sem depender do Google); títulos h1/h2 em negrito com letras mais justas. Commit `df89932`.
+- **Relatórios sem Fiado**: com `MODULOS.fiado = false`, a forma Fiado das vendas antigas some de "Formas de pagamento". `f4a9121`.
+- **Conciliação bancária pelo extrato OFX** (Financeiro → Extrato do banco): importa o .ofx de qualquer banco, não repete
+  linhas, sugere a conferência (1 a 1, maquininha bruto − taxa, PIX do banco um a um × PIX por caixa/dia), lança o que só o
+  banco tem (tarifas) com categoria sugerida, mostra saldo do banco × sistema e o que está no sistema e não veio no banco.
+  Migration `ConciliacaoOfx`. Commit `d54b1e1`. Arquivo de teste: `~/projetos/marketplace-testes/conciliacao/gerar-ofx-teste.py`.
+- **Pix com QR Code (manual)** (Configurações → Pix da loja): chave Pix da loja (CPF/CNPJ conferidos, celular, e-mail,
+  aleatória) e, no caixa, QR com o valor da venda direto na conta da loja, sem intermediário; o caixa confere no celular.
+  BR Code do Banco Central gerado no servidor (`Services/Pix/PixQrCode.cs`, QRCoder). Migration `PixDaLoja`. Commit `0b0102c`.
+- **Pix automático pelo Mercado Pago** (Configurações → Pix da loja → Confirmação automática): o administrador cola o Access
+  Token (guardado criptografado); no caixa "Gerar QR do Pix" cria o pedido na **API de Orders** do Mercado Pago, o caixa
+  pergunta a cada 2,5 s e o aviso (webhook) adianta; quando aprova, abre o aviso grande **"Pix recebido!"** com bipe e a
+  **venda é registrada sozinha**. Pix pago sem venda aparece como "já recebido e sem venda" para usar. Migration
+  `PixAutomatico`. Commits `2883a0e`, `27b380b`, `b1a60a6`, `fb8be86`, `54c96b5`.
+  Testado com o simulador local (`~/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py`, launch "mp-simulador")
+  **e com a conta de teste real do Mercado Pago** (aprovou em ~7 s). Para receber de verdade: ativar as credenciais de produção no
+  painel do Mercado Pago (setor, site, termos), trocar o token no Marcus e desmarcar "credenciais de teste"; opcional: colar o
+  endereço do aviso (mostrado em Configurações) no painel do Mercado Pago → Webhooks, evento **Order**.
+- **Vídeo de apresentação** refeito (2min07, fora deste repositório: `~/projetos/marketplace-video`, roteiro em `ROTEIRO.md`).
+
+Lojas e dados: o Mercadinho Juvenal (empresa 4) está com o Pix automático ligado em **modo teste** e tem 1 Pix de teste de
+R$ 3,50 pago e sem venda (aparece no caixa como "já recebido e sem venda").
+
+### Próximo passo: tela **Vendas** (combinado em 16/10/2026)
+Hoje não existe tela com a lista de vendas (só "Último cupom" no caixa, o painel, os relatórios e o fechamento do caixa).
+A API já tem tudo: `GET /api/vendas?data=&sessaoId=&pagina=&tamanho=` (gerência vê tudo; Caixa só o caixa aberto dele;
+devolve `VendaListaResponse`: id, data/hora, caixa, operador, status, itens, total, formas), `GET /api/vendas/{id}` (o cupom
+completo) e `POST /api/vendas/{id}/cancelar` (só gerência, com motivo; devolve estoque ao mesmo lote, exige dinheiro na
+gaveta e, no Pix automático, o Pix volta a "recebido sem venda"). O que fazer:
+1. Menu **Vendas** (ícone `receipt`) e rota `/vendas`.
+2. Lista do dia com filtros: **data**, **caixa**, **forma de pagamento** e situação (concluída/cancelada); totais no topo
+   (quantidade, total vendido, ticket médio); paginação.
+3. Cada linha: número, hora, caixa e operador, itens, total e formas (selo **"Pix confirmado pelo Mercado Pago"** quando o
+   pagamento tem `CobrancaPixId`: incluir esse dado na resposta da API).
+4. Ao clicar: o **cupom completo** (itens, pagamentos, troco), com **Reimprimir** (mesma impressão térmica do caixa) e
+   **Cancelar venda** (gerência; pede o motivo; mensagem de erro/sucesso junto do botão).
+5. Testar no dev (marketplace_dev), publicar e atualizar este README.
+
 ## Estrutura
 
 ```
