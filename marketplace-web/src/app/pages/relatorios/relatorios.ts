@@ -11,6 +11,7 @@ import { CelulaMapa, MapaCalor } from '../../shared/graficos/mapa-calor';
 import { formatar } from '../../shared/graficos/largura';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
+import { MODULOS } from '../../core/modulos';
 
 const NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -105,7 +106,8 @@ export class Relatorios {
   });
 
   protected readonly barrasForma = computed<PontoBarra[]>(() => {
-    const formas = this.vendas.value()?.porForma ?? [];
+    // Com o módulo Fiado desligado, a forma "Fiado" (vendas antigas) não aparece no gráfico.
+    const formas = (this.vendas.value()?.porForma ?? []).filter((f) => MODULOS.fiado || f.forma !== 'Fiado');
     const total = formas.reduce((s, f) => s + f.valor, 0) || 1;
     return formas.map((f) => ({ rotulo: FORMAS[f.forma] ?? f.forma, valor: f.valor, extra: `${formatar((f.valor / total) * 100, 'numero')}%` }));
   });
