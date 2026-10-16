@@ -60,6 +60,13 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   parcelas vira uma conta "à vista" (que pode entrar já paga). Contas lançadas à mão (aluguel, luz) com repetição
   mensal; pagar (data, valor com juros/desconto, forma), desfazer, editar e excluir só em aberto. Resumo no topo e
   no dashboard; vencidas, de hoje e de amanhã entram no `/api/integracao/alertas` (Telegram às 08:00 e 15:00).
+- **Pix com QR Code (sem intermediário)** (Configurações → Pix da loja) — o administrador cadastra a chave Pix da loja (CPF/CNPJ
+  com dígito conferido, celular vira +55…, e-mail, aleatória) e o nome que o cliente vê. No caixa, ao escolher Pix, aparece o
+  **QR Code com o valor** (acompanha o valor digitado, inclusive em pagamento dividido) e o "copia e cola". O código segue o
+  padrão BR Code do Banco Central (`Services/Pix/PixQrCode.cs`: EMV + CRC16, conferido com o exemplo do manual) e é montado no
+  servidor a partir da chave cadastrada (`GET /api/empresa/configuracao/pix/qrcode?valor=`; desenho pelo QRCoder). O dinheiro cai
+  direto na conta da loja; o caixa confere no celular antes de confirmar e a conferência fica pelo extrato OFX. Confirmação
+  automática (Pix dinâmico com banco ou intermediário) fica para uma próxima etapa.
 - **Conciliação bancária (extrato OFX)** (Financeiro → Extrato do banco) — o cliente baixa o extrato no internet banking
   (formato OFX, que todo banco gera: Bradesco, Caixa, BB, Itaú, Sicredi…) e envia. `Services/Conciliacao/LeitorOfx.cs` lê
   OFX 1.x (SGML, tags sem fechar) e 2.x (XML), Latin-1 ou UTF-8, valor com ponto ou vírgula; a conta é achada pelo número

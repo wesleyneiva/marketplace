@@ -15,6 +15,7 @@ import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
+import { PixQrCodeComponent } from '../../shared/pix-qrcode';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -27,7 +28,7 @@ interface ItemCarrinho {
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
 @Component({
   selector: 'app-pdv',
-  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -81,7 +82,11 @@ export class Pdv {
   // ----- Pagamento -----
   protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number }[]>([]);
   protected readonly formaAtual = signal<FormaPagamento>('Dinheiro');
-  protected textoValor = '';
+  // O valor digitado no pagamento (sinal: o QR Code do Pix acompanha o valor enquanto o caixa digita).
+  private readonly valorDigitado = signal('');
+  protected get textoValor(): string { return this.valorDigitado(); }
+  protected set textoValor(v: string) { this.valorDigitado.set(v ?? ''); }
+  protected readonly valorPix = computed(() => (this.formaAtual() === 'Pix' ? arredondar(lerNumero(this.valorDigitado())) : 0));
   protected readonly pago = computed(() => arredondar(this.pagamentos().reduce((s, p) => s + p.valor, 0)));
   protected readonly falta = computed(() => arredondar(Math.max(0, this.total() - this.pago())));
   protected readonly troco = computed(() => arredondar(Math.max(0, this.pago() - this.total())));

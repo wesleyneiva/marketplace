@@ -77,6 +77,44 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
         return Resposta(empresa);
     }
 
+    // PUT /api/empresa/configuracao/pix  { tipo, chave, nomeRecebedor } → chave Pix da loja (QR Code com o valor no caixa)
+    [HttpPut("pix")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<ActionResult<ConfiguracaoEmpresaResponse>> SalvarPix(PixLojaRequest r)
+    {
+        var empresa = await CarregarAsync();
+        if (string.IsNullOrWhiteSpace(r.Chave))
+        {
+            (empresa.PixTipoChave, empresa.PixChave, empresa.PixNomeRecebedor) = (null, null, null);
+        }
+        else
+        {
+            var (chave, erro) = Services.Pix.PixQrCode.NormalizarChave(r.Tipo, r.Chave);
+            if (erro is not null) return BadRequest(new { mensagem = erro });
+            var nome = Services.Pix.PixQrCode.Texto(string.IsNullOrWhiteSpace(r.NomeRecebedor) ? empresa.RazaoSocial ?? empresa.Nome : r.NomeRecebedor,
+                Services.Pix.PixQrCode.MaxNome, empresa.Nome);
+            (empresa.PixTipoChave, empresa.PixChave, empresa.PixNomeRecebedor) = (r.Tipo, chave, nome);
+        }
+        await db.SaveChangesAsync();
+        return Resposta(empresa);
+    }
+
+    // GET /api/empresa/configuracao/pix/qrcode?valor=12.34 → o QR Code do Pix com esse valor (o caixa usa; qualquer perfil)
+    [HttpGet("pix/qrcode")]
+    public async Task<ActionResult<PixQrCodeResponse>> PixQrCode(decimal valor)
+    {
+        valor = Math.Round(valor, 2);
+        if (valor <= 0 || valor > 999_999.99m) return BadRequest(new { mensagem = "Valor do Pix inválido." });
+        var e = await CarregarAsync();
+        if (string.IsNullOrWhiteSpace(e.PixChave))
+            return NotFound(new { mensagem = "A loja ainda não tem chave Pix: o administrador cadastra em Configurações → Pix da loja." });
+        var nome = e.PixNomeRecebedor ?? e.Nome;
+        // Identificador curto da cobrança (alguns bancos mostram no extrato): CX + data e hora + 3 letras.
+        var txId = $"CX{Relogio.Agora:yyMMddHHmmss}{Convert.ToHexString(Guid.NewGuid().ToByteArray())[..3]}";
+        var payload = Services.Pix.PixQrCode.Payload(e.PixChave, nome, e.Cidade, valor, txId);
+        return new PixQrCodeResponse(valor, payload, Services.Pix.PixQrCode.Svg(payload), nome, e.PixChave, e.PixTipoChave ?? "");
+    }
+
     // PUT /api/empresa/configuracao/horario → dias e horas em que a loja abre, feriados
     [HttpPut("horario")]
     [Authorize(Roles = Perfis.Administrador)]
@@ -165,5 +203,6 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
     // Exemplo para a tela mostrar como fica a etiqueta: produto 42, R$ 15,99 (ou 1,235 kg).
     private static ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
-        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.ComprasAutomaticas);
+        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.ComprasAutomaticas,
+        e.PixTipoChave, e.PixChave, e.PixNomeRecebedor);
 }

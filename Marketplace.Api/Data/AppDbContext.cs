@@ -65,6 +65,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
 
         builder.Entity<Empresa>(e =>
         {
+            e.Property(x => x.PixTipoChave).HasMaxLength(10);
+            e.Property(x => x.PixChave).HasMaxLength(77);
+            e.Property(x => x.PixNomeRecebedor).HasMaxLength(25);
             e.Property(x => x.Nome).HasMaxLength(120);
             e.Property(x => x.Subdominio).HasMaxLength(40);
             e.HasIndex(x => x.Subdominio).IsUnique();

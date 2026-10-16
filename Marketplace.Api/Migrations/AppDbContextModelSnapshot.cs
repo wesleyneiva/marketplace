@@ -536,6 +536,18 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("PixChave")
+                        .HasMaxLength(77)
+                        .HasColumnType("character varying(77)");
+
+                    b.Property<string>("PixNomeRecebedor")
+                        .HasMaxLength(25)
+                        .HasColumnType("character varying(25)");
+
+                    b.Property<string>("PixTipoChave")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<int?>("PlanoId")
                         .HasColumnType("integer");
 

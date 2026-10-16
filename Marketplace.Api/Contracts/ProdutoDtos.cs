@@ -91,7 +91,15 @@ public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidad
 // Configuração da empresa usada pelas telas: etiqueta da balança, cidade e horário de funcionamento.
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
     string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
-    List<ProximoFeriado> ProximosFeriados, bool ComprasAutomaticas);
+    List<ProximoFeriado> ProximosFeriados, bool ComprasAutomaticas,
+    string? PixTipoChave, string? PixChave, string? PixNomeRecebedor);
+
+// Pix da loja (Configurações). Tudo vazio = tira a chave (o caixa volta a não mostrar o QR Code).
+public record PixLojaRequest(string? Tipo, [System.ComponentModel.DataAnnotations.StringLength(100)] string? Chave,
+    [System.ComponentModel.DataAnnotations.StringLength(60)] string? NomeRecebedor);
+
+// O QR Code do Pix com o valor (caixa e teste nas Configurações).
+public record PixQrCodeResponse(decimal Valor, string Payload, string Svg, string Recebedor, string Chave, string TipoChave);
 
 public record LigarRequest(bool Ligada);
 

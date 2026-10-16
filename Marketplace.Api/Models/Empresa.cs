@@ -39,6 +39,12 @@ public class Empresa
     // Fluxo de caixa: o "colchão" que o dono quer manter. Saldo projetado abaixo disso = alerta amarelo; abaixo de 0 = vermelho.
     public decimal SaldoMinimoCaixa { get; set; }
 
+    // Pix da loja: o caixa mostra um QR Code com o valor da venda e o dinheiro cai direto nesta chave (sem intermediário).
+    // Tipo: Cpf, Cnpj, Celular, Email ou Aleatoria. A chave fica no jeito que o Banco Central pede (ver Services/Pix/PixQrCode.cs).
+    public string? PixTipoChave { get; set; }
+    public string? PixChave { get; set; }
+    public string? PixNomeRecebedor { get; set; }   // como aparece para o cliente no app do banco (até 25 letras)
+
     // DRE: alíquota EFETIVA do Simples Nacional (% do faturamento), informada pelo contador. 0 = ainda não informada
     // (a DRE usa os DAS lançados no mês e avisa). Ex.: 7,3 = 7,3% das vendas do mês.
     public decimal AliquotaSimples { get; set; }

@@ -200,6 +200,11 @@
                  [disabled]="formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())" />
           <button type="submit" class="botao primario" [disabled]="formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())">Adicionar</button>
         </form>
+        @if (valorPix() > 0) {
+          <app-pix-qrcode [valor]="valorPix()">
+            <small class="conferir"><app-icone nome="smartphone" /> Mostre ao cliente. <b>Confira no celular da loja</b> que o Pix chegou e só então clique em Adicionar.</small>
+          </app-pix-qrcode>
+        }
         @if (formaAtual() === 'Dinheiro') {
           <div class="notas">
             Recebeu:

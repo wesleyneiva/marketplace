@@ -16,6 +16,7 @@ import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Cupom } from '../../core/api/pdv.api';
 import { Icone } from '../../shared/icone';
+import { PixQrCodeComponent, chavePixLegivel } from '../../shared/pix-qrcode';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { HorarioEditor } from '../../shared/horario-editor/horario-editor';
 import { Horario, horarioParaServidor, horarioParaTela } from '../../shared/horario-editor/horario';
@@ -31,13 +32,25 @@ interface Configuracao {
   horario: Horario;
   horarioResumo: string;
   comprasAutomaticas: boolean;
+  pixTipoChave: TipoChavePix | null;
+  pixChave: string | null;
+  pixNomeRecebedor: string | null;
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
+
+type TipoChavePix = 'Cpf' | 'Cnpj' | 'Celular' | 'Email' | 'Aleatoria';
+const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; exemplo: string }[] = [
+  { valor: 'Cnpj', rotulo: 'CNPJ', exemplo: '12.345.678/0001-90' },
+  { valor: 'Cpf', rotulo: 'CPF', exemplo: '123.456.789-09' },
+  { valor: 'Celular', rotulo: 'Celular', exemplo: '(51) 99999-9999' },
+  { valor: 'Email', rotulo: 'E-mail', exemplo: 'pix@seumercado.com.br' },
+  { valor: 'Aleatoria', rotulo: 'Chave aleatória', exemplo: '123e4567-e89b-12d3-a456-426614174000' },
+];
 
 // Configurações da loja e dos equipamentos: balança (etiqueta e caixa) e impressora.
 @Component({
   selector: 'app-configuracoes',
-  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, DecimalPipe, HorarioEditor, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca],
+  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, DecimalPipe, HorarioEditor, RouterLink, CodigoBarras, ProdutoBusca, CidadeBusca, PixQrCodeComponent],
   templateUrl: './configuracoes.html',
   styleUrl: './configuracoes.scss',
 })
@@ -101,6 +114,42 @@ export class Configuracoes {
       this.avisoCidade.set((e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a cidade.');
     } finally {
       this.salvandoCidade.set(false);
+    }
+  }
+
+  // ----- Pix da loja (QR Code com o valor da venda no caixa) -----
+  protected readonly tiposChave = TIPOS_CHAVE;
+  protected pixTipo: TipoChavePix = 'Cnpj';
+  protected pixChave = '';
+  protected pixNome = '';
+  protected readonly editandoPix = signal(false);
+  protected readonly salvandoPix = signal(false);
+  protected readonly avisoPix = signal<{ ok: boolean; texto: string } | null>(null);
+  protected exemploChave(): string { return TIPOS_CHAVE.find((t) => t.valor === this.pixTipo)?.exemplo ?? ''; }
+  protected readonly chaveLegivel = chavePixLegivel;
+  protected rotuloTipo(t: string | null): string { return TIPOS_CHAVE.find((x) => x.valor === t)?.rotulo ?? ''; }
+
+  protected editarPix(c: Configuracao): void {
+    this.pixTipo = c.pixTipoChave ?? 'Cnpj';
+    this.pixChave = c.pixChave ?? '';
+    this.pixNome = c.pixNomeRecebedor ?? '';
+    this.avisoPix.set(null);
+    this.editandoPix.set(true);
+  }
+
+  async salvarPix(tirar = false): Promise<void> {
+    if (tirar && !confirm('Tirar a chave Pix da loja? O caixa deixa de mostrar o QR Code.')) return;
+    this.avisoPix.set(null);
+    this.salvandoPix.set(true);
+    try {
+      const corpo = tirar ? { tipo: null, chave: '', nomeRecebedor: null } : { tipo: this.pixTipo, chave: this.pixChave, nomeRecebedor: this.pixNome };
+      this.config.set(await firstValueFrom(this.http.put<Configuracao>('/api/empresa/configuracao/pix', corpo)));
+      this.editandoPix.set(false);
+      this.avisoPix.set({ ok: true, texto: tirar ? 'Chave Pix retirada.' : 'Chave Pix salva. Teste lendo o QR Code abaixo com o app do banco (não precisa pagar).' });
+    } catch (e) {
+      this.avisoPix.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a chave Pix.' });
+    } finally {
+      this.salvandoPix.set(false);
     }
   }
 

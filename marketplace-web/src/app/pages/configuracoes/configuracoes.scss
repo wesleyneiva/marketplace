@@ -143,3 +143,13 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
 .salvar-horario { margin-top: 14px; }
 
 .marcar-linha { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 14px; }
+
+// Pix da loja
+.pix-form {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 8px;
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cor-texto-suave); }
+  label small { font-weight: 400; }
+  label.largo { flex: 1 1 240px; }
+  .acoes-pix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
+}
+.pix-atual { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; app-icone { color: var(--cor-primaria); } }
