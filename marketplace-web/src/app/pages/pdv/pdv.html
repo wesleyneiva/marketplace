@@ -252,6 +252,25 @@
   </dialog>
 
   <!-- ======================= CUPOM ======================= -->
+  <!-- Pix confirmado pelo Mercado Pago: aviso grande, fecha sozinho (ou com Enter / clique) -->
+  <dialog #dlgPixOk class="pix-ok" (click)="fecharAvisoPix()" (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); fecharAvisoPix()"
+          (cancel)="$event.preventDefault(); fecharAvisoPix()">
+    @if (pixOk(); as a) {
+      <div class="pix-ok-corpo" role="alert">
+        <span class="marca"><app-icone nome="check" /></span>
+        <h2>Pix recebido!</h2>
+        <strong class="valor">{{ a.cobranca.valor | currency: 'BRL' }}</strong>
+        <p>Confirmado pelo Mercado Pago{{ a.cobranca.pagaEm ? ' às ' + (a.cobranca.pagaEm | date: 'HH:mm') : '' }}</p>
+        @switch (a.situacao) {
+          @case ('registrando') { <p class="situacao"><app-icone nome="loader-circle" girando /> Registrando a venda…</p> }
+          @case ('registrada') { <p class="situacao ok"><app-icone nome="circle-check" /> Venda registrada</p> }
+          @case ('falta') { <p class="situacao falta">Falta receber {{ a.falta | currency: 'BRL' }}</p> }
+          @case ('erro') { <p class="situacao erro">A venda não foi registrada: veja a mensagem na janela de pagamento.</p> }
+        }
+      </div>
+    }
+  </dialog>
+
   <dialog #dlgCupom class="janela cupom-janela" (close)="novaVenda()">
     @if (cupom(); as c) {
       <div class="cupom">

@@ -97,6 +97,9 @@ export class Pdv {
     return this.pixRecebidos().filter((c) => ids.has(c.id));
   });
   private readonly pixRecebidos = signal<CobrancaPix[]>([]);
+  // Modal grande "Pix recebido!" (o caixa vê de longe) e a situação da venda logo abaixo.
+  protected readonly pixOk = signal<{ cobranca: CobrancaPix; situacao: 'registrando' | 'registrada' | 'falta' | 'erro'; falta: number } | null>(null);
+  private fecharPixOk?: ReturnType<typeof setTimeout>;
   protected readonly pago = computed(() => arredondar(this.pagamentos().reduce((s, p) => s + p.valor, 0)));
   protected readonly falta = computed(() => arredondar(Math.max(0, this.total() - this.pago())));
   protected readonly troco = computed(() => arredondar(Math.max(0, this.pago() - this.total())));
@@ -148,6 +151,7 @@ export class Pdv {
   private readonly btnNovaVenda = viewChild<ElementRef<HTMLButtonElement>>('btnNovaVenda');
   private readonly dlgPagamento = viewChild<ElementRef<HTMLDialogElement>>('dlgPagamento');
   private readonly dlgCupom = viewChild<ElementRef<HTMLDialogElement>>('dlgCupom');
+  private readonly dlgPixOk = viewChild<ElementRef<HTMLDialogElement>>('dlgPixOk');
   private readonly dlgMovimento = viewChild<ElementRef<HTMLDialogElement>>('dlgMovimento');
   private readonly dlgFechar = viewChild<ElementRef<HTMLDialogElement>>('dlgFechar');
   private readonly dlgReceber = viewChild<ElementRef<HTMLDialogElement>>('dlgReceber');
@@ -466,8 +470,37 @@ export class Pdv {
     this.pagamentos.update((p) => [...p, { forma: 'Pix', valor: c.valor, cobrancaPixId: c.id }]);
     this.pixRecebidos.update((l) => [...l.filter((x) => x.id !== c.id), c]);
     this.pixSoltos.update((l) => l.filter((x) => x.id !== c.id));
-    if (this.falta() > 0) this.escolherForma('Dinheiro');
-    else { this.textoValor = ''; setTimeout(() => this.btnConfirmar()?.nativeElement.focus()); }
+    void this.avisarPixRecebido(c);
+  }
+
+  // Pix confirmado: modal grande + bipe. Se quitou a compra, a venda é registrada sozinha (sem "Confirmar venda").
+  private async avisarPixRecebido(c: CobrancaPix): Promise<void> {
+    clearTimeout(this.fecharPixOk);
+    tocarBipe();
+    const falta = this.falta();
+    this.pixOk.set({ cobranca: c, situacao: falta > 0 ? 'falta' : 'registrando', falta });
+    const dlg = this.dlgPixOk()?.nativeElement;
+    if (dlg && !dlg.open) dlg.showModal();
+    if (falta > 0) {
+      this.escolherForma('Dinheiro');
+      this.fecharPixOk = setTimeout(() => this.fecharAvisoPix(), 3000);
+      return;
+    }
+    this.textoValor = '';
+    await this.finalizar();
+    const registrou = !this.dlgPagamento()?.nativeElement.open;
+    this.pixOk.update((a) => (a ? { ...a, situacao: registrou ? 'registrada' : 'erro' } : a));
+    // O cupom abriu por cima: traz o aviso de volta para a frente por mais uns segundos.
+    if (dlg) { if (dlg.open) dlg.close(); dlg.showModal(); }
+    this.fecharPixOk = setTimeout(() => this.fecharAvisoPix(), registrou ? 3000 : 5000);
+  }
+
+  protected fecharAvisoPix(): void {
+    clearTimeout(this.fecharPixOk);
+    const dlg = this.dlgPixOk()?.nativeElement;
+    if (dlg?.open) dlg.close();
+    if (this.pixOk()?.situacao === 'erro' || this.pixOk()?.situacao === 'falta') setTimeout(() => this.campoValor()?.nativeElement.focus());
+    this.pixOk.set(null);
   }
 
   protected escolherForma(forma: FormaPagamento): void {
@@ -846,4 +879,24 @@ function dinheiroBr(v: number): string {
 function separarQuantidade(texto: string): { quantidade: number | null; termo: string } {
   const m = /^(\d+(?:[.,]\d+)?)\s*\*\s*(.*)$/.exec(texto);
   return m ? { quantidade: lerNumero(m[1]), termo: m[2].trim() } : { quantidade: null, termo: texto };
+}
+
+// Dois toques curtos e agradáveis quando o Pix é confirmado (o caixa ouve mesmo sem olhar a tela).
+function tocarBipe(): void {
+  try {
+    const ctx = new AudioContext();
+    [[880, 0], [1320, 0.16]].forEach(([freq, quando]) => {
+      const osc = ctx.createOscillator(), vol = ctx.createGain();
+      osc.frequency.value = freq;
+      vol.gain.setValueAtTime(0.0001, ctx.currentTime + quando);
+      vol.gain.exponentialRampToValueAtTime(0.25, ctx.currentTime + quando + 0.02);
+      vol.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + quando + 0.18);
+      osc.connect(vol).connect(ctx.destination);
+      osc.start(ctx.currentTime + quando);
+      osc.stop(ctx.currentTime + quando + 0.2);
+    });
+    setTimeout(() => void ctx.close(), 800);
+  } catch {
+    /* navegador sem som: fica só o aviso na tela */
+  }
 }
