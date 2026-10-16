@@ -204,5 +204,5 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
     private static ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
         e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.ComprasAutomaticas,
-        e.PixTipoChave, e.PixChave, e.PixNomeRecebedor);
+        e.PixTipoChave, e.PixChave, e.PixNomeRecebedor, e.PixAutomatico, e.MercadoPagoConta, e.MercadoPagoTokenFinal, e.MercadoPagoTeste);
 }

@@ -19,6 +19,17 @@
       ],
       "port": 5200,
       "url": "http://localhost:5200"
+    },
+    {
+      "name": "mp-simulador",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-I",
+        "/home/ubuntu/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py",
+        "5399",
+        "8"
+      ],
+      "port": 5399
     }
   ]
 }

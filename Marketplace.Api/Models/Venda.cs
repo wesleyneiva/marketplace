@@ -69,6 +69,7 @@ public class PagamentoVenda : IDaEmpresa
 
     public FormaPagamento Forma { get; set; }
     public decimal Valor { get; set; }
+    public int? CobrancaPixId { get; set; }   // Pix automático: a cobrança paga no Mercado Pago (conferida no servidor)
 }
 
 public enum FormaPagamento { Dinheiro, Pix, Debito, Credito, Fiado } // Fiado: não é dinheiro; vira dívida na caderneta

@@ -45,6 +45,14 @@ public class Empresa
     public string? PixChave { get; set; }
     public string? PixNomeRecebedor { get; set; }   // como aparece para o cliente no app do banco (até 25 letras)
 
+    // Pix AUTOMÁTICO: o provedor avisa o Marcus que o Pix caiu (ver Models/PixAutomatico.cs). Vazio = Pix manual (QR da chave acima).
+    public string? PixAutomatico { get; set; }               // "MercadoPago"
+    public string? MercadoPagoToken { get; set; }            // Access Token CRIPTOGRAFADO (DataProtection); nunca volta para a tela
+    public string? MercadoPagoTokenFinal { get; set; }       // só os 4 últimos caracteres, para a tela mostrar "••••1234"
+    public string? MercadoPagoConta { get; set; }            // apelido/e-mail da conta, conferido ao salvar
+    public bool MercadoPagoTeste { get; set; }               // credenciais de teste: o Pix de teste é aprovado sozinho
+    public string? PixAvisoToken { get; set; }               // segredo do endereço do aviso (webhook) desta loja
+
     // DRE: alíquota EFETIVA do Simples Nacional (% do faturamento), informada pelo contador. 0 = ainda não informada
     // (a DRE usa os DAS lançados no mês e avisa). Ex.: 7,3 = 7,3% das vendas do mês.
     public decimal AliquotaSimples { get; set; }

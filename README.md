@@ -66,7 +66,18 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   padrão BR Code do Banco Central (`Services/Pix/PixQrCode.cs`: EMV + CRC16, conferido com o exemplo do manual) e é montado no
   servidor a partir da chave cadastrada (`GET /api/empresa/configuracao/pix/qrcode?valor=`; desenho pelo QRCoder). O dinheiro cai
   direto na conta da loja; o caixa confere no celular antes de confirmar e a conferência fica pelo extrato OFX. Confirmação
-  automática (Pix dinâmico com banco ou intermediário) fica para uma próxima etapa.
+  automática: ver Pix automático (Mercado Pago).
+- **Pix automático (Mercado Pago)** (Configurações → Pix da loja → Confirmação automática) — o administrador cola o Access
+  Token da aplicação do Mercado Pago (conferido em `/users/me` e guardado CRIPTOGRAFADO com DataProtection; a tela só mostra o
+  final). No caixa, ao escolher Pix: "Gerar QR do Pix" cria uma `CobrancaPix` no Mercado Pago (`POST /v1/payments`, pix,
+  external_reference = Guid da cobrança, validade 15 min, notification_url com o segredo da loja) e a tela fica em "Aguardando
+  o pagamento…"; o caixa pergunta a cada 2,5 s (`GET /api/pix/cobrancas/{id}`, o servidor vai ao Mercado Pago no máximo a cada
+  3 s) e o aviso `POST /api/pix/mercadopago/aviso/{segredo}` (sem login) adianta. **O aviso nunca é prova**: o servidor sempre
+  consulta o pagamento com o token da loja e confere valor e referência. A venda só aceita o Pix com `cobrancaPixId` de cobrança
+  PAGA, do mesmo valor, do mesmo caixa e ainda não usada (FOR UPDATE). Pix pago que ficou sem venda (janela fechada, venda
+  cancelada) aparece no caixa como "já recebido e sem venda" para usar. Sem aviso (internet), o caixa pode confirmar manualmente.
+  Teste local sem conta: `~/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py` (launch "mp-simulador") com o
+  segredo de desenvolvimento `MercadoPago:Url=http://127.0.0.1:5399`.
 - **Conciliação bancária (extrato OFX)** (Financeiro → Extrato do banco) — o cliente baixa o extrato no internet banking
   (formato OFX, que todo banco gera: Bradesco, Caixa, BB, Itaú, Sicredi…) e envia. `Services/Conciliacao/LeitorOfx.cs` lê
   OFX 1.x (SGML, tags sem fechar) e 2.x (XML), Latin-1 ou UTF-8, valor com ponto ou vírgula; a conta é achada pelo número

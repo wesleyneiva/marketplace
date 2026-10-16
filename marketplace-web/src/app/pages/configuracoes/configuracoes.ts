@@ -35,6 +35,10 @@ interface Configuracao {
   pixTipoChave: TipoChavePix | null;
   pixChave: string | null;
   pixNomeRecebedor: string | null;
+  pixAutomatico: string | null;
+  mercadoPagoConta: string | null;
+  mercadoPagoTokenFinal: string | null;
+  mercadoPagoTeste: boolean;
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
 
@@ -150,6 +154,39 @@ export class Configuracoes {
       this.avisoPix.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível salvar a chave Pix.' });
     } finally {
       this.salvandoPix.set(false);
+    }
+  }
+
+  // ----- Pix automático (Mercado Pago avisa o caixa) -----
+  protected mpToken = '';
+  protected mpTeste = true;
+  protected readonly salvandoMp = signal(false);
+  protected readonly avisoMp = signal<{ ok: boolean; texto: string } | null>(null);
+
+  async ligarMercadoPago(): Promise<void> {
+    this.avisoMp.set(null);
+    this.salvandoMp.set(true);
+    try {
+      const r = await firstValueFrom(this.http.put<{ conta: string; teste: boolean }>('/api/pix/mercado-pago', { token: this.mpToken, teste: this.mpTeste }));
+      this.mpToken = '';
+      this.config.reload();
+      this.avisoMp.set({ ok: true, texto: `Ligado na conta ${r.conta}${r.teste ? ' (modo teste: o Pix é aprovado sozinho)' : ''}. No caixa, o Pix agora gera o QR do Mercado Pago.` });
+    } catch (e) {
+      this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível ligar o Pix automático.' });
+    } finally {
+      this.salvandoMp.set(false);
+    }
+  }
+
+  async desligarMercadoPago(): Promise<void> {
+    if (!confirm('Desligar o Pix automático? O caixa volta ao Pix manual (QR da chave da loja) e o token do Mercado Pago é apagado.')) return;
+    this.avisoMp.set(null);
+    try {
+      await firstValueFrom(this.http.delete('/api/pix/mercado-pago'));
+      this.config.reload();
+      this.avisoMp.set({ ok: true, texto: 'Pix automático desligado.' });
+    } catch (e) {
+      this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível desligar.' });
     }
   }
 

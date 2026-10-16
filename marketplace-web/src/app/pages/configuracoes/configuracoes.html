@@ -108,6 +108,36 @@
       @if (ehAdmin()) { <button type="button" class="botao primario" (click)="editarPix(c)"><app-icone nome="plus" /> Cadastrar a chave Pix</button> }
       @if (avisoPix(); as a) { <p class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</p> }
     }
+
+    <div class="pix-auto">
+      <h3><app-icone nome="refresh-cw" /> Confirmação automática (Mercado Pago)</h3>
+      @if (c.pixAutomatico === 'MercadoPago') {
+        <p class="pix-atual"><app-icone nome="circle-check" /> <b>Ligada</b> na conta {{ c.mercadoPagoConta }} · token ••••{{ c.mercadoPagoTokenFinal }}
+          @if (c.mercadoPagoTeste) { <span class="selo-teste">modo teste</span> }
+          @if (ehAdmin()) { <button type="button" class="botao pequeno" (click)="desligarMercadoPago()">Desligar</button> }
+        </p>
+        <p class="dica">No caixa, ao escolher Pix, o Marcus gera no Mercado Pago um QR único com o valor. Quando o cliente paga,
+          o Mercado Pago avisa e o caixa mostra <b>"Pix recebido"</b> sozinho — ninguém precisa olhar o celular.
+          @if (c.mercadoPagoTeste) { <br />Modo teste: o Pix é aprovado sozinho em poucos segundos, sem dinheiro de verdade. Troque pelas credenciais de produção para receber de verdade. }
+        </p>
+      } @else {
+        <p class="dica">Com o Mercado Pago, o caixa é avisado sozinho quando o Pix cai (sem conferir no celular). Cole aqui o
+          <b>Access Token</b> da aplicação do Mercado Pago (Suas integrações → a aplicação → Credenciais). Ele fica guardado
+          criptografado e não aparece de novo.</p>
+        @if (ehAdmin()) {
+          <form class="pix-form" (ngSubmit)="ligarMercadoPago()">
+            <label class="largo">Access Token do Mercado Pago
+              <input name="mpToken" type="password" [(ngModel)]="mpToken" autocomplete="off" placeholder="APP_USR-…" required />
+            </label>
+            <label class="marcar-linha"><input type="checkbox" name="mpTeste" [(ngModel)]="mpTeste" /> São credenciais de teste</label>
+            <div class="acoes-pix">
+              <button type="submit" class="botao primario" [disabled]="salvandoMp() || mpToken.trim().length < 20">{{ salvandoMp() ? 'Conferindo no Mercado Pago…' : 'Ligar Pix automático' }}</button>
+            </div>
+          </form>
+        }
+      }
+      @if (avisoMp(); as a) { <p class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</p> }
+    </div>
   }
 </section>
 

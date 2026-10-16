@@ -75,6 +75,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             await estoque.PrepararVendaAsync(produtos[item.ProdutoId], item.Quantidade, venda, usuarioId);
 
         PrepararPagamentos(venda, pedido.Pagamentos);
+        await VincularPixAutomaticoAsync(venda, pedido.Pagamentos, sessao.Id);
 
         // Fiado: vira dívida na caderneta do cliente (limite, bloqueio e atraso: acima disso só gerente libera).
         venda.ClienteId = pedido.ClienteId;
@@ -93,7 +94,9 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         {
             if (!Enum.TryParse<FormaPagamento>(p.Forma, ignoreCase: true, out var forma))
                 throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito, Credito ou Fiado.");
-            venda.Pagamentos.Add(new PagamentoVenda { Forma = forma, Valor = Dinheiro(p.Valor) });
+            if (p.CobrancaPixId is not null && forma != FormaPagamento.Pix)
+                throw new EstoqueException("Cobrança Pix só vale para pagamento em Pix.");
+            venda.Pagamentos.Add(new PagamentoVenda { Forma = forma, Valor = Dinheiro(p.Valor), CobrancaPixId = p.CobrancaPixId });
         }
 
         venda.ValorPago = venda.Pagamentos.Sum(p => p.Valor);
@@ -106,6 +109,27 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             throw new EstoqueException("Cartão, PIX e fiado não podem passar do total (troco só em dinheiro).");
 
         venda.Troco = venda.ValorPago - venda.Total;
+    }
+
+    // Pix automático: o pagamento só entra se a cobrança estiver PAGA no Mercado Pago (conferido pelo servidor),
+    // com o mesmo valor e sem ter entrado em outra venda. FOR UPDATE: dois caixas não usam o mesmo Pix ao mesmo tempo.
+    private async Task VincularPixAutomaticoAsync(Venda venda, List<PagamentoRequest> pagamentos, int sessaoId)
+    {
+        var ids = pagamentos.Where(p => p.CobrancaPixId is not null).Select(p => p.CobrancaPixId!.Value).ToArray();
+        if (ids.Length == 0) return;
+        if (ids.Distinct().Count() != ids.Length) throw new EstoqueException("O mesmo Pix aparece duas vezes nesta venda.");
+        var cobrancas = await db.CobrancasPix
+            .FromSql($"SELECT * FROM \"CobrancasPix\" WHERE \"Id\" = ANY({ids}) AND \"EmpresaId\" = {db.EmpresaAtual} FOR UPDATE")
+            .ToDictionaryAsync(c => c.Id);
+        foreach (var p in venda.Pagamentos.Where(p => p.CobrancaPixId is not null))
+        {
+            if (!cobrancas.TryGetValue(p.CobrancaPixId!.Value, out var c)) throw new EstoqueException("Cobrança Pix não encontrada.");
+            if (c.Status != StatusCobrancaPix.Paga) throw new EstoqueException("Este Pix ainda não foi pago no Mercado Pago.");
+            if (c.VendaId is not null) throw new EstoqueException("Este Pix já foi usado em outra venda.");
+            if (Math.Abs(c.Valor - p.Valor) >= 0.005m) throw new EstoqueException($"O Pix recebido foi de {c.Valor:C}, não de {p.Valor:C}.");
+            if (c.SessaoCaixaId is int s && s != sessaoId) throw new EstoqueException("Este Pix foi gerado em outro caixa.");
+            c.Venda = venda;
+        }
     }
 
     private async Task<Venda> TentarCancelarAsync(int vendaId, string usuarioId, string motivo)
@@ -140,6 +164,9 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
 
         await estoque.PrepararCancelamentoAsync(venda, usuarioId, venda.MotivoCancelamento);
         await fiado.EstornarCompraAsync(venda, usuarioId, venda.MotivoCancelamento);
+        // Pix automático: o dinheiro continua na conta; o Pix volta a aparecer como "recebido sem venda" no caixa
+        // (para usar em outra venda ou devolver ao cliente pelo app do Mercado Pago).
+        foreach (var c in await db.CobrancasPix.Where(c => c.VendaId == venda.Id).ToListAsync()) c.VendaId = null;
         await db.SaveChangesAsync();
         return venda;
     }

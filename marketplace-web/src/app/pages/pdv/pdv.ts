@@ -16,6 +16,7 @@ import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { PixQrCodeComponent } from '../../shared/pix-qrcode';
+import { CobrancaPix, PixAutomatico } from '../../shared/pix-automatico';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -28,7 +29,7 @@ interface ItemCarrinho {
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
 @Component({
   selector: 'app-pdv',
-  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -80,13 +81,16 @@ export class Pdv {
   protected readonly lendoBalanca = signal(false);
 
   // ----- Pagamento -----
-  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number }[]>([]);
+  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number; cobrancaPixId?: number }[]>([]);
   protected readonly formaAtual = signal<FormaPagamento>('Dinheiro');
   // O valor digitado no pagamento (sinal: o QR Code do Pix acompanha o valor enquanto o caixa digita).
   private readonly valorDigitado = signal('');
   protected get textoValor(): string { return this.valorDigitado(); }
   protected set textoValor(v: string) { this.valorDigitado.set(v ?? ''); }
   protected readonly valorPix = computed(() => (this.formaAtual() === 'Pix' ? arredondar(lerNumero(this.valorDigitado())) : 0));
+  // Pix automático (Mercado Pago) ligado nas Configurações? E os Pix já pagos que ainda não entraram em venda.
+  protected readonly pixAutomatico = signal<string | null>(null);
+  protected readonly pixSoltos = signal<CobrancaPix[]>([]);
   protected readonly pago = computed(() => arredondar(this.pagamentos().reduce((s, p) => s + p.valor, 0)));
   protected readonly falta = computed(() => arredondar(Math.max(0, this.total() - this.pago())));
   protected readonly troco = computed(() => arredondar(Math.max(0, this.pago() - this.total())));
@@ -420,6 +424,43 @@ export class Pdv {
     this.limparCliente();
     this.escolherForma('Dinheiro');
     this.dlgPagamento()?.nativeElement.showModal();
+    void this.carregarPix();
+  }
+
+  // Lê (a cada pagamento) se o Pix automático está ligado e se há Pix pagos sem venda neste caixa.
+  private async carregarPix(): Promise<void> {
+    try {
+      const cfg = await firstValueFrom(this.http.get<{ pixAutomatico: string | null }>('/api/empresa/configuracao'));
+      this.pixAutomatico.set(cfg.pixAutomatico);
+      const sessao = this.caixa()?.sessaoId;
+      this.pixSoltos.set(cfg.pixAutomatico && sessao
+        ? await firstValueFrom(this.http.get<CobrancaPix[]>('/api/pix/cobrancas/soltas', { params: { sessaoCaixaId: sessao } }))
+        : []);
+    } catch {
+      /* sem a configuração: o Pix fica manual nesta venda */
+    }
+  }
+
+  // Sem o aviso (internet caiu, Mercado Pago fora do ar): o caixa confere no celular e confirma por conta dele.
+  protected pixManual(): void {
+    if (!confirm(`Confirmar o Pix de ${dinheiroBr(this.valorPix())} SEM o aviso do Mercado Pago?\n\nSó confirme se você viu o Pix cair no celular da loja.`)) return;
+    const automatico = this.pixAutomatico();
+    this.pixAutomatico.set(null); // deixa o "Adicionar" registrar este Pix como manual
+    void this.confirmarValor().finally(() => this.pixAutomatico.set(automatico));
+  }
+
+  // O Mercado Pago confirmou: o Pix entra sozinho na venda (o servidor confere de novo ao registrar).
+  protected pixPago(c: CobrancaPix): void {
+    if (this.pagamentos().some((p) => p.cobrancaPixId === c.id)) return;
+    if (c.valor > this.falta() + 0.001) {
+      this.erro.set(`O Pix recebido (${dinheiroBr(c.valor)}) passa do que falta (${dinheiroBr(this.falta())}). Use-o em outra venda ou devolva pelo Mercado Pago.`);
+      return;
+    }
+    this.erro.set(null);
+    this.pagamentos.update((p) => [...p, { forma: 'Pix', valor: c.valor, cobrancaPixId: c.id }]);
+    this.pixSoltos.update((l) => l.filter((x) => x.id !== c.id));
+    if (this.falta() > 0) this.escolherForma('Dinheiro');
+    else { this.textoValor = ''; setTimeout(() => this.btnConfirmar()?.nativeElement.focus()); }
   }
 
   protected escolherForma(forma: FormaPagamento): void {
@@ -477,6 +518,10 @@ export class Pdv {
       this.erro.set('Valor inválido.');
       return;
     }
+    if (this.formaAtual() === 'Pix' && this.pixAutomatico()) {
+      this.erro.set('Com o Pix automático, gere o QR e espere o aviso do Mercado Pago (ou use "Confirmar o Pix manualmente").');
+      return;
+    }
     if (this.formaAtual() !== 'Dinheiro' && valor > this.falta()) {
       this.erro.set('Cartão, PIX e fiado não podem passar do valor que falta (troco só em dinheiro).');
       return;
@@ -508,7 +553,9 @@ export class Pdv {
   }
 
   protected removerPagamento(indice: number): void {
+    const removido = this.pagamentos()[indice];
     this.pagamentos.update((p) => p.filter((_, i) => i !== indice));
+    if (removido?.cobrancaPixId) void this.carregarPix(); // o Pix pago volta para "recebido sem venda"
     this.escolherForma(this.formaAtual());
   }
 

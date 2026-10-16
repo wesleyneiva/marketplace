@@ -96,7 +96,7 @@ export interface ResumoVendas {
 export interface NovaVenda {
   itens: { produtoId: number; quantidade: number }[];
   desconto: number;
-  pagamentos: { forma: FormaPagamento; valor: number }[];
+  pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number }[]; // cobrancaPixId: Pix automático (Mercado Pago)
   clienteId?: number | null; // obrigatório com fiado
 }
 

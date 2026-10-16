@@ -153,3 +153,5 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
   .acoes-pix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
 }
 .pix-atual { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; app-icone { color: var(--cor-primaria); } }
+.pix-auto { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--cor-borda); h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 6px; } }
+.selo-teste { padding: 2px 8px; border-radius: 10px; background: var(--cor-alerta-fundo-forte); color: var(--cor-alerta); font-size: 12px; font-weight: 600; }

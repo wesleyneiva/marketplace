@@ -92,7 +92,8 @@ public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidad
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
     string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
     List<ProximoFeriado> ProximosFeriados, bool ComprasAutomaticas,
-    string? PixTipoChave, string? PixChave, string? PixNomeRecebedor);
+    string? PixTipoChave, string? PixChave, string? PixNomeRecebedor,
+    string? PixAutomatico, string? MercadoPagoConta, string? MercadoPagoTokenFinal, bool MercadoPagoTeste);
 
 // Pix da loja (Configurações). Tudo vazio = tira a chave (o caixa volta a não mostrar o QR Code).
 public record PixLojaRequest(string? Tipo, [System.ComponentModel.DataAnnotations.StringLength(100)] string? Chave,

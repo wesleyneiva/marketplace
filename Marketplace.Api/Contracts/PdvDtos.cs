@@ -51,7 +51,8 @@ public record ItemVendaRequest(
 
 public record PagamentoRequest(
     [Required] string Forma,
-    [Range(0.01, 1000000, ErrorMessage = "Valor de pagamento inválido.")] decimal Valor);
+    [Range(0.01, 1000000, ErrorMessage = "Valor de pagamento inválido.")] decimal Valor,
+    int? CobrancaPixId = null);   // Pix automático: a cobrança paga no Mercado Pago
 
 public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaRequest> Itens,

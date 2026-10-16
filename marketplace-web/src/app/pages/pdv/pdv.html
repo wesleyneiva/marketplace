@@ -198,9 +198,20 @@
           <label for="valor">Valor em {{ rotuloForma(formaAtual()) }}</label>
           <input #campoValor id="valor" name="valor" [(ngModel)]="textoValor" inputmode="decimal"
                  [disabled]="formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())" />
-          <button type="submit" class="botao primario" [disabled]="formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())">Adicionar</button>
+          <button type="submit" class="botao primario" [disabled]="(formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())) || (formaAtual() === 'Pix' && !!pixAutomatico())">Adicionar</button>
         </form>
-        @if (valorPix() > 0) {
+        @if (pixSoltos().length) {
+          <div class="pix-soltos" role="status">
+            @for (c of pixSoltos(); track c.id) {
+              <span><app-icone nome="circle-check" /> Pix de <b>{{ c.valor | currency: 'BRL' }}</b> já recebido e sem venda</span>
+              <button type="button" class="botao pequeno primario" (click)="pixPago(c)" [disabled]="c.valor > falta() + 0.001">Usar nesta venda</button>
+            }
+          </div>
+        }
+        @if (formaAtual() === 'Pix' && pixAutomatico()) {
+          <app-pix-automatico [valor]="valorPix()" [sessaoCaixaId]="caixa()?.sessaoId ?? null" (pago)="pixPago($event)" />
+          <button type="button" class="link-manual" (click)="pixManual()">O aviso não chegou? Confirmar o Pix manualmente</button>
+        } @else if (valorPix() > 0) {
           <app-pix-qrcode [valor]="valorPix()">
             <small class="conferir"><app-icone nome="smartphone" /> Mostre ao cliente. <b>Confira no celular da loja</b> que o Pix chegou e só então clique em Adicionar.</small>
           </app-pix-qrcode>

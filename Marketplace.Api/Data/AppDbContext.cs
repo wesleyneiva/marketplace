@@ -48,6 +48,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Recebivel> Recebiveis => Set<Recebivel>();
     public DbSet<ExtratoBancario> ExtratosBancarios => Set<ExtratoBancario>();
     public DbSet<LinhaExtrato> LinhasExtrato => Set<LinhaExtrato>();
+    public DbSet<CobrancaPix> CobrancasPix => Set<CobrancaPix>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
     public DbSet<Plano> Planos => Set<Plano>();
@@ -68,6 +69,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.PixTipoChave).HasMaxLength(10);
             e.Property(x => x.PixChave).HasMaxLength(77);
             e.Property(x => x.PixNomeRecebedor).HasMaxLength(25);
+            e.Property(x => x.PixAutomatico).HasMaxLength(20);
+            e.Property(x => x.MercadoPagoToken).HasMaxLength(1000);
+            e.Property(x => x.MercadoPagoTokenFinal).HasMaxLength(8);
+            e.Property(x => x.MercadoPagoConta).HasMaxLength(120);
+            e.Property(x => x.PixAvisoToken).HasMaxLength(40);
+            e.HasIndex(x => x.PixAvisoToken).IsUnique().HasFilter("\"PixAvisoToken\" IS NOT NULL");
             e.Property(x => x.Nome).HasMaxLength(120);
             e.Property(x => x.Subdominio).HasMaxLength(40);
             e.HasIndex(x => x.Subdominio).IsUnique();
@@ -346,6 +353,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(m => m.CategoriaFinanceira).WithMany().HasForeignKey(m => m.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaPagar).WithMany().HasForeignKey(m => m.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CriadoPor).WithMany().HasForeignKey(m => m.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- Pix automático (Mercado Pago) -----
+        builder.Entity<CobrancaPix>(e =>
+        {
+            e.ToTable("CobrancasPix");
+            e.Property(x => x.Provedor).HasMaxLength(20);
+            e.Property(x => x.IdExterno).HasMaxLength(40);
+            e.Property(x => x.Valor).HasPrecision(14, 2);
+            e.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
+            e.Property(x => x.StatusExterno).HasMaxLength(30);
+            e.HasIndex(x => new { x.Provedor, x.IdExterno }).IsUnique().HasFilter("\"IdExterno\" IS NOT NULL");
+            e.HasIndex(x => x.Referencia).IsUnique();
+            e.HasIndex(x => new { x.SessaoCaixaId, x.Status });
+            e.HasIndex(x => x.VendaId).IsUnique().HasFilter("\"VendaId\" IS NOT NULL");
+            e.HasOne(x => x.SessaoCaixa).WithMany().HasForeignKey(x => x.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Venda).WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- Conciliação bancária (extrato OFX) -----
