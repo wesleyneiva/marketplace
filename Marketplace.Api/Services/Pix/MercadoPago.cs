@@ -37,7 +37,9 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
             ["external_reference"] = referencia.ToString(),
             ["date_of_expiration"] = expira.ToOffset(TimeSpan.FromHours(-3)).ToString("yyyy-MM-dd'T'HH:mm:ss.fffzzz", CultureInfo.InvariantCulture),
             // No modo de teste do Mercado Pago, o nome "APRO" faz o Pix ser aprovado sozinho (para testar sem dinheiro).
-            ["payer"] = new JsonObject { ["email"] = emailPagador, ["first_name"] = teste ? "APRO" : "Cliente" },
+            // Teste: o comprador TEM de ser o de teste (test@testuser.com); com e-mail "de verdade" o Mercado Pago recusa
+            // com "Unauthorized use of live credentials" (mistura de conta de teste com conta real).
+            ["payer"] = new JsonObject { ["email"] = teste ? "test@testuser.com" : emailPagador, ["first_name"] = teste ? "APRO" : "Cliente" },
         };
         if (avisoUrl is not null) corpo["notification_url"] = avisoUrl;
         // A mesma referência = o mesmo Pix: se a rede cair e o Marcus tentar de novo, o Mercado Pago não cria dois.
@@ -80,7 +82,9 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
         log.LogWarning("Mercado Pago {Metodo} {Caminho}: {Codigo} {Texto}", metodo, caminho, (int)resposta.StatusCode, texto.Length > 400 ? texto[..400] : texto);
         throw new MercadoPagoException((int)resposta.StatusCode switch
         {
-            401 or 403 => "O Mercado Pago recusou o token de acesso: confira o Access Token em Configurações → Pix da loja.",
+            401 or 403 when Mensagem(texto) is "Unauthorized use of live credentials" =>
+                "O Mercado Pago recusou: credenciais de produção ainda não ativadas, ou mistura de teste com produção. Confira em Configurações → Pix da loja se o \"modo teste\" bate com o token.",
+            401 or 403 => "O Mercado Pago recusou o token de acesso" + (Mensagem(texto) is { } m401 ? $" ({m401})" : "") + ": confira o Access Token em Configurações → Pix da loja.",
             404 => "Pagamento não encontrado no Mercado Pago.",
             _ => "O Mercado Pago recusou o pedido" + (Mensagem(texto) is { } m ? $": {m}" : "."),
         });
