@@ -149,7 +149,7 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
   barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
   contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
-- **Relógio de Brasília e rodapé** — barra do topo com a hora de Brasília (`shared/relogio-brasilia.ts`, sempre America/Sao_Paulo);
+- **Relógio de Brasília e rodapé** — barra do topo com a hora de Brasília, 24 h, HH:MM (`shared/relogio-brasilia.ts`, sempre America/Sao_Paulo);
   rodapé "Desenvolvido por WN Labs · contato@wnlabs.com.br" (`shared/rodape.ts`) na casca, no login e na troca de senha.
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
@@ -222,11 +222,13 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 ### 17/10/2026
 - **Módulos liberados por cliente** na área do dono (todos ou um a um), refletindo sozinho no sistema do cliente e barrado na API.
   Migration `ModulosLiberados`.
-- **Relógio de Brasília** na barra do topo e **rodapé WN Labs** (contato@wnlabs.com.br) em todas as telas.
+- **Relógio de Brasília** (24 h, HH:MM, sem data) na barra do topo e **rodapé WN Labs** (contato@wnlabs.com.br) em todas as telas.
 - **Notificações do Telegram desligadas** (pedido do usuário, por enquanto): os 4 fluxos do n8n "Marketplace – Resumo do dia",
   "– Alertas", "– Insights IA" e "– Semana" estão inativos (cópia em `~/backup/n8n-marcus-telegram-2026-10-17/`). Para religar:
-  `docker exec n8n n8n publish:workflow --id=<id>` e `docker restart n8n`. A API `/api/integracao` continua no ar; o fluxo
-  "Comandos do bot" (/vendas, /estoque, só responde quando perguntam) ficou ligado.
+  `docker exec n8n n8n publish:workflow --id=<id>` e `docker restart n8n`. Os comandos /vendas e /estoque também saíram do
+  fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (cópias: `…-comandos-do-bot-antes.json` e `bot.py.antes-sem-marcus`);
+  o resto do assistente segue igual. A API `/api/integracao` continua no ar, sem ninguém chamando. **Falta**: tirar o Telegram do vídeo
+  (`~/projetos/marketplace-video`) — combinado para depois.
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
 
 ### Para continuar num chat novo
