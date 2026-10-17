@@ -14,6 +14,80 @@
   <div class="aviso-sucesso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div>
 }
 
+<!-- Consultar um produto: digite o nome (ou bipe) e veja estoque, validades e últimas movimentações. -->
+<section class="consulta">
+  <app-produto-busca class="busca-consulta" placeholder="Consultar produto: nome ou código de barras (ex.: banana)…" (selecionado)="consultar($event)" />
+</section>
+
+@if (consultado(); as p) {
+  <section class="painel cartao-produto" aria-label="Produto consultado">
+    <header>
+      <div>
+        <h2><a [routerLink]="['/produtos', p.id]">{{ p.nome }}</a></h2>
+        <small>{{ p.categoria }}@if (p.fornecedor) { · {{ p.fornecedor }} }@if (p.codigoBarras) { · {{ p.codigoBarras }} }</small>
+      </div>
+      <button type="button" class="fechar" (click)="consultado.set(null)" aria-label="Fechar consulta" title="Fechar"><app-icone nome="x" /></button>
+    </header>
+
+    <dl class="numeros-produto">
+      <div><dt>Em estoque</dt><dd [class.negativo]="p.estoqueBaixo">{{ p.estoqueAtual | quantidade: p.unidade }}</dd></div>
+      <div><dt>Mínimo</dt><dd>{{ p.estoqueMinimo | quantidade: p.unidade }}</dd></div>
+      <div><dt>Situação</dt><dd>
+        @if (p.estoqueAtual <= 0) { <span class="selo-situacao ruim">sem estoque</span> }
+        @else if (p.estoqueBaixo) { <span class="selo-situacao alerta">abaixo do mínimo</span> }
+        @else { <span class="selo-situacao bom">ok</span> }
+      </dd></div>
+      <div><dt>Custo / venda</dt><dd class="menor">{{ p.precoCusto | currency: 'BRL' }} / {{ p.precoVenda | currency: 'BRL' }}</dd></div>
+    </dl>
+
+    @if (p.controlaValidade) {
+      <h3>Lotes e validades</h3>
+      @if (consultaLotes.value(); as lotes) {
+        @if (lotes.length) {
+          <ul class="lotes-produto">
+            @for (l of lotes; track l.id) {
+              <li [class]="l.diasRestantes < 0 ? 'vencido' : l.diasRestantes <= 3 ? 'urgente' : ''">
+                <span>Vence {{ l.dataValidade | dia }}
+                  <small>@if (l.diasRestantes < 0) { vencido há {{ -l.diasRestantes }} {{ -l.diasRestantes === 1 ? 'dia' : 'dias' }} }
+                    @else if (l.diasRestantes === 0) { vence hoje } @else { em {{ l.diasRestantes }} {{ l.diasRestantes === 1 ? 'dia' : 'dias' }} }</small></span>
+                <b>{{ l.quantidadeAtual | quantidade: p.unidade }}</b>
+                @if (l.diasRestantes < 0) {
+                  <button type="button" class="botao pequeno perigo" (click)="dialogo.abrir('Perda', p, l.id)">Dar baixa</button>
+                }
+              </li>
+            }
+          </ul>
+        } @else { <p class="sub">Nenhum lote com saldo.</p> }
+      } @else { <p class="sub">Carregando lotes…</p> }
+    } @else {
+      <p class="sub">Produto sem controle de validade.</p>
+    }
+
+    <h3>Últimas movimentações</h3>
+    @if (consultaMov.value()?.itens; as movs) {
+      @if (movs.length) {
+        <ul class="movs-produto">
+          @for (m of movs; track m.id) {
+            <li>
+              <span class="quando">{{ m.dataHora | date: 'dd/MM HH:mm' }}</span>
+              <span class="tipo" [class]="'tipo t' + m.tipo"><app-icone [nome]="iconeTipo(m.tipo)" /> {{ m.tipo === 'Inventario' ? 'Inventário' : m.tipo }}</span>
+              <b [class.positivo]="m.quantidade > 0" [class.negativo]="m.quantidade < 0">{{ m.quantidade | quantidade: m.unidade : true }}</b>
+              <small>{{ m.motivo ?? m.observacao ?? '' }}</small>
+            </li>
+          }
+        </ul>
+        <button type="button" class="link" (click)="filtroProduto.set(p); irPara('movimentacoes')">Ver todas as movimentações</button>
+      } @else { <p class="sub">Nenhuma movimentação ainda.</p> }
+    }
+
+    <div class="acoes-produto">
+      <button type="button" class="botao primario" (click)="dialogo.abrir('Entrada', p)"><app-icone nome="import" /> Entrada</button>
+      <button type="button" class="botao" (click)="dialogo.abrir('Perda', p)"><app-icone nome="trash-2" /> Perda</button>
+      <button type="button" class="botao" (click)="dialogo.abrir('Ajuste', p)"><app-icone nome="scale" /> Ajuste</button>
+    </div>
+  </section>
+}
+
 <nav class="abas" role="tablist">
   <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')"><app-icone nome="clock" /> Validades</button>
   <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')"><app-icone nome="history" /> Movimentações</button>

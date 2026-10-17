@@ -149,6 +149,9 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
   barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
   contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
+- **Consultar produto no Estoque** — busca no topo da página Estoque (nome sem acento, palavras em qualquer ordem ou código de
+  barras): cartão com estoque, mínimo, situação, custo/venda, lotes com validade (vencido em vermelho, com "Dar baixa"), últimas
+  5 movimentações ("Ver todas" abre a aba filtrada) e Entrada/Perda/Ajuste; atualiza sozinho depois de registrar.
 - **Perda com "Tudo" e lote vencido já preenchido** — na janela de perda, o botão **Tudo** põe o saldo inteiro do lote escolhido
   (ou, sem lote, o estoque todo); escolher o lote já põe a quantidade dele. Produto com lote vencido abre com esse lote, a quantidade
   exata (ex.: 4,673 kg) e o motivo "Vencido"; o "Dar baixa" da aba Validades abre com aquele lote (`shared/movimentar-dialog.ts`).
@@ -238,7 +241,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (cópias: `…-comandos-do-bot-antes.json` e `bot.py.antes-sem-marcus`);
   o resto do assistente segue igual. A API `/api/integracao` continua no ar, sem ninguém chamando. **Falta**: tirar o Telegram do vídeo
   (`~/projetos/marketplace-video`) — combinado para depois.
-- **Perda com "Tudo"** e lote vencido já preenchido; **pedido de compra enviado ao fornecedor pelo WhatsApp ou e-mail** com a
+- **Consultar produto no Estoque** (busca no topo: estoque, validades, movimentações); **perda com "Tudo"** e lote vencido já preenchido; **pedido de compra enviado ao fornecedor pelo WhatsApp ou e-mail** com a
   mensagem pronta (ver Funcionalidades).
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
 

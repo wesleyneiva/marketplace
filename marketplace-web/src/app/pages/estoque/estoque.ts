@@ -3,7 +3,7 @@ import { CurrencyPipe, DatePipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { Lote, Movimentacao, TIPOS_MOVIMENTACAO } from '../../core/api/estoque.api';
-import { Pagina, Produto } from '../../core/api/produtos.api';
+import { Pagina, Produto, ProdutosApi } from '../../core/api/produtos.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { MovimentarDialog } from '../../shared/movimentar-dialog';
 import { ProdutoBusca } from '../../shared/produto-busca';
@@ -22,6 +22,23 @@ type Aba = 'validades' | 'movimentacoes' | 'baixo';
 })
 export class Estoque {
   private readonly router = inject(Router);
+  private readonly produtosApi = inject(ProdutosApi);
+
+  // ----- Consultar um produto (busca no topo): estoque, lotes com validade e últimas movimentações -----
+  protected readonly consultado = signal<Produto | null>(null);
+  protected readonly consultaLotes = httpResource<Lote[]>(() => {
+    const p = this.consultado();
+    return p?.controlaValidade ? `/api/estoque/produtos/${p.id}/lotes` : undefined;
+  });
+  protected readonly consultaMov = httpResource<Pagina<Movimentacao>>(() => {
+    const p = this.consultado();
+    return p ? { url: '/api/estoque/movimentacoes', params: { produtoId: p.id, tamanho: 5 } } : undefined;
+  });
+
+  protected async consultar(p: Produto): Promise<void> {
+    this.consultado.set(p);
+    try { this.consultado.set(await this.produtosApi.obter(p.id)); } catch { /* fica com o da busca */ }
+  }
 
   // A aba vem da URL (?aba=movimentacoes) → dá para mandar o link direto de uma aba.
   readonly aba = input<Aba>('validades');
@@ -83,6 +100,8 @@ export class Estoque {
     this.validades.reload();
     this.movimentacoes.reload();
     this.baixo.reload();
+    const c = this.consultado();
+    if (c && c.id === m.produtoId) void this.consultar(c); // o cartão do produto consultado mostra o estoque novo
   }
 
   protected irPara(aba: Aba): void {
