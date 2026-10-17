@@ -179,16 +179,48 @@ Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migra
 Lojas e dados: o Mercadinho Juvenal (empresa 4) está com o Pix automático ligado em **modo teste** e tem 1 Pix de teste de
 R$ 3,50 pago e sem venda (aparece no caixa como "já recebido e sem venda").
 
-### 16/10/2026 (noite) — tela Vendas e cancelamentos com autorização do gerente
-- Menu **Vendas** (`/vendas`), cancelar item/compra no caixa e cancelar venda paga com estorno, sempre com o gerente
-  (ver Funcionalidades). Migration `AutorizacaoGerente` (tabela `AutorizacoesGerente`, `CobrancasPix.DevolvidaEm`, status
-  `Devolvida`, movimento de caixa `Devolucao`). Corrigida a barra do caixa ilegível no tema escuro.
-- Testado no dev com a empresa "Teste Vendas" (#12 do marketplace_dev; usuários em `~/projetos/marketplace-testes/vendas/`) e o
-  simulador do Mercado Pago (agora com devolução); roteiro da API: 33 verificações.
+### 16/10/2026 (noite) — Vendas, cancelamentos com o gerente, caixa offline e ajustes no caixa
+Tudo publicado em https://app.wnlabs.com.br; backup antes de cada migration em `~/backup/marketplace-antes-AutorizacaoGerente-2026-10-16.dump`
+e `~/backup/marketplace-antes-CaixaOffline-2026-10-16.dump`. Detalhes técnicos em Funcionalidades ("Cancelamentos com autorização do
+gerente", "Vendas", "Caixa offline").
 
-### 16/10/2026 (madrugada) — caixa offline
-- Ver "Caixa offline" em Funcionalidades. Testado no dev derrubando a API no meio do expediente: busca local, venda guardada,
-  cancelamento sem conferência, reenvio automático quando a API voltou, sem duplicar.
+- **Tela Vendas** (menu Vendas, `/vendas`, gerência): lista do dia com filtros (dia, caixa, forma, situação), totais, selos
+  "Pix confirmado pelo Mercado Pago" / "sem internet" / "preço diferente do cadastro", cupom completo com Reimprimir e Cancelar
+  venda (estorno), aba **Cancelamentos e autorizações** (quem pediu, quem autorizou, motivo, valor; "senha não conferida" quando
+  foi sem internet). No caixa, o botão "Vendas do caixa" faz o mesmo para o caixa aberto. Commit `7ee55d6`.
+- **Cancelamentos só com o gerente**: tirar item (ou parte), cancelar a compra e cancelar venda paga com **estorno** (dinheiro da
+  gaveta/cofre, Pix automático devolvido pelo Mercado Pago, cartão/Pix manual com orientação; caixa já fechado → Financeiro de hoje).
+  O gerente escolhe o nome e digita a própria senha no caixa. Migration `AutorizacaoGerente`. Commit `7ee55d6`.
+- **Caixa offline**: sem internet o caixa continua vendendo (dinheiro, cartão, Pix pelo QR fixo da loja); vendas guardadas no
+  computador e enviadas sozinhas quando a internet volta, sem duplicar (`idLocal` em toda venda); telas abrem sem internet pelo
+  service worker. Migration `CaixaOffline`. Commit `9e596a8`.
+- **Quantidade "3*arroz" pelo clique**: escolher o produto da lista com o mouse ignorava a quantidade (só o Enter usava). `7a78834`.
+- **Venda em andamento guardada**: itens e desconto ficam no computador (localStorage, por usuário e turno) e voltam ao retornar ao
+  caixa, no F5 ou se o navegador fechar ("Venda em andamento recuperada"); somem ao finalizar ou cancelar. `9c4d0ee`.
+- Barra do caixa estava ilegível no tema escuro (cor do texto) — corrigida.
+
+Limitações conhecidas (decididas assim; mudar se o cliente pedir):
+- Offline: o caixa precisa ter sido **aberto com internet**; abrir/fechar caixa, sangria/suprimento, estorno, Pix automático, fiado e
+  etiqueta da balança pedem internet; o fechamento espera a fila esvaziar. Cancelar item sem internet fica "senha não conferida".
+- Offline vale o preço cobrado na hora; o estoque pode ficar negativo (o gerente acerta).
+- Venda em andamento recuperada não guarda os pagamentos já lançados (só itens e desconto); o preço mostrado é o do momento do bipe
+  (online, o servidor cobra o preço atual do cadastro).
+- Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
+- Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### Para continuar num chat novo
+- Ler este README (Funcionalidades + Últimas atualizações). Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
+- **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
+  O usuário autorizou commit, push e publicar sem perguntar.
+- **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
+  `mp-simulador` (5399, agora com devolução `/refund`). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
+  a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
+- **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
+  usuários admin/gerente/caixa em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
+- Testes de navegador do caixa: o painel às vezes não desenha (fica oculto); dirigir a página por script (input + keydown Enter)
+  funciona. Para simular queda de internet no dev: parar o `api-dev` (o proxy devolve 502 = "sem internet").
+- Próximos passos possíveis: testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e (serviço fiscal, quando
+  houver CNPJ); credenciais de produção do Mercado Pago.
 
 ## Estrutura
 
