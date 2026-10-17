@@ -67,7 +67,7 @@
             <td class="num">{{ l.valorEmRisco | currency: 'BRL' }}</td>
             <td class="acoes">
               @if (l.diasRestantes < 0) {
-                <button class="botao pequeno perigo" (click)="dialogo.abrir('Perda', $any({ id: l.produtoId }))">Dar baixa</button>
+                <button class="botao pequeno perigo" (click)="dialogo.abrir('Perda', $any({ id: l.produtoId }), l.id)">Dar baixa</button>
               }
             </td>
           </tr>

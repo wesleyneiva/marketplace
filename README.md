@@ -149,6 +149,15 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
   barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
   contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
+- **Perda com "Tudo" e lote vencido já preenchido** — na janela de perda, o botão **Tudo** põe o saldo inteiro do lote escolhido
+  (ou, sem lote, o estoque todo); escolher o lote já põe a quantidade dele. Produto com lote vencido abre com esse lote, a quantidade
+  exata (ex.: 4,673 kg) e o motivo "Vencido"; o "Dar baixa" da aba Validades abre com aquele lote (`shared/movimentar-dialog.ts`).
+- **Pedido de compra ao fornecedor por WhatsApp/e-mail** — "Enviar" (e "Criar e enviar") abre a janela `pages/compras/enviar-pedido.ts`
+  com a mensagem do pedido pronta (itens, observação, entrega pelo prazo do fornecedor; editável) e os canais do cadastro do
+  fornecedor: **WhatsApp** (wa.me com o texto), **E-mail** (mailto com assunto e corpo), **Copiar** e "Já enviei por outro meio".
+  Sai do WhatsApp/e-mail de quem está usando (o da loja). O pedido só vira "Enviado" quando um canal é usado; "Reenviar" nos já
+  enviados. Fornecedor sem WhatsApp nem e-mail: aviso com link para o cadastro. Envio automático (sem clique, pela API do
+  WhatsApp da loja ou e-mail próprio do sistema) fica para quando houver fornecedores reais.
 - **Relógio de Brasília e rodapé** — barra do topo com a hora de Brasília, 24 h, HH:MM (`shared/relogio-brasilia.ts`, sempre America/Sao_Paulo);
   rodapé "Desenvolvido por WN Labs · contato@wnlabs.com.br" (`shared/rodape.ts`) na casca, no login e na troca de senha.
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
@@ -229,6 +238,8 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (cópias: `…-comandos-do-bot-antes.json` e `bot.py.antes-sem-marcus`);
   o resto do assistente segue igual. A API `/api/integracao` continua no ar, sem ninguém chamando. **Falta**: tirar o Telegram do vídeo
   (`~/projetos/marketplace-video`) — combinado para depois.
+- **Perda com "Tudo"** e lote vencido já preenchido; **pedido de compra enviado ao fornecedor pelo WhatsApp ou e-mail** com a
+  mensagem pronta (ver Funcionalidades).
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
 
 ### Para continuar num chat novo

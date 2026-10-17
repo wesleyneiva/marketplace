@@ -32,11 +32,26 @@
           </div>
         }
 
+        @if (preenchidoSozinho() && loteEscolhido(); as l) {
+          <p class="aviso-lote" role="status"><app-icone nome="circle-alert" />
+            {{ l.diasRestantes < 0 ? 'Lote vencido em' : 'Lote que vence em' }} {{ l.dataValidade | dia }} já preenchido: {{ l.quantidadeAtual | quantidade: p.unidade }}.
+            Confira e registre.</p>
+        }
+
         <div class="grade">
           <div class="campo">
             <label for="qtd">{{ tipo() === 'Ajuste' ? 'Quantidade contada' : 'Quantidade' }} ({{ p.unidade }})</label>
-            <input id="qtd" name="quantidade" type="number" [step]="fracionado() ? 0.001 : 1" min="0"
-                   [(ngModel)]="quantidade" required autofocus />
+            <div class="com-botao">
+              <input id="qtd" name="quantidade" type="number" [step]="fracionado() ? 0.001 : 1" min="0"
+                     [(ngModel)]="quantidade" required autofocus />
+              @if (tipo() === 'Perda') {
+                <button type="button" class="botao pequeno" (click)="usarTudo()"
+                        [title]="loteEscolhido() ? 'Todo o saldo deste lote' : 'Todo o estoque do produto'">Tudo</button>
+              }
+            </div>
+            @if (tipo() === 'Perda') {
+              <small class="dica">{{ loteEscolhido() ? 'Saldo do lote' : 'Estoque todo' }}: {{ quantidadeTotal() | quantidade: p.unidade }}</small>
+            }
             @if (tipo() === 'Ajuste' && diferencaAjuste() !== null) {
               <small [class]="(diferencaAjuste() ?? 0) < 0 ? 'negativo' : 'positivo'">
                 Diferença: {{ diferencaAjuste() | quantidade: p.unidade : true }}
@@ -70,7 +85,7 @@
             @if (lotes().length) {
               <div class="campo">
                 <label for="lote">De qual lote?</label>
-                <select id="lote" name="lote" [(ngModel)]="loteId">
+                <select id="lote" name="lote" [ngModel]="loteId" (ngModelChange)="escolherLote($event)">
                   <option [ngValue]="null">Automático (o que vence primeiro)</option>
                   @for (l of lotes(); track l.id) {
                     <option [ngValue]="l.id">Vence {{ l.dataValidade | dia }} ({{ l.quantidadeAtual | quantidade: p.unidade }})</option>

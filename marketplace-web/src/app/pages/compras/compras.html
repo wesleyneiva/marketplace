@@ -98,7 +98,10 @@
                 <button type="button" class="botao pequeno" (click)="editarRascunho(p)" [disabled]="ocupado()"><app-icone nome="pencil" /> Ajustar</button>
                 <button type="button" class="botao pequeno primario" (click)="enviar(p)" [disabled]="ocupado()"><app-icone nome="send" /> Enviar</button>
               }
-              @if (p.status === 'Enviado') { <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)"><app-icone nome="package" /> Receber</button> }
+              @if (p.status === 'Enviado') {
+                <button type="button" class="botao pequeno" (click)="enviar(p)" title="Mandar de novo ao fornecedor (WhatsApp, e-mail)"><app-icone nome="send" /> Reenviar</button>
+                <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)"><app-icone nome="package" /> Receber</button>
+              }
               @if (p.status === 'Rascunho' || p.status === 'Enviado') { <button type="button" class="botao pequeno perigo" (click)="cancelar(p)" [disabled]="ocupado()">Cancelar</button> }
             </td>
           </tr>
@@ -220,3 +223,5 @@
     <button type="button" class="botao primario" (click)="salvarNovo(true)" [disabled]="ocupado()"><app-icone nome="send" /> Criar e enviar ao fornecedor</button>
   </footer>
 </dialog>
+
+<app-enviar-pedido (enviado)="aoEnviar($event)" />

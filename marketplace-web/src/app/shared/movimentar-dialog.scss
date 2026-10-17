@@ -158,3 +158,10 @@ footer {
   color: var(--cor-erro);
   font-size: 14px;
 }
+
+.com-botao { display: flex; gap: 6px; align-items: stretch; }
+.com-botao input { flex: 1; min-width: 0; }
+.aviso-lote {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 12px; padding: 8px 12px; border-radius: 8px; font-size: 14px;
+  background: var(--cor-alerta-fundo); color: var(--cor-alerta); border: 1px solid var(--cor-alerta-borda);
+}

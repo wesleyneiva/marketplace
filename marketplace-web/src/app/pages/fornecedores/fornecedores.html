@@ -42,9 +42,9 @@
       </div>
       <div class="dupla">
         <label>Contato<input name="contato" [(ngModel)]="form.contato" maxlength="100" /></label>
-        <label>Telefone<input name="telefone" [(ngModel)]="form.telefone" maxlength="30" /></label>
+        <label>WhatsApp / telefone <small>(com DDD: o pedido de compra sai por aqui)</small><input name="telefone" [(ngModel)]="form.telefone" maxlength="30" inputmode="tel" placeholder="51 99999-8888" /></label>
       </div>
-      <label>E-mail<input name="email" type="email" [(ngModel)]="form.email" maxlength="150" /></label>
+      <label>E-mail <small>(para mandar o pedido por e-mail)</small><input name="email" type="email" [(ngModel)]="form.email" maxlength="150" /></label>
       <label>Observação<input name="obs" [(ngModel)]="form.observacao" maxlength="300" /></label>
       @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
     </div>

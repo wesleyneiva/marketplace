@@ -46,6 +46,8 @@ export class MovimentarDialog {
   protected motivo = '';
   protected loteId: number | null = null;
   protected observacao = '';
+  private loteInicial: number | null = null;
+  protected readonly preenchidoSozinho = signal(false); // avisa que o lote vencido foi escolhido sozinho
 
   protected readonly titulo = computed(
     () => ({ Entrada: 'Entrada de mercadoria', Perda: 'Registrar perda', Ajuste: 'Ajuste de inventário' })[this.tipo()],
@@ -55,9 +57,11 @@ export class MovimentarDialog {
   );
   protected readonly fracionado = computed(() => ['KG', 'L'].includes(this.produto()?.unidade ?? ''));
 
-  async abrir(tipo: TipoAcao, produto?: Produto | null): Promise<void> {
+  // loteId (perda): já abre com esse lote escolhido e a quantidade dele (ex.: "Dar baixa" na aba Validades).
+  async abrir(tipo: TipoAcao, produto?: Produto | null, loteId?: number): Promise<void> {
     this.tipo.set(tipo);
     this.limpar();
+    this.loteInicial = loteId ?? null;
     this.dialogo().nativeElement.showModal();
     if (produto) {
       // Busca a versão mais recente (o estoque pode ter mudado desde que a lista carregou).
@@ -76,6 +80,37 @@ export class MovimentarDialog {
     this.erro.set(null);
     this.custoUnitario = produto.precoCusto;
     this.lotes.set(produto.controlaValidade ? await this.estoqueApi.lotesDoProduto(produto.id) : []);
+    if (this.tipo() !== 'Perda') return;
+    // Perda de perecível: vencido "já era" — escolhe sozinho o lote vencido (ou o pedido) com a quantidade exata dele,
+    // para ninguém ter de olhar e digitar 4,673 kg à mão.
+    const lote = this.lotes().find((l) => l.id === this.loteInicial) ?? this.lotes().find((l) => l.diasRestantes < 0);
+    if (lote) {
+      this.escolherLote(lote.id);
+      if (lote.diasRestantes < 0) this.motivo = 'Vencido';
+      this.preenchidoSozinho.set(true);
+    }
+  }
+
+  // Ao escolher o lote da perda, a quantidade vira o saldo dele (dá para diminuir se foi só parte).
+  protected escolherLote(id: number | null): void {
+    this.loteId = id;
+    const lote = this.lotes().find((l) => l.id === id);
+    if (lote) this.quantidade = lote.quantidadeAtual;
+    this.preenchidoSozinho.set(false);
+  }
+
+  // Botão "Tudo": o saldo inteiro do lote escolhido ou, sem lote, todo o estoque do produto.
+  protected quantidadeTotal(): number {
+    const lote = this.lotes().find((l) => l.id === this.loteId);
+    return lote ? lote.quantidadeAtual : Math.max(0, this.produto()?.estoqueAtual ?? 0);
+  }
+
+  protected usarTudo(): void {
+    this.quantidade = this.quantidadeTotal();
+  }
+
+  protected loteEscolhido(): Lote | undefined {
+    return this.lotes().find((l) => l.id === this.loteId);
   }
 
   protected trocarProduto(): void {
@@ -151,5 +186,7 @@ export class MovimentarDialog {
     this.motivo = '';
     this.loteId = null;
     this.observacao = '';
+    this.loteInicial = null;
+    this.preenchidoSozinho.set(false);
   }
 }
