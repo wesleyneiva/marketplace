@@ -97,7 +97,7 @@
             @if (resultados().length) {
               <ul class="resultados" role="listbox">
                 @for (p of resultados(); track p.id; let i = $index) {
-                  <li role="option" [class.ativo]="i === indiceResultado()" (mousedown)="escolher(p)">
+                  <li role="option" [class.ativo]="i === indiceResultado()" (mousedown)="escolherDaLista(p)">
                     <span>{{ p.nome }}</span>
                     <small>{{ p.codigoBarras ?? 'a granel' }} · estoque {{ p.estoqueAtual | quantidade: p.unidade }}</small>
                     <b>{{ p.precoVenda | currency: 'BRL' }}<small>/{{ p.unidade }}</small></b>

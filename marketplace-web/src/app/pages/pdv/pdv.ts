@@ -396,6 +396,12 @@ export class Pdv {
     this.indiceResultado.update((i) => (i + passo + n) % n);
   }
 
+  // Clique num produto da lista: vale a quantidade digitada antes do "*" (ex.: "3*arroz" → 3 unidades), como no Enter.
+  protected escolherDaLista(produto: Produto): void {
+    this.quantidadeDaBusca = separarQuantidade(this.textoBusca.trim()).quantidade;
+    this.escolher(produto);
+  }
+
   protected escolher(produto: Produto): void {
     this.resultados.set([]);
     this.semResultado.set(null);
