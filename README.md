@@ -59,6 +59,7 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 - **Integração com n8n/Telegram** — `/api/integracao/{resumo,alertas,estoque}` (somente leitura, protegida por
   chave no cabeçalho `X-Api-Key`), cada resposta com uma `mensagem` pronta para o Telegram. Fluxos no n8n:
   resumo do dia às 21:15, alertas às 08:00 e 15:00 (só quando há alerta) e os comandos `/vendas` e `/estoque` no bot.
+  **Desde 17/10/2026 os envios automáticos estão DESLIGADOS** (ver Últimas atualizações).
 - **Multi-empresa (SaaS)** — o mesmo sistema atende vários mercados (o de 2 caixas e o de 20) sem um ver o
   dado do outro. Toda tabela tem `EmpresaId`; o `AppDbContext` aplica um **filtro global** (`WHERE EmpresaId = …`)
   em toda consulta e **carimba** a empresa ao gravar (e recusa gravar linha de outra empresa). A empresa vem do
@@ -222,6 +223,10 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Módulos liberados por cliente** na área do dono (todos ou um a um), refletindo sozinho no sistema do cliente e barrado na API.
   Migration `ModulosLiberados`.
 - **Relógio de Brasília** na barra do topo e **rodapé WN Labs** (contato@wnlabs.com.br) em todas as telas.
+- **Notificações do Telegram desligadas** (pedido do usuário, por enquanto): os 4 fluxos do n8n "Marketplace – Resumo do dia",
+  "– Alertas", "– Insights IA" e "– Semana" estão inativos (cópia em `~/backup/n8n-marcus-telegram-2026-10-17/`). Para religar:
+  `docker exec n8n n8n publish:workflow --id=<id>` e `docker restart n8n`. A API `/api/integracao` continua no ar; o fluxo
+  "Comandos do bot" (/vendas, /estoque, só responde quando perguntam) ficou ligado.
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
 
 ### Para continuar num chat novo
