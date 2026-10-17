@@ -280,8 +280,13 @@ sudo systemctl status marketplace      # situação do serviço
 
 A configuração do serviço (com a senha do banco) fica em `/etc/marketplace/marketplace.env`, fora do Git.
 
-**Backup** — todo dia às 03:45 (`backup-marketplace.timer`), `pg_dump` em `~/backup/marketplace-auto/AAAA-MM-DD`
-(7 dias guardados, com `resumo.txt` de linhas por tabela). Restaurar:
+**Backup** — todo dia às 03:45 (`backup-marketplace.timer`, `~/scripts/backup-marketplace.sh`) em `~/backup/marketplace-auto/AAAA-MM-DD`
+(7 dias na VM): `marketplace.dump` (`pg_dump`), `resumo.txt` (linhas por tabela) e, desde 17/10/2026, `configuracao.tar.gz`
+(`/etc/marketplace/marketplace.env` + chaves do DataProtection em `~/.local/share/marketplace/chaves`, sem elas os tokens do
+Mercado Pago não abrem). Às 04:30 (`backup-nuvem.timer`) tudo vai para o Oracle Object Storage, criptografado pelo rclone, 30 dias
+(ver `~/scripts/backup-nuvem.sh`; a senha da criptografia fica no gerenciador de senhas). **Restauração testada em 17/10/2026**:
+baixado da nuvem, restaurado num banco à parte, contagens iguais às da produção, configuração e chaves idênticas.
+Configuração numa VM nova: `sudo tar -xzf configuracao.tar.gz -C /`. Restaurar o banco:
 
 ```bash
 sudo systemctl stop marketplace
