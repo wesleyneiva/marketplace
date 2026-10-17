@@ -76,7 +76,7 @@ export class ImpressoraService {
         <div class="centro forte grande">${esc(loja)}</div>
         <div class="centro">CUPOM NÃO FISCAL${cfg.vias > 1 ? ` · ${n === 1 ? 'via do cliente' : 'via da loja'}` : ''}</div>
         <div class="tracos"></div>
-        <div class="linha"><span>Venda nº ${c.id}</span><span>${data}</span></div>
+        <div class="linha"><span>${c.id ? `Venda nº ${c.id}` : `Venda sem internet ${esc((c.idLocal ?? '').slice(0, 8).toUpperCase())}`}</span><span>${data}</span></div>
         <div class="linha"><span>Caixa ${c.numeroCaixa}</span><span>${esc(c.operador)}</span></div>
         ${c.status === 'Cancelada' ? '<div class="centro forte">*** VENDA CANCELADA ***</div>' : ''}
         <div class="tracos"></div>

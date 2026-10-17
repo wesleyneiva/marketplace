@@ -15,15 +15,46 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
     // Até quanto de desconto o perfil Caixa pode dar sozinho (acima disso, só Gerente/Administrador).
     public const decimal DescontoMaximoCaixa = 0.10m;
 
-    public Task<Venda> FinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido,
-        OrigemVenda origem = OrigemVenda.Caixa) =>
-        ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido, origem));
+    public async Task<Venda> FinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido,
+        OrigemVenda origem = OrigemVenda.Caixa)
+    {
+        if (pedido.IdLocal is { } id && await db.Vendas.FirstOrDefaultAsync(v => v.IdLocal == id) is { } jaEntrou) return jaEntrou;
+        return await SemDuplicarAsync(pedido.IdLocal, () => ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido, origem, null)));
+    }
+
+    // Dois envios da mesma venda ao mesmo tempo (o caixa reenviou): o índice único do IdLocal barra o segundo → devolve o primeiro.
+    private async Task<Venda> SemDuplicarAsync(Guid? idLocal, Func<Task<Venda>> gravar)
+    {
+        try
+        {
+            return await gravar();
+        }
+        catch (DbUpdateException) when (idLocal is not null)
+        {
+            db.ChangeTracker.Clear();
+            return await db.Vendas.FirstOrDefaultAsync(v => v.IdLocal == idLocal) ?? throw new EstoqueException("Não foi possível gravar a venda. Tente de novo.");
+        }
+    }
+
+    // Caixa OFFLINE: a venda feita sem internet chega depois. Já aconteceu (o cliente pagou e levou), então entra com o
+    // preço cobrado na hora e mesmo sem estoque no sistema. Enviada de novo (rede caiu na resposta) → devolve a mesma venda.
+    public sealed record VendaOffline(Guid IdLocal, DateTimeOffset DataHora, Dictionary<int, decimal> Precos);
+
+    public async Task<Venda> FinalizarOfflineAsync(string usuarioId, bool podeDescontoLivre, VendaOfflineRequest r)
+    {
+        if (await db.Vendas.FirstOrDefaultAsync(v => v.IdLocal == r.IdLocal) is { } jaEntrou) return jaEntrou;
+        var pedido = new NovaVendaRequest(r.Itens.Select(i => new ItemVendaRequest(i.ProdutoId, i.Quantidade)).ToList(), r.Desconto, r.Pagamentos);
+        var precos = r.Itens.GroupBy(i => i.ProdutoId).ToDictionary(g => g.Key, g => Dinheiro(g.First().PrecoUnitario));
+        return await SemDuplicarAsync(r.IdLocal, () => ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido,
+            OrigemVenda.Caixa, new VendaOffline(r.IdLocal, r.DataHora, precos))));
+    }
 
     // Cancelar uma venda JÁ PAGA e estornar o dinheiro. usuarioId = quem está logado; autorizadoPorId = o gerente que liberou.
     public Task<Venda> CancelarAsync(int vendaId, string usuarioId, bool ehGerencia, string autorizadoPorId, string motivo, string? pix = null) =>
         ComRepeticaoAsync(() => TentarCancelarAsync(vendaId, usuarioId, ehGerencia, autorizadoPorId, motivo, pix));
 
-    private async Task<Venda> TentarFinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido, OrigemVenda origem)
+    private async Task<Venda> TentarFinalizarAsync(string usuarioId, bool podeDescontoLivre, NovaVendaRequest pedido, OrigemVenda origem,
+        VendaOffline? offline)
     {
         var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId)
             ?? throw new EstoqueException("Abra o caixa antes de vender.");
@@ -44,23 +75,40 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             .FromSql($"SELECT *, xmin FROM \"Produtos\" WHERE \"Id\" = ANY({ids}) AND \"EmpresaId\" = {db.EmpresaAtual} ORDER BY \"Id\" FOR UPDATE")
             .ToDictionaryAsync(p => p.Id);
 
-        var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId, Origem = origem };
+        var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId, Origem = origem, IdLocal = pedido.IdLocal };
+        if (offline is not null)
+        {
+            // Hora da venda = a do caixa, mas dentro do turno (nem antes da abertura, nem no futuro).
+            var agora = DateTimeOffset.UtcNow;
+            venda.DataHora = offline.DataHora.ToUniversalTime() is var quando && quando < sessao.AbertaEm ? sessao.AbertaEm
+                : quando > agora ? agora : quando;
+            venda.IdLocal = offline.IdLocal;
+            venda.Offline = true;
+        }
 
         foreach (var item in itensAgrupados)
         {
-            if (!produtos.TryGetValue(item.ProdutoId, out var produto) || !produto.Ativo)
+            // Offline: o produto pode ter sido desativado enquanto o caixa estava sem internet — a venda já aconteceu.
+            if (!produtos.TryGetValue(item.ProdutoId, out var produto) || (!produto.Ativo && offline is null))
                 throw new EstoqueException("Um dos produtos não existe ou está desativado.");
 
             // O PREÇO VEM DO BANCO, nunca da tela: ninguém consegue "mandar" um preço mais barato.
+            // (Exceção: venda offline — vale o preço que o cliente pagou; se diferente do cadastro, o gerente é avisado.)
+            var preco = produto.PrecoVenda;
+            if (offline is not null && offline.Precos.TryGetValue(produto.Id, out var cobrado))
+            {
+                if (cobrado != produto.PrecoVenda) venda.PrecoDivergente = true;
+                preco = cobrado;
+            }
             venda.Itens.Add(new ItemVenda
             {
                 ProdutoId = produto.Id,
                 Descricao = produto.Nome,
                 Unidade = produto.Unidade,
                 Quantidade = item.Quantidade,
-                PrecoUnitario = produto.PrecoVenda,
+                PrecoUnitario = preco,
                 CustoUnitario = produto.PrecoCusto,
-                Total = Dinheiro(item.Quantidade * produto.PrecoVenda),
+                Total = Dinheiro(item.Quantidade * preco),
             });
         }
 
@@ -76,9 +124,11 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         // Assim o operador vê o problema real ("só 34 dentro da validade") e não "falta pagar".
         db.Vendas.Add(venda);
         foreach (var item in venda.Itens)
-            await estoque.PrepararVendaAsync(produtos[item.ProdutoId], item.Quantidade, venda, usuarioId);
+            await estoque.PrepararVendaAsync(produtos[item.ProdutoId], item.Quantidade, venda, usuarioId, permitirFaltar: offline is not null);
 
         PrepararPagamentos(venda, pedido.Pagamentos);
+        if (offline is not null && venda.Pagamentos.Any(p => p.CobrancaPixId is not null || p.Forma == FormaPagamento.Fiado))
+            throw new EstoqueException("Sem internet não há Pix automático nem fiado.");
         await VincularPixAutomaticoAsync(venda, pedido.Pagamentos, sessao.Id);
 
         // Fiado: vira dívida na caderneta do cliente (limite, bloqueio e atraso: acima disso só gerente libera).
@@ -308,8 +358,10 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
 
     // Tirar um item (ou parte dele) ou a compra inteira. Não mexe em estoque (nada foi vendido ainda): só REGISTRA,
     // com o valor calculado pelo preço do banco, quem pediu e quem autorizou.
-    public async Task<decimal> RegistrarCancelamentoPdvAsync(string usuarioId, string autorizadoPorId, CancelamentoPdvRequest r)
+    public async Task<decimal> RegistrarCancelamentoPdvAsync(string usuarioId, string autorizadoPorId, CancelamentoPdvRequest r,
+        Guid? idLocal = null, DateTimeOffset? dataHora = null, bool semConferencia = false)
     {
+        if (idLocal is not null && await db.AutorizacoesGerente.AnyAsync(a => a.IdLocal == idLocal)) return 0; // já chegou antes
         var sessao = await caixa.ObterSessaoAbertaAsync(usuarioId) ?? throw new EstoqueException("Você não tem caixa aberto.");
         var acao = r.Tipo switch
         {
@@ -327,7 +379,14 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         var descricao = acao == AcaoAutorizada.CancelarItem
             ? Linha(r.Itens[0])
             : $"Compra com {r.Itens.Count} {(r.Itens.Count == 1 ? "item" : "itens")}: " + string.Join("; ", r.Itens.Select(Linha));
-        autorizacoes.Registrar(acao, usuarioId, autorizadoPorId, sessao.Id, r.Motivo, descricao, valor);
+        var registro = autorizacoes.Registrar(acao, usuarioId, autorizadoPorId, sessao.Id, r.Motivo, descricao, valor);
+        if (idLocal is not null)
+        {
+            registro.IdLocal = idLocal;
+            registro.SemConferencia = semConferencia;
+            var agora = DateTimeOffset.UtcNow;
+            registro.DataHora = dataHora?.ToUniversalTime() is { } d && d >= sessao.AbertaEm && d <= agora ? d : agora;
+        }
         await db.SaveChangesAsync();
         return valor;
     }

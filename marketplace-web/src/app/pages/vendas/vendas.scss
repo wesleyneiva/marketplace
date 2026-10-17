@@ -44,3 +44,5 @@ tfoot td { background: var(--cor-fundo); font-weight: 600; }
   .filtros-vendas label { flex: 1 1 140px; }
   .filtros-vendas select { width: 100%; }
 }
+.selo.offline { margin-left: 6px; background: var(--cor-info-fundo); color: var(--cor-info); }
+td .selo.alerta { margin-left: 6px; }

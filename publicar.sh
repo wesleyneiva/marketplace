@@ -27,6 +27,10 @@ dotnet publish -c Release -o "$TEMP/app" -v q --nologo >"$TEMP/dotnet.log" 2>&1 
 echo "▶ 3/4  Montando a pasta do serviço…"
 mkdir -p "$TEMP/app/wwwroot"
 cp -r "$RAIZ/marketplace-web/dist/marketplace-web/browser/." "$TEMP/app/wwwroot/"
+# Caixa offline: a lista dos arquivos do site que o service worker (sw.js) guarda para abrir sem internet.
+( cd "$TEMP/app/wwwroot" && find . -type f \( -name '*.js' -o -name '*.css' -o -name '*.woff2' -o -name '*.svg' -o -name '*.ico' \) ! -name 'sw.js' \
+    | sed 's|^\./||' | sort | python3 -c 'import json,sys; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))' > offline-arquivos.json )
+echo "   $(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))))' "$TEMP/app/wwwroot/offline-arquivos.json") arquivos guardados para o caixa offline"
 # Mantém a versão anterior como cópia de segurança (para voltar atrás, se precisar).
 mkdir -p "$(dirname "$DESTINO")"
 rm -rf "$DESTINO.anterior"

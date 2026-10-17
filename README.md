@@ -33,6 +33,17 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   caixa aberto); Pix manual e cartão: a tela orienta devolver pelo app do banco / estornar na maquininha. Caixa já lançado no
   Financeiro: o estorno sai da conta de cada forma, hoje, na categoria Vendas no PDV (a DRE já tira a venda cancelada da receita).
   O operador de caixa só cancela vendas do caixa aberto dele; as de caixas fechados, o gerente cancela na tela Vendas.
+- **Caixa offline** — sem internet o caixa continua vendendo. O catálogo (`GET /api/caixa/catalogo`), os gerentes e o QR fixo do
+  Pix (`GET /api/empresa/configuracao/pix/qrcode-fixo`, sem valor: o cliente digita) ficam guardados no computador (IndexedDB,
+  `core/offline/caixa-offline.service.ts`, renovados ao abrir o caixa e a cada 10 min); a busca sem acento roda local. As vendas sem
+  internet vão para uma fila e sobem sozinhas quando ela volta (`POST /api/vendas/offline`, em ordem; teste a cada 10 s em
+  `/api/saude`). **Toda venda leva um `idLocal`** (índice único): se a internet cair na resposta, a venda guardada não entra duas
+  vezes. Offline vale o preço cobrado (selo "preço diferente do cadastro" se mudou) e o estoque pode ficar negativo; Pix automático e
+  fiado não. Cancelar item/compra sem internet: escolhe o gerente, sem senha → registrado "sem conferência" (em destaque em
+  Cancelamentos). Abrir/fechar caixa, sangria/suprimento e estorno pedem internet; o fechamento espera a fila esvaziar. A fila é por
+  usuário. "Sem internet" = status 0 ou 502/503/504/52x (Cloudflare). As telas abrem sem internet pelo service worker
+  (`public/sw.js`, registrado só na versão publicada) com os arquivos listados em `offline-arquivos.json` (gerado pelo `publicar.sh`);
+  a sessão usa o último usuário guardado no computador quando `/api/auth/eu` não responde. Migration `CaixaOffline`.
 - **Vendas** (menu, gerência) — lista do dia com filtros (dia, caixa, forma, situação), totais (vendas, total, ticket médio,
   canceladas), selo "Pix confirmado pelo Mercado Pago", cupom completo com Reimprimir e Cancelar venda (estorno).
   No caixa, "Vendas do caixa" faz o mesmo para o caixa aberto.
@@ -175,7 +186,9 @@ R$ 3,50 pago e sem venda (aparece no caixa como "já recebido e sem venda").
 - Testado no dev com a empresa "Teste Vendas" (#12 do marketplace_dev; usuários em `~/projetos/marketplace-testes/vendas/`) e o
   simulador do Mercado Pago (agora com devolução); roteiro da API: 33 verificações.
 
-### Próximo passo: caixa offline (pedido em 16/10/2026)
+### 16/10/2026 (madrugada) — caixa offline
+- Ver "Caixa offline" em Funcionalidades. Testado no dev derrubando a API no meio do expediente: busca local, venda guardada,
+  cancelamento sem conferência, reenvio automático quando a API voltou, sem duplicar.
 
 ## Estrutura
 

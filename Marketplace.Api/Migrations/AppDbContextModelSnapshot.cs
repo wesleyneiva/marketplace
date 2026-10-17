@@ -51,6 +51,9 @@ namespace Marketplace.Api.Migrations
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("IdLocal")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Motivo")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -59,6 +62,9 @@ namespace Marketplace.Api.Migrations
                     b.Property<string>("OperadorId")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<bool>("SemConferencia")
+                        .HasColumnType("boolean");
 
                     b.Property<int?>("SessaoCaixaId")
                         .HasColumnType("integer");
@@ -81,6 +87,10 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("VendaId");
 
                     b.HasIndex("EmpresaId", "DataHora");
+
+                    b.HasIndex("EmpresaId", "IdLocal")
+                        .IsUnique()
+                        .HasFilter("\"IdLocal\" IS NOT NULL");
 
                     b.ToTable("AutorizacoesGerente", (string)null);
                 });
@@ -2022,9 +2032,15 @@ namespace Marketplace.Api.Migrations
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("IdLocal")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("MotivoCancelamento")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("Offline")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Origem")
                         .IsRequired()
@@ -2032,6 +2048,9 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)")
                         .HasDefaultValue("Caixa");
+
+                    b.Property<bool>("PrecoDivergente")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("SessaoCaixaId")
                         .HasColumnType("integer");
@@ -2072,6 +2091,10 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.HasIndex("EmpresaId", "DataHora");
+
+                    b.HasIndex("EmpresaId", "IdLocal")
+                        .IsUnique()
+                        .HasFilter("\"IdLocal\" IS NOT NULL");
 
                     b.HasIndex("EmpresaId", "Origem", "DataHora");
 

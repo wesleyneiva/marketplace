@@ -1,6 +1,11 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { semConexao } from '../offline/conexao';
+
+// Caixa offline: quem estava logado fica guardado neste computador. Sem internet, a tela do caixa abre com ele
+// (o cookie de login continua no navegador; quando a internet voltar, o servidor confere de novo).
+const CHAVE_USUARIO = 'marcus.ultimoUsuario';
 
 // Mesmo formato do UsuarioLogadoResponse da API (C#).
 export interface UsuarioLogado {
@@ -36,6 +41,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
 
   private readonly usuarioAtual = signal<UsuarioLogado | null>(null);
+  readonly semInternet = signal(false); // entrou com o usuário guardado porque o servidor não respondeu
   private verificado = false;
 
   readonly usuario = this.usuarioAtual.asReadonly();
@@ -50,8 +56,17 @@ export class AuthService {
     const usuario = await firstValueFrom(
       this.http.post<UsuarioLogado>('/api/auth/login', { email, senha }),
     );
-    this.usuarioAtual.set(usuario);
+    this.definir(usuario);
     this.verificado = true;
+  }
+
+  private definir(usuario: UsuarioLogado | null): void {
+    this.usuarioAtual.set(usuario);
+    this.semInternet.set(false);
+    try {
+      if (usuario && !usuario.somenteLeitura) localStorage.setItem(CHAVE_USUARIO, JSON.stringify(usuario));
+      else localStorage.removeItem(CHAVE_USUARIO);
+    } catch { /* sem armazenamento: só não abre sem internet */ }
   }
 
   // Entra como visitante da demonstração (sem senha; só olha).
@@ -65,16 +80,14 @@ export class AuthService {
   }
 
   async trocarSenha(senhaAtual: string, novaSenha: string): Promise<void> {
-    this.usuarioAtual.set(
-      await firstValueFrom(this.http.post<UsuarioLogado>('/api/auth/trocar-senha', { senhaAtual, novaSenha })),
-    );
+    this.definir(await firstValueFrom(this.http.post<UsuarioLogado>('/api/auth/trocar-senha', { senhaAtual, novaSenha })));
   }
 
   async logout(): Promise<void> {
     try {
       await firstValueFrom(this.http.post('/api/auth/logout', {}));
     } finally {
-      this.usuarioAtual.set(null);
+      this.definir(null);
     }
   }
 
@@ -84,9 +97,13 @@ export class AuthService {
     if (!this.verificado) {
       this.verificado = true;
       try {
-        this.usuarioAtual.set(await firstValueFrom(this.http.get<UsuarioLogado>('/api/auth/eu')));
-      } catch {
-        this.usuarioAtual.set(null);
+        this.definir(await firstValueFrom(this.http.get<UsuarioLogado>('/api/auth/eu')));
+      } catch (e) {
+        // Sem internet (ou servidor fora do ar): segue com quem estava logado neste computador.
+        const guardado = semConexao(e) ? lerGuardado() : null;
+        this.usuarioAtual.set(guardado);
+        this.semInternet.set(!!guardado);
+        if (!guardado) this.definir(null);
       }
     }
     return this.logado();
@@ -95,5 +112,13 @@ export class AuthService {
   temPerfil(...perfis: string[]): boolean {
     const meus = this.usuarioAtual()?.perfis ?? [];
     return perfis.some((p) => meus.includes(p));
+  }
+}
+
+function lerGuardado(): UsuarioLogado | null {
+  try {
+    return JSON.parse(localStorage.getItem(CHAVE_USUARIO) ?? 'null');
+  } catch {
+    return null;
   }
 }

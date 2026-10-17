@@ -44,7 +44,8 @@ public static class PixQrCode
     }
 
     // O texto do "Pix copia e cola" (é ele que vai dentro do QR Code).
-    public static string Payload(string chave, string nome, string? cidade, decimal valor, string? txId)
+    // valor nulo = QR "fixo" (o cliente digita o valor no app do banco): o caixa guarda para usar sem internet.
+    public static string Payload(string chave, string nome, string? cidade, decimal? valor, string? txId)
     {
         var conta = Campo("00", "br.gov.bcb.pix") + Campo("01", chave);
         var tx = SoLetrasENumeros(txId ?? "");
@@ -53,7 +54,7 @@ public static class PixQrCode
             .Append(Campo("26", conta))                                    // quem recebe (a chave Pix)
             .Append(Campo("52", "0000"))                                   // categoria do comércio (não informada)
             .Append(Campo("53", "986"))                                    // moeda: real
-            .Append(Campo("54", valor.ToString("0.00", CultureInfo.InvariantCulture)))
+            .Append(valor is decimal v ? Campo("54", v.ToString("0.00", CultureInfo.InvariantCulture)) : "")
             .Append(Campo("58", "BR"))
             .Append(Campo("59", Texto(nome, MaxNome, "RECEBEDOR")))
             .Append(Campo("60", Texto(cidade, MaxCidade, "BRASIL")))

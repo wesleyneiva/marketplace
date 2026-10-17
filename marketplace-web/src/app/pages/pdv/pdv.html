@@ -33,7 +33,7 @@
       <span class="espaco"></span>
       <button type="button" class="botao pequeno" (click)="abrirVendasCaixa()" title="Vendas deste caixa: reimprimir ou cancelar com estorno"><app-icone nome="receipt-text" /> Vendas do caixa</button>
       @if (ultimoCupom(); as u) {
-        <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda"><app-icone nome="receipt" /> Último cupom (#{{ u.id }})</button>
+        <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda"><app-icone nome="receipt" /> Último cupom ({{ u.id ? '#' + u.id : 'sem internet' }})</button>
       }
       @if (comFiado) {
       <button type="button" class="botao pequeno" (click)="abrirReceber()" title="Cliente veio pagar o fiado (F6)"><app-icone nome="notebook-pen" /> Receber fiado <kbd>F6</kbd></button>
@@ -43,6 +43,30 @@
       <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>
     </header>
 
+    @if (semInternet() || offline.fila().length || offline.outrosUsuarios()) {
+      <div class="offline" [class.sem]="semInternet()" role="status">
+        @if (semInternet()) {
+          <span><app-icone nome="plug" /> <b>Sem internet</b> — o caixa continua vendendo (dinheiro, cartão e Pix pelo QR da loja). As vendas ficam guardadas neste computador.</span>
+        }
+        @if (offline.vendasPendentes().length) {
+          <span>
+            <b>{{ offline.vendasPendentes().length }} {{ offline.vendasPendentes().length === 1 ? 'venda guardada' : 'vendas guardadas' }}</b>
+            {{ offline.enviando() ? '· enviando…' : semInternet() ? '· vão sozinhas quando a internet voltar' : '' }}
+          </span>
+        } @else if (offline.fila().length) {
+          <span><b>{{ offline.fila().length }} cancelamento(s) guardado(s)</b> para enviar</span>
+        }
+        @if (offline.fila().length && !semInternet() && !offline.enviando()) {
+          <button type="button" class="botao pequeno" (click)="enviarPendentes()"><app-icone nome="refresh-cw" /> Enviar agora</button>
+        }
+        @for (f of offline.comErro(); track f.idLocal) {
+          <span class="recusada"><app-icone nome="triangle-alert" /> {{ f.tipo === 'venda' ? 'Venda' : 'Cancelamento' }} de {{ f.criadoEm | date: 'HH:mm' }} não foi aceita: {{ f.erro }}</span>
+        }
+        @if (offline.outrosUsuarios()) {
+          <span class="recusada">{{ offline.outrosUsuarios() }} venda(s) sem internet de outro operador esperam neste computador: elas vão quando ele entrar de novo.</span>
+        }
+      </div>
+    }
     @if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
     @if (erro() && !produtoPeso()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erro() }}</div> }
 
@@ -209,7 +233,20 @@
             }
           </div>
         }
-        @if (formaAtual() === 'Pix' && pixAutomatico()) {
+        @if (formaAtual() === 'Pix' && semInternet()) {
+          <div class="pix-offline">
+            @if (offline.pixFixo(); as qr) {
+              <div class="qr" [innerHTML]="svgPixFixo()"></div>
+              <div>
+                <b>Sem internet: QR fixo da loja</b>
+                <small>O cliente lê o QR e <b>digita {{ valorPix() | currency: 'BRL' }}</b> no app do banco. Recebedor: {{ qr.recebedor }}.</small>
+                <small class="conferir"><app-icone nome="smartphone" /> <b>Confira no celular da loja</b> que o Pix chegou e só então clique em Adicionar.</small>
+              </div>
+            } @else {
+              <small>Sem internet e sem o QR guardado: passe a chave Pix da loja ao cliente e confira no celular antes de clicar em Adicionar.</small>
+            }
+          </div>
+        } @else if (formaAtual() === 'Pix' && pixAutomatico()) {
           <app-pix-automatico [valor]="valorPix()" [sessaoCaixaId]="caixa()?.sessaoId ?? null" (pago)="pixPago($event)" />
           <button type="button" class="link-manual" (click)="pixManual()">O aviso não chegou? Confirmar o Pix manualmente</button>
         } @else if (valorPix() > 0) {
@@ -278,7 +315,7 @@
         <div class="cupom-topo">
           <app-logo [tamanho]="34" [slogan]="false" />
           @if (nomeLoja()) { <small>{{ nomeLoja() }}</small> }
-          <small>Venda #{{ c.id }} · Caixa {{ c.numeroCaixa }} · {{ c.dataHora | date: 'dd/MM/yyyy HH:mm' }}</small>
+          <small>{{ c.id ? 'Venda #' + c.id : 'Venda sem internet' }} · Caixa {{ c.numeroCaixa }} · {{ c.dataHora | date: 'dd/MM/yyyy HH:mm' }}</small>
           <small>Operador: {{ c.operador }}</small>
         </div>
         <table>
@@ -304,6 +341,9 @@
               <small>Imprima e peça a assinatura do cliente.</small>
             }
           </div>
+        }
+        @if (c.offline && !c.id) {
+          <div class="cupom-offline"><app-icone nome="plug" /> Venda guardada neste computador (sem internet). Ela é enviada sozinha quando a internet voltar.</div>
         }
         <small class="cupom-rodape">Obrigado pela preferência! · Não é documento fiscal</small>
       </div>
@@ -339,7 +379,7 @@
               <span>Total {{ total() | currency: 'BRL' }} · nada foi pago ainda</span>
             </div>
           }
-          <app-autorizacao-gerente #autorizacaoPdv [precisa]="!ehGerencia()" [(motivo)]="motivoCancelamento"
+          <app-autorizacao-gerente #autorizacaoPdv [precisa]="!ehGerencia()" [semInternet]="semInternet()" [(motivo)]="motivoCancelamento"
             [sugestoes]="c.tipo === 'Item' ? ['Bipado errado', 'Cliente desistiu', 'Produto com defeito', 'Preço diferente'] : ['Cliente desistiu', 'Cliente sem dinheiro', 'Compra lançada errado']" />
           @if (erroCancelamento()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erroCancelamento() }}</div> }
         </div>

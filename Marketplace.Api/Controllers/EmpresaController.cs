@@ -100,6 +100,18 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
         return Resposta(empresa);
     }
 
+    // GET /api/empresa/configuracao/pix/qrcode-fixo → QR do Pix SEM valor (o cliente digita no app do banco).
+    // O caixa guarda no computador para cobrar Pix quando estiver sem internet.
+    [HttpGet("pix/qrcode-fixo")]
+    public async Task<ActionResult<PixQrCodeResponse>> PixQrCodeFixo()
+    {
+        var e = await CarregarAsync();
+        if (string.IsNullOrWhiteSpace(e.PixChave)) return NoContent();
+        var nome = e.PixNomeRecebedor ?? e.Nome;
+        var payload = Services.Pix.PixQrCode.Payload(e.PixChave, nome, e.Cidade, null, "CAIXAOFFLINE");
+        return new PixQrCodeResponse(0, payload, Services.Pix.PixQrCode.Svg(payload), nome, e.PixChave, e.PixTipoChave ?? "");
+    }
+
     // GET /api/empresa/configuracao/pix/qrcode?valor=12.34 → o QR Code do Pix com esse valor (o caixa usa; qualquer perfil)
     [HttpGet("pix/qrcode")]
     public async Task<ActionResult<PixQrCodeResponse>> PixQrCode(decimal valor)

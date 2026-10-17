@@ -56,6 +56,8 @@ export interface Cupom {
   pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean }[]; // pixConfirmado: Pix automático (Mercado Pago)
   motivoCancelamento: string | null;
   cancelamento?: { em: string | null; por: string | null; autorizadoPor: string | null } | null;
+  offline?: boolean;       // feita sem internet (caixa offline)
+  idLocal?: string | null; // enquanto não foi enviada, a venda offline só tem este número (id = 0)
   // No fiado: quanto o cliente deve AGORA e quando esta compra vence (sai no cupom para assinar).
   cliente?: { nome: string; apelido: string | null; saldoDevedor: number | null; vencimentoFiado: string | null } | null;
 }
@@ -100,6 +102,7 @@ export interface NovaVenda {
   desconto: number;
   pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number }[]; // cobrancaPixId: Pix automático (Mercado Pago)
   clienteId?: number | null; // obrigatório com fiado
+  idLocal?: string;          // criado no caixa: a mesma venda nunca entra duas vezes (ver caixa offline)
 }
 
 // ----- Vendas (lista), estorno e autorização do gerente -----
@@ -114,6 +117,8 @@ export interface VendaLista {
   formas: string;            // "Dinheiro + Pix"
   pixConfirmado: boolean;    // tem Pix confirmado pelo Mercado Pago
   origem: 'Caixa' | 'Simulador' | 'Historico';
+  offline: boolean;          // feita sem internet e enviada depois
+  precoDivergente: boolean;  // offline com preço diferente do cadastro na hora em que chegou
 }
 
 export interface ListaVendas {
@@ -156,6 +161,7 @@ export interface CancelamentoRegistro {
   descricao: string;
   valor: number;
   vendaId: number | null;
+  semConferencia: boolean; // feito sem internet: a senha do gerente não pôde ser conferida
 }
 
 export interface CaixaDisponivel {

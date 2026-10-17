@@ -81,6 +81,39 @@ public class CaixaController(CaixaService caixa, AppDbContext db, VendaService v
         }
     }
 
+    // GET /api/caixa/catalogo → os produtos ativos, para o caixa guardar no computador e vender sem internet.
+    [HttpGet("catalogo")]
+    public Task<List<ProdutoCatalogoPdv>> Catalogo() =>
+        db.Produtos.AsNoTracking().Where(p => p.Ativo).OrderBy(p => p.Id)
+            .Select(p => new ProdutoCatalogoPdv(p.Id, p.Nome, p.CodigoBarras, p.Unidade, p.PrecoVenda, p.EstoqueAtual))
+            .ToListAsync();
+
+    // POST /api/caixa/cancelamentos/offline → item/compra cancelado SEM INTERNET. O gerente foi escolhido na lista, mas a
+    // senha não pôde ser conferida: fica registrado "sem conferência" (em destaque em Vendas → Cancelamentos).
+    [HttpPost("cancelamentos/offline")]
+    public async Task<IActionResult> CancelamentoOffline(CancelamentoOfflineRequest r)
+    {
+        try
+        {
+            var autorizou = UsuarioId;
+            var semConferencia = false;
+            if (!EhGerencia)
+            {
+                var gerentes = await autorizacoes.GerentesAsync();
+                autorizou = gerentes.FirstOrDefault(g => g.Id == r.GerenteId)?.Id
+                    ?? gerentes.FirstOrDefault()?.Id ?? throw new EstoqueException("Nenhum gerente cadastrado.");
+                semConferencia = true;
+            }
+            await vendas.RegistrarCancelamentoPdvAsync(UsuarioId, autorizou,
+                new CancelamentoPdvRequest(r.Tipo, r.Itens, r.Motivo), r.IdLocal, r.DataHora, semConferencia);
+            return NoContent();
+        }
+        catch (EstoqueException e)
+        {
+            return BadRequest(new { mensagem = e.Message });
+        }
+    }
+
     // GET /api/caixa/sessoes → últimas sessões (gerência confere os fechamentos e as diferenças).
     [HttpGet("sessoes")]
     [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]

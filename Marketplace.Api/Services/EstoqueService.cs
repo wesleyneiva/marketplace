@@ -137,9 +137,17 @@ public class EstoqueService(AppDbContext db)
     // ---------------------------------------------------------------- usados pela venda
 
     // Prepara a baixa de estoque de um item vendido (não salva).
-    public async Task PrepararVendaAsync(Produto produto, decimal quantidade, Venda venda, string usuarioId)
+    // permitirFaltar: venda feita SEM INTERNET (caixa offline) — já aconteceu, o cliente levou: entra mesmo que o
+    // sistema mostre menos estoque (o saldo pode ficar negativo e aparece para o gerente acertar).
+    public async Task PrepararVendaAsync(Produto produto, decimal quantidade, Venda venda, string usuarioId, bool permitirFaltar = false)
     {
         ValidarQuantidade(produto, quantidade);
+        if (permitirFaltar)
+        {
+            await PrepararSaidaAsync(produto, quantidade, TipoMovimentacao.Venda, usuarioId, venda: venda, ignorarVencidos: true,
+                observacao: "Venda feita sem internet (caixa offline)");
+            return;
+        }
 
         // Produto vencido NÃO pode ser vendido: só conta o que está dentro da validade.
         var vencido = produto.ControlaValidade

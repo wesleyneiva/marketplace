@@ -27,6 +27,10 @@ public class AutorizacaoGerente : IDaEmpresa
 
     public int? VendaId { get; set; }
     public Venda? Venda { get; set; }
+
+    // Feito SEM INTERNET: o gerente foi escolhido na lista, mas a senha não pôde ser conferida (aparece em destaque).
+    public bool SemConferencia { get; set; }
+    public Guid? IdLocal { get; set; } // o mesmo registro não entra duas vezes quando o caixa reenvia
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<AcaoAutorizada>))]

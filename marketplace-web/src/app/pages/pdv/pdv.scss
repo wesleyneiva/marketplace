@@ -712,3 +712,24 @@ dialog.pix-ok {
   b { font-variant-numeric: tabular-nums; }
   .selo-cancelada { margin-left: 4px; padding: 1px 6px; border-radius: 99px; background: var(--cor-erro-fundo-forte); color: var(--cor-erro); font-weight: 600; font-size: 11px; }
 }
+
+// ---------- Caixa offline ----------
+.offline {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 10px 12px; border-radius: 10px;
+  background: var(--cor-info-fundo); color: var(--cor-info); font-size: 14px;
+  &.sem { background: var(--cor-alerta-fundo-forte); color: var(--cor-alerta); }
+  span { display: inline; }
+  app-icone { vertical-align: -2px; }
+  .recusada { flex-basis: 100%; color: var(--cor-erro); font-weight: 600; }
+}
+.pix-offline {
+  display: flex; gap: 12px; align-items: center; padding: 10px; border: 1px dashed var(--cor-alerta-borda); border-radius: 10px;
+  background: var(--cor-alerta-fundo);
+  .qr { width: 130px; flex-shrink: 0; background: #fff; border-radius: 8px; padding: 4px; :is(svg) { display: block; width: 100%; height: auto; } }
+  > div:last-child { display: flex; flex-direction: column; gap: 4px; }
+  small { color: var(--cor-texto-suave); }
+}
+.cupom-offline {
+  margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--cor-alerta-fundo); color: var(--cor-alerta);
+  font-family: inherit; font-size: 12px; display: flex; gap: 6px; align-items: flex-start;
+}

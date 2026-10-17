@@ -2,6 +2,7 @@ import { MARCA } from '../../shared/marca';
 import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
@@ -21,6 +22,8 @@ import { CobrancaPix, PixAutomatico } from '../../shared/pix-automatico';
 import { AutorizacaoGerente } from '../../shared/autorizacao-gerente';
 import { EstornoVenda } from '../../shared/estorno-venda';
 import { CupomDetalhe } from '../../shared/cupom-detalhe';
+import { Conexao } from '../../core/offline/conexao';
+import { CaixaOffline, novoIdLocal } from '../../core/offline/caixa-offline.service';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -32,6 +35,8 @@ interface ItemCarrinho {
 //   • "3*arroz" ou "3*789..." → 3 unidades.  Produto por KG pede o peso.
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
 //   • Tirar item, cancelar a compra e cancelar uma venda já paga (estorno): só com a senha de um gerente.
+//   • SEM INTERNET (caixa offline): continua vendendo com o catálogo guardado neste computador; as vendas ficam numa
+//     fila e são enviadas sozinhas quando a internet volta (ver core/offline). Abrir/fechar caixa, sangria e estorno esperam.
 @Component({
   selector: 'app-pdv',
   imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico, AutorizacaoGerente,
@@ -47,6 +52,15 @@ export class Pdv {
   protected readonly nomeLoja = computed(() => this.auth.usuario()?.empresa.nome ?? '');
   protected readonly balanca = inject(BalancaService);
   protected readonly impressora = inject(ImpressoraService);
+  protected readonly conexao = inject(Conexao);
+  protected readonly offline = inject(CaixaOffline);
+  protected readonly semInternet = computed(() => !this.conexao.online());
+  // O QR fixo do Pix (SVG gerado pelo nosso servidor e guardado no caixa) para cobrar Pix sem internet.
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly svgPixFixo = computed(() => {
+    const qr = this.offline.pixFixo();
+    return qr ? this.sanitizer.bypassSecurityTrustHtml(qr.svg) : null;
+  });
 
   protected readonly formas = MODULOS.fiado ? FORMAS_PAGAMENTO : FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
   protected readonly comFiado = MODULOS.fiado;
@@ -182,6 +196,13 @@ export class Pdv {
 
   constructor() {
     void this.carregarCaixa();
+    // A fila de vendas offline diminuiu (foram enviadas) com internet: atualiza os números do caixa.
+    let antes = 0;
+    effect(() => {
+      const agora = this.offline.vendasPendentes().length;
+      if (agora < antes && this.conexao.online()) void this.atualizarResumo();
+      antes = agora;
+    });
     // Sem caixa aberto (ao entrar ou depois de fechar): busca a lista de caixas e sugere o primeiro livre.
     effect(() => {
       if (this.caixa() === null) void this.carregarCaixas();
@@ -202,12 +223,45 @@ export class Pdv {
   // ================================================================ caixa
 
   private async carregarCaixa(): Promise<void> {
+    const usuario = this.auth.usuario();
     try {
-      this.caixa.set(await this.api.caixaAtual());
+      const r = await this.api.caixaAtual();
+      this.caixa.set(r);
+      if (usuario) await this.offline.iniciar(usuario.id, usuario.empresa.id);
+      void this.offline.guardarResumo(r);
       this.focarBusca();
-    } catch {
-      this.caixa.set(null);
-      this.erro.set('Não foi possível consultar o caixa.');
+    } catch (e) {
+      // Sem internet: abre com o caixa que estava aberto neste computador (se havia um).
+      const guardado = this.conexao.falhou(e) && usuario ? await this.offline.lerResumo(usuario.id) : null;
+      this.caixa.set(guardado);
+      if (guardado && usuario) {
+        await this.offline.iniciar(usuario.id, usuario.empresa.id);
+        this.focarBusca();
+      } else {
+        this.erro.set(this.semInternet() ? 'Sem internet e nenhum caixa aberto neste computador: abra o caixa quando a internet voltar.' : 'Não foi possível consultar o caixa.');
+      }
+    }
+  }
+
+  // Números do caixa (vendas, total): com internet, pergunta ao servidor e guarda para abrir offline.
+  private async atualizarResumo(): Promise<void> {
+    try {
+      const r = await this.api.caixaAtual();
+      this.caixa.set(r);
+      void this.offline.guardarResumo(r);
+    } catch (e) {
+      this.conexao.falhou(e);
+    }
+  }
+
+  // Buscar produtos: no servidor; sem internet (ou se ela cair agora), no catálogo guardado neste computador.
+  private async procurar(termo: string): Promise<Produto[]> {
+    if (!this.conexao.online() && this.offline.temCatalogo()) return this.offline.buscar(termo);
+    try {
+      return (await firstValueFrom(this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }))).itens;
+    } catch (e) {
+      if (this.conexao.falhou(e) && this.offline.temCatalogo()) return this.offline.buscar(termo);
+      throw e;
     }
   }
 
@@ -219,6 +273,9 @@ export class Pdv {
     }
     await this.executar(async () => {
       this.caixa.set(await this.api.abrir(this.numeroCaixa, valor));
+      const usuario = this.auth.usuario();
+      if (usuario) await this.offline.iniciar(usuario.id, usuario.empresa.id);
+      void this.offline.guardarResumo(this.caixa() ?? null);
       this.mostrarAviso(`Caixa ${this.numeroCaixa} aberto. Boas vendas!`);
       this.focarBusca();
     });
@@ -248,19 +305,19 @@ export class Pdv {
     this.buscando.set(true);
     try {
       // Etiqueta da balança (açougue/hortifrúti): 13 dígitos começando com 2 → o servidor diz o produto e o peso.
-      if (/^2\d{12}$/.test(termo) && (await this.lerEtiquetaBalanca(termo))) return;
+      if (/^2\d{12}$/.test(termo) && this.conexao.online() && (await this.lerEtiquetaBalanca(termo))) return;
 
-      const pagina = await firstValueFrom(
-        this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }),
-      );
-      const exato = pagina.itens.find((p) => p.codigoBarras === termo);
-      if (exato || pagina.itens.length === 1) {
-        this.escolher(exato ?? pagina.itens[0]);
-      } else if (pagina.itens.length === 0) {
-        this.erro.set(this.avisoBalanca ?? `Produto não encontrado: "${termo}"`);
+      const itens = await this.procurar(termo);
+      const exato = itens.find((p) => p.codigoBarras === termo);
+      if (exato || itens.length === 1) {
+        this.escolher(exato ?? itens[0]);
+      } else if (itens.length === 0) {
+        this.erro.set(this.avisoBalanca ?? (/^2\d{12}$/.test(termo) && this.semInternet()
+          ? 'Sem internet a etiqueta da balança não é lida: busque o produto pelo nome e digite o peso.'
+          : `Produto não encontrado: "${termo}"`));
         this.textoBusca = '';
       } else {
-        this.resultados.set(pagina.itens);
+        this.resultados.set(itens);
         this.indiceResultado.set(0);
       }
     } finally {
@@ -287,6 +344,7 @@ export class Pdv {
       }
       return true;
     } catch (e) {
+      if (this.conexao.falhou(e)) return false; // sem internet: segue a busca no catálogo guardado
       if (e instanceof HttpErrorResponse && e.status === 404) {
         // PLU que não existe: pode ser um produto com código de barras "2…" de verdade → busca normal
         // (se ela também não achar, o caixa vê a mensagem da balança).
@@ -319,13 +377,13 @@ export class Pdv {
 
   private async filtrar(termo: string): Promise<void> {
     try {
-      const pagina = await firstValueFrom(this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }));
+      const itens = await this.procurar(termo);
       // Se a pessoa continuou digitando (ou já apertou Enter), esta resposta ficou velha.
       if (separarQuantidade(this.textoBusca.trim()).termo !== termo) return;
       this.termoDaLista = termo;
-      this.resultados.set(pagina.itens);
+      this.resultados.set(itens);
       this.indiceResultado.set(0);
-      this.semResultado.set(pagina.itens.length ? null : termo);
+      this.semResultado.set(itens.length ? null : termo);
     } catch {
       /* falhou o filtro: o Enter ainda busca normalmente */
     }
@@ -462,7 +520,18 @@ export class Pdv {
     this.enviandoCancelamento.set(true);
     this.erroCancelamento.set(null);
     try {
-      const r = await this.api.cancelarNoPdv(c.tipo, itens, this.motivoCancelamento().trim(), aut.autorizacao());
+      let r: { autorizadoPor: string; valor: number };
+      try {
+        if (this.semInternet()) throw new TypeError('sem internet');
+        r = await this.api.cancelarNoPdv(c.tipo, itens, this.motivoCancelamento().trim(), aut.autorizacao());
+      } catch (e) {
+        if (!this.conexao.falhou(e) && !this.semInternet()) throw e;
+        // Sem internet: guarda para enviar depois, em nome do gerente escolhido (a senha não pôde ser conferida).
+        await this.offline.guardarCancelamento(c.tipo, itens, this.motivoCancelamento().trim(), aut.gerenteEscolhido());
+        const gerente = this.offline.gerentes().find((g) => g.id === aut.gerenteEscolhido())?.nome ?? this.auth.usuario()?.nome ?? 'gerente';
+        const valor = arredondar(itens.reduce((soma, i) => soma + i.quantidade * (this.carrinho().find((x) => x.produto.id === i.produtoId)?.produto.precoVenda ?? 0), 0));
+        r = { autorizadoPor: `${gerente} (sem internet: senha não conferida)`, valor };
+      }
       if (c.item) {
         const item = c.item;
         this.carrinho.update((lista) => qtd >= item.quantidade
@@ -489,6 +558,7 @@ export class Pdv {
   // ================================================================ vendas deste caixa (reimprimir / estorno)
 
   protected abrirVendasCaixa(): void {
+    if (this.precisaInternet('ver as vendas do caixa')) return;
     this.vendasCaixa.set(null);
     this.vendaAberta.set(null);
     this.estornando.set(false);
@@ -580,6 +650,7 @@ export class Pdv {
 
   // Lê (a cada pagamento) se o Pix automático está ligado e se há Pix pagos sem venda neste caixa.
   private async carregarPix(): Promise<void> {
+    if (this.semInternet()) { this.pixAutomatico.set(null); this.pixSoltos.set([]); return; } // sem internet: Pix pelo QR fixo
     try {
       const cfg = await firstValueFrom(this.http.get<{ pixAutomatico: string | null }>('/api/empresa/configuracao'));
       this.pixAutomatico.set(cfg.pixAutomatico);
@@ -744,13 +815,23 @@ export class Pdv {
     if (this.falta() > 0 || this.finalizando()) return;
     this.finalizando.set(true);
     this.erro.set(null);
+    const pedido = {
+      itens: this.carrinho().map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade })),
+      desconto: this.desconto(),
+      pagamentos: this.pagamentos(),
+      clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : null,
+      idLocal: novoIdLocal(), // se a internet cair na resposta e a venda for guardada, o servidor não grava duas vezes
+    };
+    const podeOffline = !pedido.pagamentos.some((p) => p.cobrancaPixId || p.forma === 'Fiado');
     try {
-      const cupom = await this.api.vender({
-        itens: this.carrinho().map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade })),
-        desconto: this.desconto(),
-        pagamentos: this.pagamentos(),
-        clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : null,
-      });
+      let cupom: Cupom;
+      try {
+        if (this.semInternet() && podeOffline) throw new TypeError('sem internet');
+        cupom = await this.api.vender(pedido);
+      } catch (e) {
+        if (!podeOffline || (!this.conexao.falhou(e) && !this.semInternet())) throw e;
+        cupom = await this.guardarVendaOffline(pedido);
+      }
       this.dlgPagamento()?.nativeElement.close();
       this.cupom.set(cupom);
       this.ultimoCupom.set(cupom);
@@ -759,12 +840,35 @@ export class Pdv {
       // O botão só existe depois que o Angular desenha o cupom → foca no próximo "tique".
       setTimeout(() => this.btnNovaVenda()?.nativeElement.focus());
       this.limparVenda(false);
-      this.caixa.set(await this.api.caixaAtual());
+      if (!cupom.offline) await this.atualizarResumo();
     } catch (e) {
       this.erro.set(this.mensagem(e));
     } finally {
       this.finalizando.set(false);
     }
+  }
+
+  // Sem internet: monta o cupom aqui (preço do catálogo guardado) e coloca a venda na fila para enviar depois.
+  private async guardarVendaOffline(pedido: { desconto: number; pagamentos: { forma: FormaPagamento; valor: number }[]; idLocal: string }): Promise<Cupom> {
+    const cx = this.caixa()!;
+    const itens = this.carrinho().map((i) => ({
+      produtoId: i.produto.id, descricao: i.produto.nome, unidade: i.produto.unidade, quantidade: i.quantidade,
+      precoUnitario: i.produto.precoVenda, total: this.totalItem(i),
+    }));
+    const dataHora = new Date().toISOString();
+    const cupom: Cupom = {
+      id: 0, dataHora, numeroCaixa: cx.numeroCaixa, operador: this.auth.usuario()?.nome ?? cx.operador, status: 'Concluida',
+      subtotal: this.subtotal(), desconto: this.desconto(), total: this.total(), valorPago: this.pago(), troco: this.troco(),
+      itens, pagamentos: pedido.pagamentos.map((p) => ({ forma: p.forma, valor: p.valor })), motivoCancelamento: null,
+      offline: true, idLocal: pedido.idLocal,
+    };
+    await this.offline.guardarVenda({ ...pedido, itens: [] }, cupom, pedido.idLocal, dataHora);
+    return cupom;
+  }
+
+  // "Enviar agora" (e "tentar de novo" das que o servidor recusou).
+  protected enviarPendentes(): void {
+    void this.offline.sincronizar(true);
   }
 
   protected novaVenda(): void {
@@ -776,6 +880,7 @@ export class Pdv {
   // ================================================================ receber fiado (F6)
 
   protected abrirReceber(): void {
+    if (this.precisaInternet('receber fiado')) return;
     if (this.carrinho().length) {
       this.erro.set('Finalize ou cancele a compra atual antes de receber um fiado.');
       return;
@@ -851,6 +956,7 @@ export class Pdv {
   // ================================================================ sangria / suprimento / fechamento
 
   protected abrirMovimento(tipo: 'sangria' | 'suprimento'): void {
+    if (this.precisaInternet(tipo === 'sangria' ? 'fazer sangria' : 'fazer suprimento')) return;
     this.tipoMovimento.set(tipo);
     this.textoMovimento = '';
     this.motivoMovimento = tipo === 'sangria' ? 'Recolhimento para o cofre' : 'Troco';
@@ -876,6 +982,12 @@ export class Pdv {
   }
 
   protected abrirFechamento(): void {
+    if (this.precisaInternet('fechar o caixa')) return;
+    if (this.offline.fila().length) {
+      this.erro.set(`Ainda há ${this.offline.fila().length} registro(s) feitos sem internet para enviar. Clique em "Enviar agora" antes de fechar o caixa.`);
+      void this.offline.sincronizar(true);
+      return;
+    }
     if (this.carrinho().length) {
       this.erro.set('Finalize ou cancele a compra atual antes de fechar o caixa.');
       return;
@@ -951,6 +1063,13 @@ export class Pdv {
   protected imprimirFechamento(): void {
     const f = this.fechamento();
     if (f) this.impressora.imprimirHtml(this.impressora.htmlFechamento(f, this.loja()));
+  }
+
+  // O que não dá para fazer sem internet: avisa (junto da barra do caixa) em vez de abrir a janela.
+  private precisaInternet(acao: string): boolean {
+    if (!this.semInternet()) return false;
+    this.erro.set(`Sem internet não dá para ${acao}. As vendas continuam normalmente; isto volta quando a internet voltar.`);
+    return true;
   }
 
   private loja(): string {

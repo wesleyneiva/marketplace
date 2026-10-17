@@ -59,7 +59,33 @@ public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaRequest> Itens,
     [Range(0, 1000000, ErrorMessage = "Desconto inválido.")] decimal Desconto,
     [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos,
-    int? ClienteId = null); // obrigatório quando há pagamento no fiado
+    int? ClienteId = null, // obrigatório quando há pagamento no fiado
+    Guid? IdLocal = null); // criado no caixa: se a internet cair na resposta e o caixa guardar a venda offline, ela não entra duas vezes
+
+// ----- Caixa OFFLINE (vendas feitas sem internet, enviadas quando ela volta) -----
+// Catálogo que o caixa guarda no computador para vender sem internet (só o necessário).
+public record ProdutoCatalogoPdv(int Id, string Nome, string? CodigoBarras, string Unidade, decimal PrecoVenda, decimal EstoqueAtual);
+
+public record ItemVendaOfflineRequest(
+    [Range(1, int.MaxValue)] int ProdutoId,
+    [Range(0.001, 100000, ErrorMessage = "Quantidade inválida.")] decimal Quantidade,
+    [Range(0.01, 1000000, ErrorMessage = "Preço inválido.")] decimal PrecoUnitario); // o preço que o cliente pagou
+
+public record VendaOfflineRequest(
+    Guid IdLocal,                 // criado no caixa: a mesma venda nunca entra duas vezes
+    DateTimeOffset DataHora,      // quando foi feita (no relógio do caixa)
+    [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaOfflineRequest> Itens,
+    [Range(0, 1000000, ErrorMessage = "Desconto inválido.")] decimal Desconto,
+    [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos);
+
+// Item/compra cancelado sem internet: o gerente foi escolhido na lista, mas a senha não pôde ser conferida.
+public record CancelamentoOfflineRequest(
+    Guid IdLocal,
+    DateTimeOffset DataHora,
+    [Required] string Tipo,
+    [MinLength(1)] List<ItemVendaRequest> Itens,
+    [Required, StringLength(200, MinimumLength = 3, ErrorMessage = "Motivo de 3 a 200 caracteres.")] string Motivo,
+    string? GerenteId);
 
 // ----- Autorização do gerente (cancelar item, compra e venda) -----
 // O gerente escolhe o nome dele e digita a senha no caixa. Se quem está logado é gerente, vai sem autorização.
@@ -99,7 +125,7 @@ public record EstornoPreviaResponse(
 // Linha da tela Vendas → Cancelamentos.
 public record AutorizacaoResponse(
     int Id, DateTimeOffset DataHora, string Acao, int? NumeroCaixa, string Operador, string AutorizadoPor,
-    string Motivo, string Descricao, decimal Valor, int? VendaId);
+    string Motivo, string Descricao, decimal Valor, int? VendaId, bool SemConferencia = false);
 
 public record ItemVendaResponse(int ProdutoId, string Descricao, string Unidade, decimal Quantidade, decimal PrecoUnitario, decimal Total);
 
@@ -120,7 +146,9 @@ public record VendaResponse(
     IReadOnlyList<PagamentoResponse> Pagamentos,
     string? MotivoCancelamento,
     ClienteCupom? Cliente = null,
-    CancelamentoCupom? Cancelamento = null);
+    CancelamentoCupom? Cancelamento = null,
+    bool Offline = false,
+    Guid? IdLocal = null);
 
 // Venda cancelada: quando, quem cancelou e quem autorizou.
 public record CancelamentoCupom(DateTimeOffset? Em, string? Por, string? AutorizadoPor);
@@ -129,7 +157,7 @@ public record CancelamentoCupom(DateTimeOffset? Em, string? Por, string? Autoriz
 public record ClienteCupom(string Nome, string? Apelido, decimal? SaldoDevedor, DateOnly? VencimentoFiado);
 
 public record VendaListaResponse(int Id, DateTimeOffset DataHora, int NumeroCaixa, string Operador, string Status, int QuantidadeItens, decimal Total, string Formas,
-    bool PixConfirmado = false, string? Origem = null);
+    bool PixConfirmado = false, string? Origem = null, bool Offline = false, bool PrecoDivergente = false);
 
 // Tela Vendas: a página da lista + os totais do filtro inteiro (não só da página).
 public record ListaVendasResponse(

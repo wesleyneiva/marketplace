@@ -214,7 +214,8 @@ var arquivosEstaticos = new StaticFileOptions
     OnPrepareResponse = ctx =>
     {
         var nome = ctx.File.Name;
-        ctx.Context.Response.Headers.CacheControl = nome == "index.html" ? "no-cache"
+        // sw.js e offline-arquivos.json (caixa offline) também nunca: é por eles que o navegador descobre a versão nova.
+        ctx.Context.Response.Headers.CacheControl = nome is "index.html" or "sw.js" or "offline-arquivos.json" ? "no-cache"
             : System.Text.RegularExpressions.Regex.IsMatch(nome, @"^(main|chunk|styles|polyfills)-[A-Za-z0-9_-]{8}\.(js|css)$") ? "public, max-age=31536000, immutable"
             : "public, max-age=3600";
     },

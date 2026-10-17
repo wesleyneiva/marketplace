@@ -37,6 +37,26 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
         }
     }
 
+    // POST /api/vendas/offline → venda feita SEM INTERNET, enviada quando ela voltou (no MEU caixa aberto).
+    // Pode chegar repetida (a rede caiu na resposta): devolve a mesma venda, nunca grava duas.
+    [HttpPost("offline")]
+    public async Task<ActionResult<VendaResponse>> Offline(VendaOfflineRequest pedido)
+    {
+        try
+        {
+            var venda = await vendas.FinalizarOfflineAsync(UsuarioId, podeDescontoLivre: EhGerencia, pedido);
+            return await MontarCupomAsync(venda.Id);
+        }
+        catch (ConflitoEstoqueException e)
+        {
+            return Conflict(new { mensagem = e.Message });
+        }
+        catch (EstoqueException e)
+        {
+            return BadRequest(new { mensagem = e.Message });
+        }
+    }
+
     // GET /api/vendas/5 → o "cupom". Caixa só vê as vendas que ele mesmo fez.
     [HttpGet("{id:int}")]
     public async Task<ActionResult<VendaResponse>> Obter(int id)
@@ -86,7 +106,7 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
                 v.Id, v.DataHora, v.SessaoCaixa!.NumeroCaixa, v.Usuario!.NomeCompleto, v.Status.ToString(),
                 v.Itens.Count, v.Total,
                 string.Join(" + ", v.Pagamentos.Select(p => p.Forma.ToString())),
-                v.Pagamentos.Any(p => p.CobrancaPixId != null), v.Origem.ToString()))
+                v.Pagamentos.Any(p => p.CobrancaPixId != null), v.Origem.ToString(), v.Offline, v.PrecoDivergente))
             .ToListAsync();
 
         var qtd = concluidas?.Quantidade ?? 0;
@@ -147,7 +167,7 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
         if (numeroCaixa is not null) consulta = consulta.Where(a => a.SessaoCaixa!.NumeroCaixa == numeroCaixa);
         return await consulta.OrderByDescending(a => a.Id)
             .Select(a => new AutorizacaoResponse(a.Id, a.DataHora, a.Acao.ToString(), a.SessaoCaixa != null ? a.SessaoCaixa.NumeroCaixa : null,
-                a.Operador!.NomeCompleto, a.AutorizadoPor!.NomeCompleto, a.Motivo, a.Descricao, a.Valor, a.VendaId))
+                a.Operador!.NomeCompleto, a.AutorizadoPor!.NomeCompleto, a.Motivo, a.Descricao, a.Valor, a.VendaId, a.SemConferencia))
             .ToListAsync();
     }
 
@@ -200,7 +220,8 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
                     ? new CancelamentoCupom(v.CanceladaEm, v.CanceladaPor!.NomeCompleto,
                         db.AutorizacoesGerente.Where(a => a.VendaId == v.Id && a.Acao == AcaoAutorizada.CancelarVenda)
                             .OrderByDescending(a => a.Id).Select(a => a.AutorizadoPor!.NomeCompleto).FirstOrDefault())
-                    : null))
+                    : null,
+                v.Offline, v.IdLocal))
             .FirstAsync();
 
         // Cliente identificado: no fiado, o saldo devedor de AGORA e o vencimento desta compra (para assinar no cupom).

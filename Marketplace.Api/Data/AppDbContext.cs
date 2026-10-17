@@ -365,6 +365,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.Descricao).HasMaxLength(200);
             e.Property(x => x.Valor).HasPrecision(14, 2);
             e.HasIndex(x => new { x.EmpresaId, x.DataHora });
+            e.HasIndex(x => new { x.EmpresaId, x.IdLocal }).IsUnique().HasFilter("\"IdLocal\" IS NOT NULL");
             e.HasOne(x => x.SessaoCaixa).WithMany().HasForeignKey(x => x.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.Operador).WithMany().HasForeignKey(x => x.OperadorId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(x => x.AutorizadoPor).WithMany().HasForeignKey(x => x.AutorizadoPorId).OnDelete(DeleteBehavior.Restrict);
@@ -514,6 +515,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(v => v.Status).HasConversion<string>().HasMaxLength(10);
             e.Property(v => v.Origem).HasConversion<string>().HasMaxLength(10).HasDefaultValue(OrigemVenda.Caixa);
             e.HasIndex(v => new { v.EmpresaId, v.Origem, v.DataHora });
+            e.HasIndex(v => new { v.EmpresaId, v.IdLocal }).IsUnique().HasFilter("\"IdLocal\" IS NOT NULL"); // caixa offline: sem venda dupla
             e.Property(v => v.Subtotal).HasPrecision(12, 2);
             e.Property(v => v.Desconto).HasPrecision(12, 2);
             e.Property(v => v.Total).HasPrecision(12, 2);

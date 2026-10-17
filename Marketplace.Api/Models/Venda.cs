@@ -26,6 +26,13 @@ public class Venda : IDaEmpresa
     // De onde veio a venda: PDV (pessoa), simulador ao vivo ou histórico gerado (este SEM movimentar estoque).
     public OrigemVenda Origem { get; set; } = OrigemVenda.Caixa;
 
+    // Caixa OFFLINE: a venda foi feita sem internet e enviada depois. IdLocal (criado no computador do caixa) garante
+    // que a mesma venda não entra duas vezes, mesmo se o envio for repetido. O preço é o que o cliente pagou na hora
+    // (o do catálogo guardado no caixa); PrecoDivergente avisa o gerente se era diferente do cadastro ao chegar.
+    public Guid? IdLocal { get; set; }
+    public bool Offline { get; set; }
+    public bool PrecoDivergente { get; set; }
+
     public StatusVenda Status { get; set; } = StatusVenda.Concluida;
     public DateTimeOffset? CanceladaEm { get; set; }
     public string? CanceladaPorId { get; set; }
