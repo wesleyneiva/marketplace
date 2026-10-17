@@ -15,7 +15,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd Marketplace.Api && dotnet run --launch-profile http"
+        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 dotnet run --launch-profile http"
       ],
       "port": 5200,
       "url": "http://localhost:5200"

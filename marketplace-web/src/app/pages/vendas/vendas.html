@@ -1,0 +1,146 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="receipt-text" /> Vendas</h1>
+    <p>As vendas de cada dia, o cupom completo, reimpressão e cancelamento com estorno.</p>
+  </div>
+</header>
+
+<section class="filtros-vendas">
+  <label>Dia <app-campo-data name="data" [ngModel]="data()" (ngModelChange)="filtrar(() => data.set($event))" /></label>
+  <label>Caixa
+    <select name="caixa" [ngModel]="caixa()" (ngModelChange)="filtrar(() => caixa.set($event))">
+      <option [ngValue]="null">Todos</option>
+      @for (n of lista()?.caixas ?? []; track n) { <option [ngValue]="n">Caixa {{ n }}</option> }
+    </select>
+  </label>
+  @if (aba() === 'vendas') {
+    <label>Forma de pagamento
+      <select name="forma" [ngModel]="forma()" (ngModelChange)="filtrar(() => forma.set($event))">
+        <option value="">Todas</option>
+        @for (f of formas; track f.valor) { <option [value]="f.valor">{{ f.rotulo }}</option> }
+      </select>
+    </label>
+    <label>Situação
+      <select name="situacao" [ngModel]="situacao()" (ngModelChange)="filtrar(() => situacao.set($event))">
+        <option value="">Todas</option>
+        <option value="Concluida">Concluídas</option>
+        <option value="Cancelada">Canceladas</option>
+      </select>
+    </label>
+  }
+</section>
+
+<nav class="abas" role="tablist">
+  <button role="tab" [class.ativa]="aba() === 'vendas'" (click)="aba.set('vendas')">Vendas</button>
+  <button role="tab" [class.ativa]="aba() === 'cancelamentos'" (click)="aba.set('cancelamentos')">Cancelamentos e autorizações</button>
+</nav>
+
+@if (erro()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erro() }}</div> }
+
+@if (aba() === 'vendas') {
+  @if (lista(); as l) {
+    <section class="resumo">
+      <div class="cartao"><span>Vendas</span><strong>{{ l.concluidas }}</strong><small>concluídas</small></div>
+      <div class="cartao"><span>Total vendido</span><strong>{{ l.totalVendido | currency: 'BRL' }}</strong><small>sem as canceladas</small></div>
+      <div class="cartao"><span>Ticket médio</span><strong>{{ l.ticketMedio | currency: 'BRL' }}</strong><small>por venda</small></div>
+      <button type="button" class="cartao" [class.perigo]="l.canceladas" (click)="filtrar(() => situacao.set('Cancelada'))">
+        <span>Canceladas</span><strong>{{ l.valorCancelado | currency: 'BRL' }}</strong><small>{{ l.canceladas }} venda(s) · ver</small>
+      </button>
+    </section>
+
+    <section class="painel tabela-rolagem" [class.carregando]="carregando()">
+      <table>
+        <thead>
+          <tr><th>Nº</th><th>Hora</th><th>Caixa</th><th class="num">Itens</th><th>Pagamento</th><th class="num">Total</th><th>Situação</th></tr>
+        </thead>
+        <tbody>
+          @for (v of l.itens; track v.id) {
+            <tr class="linha-venda" [class.cancelada]="v.status === 'Cancelada'" (click)="abrir(v)" tabindex="0" (keydown.enter)="abrir(v)">
+              <td class="forte">#{{ v.id }}</td>
+              <td>{{ v.dataHora | date: 'HH:mm' }}</td>
+              <td>Caixa {{ v.numeroCaixa }}<small class="detalhe">{{ v.operador }}</small></td>
+              <td class="num">{{ v.quantidadeItens }}</td>
+              <td>{{ rotuloFormas(v.formas) }}
+                @if (v.pixConfirmado) { <small class="selo pix"><app-icone nome="circle-check" /> Pix confirmado pelo Mercado Pago</small> }
+              </td>
+              <td class="num forte valor">{{ v.total | currency: 'BRL' }}</td>
+              <td>
+                @if (v.status === 'Cancelada') { <span class="selo cancelada">Cancelada</span> }
+                @else { <span class="selo concluida">Concluída</span> }
+              </td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="vazio">Nenhuma venda com estes filtros.</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    @if (paginas() > 1) {
+      <nav class="paginacao">
+        <button type="button" class="botao pequeno" (click)="irPara(pagina() - 1)" [disabled]="pagina() === 1"><app-icone nome="arrow-left" /> Anterior</button>
+        <span>Página {{ pagina() }} de {{ paginas() }} · {{ l.total }} venda(s)</span>
+        <button type="button" class="botao pequeno" (click)="irPara(pagina() + 1)" [disabled]="pagina() === paginas()">Próxima <app-icone nome="chevron-right" /></button>
+      </nav>
+    }
+  } @else if (carregando()) {
+    <p class="vazio"><app-icone nome="loader-circle" girando /> Carregando…</p>
+  }
+} @else {
+  <p class="explica">Tudo o que saiu do caixa com autorização: itens tirados da compra, compras abandonadas antes de pagar e vendas pagas canceladas com estorno.</p>
+  @if (cancelamentos(); as lista) {
+    <section class="painel tabela-rolagem" [class.carregando]="carregando()">
+      <table>
+        <thead>
+          <tr><th>Hora</th><th>Caixa</th><th>O quê</th><th class="num">Valor</th><th>Operador</th><th>Autorizado por</th><th>Motivo</th></tr>
+        </thead>
+        <tbody>
+          @for (c of lista; track c.id) {
+            <tr [class.linha-venda]="c.vendaId" (click)="abrirPorId(c.vendaId)">
+              <td>{{ c.dataHora | date: 'HH:mm' }}</td>
+              <td>{{ c.numeroCaixa ? 'Caixa ' + c.numeroCaixa : '—' }}</td>
+              <td><span class="acao" [class]="c.acao">{{ rotuloAcao(c.acao) }}</span><small class="detalhe">{{ c.descricao }}</small></td>
+              <td class="num forte">{{ c.valor | currency: 'BRL' }}</td>
+              <td>{{ c.operador }}</td>
+              <td>{{ c.autorizadoPor === c.operador ? c.autorizadoPor + ' (gerente)' : c.autorizadoPor }}</td>
+              <td>{{ c.motivo }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="vazio">Nenhum cancelamento neste dia.</td></tr>
+          }
+        </tbody>
+        @if (lista.length) {
+          <tfoot><tr><td colspan="3">{{ lista.length }} registro(s)</td><td class="num forte">{{ totalCancelamentos() | currency: 'BRL' }}</td><td colspan="3"></td></tr></tfoot>
+        }
+      </table>
+    </section>
+  }
+}
+
+<!-- ======================= CUPOM DA VENDA ======================= -->
+<dialog #dlgVenda class="janela cupom-venda" (close)="venda.set(null); estornando.set(false)">
+  <header>
+    <h2><app-icone nome="receipt-text" /> {{ venda() ? 'Venda #' + venda()!.id : 'Venda' }}</h2>
+    <button type="button" class="fechar" (click)="dlgVenda.close()" aria-label="Fechar"><app-icone nome="x" /></button>
+  </header>
+  <div class="corpo">
+    @if (venda(); as v) {
+      <app-cupom-detalhe [cupom]="v" />
+      @if (avisoVenda()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ avisoVenda() }}</div> }
+      @if (estornando()) { <app-estorno-venda [cupom]="v" (cancelada)="vendaCancelada($event)" /> }
+    } @else if (erroVenda()) {
+      <div class="erro" role="alert">{{ erroVenda() }}</div>
+    } @else {
+      <p class="vazio"><app-icone nome="loader-circle" girando /> Carregando o cupom…</p>
+    }
+  </div>
+  <footer>
+    @if (venda(); as v) {
+      <button type="button" class="botao" (click)="reimprimir()"><app-icone nome="printer" /> {{ v.status === 'Cancelada' ? 'Imprimir comprovante' : 'Reimprimir' }}</button>
+      @if (v.status === 'Concluida' && !estornando()) {
+        <button type="button" class="botao perigo" (click)="estornando.set(true)"><app-icone nome="undo-2" /> Cancelar venda</button>
+      }
+    }
+    <button type="button" class="botao" (click)="dlgVenda.close()">Fechar</button>
+  </footer>
+</dialog>

@@ -31,6 +31,7 @@
       <span>{{ cx.operador }}</span>
       <span class="pilula">{{ cx.quantidadeVendas }} {{ cx.quantidadeVendas === 1 ? 'venda' : 'vendas' }} · {{ cx.totalVendido | currency: 'BRL' }}</span>
       <span class="espaco"></span>
+      <button type="button" class="botao pequeno" (click)="abrirVendasCaixa()" title="Vendas deste caixa: reimprimir ou cancelar com estorno"><app-icone nome="receipt-text" /> Vendas do caixa</button>
       @if (ultimoCupom(); as u) {
         <button type="button" class="botao pequeno" (click)="reimprimirUltimo()" title="Imprimir de novo o cupom da última venda"><app-icone nome="receipt" /> Último cupom (#{{ u.id }})</button>
       }
@@ -98,7 +99,7 @@
                   <td class="num">{{ item.quantidade | quantidade: item.produto.unidade }}</td>
                   <td class="num">{{ item.produto.precoVenda | currency: 'BRL' }}</td>
                   <td class="num forte">{{ totalItem(item) | currency: 'BRL' }}</td>
-                  <td><button type="button" class="remover" (click)="remover(item)" [attr.aria-label]="'Remover ' + item.produto.nome"><app-icone nome="x" /></button></td>
+                  <td><button type="button" class="remover" (click)="remover(item)" [attr.aria-label]="'Cancelar ' + item.produto.nome" title="Cancelar item (precisa do gerente)"><app-icone nome="x" /></button></td>
                 </tr>
               } @empty {
                 <tr><td colspan="6" class="vazio"><app-icone nome="shopping-cart" /> Caixa livre — bipe o primeiro produto.</td></tr>
@@ -125,7 +126,7 @@
           <button type="button" class="botao primario grande" (click)="abrirPagamento()" [disabled]="!carrinho().length">
             Finalizar <kbd>F2</kbd>
           </button>
-          <button type="button" class="botao" (click)="cancelarCompra()" [disabled]="!carrinho().length">Cancelar compra</button>
+          <button type="button" class="botao" (click)="cancelarCompra()" [disabled]="!carrinho().length" title="Cancelar a compra inteira (precisa do gerente)">Cancelar compra</button>
         </div>
         <p class="atalhos">
           <kbd>Enter</kbd> buscar/adicionar · <kbd>↑</kbd><kbd>↓</kbd> escolher · <kbd>Esc</kbd> limpar · <kbd>F2</kbd> pagar
@@ -313,6 +314,89 @@
     }
   </dialog>
 
+  <!-- ======================= CANCELAR ITEM / COMPRA (com o gerente) ======================= -->
+  <dialog #dlgCancelar class="janela pequena" (close)="aoFecharCancelamento()">
+    @if (cancelando(); as c) {
+      <form (ngSubmit)="confirmarCancelamento()">
+        <header>
+          <h2><app-icone nome="ban" /> {{ c.tipo === 'Item' ? 'Cancelar item' : 'Cancelar a compra' }}</h2>
+          <button type="button" class="fechar" (click)="dlgCancelar.close()"><app-icone nome="x" /></button>
+        </header>
+        <div class="corpo">
+          @if (c.item; as it) {
+            <div class="cancelar-resumo">
+              <b>{{ it.produto.nome }}</b>
+              <span>{{ it.quantidade | quantidade: it.produto.unidade }} × {{ it.produto.precoVenda | currency: 'BRL' }} = <b>{{ totalItem(it) | currency: 'BRL' }}</b></span>
+            </div>
+            @if (!fracionado(it.produto) && it.quantidade > 1) {
+              <label>Quantas unidades cancelar?
+                <input name="qtdCancelar" [(ngModel)]="textoQtdCancelar" inputmode="numeric" autocomplete="off" />
+              </label>
+            }
+          } @else {
+            <div class="cancelar-resumo">
+              <b>{{ quantidadeItens() }} {{ quantidadeItens() === 1 ? 'item' : 'itens' }} saem da compra</b>
+              <span>Total {{ total() | currency: 'BRL' }} · nada foi pago ainda</span>
+            </div>
+          }
+          <app-autorizacao-gerente #autorizacaoPdv [precisa]="!ehGerencia()" [(motivo)]="motivoCancelamento"
+            [sugestoes]="c.tipo === 'Item' ? ['Bipado errado', 'Cliente desistiu', 'Produto com defeito', 'Preço diferente'] : ['Cliente desistiu', 'Cliente sem dinheiro', 'Compra lançada errado']" />
+          @if (erroCancelamento()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erroCancelamento() }}</div> }
+        </div>
+        <footer>
+          <button type="button" class="botao" (click)="dlgCancelar.close()">Voltar</button>
+          <button type="submit" class="botao primario" [disabled]="enviandoCancelamento()">
+            {{ enviandoCancelamento() ? 'Conferindo…' : (c.tipo === 'Item' ? 'Cancelar item' : 'Cancelar a compra') }}
+          </button>
+        </footer>
+      </form>
+    }
+  </dialog>
+
+  <!-- ======================= VENDAS DO CAIXA (reimprimir / estorno) ======================= -->
+  <dialog #dlgVendas class="janela vendas-caixa" (close)="aoFecharVendas()">
+    <header>
+      <h2><app-icone nome="receipt-text" /> Vendas do Caixa {{ cx.numeroCaixa }}</h2>
+      <button type="button" class="fechar" (click)="dlgVendas.close()"><app-icone nome="x" /></button>
+    </header>
+    <div class="corpo">
+      @if (vendaAberta(); as v) {
+        <button type="button" class="botao pequeno voltar" (click)="voltarParaVendas()"><app-icone nome="arrow-left" /> Todas as vendas</button>
+        <app-cupom-detalhe [cupom]="v" />
+        @if (avisoVenda()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ avisoVenda() }}</div> }
+        @if (estornando()) { <app-estorno-venda [cupom]="v" (cancelada)="vendaCancelada($event)" /> }
+      } @else if (vendasCaixa(); as lista) {
+        @if (lista.length) {
+          <ul class="lista-vendas">
+            @for (v of lista; track v.id) {
+              <li><button type="button" (click)="verVenda(v)" [class.cancelada]="v.status === 'Cancelada'">
+                <span class="num-venda">#{{ v.id }}</span>
+                <span class="hora">{{ v.dataHora | date: 'HH:mm' }}</span>
+                <span class="formas-venda">{{ v.quantidadeItens }} {{ v.quantidadeItens === 1 ? 'item' : 'itens' }} · {{ formasTexto(v.formas) }}
+                  @if (v.status === 'Cancelada') { <small class="selo-cancelada">cancelada</small> }</span>
+                <b>{{ v.total | currency: 'BRL' }}</b>
+              </button></li>
+            }
+          </ul>
+        } @else {
+          <p class="dica">Nenhuma venda neste caixa ainda.</p>
+        }
+      } @else {
+        <p class="dica"><app-icone nome="loader-circle" girando /> Carregando…</p>
+      }
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      @if (vendaAberta(); as v) {
+        <button type="button" class="botao" (click)="reimprimirVenda()"><app-icone nome="printer" /> {{ v.status === 'Cancelada' ? 'Imprimir comprovante' : 'Reimprimir' }}</button>
+        @if (v.status === 'Concluida' && !estornando()) {
+          <button type="button" class="botao perigo" (click)="estornando.set(true)"><app-icone nome="undo-2" /> Cancelar venda (estorno)</button>
+        }
+      }
+      <button type="button" class="botao" (click)="dlgVendas.close()">Fechar</button>
+    </footer>
+  </dialog>
+
   <!-- ======================= SANGRIA / SUPRIMENTO ======================= -->
   <dialog #dlgMovimento class="janela pequena" (close)="erro.set(null)">
     <form (ngSubmit)="confirmarMovimento()">
@@ -379,6 +463,7 @@
           @if (fiadoEmDinheiro(f)) { <div><span>Fiado recebido</span><b>+{{ fiadoEmDinheiro(f) | currency: 'BRL' }}</b></div> }
           <div><span>Suprimentos</span><b>+{{ f.suprimentos | currency: 'BRL' }}</b></div>
           <div><span>Sangrias</span><b>−{{ f.sangrias | currency: 'BRL' }}</b></div>
+          @if (f.devolucoes) { <div><span>Devoluções (estornos)</span><b>−{{ f.devolucoes | currency: 'BRL' }}</b></div> }
           <div><span>Esperado na gaveta</span><b>{{ f.dinheiroEsperado | currency: 'BRL' }}</b></div>
           <div><span>Contado</span><b>{{ f.valorContado | currency: 'BRL' }}</b></div>
         </div>

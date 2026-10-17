@@ -98,9 +98,15 @@ public static class FinanceiroCaixa
         }
 
         // Sangria = gaveta → cofre; suprimento = cofre → gaveta (o dinheiro só mudou de lugar).
+        // Devolução = estorno de uma venda de outro caixa (já lançada no Financeiro): o dinheiro saiu desta gaveta.
         var movimentosCaixa = await db.MovimentosCaixa.AsNoTracking().Where(m => m.SessaoCaixaId == sessao.Id).OrderBy(m => m.Id).ToListAsync();
         foreach (var m in movimentosCaixa)
         {
+            if (m.Tipo == TipoMovimentoCaixa.Devolucao)
+            {
+                movimentos.Add(Mov(TipoMovimentoFinanceiro.Saida, m.Valor, gaveta.Id, vendasPdv, $"Estorno em dinheiro · {quem}: {m.Motivo}"));
+                continue;
+            }
             var (de, para, nome) = m.Tipo == TipoMovimentoCaixa.Sangria ? (gaveta.Id, cofre, "Sangria") : (cofre, gaveta.Id, "Suprimento");
             var guid = Guid.NewGuid();
             var texto = $"{nome} · {quem}{(string.IsNullOrWhiteSpace(m.Motivo) ? "" : ": " + m.Motivo)}";

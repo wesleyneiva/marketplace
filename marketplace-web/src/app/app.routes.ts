@@ -62,6 +62,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/pdv/pdv').then((m) => m.Pdv),
       },
       {
+        // Vendas: lista do dia, cupom, reimprimir, cancelar com estorno e os cancelamentos autorizados pelo gerente.
+        path: 'vendas',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/vendas/vendas').then((m) => m.Vendas),
+      },
+      {
         path: 'relatorios',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/relatorios/relatorios').then((m) => m.Relatorios),

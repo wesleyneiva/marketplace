@@ -1,0 +1,46 @@
+@use '../contas/contas.scss';
+
+.filtros-vendas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  margin-bottom: 12px;
+
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--cor-texto-suave); }
+}
+
+.erro {
+  margin-bottom: 12px; padding: 10px 12px; border-radius: 10px;
+  background: var(--cor-erro-fundo); color: var(--cor-erro); font-weight: 600;
+}
+.aviso {
+  padding: 10px 12px; border-radius: 10px;
+  background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); font-weight: 600;
+}
+
+.resumo .cartao { cursor: default; &:hover { border-color: var(--cor-borda); } }
+.resumo button.cartao { cursor: pointer; &:hover { border-color: var(--cor-primaria); } }
+
+.linha-venda { cursor: pointer; &:hover td, &:focus td { background: var(--cor-verde-fundo); } }
+tr.cancelada td { color: var(--cor-texto-suave); }
+tr.cancelada .valor { text-decoration: line-through; }
+.selo.pix { margin-left: 6px; background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.concluida { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.cancelada { background: var(--cor-erro-fundo-forte); color: var(--cor-erro); }
+tfoot td { background: var(--cor-fundo); font-weight: 600; }
+
+.acao { font-weight: 600; &.CancelarVenda { color: var(--cor-erro); } }
+
+.paginacao {
+  display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px;
+  span { color: var(--cor-texto-suave); font-size: 14px; }
+}
+
+.janela.cupom-venda { width: min(560px, calc(100vw - 32px)); }
+.janela .corpo { display: flex; flex-direction: column; gap: 12px; }
+
+@media (max-width: 640px) {
+  .filtros-vendas label { flex: 1 1 140px; }
+  .filtros-vendas select { width: 100%; }
+}

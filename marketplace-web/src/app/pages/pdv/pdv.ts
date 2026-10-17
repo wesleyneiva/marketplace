@@ -7,7 +7,8 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import {
-  CaixaDisponivel, ClientePdv, Cupom, FORMAS_PAGAMENTO, FORMAS_RECEBER, FormaPagamento, PdvApi, ReciboFiado, ResumoCaixa, arredondar, lerNumero,
+  CaixaDisponivel, ClientePdv, Cupom, FORMAS_PAGAMENTO, FORMAS_RECEBER, FormaPagamento, PdvApi, ReciboFiado, ResumoCaixa, VendaLista,
+  arredondar, lerNumero,
 } from '../../core/api/pdv.api';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
@@ -17,6 +18,9 @@ import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { PixQrCodeComponent } from '../../shared/pix-qrcode';
 import { CobrancaPix, PixAutomatico } from '../../shared/pix-automatico';
+import { AutorizacaoGerente } from '../../shared/autorizacao-gerente';
+import { EstornoVenda } from '../../shared/estorno-venda';
+import { CupomDetalhe } from '../../shared/cupom-detalhe';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -27,9 +31,11 @@ interface ItemCarrinho {
 //   • Bipa o código de barras (ou digita parte do nome) e Enter.
 //   • "3*arroz" ou "3*789..." → 3 unidades.  Produto por KG pede o peso.
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
+//   • Tirar item, cancelar a compra e cancelar uma venda já paga (estorno): só com a senha de um gerente.
 @Component({
   selector: 'app-pdv',
-  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico],
+  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico, AutorizacaoGerente,
+    EstornoVenda, CupomDetalhe],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -135,6 +141,19 @@ export class Pdv {
   protected readonly erro = signal<string | null>(null);
   protected readonly aviso = signal<string | null>(null);
 
+  // ----- Cancelar item / compra (antes de pagar): só com autorização do gerente -----
+  protected readonly cancelando = signal<{ tipo: 'Item' | 'Compra'; item?: ItemCarrinho } | null>(null);
+  protected textoQtdCancelar = '';
+  protected readonly motivoCancelamento = signal('');
+  protected readonly erroCancelamento = signal<string | null>(null);
+  protected readonly enviandoCancelamento = signal(false);
+
+  // ----- Vendas deste caixa (reimprimir e cancelar venda paga com estorno) -----
+  protected readonly vendasCaixa = signal<VendaLista[] | null>(null);
+  protected readonly vendaAberta = signal<Cupom | null>(null);
+  protected readonly estornando = signal(false);
+  protected readonly avisoVenda = signal<string | null>(null);
+
   // ----- Sangria / suprimento / fechamento -----
   protected readonly tipoMovimento = signal<'sangria' | 'suprimento'>('sangria');
   protected textoMovimento = '';
@@ -155,6 +174,9 @@ export class Pdv {
   private readonly dlgMovimento = viewChild<ElementRef<HTMLDialogElement>>('dlgMovimento');
   private readonly dlgFechar = viewChild<ElementRef<HTMLDialogElement>>('dlgFechar');
   private readonly dlgReceber = viewChild<ElementRef<HTMLDialogElement>>('dlgReceber');
+  private readonly dlgCancelar = viewChild<ElementRef<HTMLDialogElement>>('dlgCancelar');
+  private readonly dlgVendas = viewChild<ElementRef<HTMLDialogElement>>('dlgVendas');
+  private readonly autorizacaoPdv = viewChild<AutorizacaoGerente>('autorizacaoPdv');
   private readonly campoCliente = viewChild<ElementRef<HTMLInputElement>>('campoCliente');
   private readonly campoReceber = viewChild<ElementRef<HTMLInputElement>>('campoReceber');
 
@@ -398,14 +420,133 @@ export class Pdv {
     this.focarBusca();
   }
 
+  // ================================================================ cancelar item / compra (com o gerente)
+
   protected remover(item: ItemCarrinho): void {
-    this.carrinho.update((itens) => itens.filter((i) => i !== item));
-    this.focarBusca();
+    this.abrirCancelamento('Item', item);
   }
 
   protected cancelarCompra(): void {
-    if (this.carrinho().length && !confirm('Cancelar a compra atual? Todos os itens serão removidos.')) return;
-    this.limparVenda();
+    if (this.carrinho().length) this.abrirCancelamento('Compra');
+  }
+
+  private abrirCancelamento(tipo: 'Item' | 'Compra', item?: ItemCarrinho): void {
+    this.cancelando.set({ tipo, item });
+    this.textoQtdCancelar = item ? String(item.quantidade).replace('.', ',') : '';
+    this.motivoCancelamento.set('');
+    this.erroCancelamento.set(null);
+    this.dlgCancelar()?.nativeElement.showModal();
+    setTimeout(() => this.autorizacaoPdv()?.focar());
+  }
+
+  // Quanto sai: produto por unidade pode sair só uma parte (ex.: 2 das 5 latas); por peso, o item inteiro.
+  protected qtdCancelar(item: ItemCarrinho): number {
+    if (this.fracionado(item.produto) || item.quantidade <= 1) return item.quantidade;
+    return lerNumero(this.textoQtdCancelar);
+  }
+
+  protected async confirmarCancelamento(): Promise<void> {
+    const c = this.cancelando(), aut = this.autorizacaoPdv();
+    if (!c || !aut || this.enviandoCancelamento()) return;
+    const qtd = c.item ? this.qtdCancelar(c.item) : 0;
+    if (c.item && (Number.isNaN(qtd) || qtd <= 0 || qtd > c.item.quantidade || qtd % 1 !== 0 && !this.fracionado(c.item.produto))) {
+      this.erroCancelamento.set(`Quantidade a cancelar: de 1 a ${c.item.quantidade}.`);
+      return;
+    }
+    const falta = aut.falta();
+    if (falta) { this.erroCancelamento.set(falta); return; }
+
+    const itens = c.item
+      ? [{ produtoId: c.item.produto.id, quantidade: qtd }]
+      : this.carrinho().map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade }));
+    this.enviandoCancelamento.set(true);
+    this.erroCancelamento.set(null);
+    try {
+      const r = await this.api.cancelarNoPdv(c.tipo, itens, this.motivoCancelamento().trim(), aut.autorizacao());
+      if (c.item) {
+        const item = c.item;
+        this.carrinho.update((lista) => qtd >= item.quantidade
+          ? lista.filter((i) => i !== item)
+          : lista.map((i) => (i === item ? { ...i, quantidade: Math.round((i.quantidade - qtd) * 1000) / 1000 } : i)));
+      } else {
+        this.limparVenda(false);
+      }
+      this.dlgCancelar()?.nativeElement.close();
+      this.mostrarAviso(`${c.item ? 'Item cancelado' : 'Compra cancelada'} (${dinheiroBr(r.valor)}) · autorizado por ${r.autorizadoPor}.`);
+    } catch (e) {
+      this.erroCancelamento.set(this.mensagem(e));
+      if (e instanceof HttpErrorResponse && e.error?.autorizacao) aut.senhaErrada();
+    } finally {
+      this.enviandoCancelamento.set(false);
+    }
+  }
+
+  protected aoFecharCancelamento(): void {
+    this.cancelando.set(null);
+    this.focarBusca();
+  }
+
+  // ================================================================ vendas deste caixa (reimprimir / estorno)
+
+  protected abrirVendasCaixa(): void {
+    this.vendasCaixa.set(null);
+    this.vendaAberta.set(null);
+    this.estornando.set(false);
+    this.avisoVenda.set(null);
+    this.erro.set(null);
+    this.dlgVendas()?.nativeElement.showModal();
+    void this.carregarVendasCaixa();
+  }
+
+  private async carregarVendasCaixa(): Promise<void> {
+    const sessao = this.caixa()?.sessaoId;
+    if (!sessao) return;
+    try {
+      this.vendasCaixa.set((await this.api.vendas({ sessaoId: sessao, tamanho: 50 })).itens);
+    } catch (e) {
+      this.vendasCaixa.set([]);
+      this.erro.set(this.mensagem(e));
+    }
+  }
+
+  protected async verVenda(v: VendaLista): Promise<void> {
+    this.avisoVenda.set(null);
+    this.estornando.set(false);
+    try {
+      this.vendaAberta.set(await this.api.venda(v.id));
+    } catch (e) {
+      this.erro.set(this.mensagem(e));
+    }
+  }
+
+  protected voltarParaVendas(): void {
+    this.vendaAberta.set(null);
+    this.estornando.set(false);
+    this.avisoVenda.set(null);
+  }
+
+  protected reimprimirVenda(): void {
+    const c = this.vendaAberta();
+    if (c) this.impressora.imprimirCupom(c, this.loja());
+  }
+
+  // Cancelou e estornou: o comprovante (cupom "VENDA CANCELADA" com a assinatura do cliente) e o caixa atualizado.
+  protected async vendaCancelada(c: Cupom): Promise<void> {
+    this.vendaAberta.set(c);
+    this.estornando.set(false);
+    const dinheiro = c.pagamentos.filter((p) => p.forma === 'Dinheiro').reduce((s, p) => s + p.valor, 0) - c.troco;
+    this.avisoVenda.set(`Venda #${c.id} cancelada. ${dinheiro > 0 ? `Devolva ${dinheiroBr(dinheiro)} em dinheiro ao cliente.` : 'Estorno registrado.'}`);
+    if (this.ultimoCupom()?.id === c.id) this.ultimoCupom.set(c);
+    if (this.impressora.config().automatica) this.impressora.imprimirCupom(c, this.loja());
+    void this.carregarVendasCaixa();
+    this.caixa.set(await this.api.caixaAtual());
+  }
+
+  protected aoFecharVendas(): void {
+    this.vendaAberta.set(null);
+    this.estornando.set(false);
+    this.erro.set(null);
+    this.focarBusca();
   }
 
   protected aplicarDesconto(): void {
@@ -818,6 +959,11 @@ export class Pdv {
 
   protected rotuloForma(forma: string): string {
     return this.formas.find((f) => f.valor === forma)?.rotulo ?? forma;
+  }
+
+  // "Dinheiro + Pix" → "Dinheiro + Pix" com os rótulos da tela (Debito → Débito).
+  protected formasTexto(formas: string): string {
+    return formas.split(' + ').map((f) => this.rotuloForma(f)).join(' + ');
   }
 
   protected valorForma(resumo: ResumoCaixa, forma: string): number {

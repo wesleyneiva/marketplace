@@ -30,10 +30,11 @@ public class CobrancaPix : IDaEmpresa
     public string? CriadaPorId { get; set; }
     public int? VendaId { get; set; }                 // a venda em que este Pix entrou (um Pix pago entra numa venda só)
     public Venda? Venda { get; set; }
+    public DateTimeOffset? DevolvidaEm { get; set; }  // estorno: o Mercado Pago devolveu o dinheiro ao cliente
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter<StatusCobrancaPix>))]
-public enum StatusCobrancaPix { Pendente, Paga, Expirada, Cancelada }
+public enum StatusCobrancaPix { Pendente, Paga, Expirada, Cancelada, Devolvida }
 
 public static class ProvedoresPix
 {

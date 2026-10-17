@@ -31,6 +31,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
+builder.Services.AddScoped<Marketplace.Api.Services.AutorizacaoService>(); // "chama o gerente": senha do gerente no caixa
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.Conciliacao.ConciliacaoService>();
 builder.Services.AddScoped<Marketplace.Api.Services.Pix.MercadoPago>();

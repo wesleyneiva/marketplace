@@ -60,6 +60,17 @@ export class ImpressoraService {
         <div class="assinatura">${esc(cli.nome)}</div>`
       : `<div class="linha"><span>Cliente</span><span>${esc(cli.nome)}</span></div>`;
 
+    // Venda cancelada: quando, por quê, quem autorizou e a assinatura do cliente que recebeu o dinheiro de volta.
+    const can = c.status === 'Cancelada' ? c.cancelamento : null;
+    const blocoCancelamento = c.status !== 'Cancelada' ? '' : `
+        <div class="tracos"></div>
+        <div class="centro forte">ESTORNO / CANCELAMENTO</div>
+        ${can?.em ? `<div class="linha"><span>Cancelada em</span><span>${new Date(can.em).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span></div>` : ''}
+        ${c.motivoCancelamento ? `<div class="linha"><span>Motivo</span><span>${esc(c.motivoCancelamento)}</span></div>` : ''}
+        ${can?.autorizadoPor ? `<div class="linha"><span>Autorizado por</span><span>${esc(can.autorizadoPor)}</span></div>` : ''}
+        <div class="linha forte"><span>DEVOLVIDO</span><span>${dinheiro(c.total)}</span></div>
+        <div class="assinatura">Cliente</div>`;
+
     const via = (n: number) => `
       <section class="via">
         <div class="centro forte grande">${esc(loja)}</div>
@@ -78,6 +89,7 @@ export class ImpressoraService {
         ${pagamentos}
         ${c.troco > 0 ? `<div class="linha forte"><span>TROCO</span><span>${dinheiro(c.troco)}</span></div>` : ''}
         ${blocoCliente}
+        ${blocoCancelamento}
         <div class="tracos"></div>
         <div class="centro">${esc(cfg.rodape)}</div>
         <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
@@ -120,6 +132,7 @@ export class ImpressoraService {
         ${fiadoEmDinheiro ? linha('+ Fiado recebido', dinheiro(fiadoEmDinheiro)) : ''}
         ${linha('+ Suprimentos', dinheiro(r.suprimentos))}
         ${linha('− Sangrias', dinheiro(r.sangrias))}
+        ${r.devolucoes ? linha('− Devoluções (estornos)', dinheiro(r.devolucoes)) : ''}
         ${linha('= Esperado', dinheiro(r.dinheiroEsperado), 'forte')}
         ${linha('Contado', r.valorContado === null ? '—' : dinheiro(r.valorContado), 'forte')}
         ${linha(diferenca === 0 ? 'Diferença' : diferenca > 0 ? 'SOBRA' : 'FALTA', dinheiro(Math.abs(diferenca)), 'forte grande')}

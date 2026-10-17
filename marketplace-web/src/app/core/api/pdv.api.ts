@@ -38,6 +38,7 @@ export interface ResumoCaixa {
   diferenca: number | null;
   observacaoFechamento: string | null;
   recebimentosFiado?: { forma: FormaPagamento; valor: number }[]; // clientes que pagaram o fiado neste caixa
+  devolucoes?: number; // dinheiro devolvido daqui em estornos de vendas de caixas já fechados
 }
 
 export interface Cupom {
@@ -52,8 +53,9 @@ export interface Cupom {
   valorPago: number;
   troco: number;
   itens: { produtoId: number; descricao: string; unidade: string; quantidade: number; precoUnitario: number; total: number }[];
-  pagamentos: { forma: FormaPagamento; valor: number }[];
+  pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean }[]; // pixConfirmado: Pix automático (Mercado Pago)
   motivoCancelamento: string | null;
+  cancelamento?: { em: string | null; por: string | null; autorizadoPor: string | null } | null;
   // No fiado: quanto o cliente deve AGORA e quando esta compra vence (sai no cupom para assinar).
   cliente?: { nome: string; apelido: string | null; saldoDevedor: number | null; vencimentoFiado: string | null } | null;
 }
@@ -100,6 +102,62 @@ export interface NovaVenda {
   clienteId?: number | null; // obrigatório com fiado
 }
 
+// ----- Vendas (lista), estorno e autorização do gerente -----
+export interface VendaLista {
+  id: number;
+  dataHora: string;
+  numeroCaixa: number;
+  operador: string;
+  status: 'Concluida' | 'Cancelada';
+  quantidadeItens: number;
+  total: number;
+  formas: string;            // "Dinheiro + Pix"
+  pixConfirmado: boolean;    // tem Pix confirmado pelo Mercado Pago
+  origem: 'Caixa' | 'Simulador' | 'Historico';
+}
+
+export interface ListaVendas {
+  itens: VendaLista[];
+  total: number;
+  paginaAtual: number;
+  tamanhoPagina: number;
+  concluidas: number;
+  totalVendido: number;
+  ticketMedio: number;
+  canceladas: number;
+  valorCancelado: number;
+  caixas: number[];
+}
+
+export interface EstornoPrevia {
+  pode: boolean;
+  bloqueio: string | null;
+  caixaAberto: boolean;
+  precisaAutorizacao: boolean;
+  formas: { forma: FormaPagamento; valor: number; como: string; pixAutomatico: boolean }[];
+  aviso: string | null;
+}
+
+export type OpcaoPixEstorno = 'Devolver' | 'Manter' | 'PorFora';
+
+export interface Gerente { id: string; nome: string; }
+
+// Senha do gerente digitada no caixa (vazio quando quem está logado já é gerente).
+export interface Autorizacao { gerenteId: string; senha: string; }
+
+export interface CancelamentoRegistro {
+  id: number;
+  dataHora: string;
+  acao: 'CancelarItem' | 'CancelarCompra' | 'CancelarVenda';
+  numeroCaixa: number | null;
+  operador: string;
+  autorizadoPor: string;
+  motivo: string;
+  descricao: string;
+  valor: number;
+  vendaId: number | null;
+}
+
 export interface CaixaDisponivel {
   numero: number;
   ocupadoPor: string | null;
@@ -133,6 +191,39 @@ export class PdvApi {
 
   vender(venda: NovaVenda): Promise<Cupom> {
     return firstValueFrom(this.http.post<Cupom>('/api/vendas', venda));
+  }
+
+  // ----- Vendas, estorno e autorização do gerente -----
+  vendas(filtro: { data?: string; sessaoId?: number; caixa?: number | null; forma?: string; situacao?: string; pagina?: number; tamanho?: number }): Promise<ListaVendas> {
+    const params: Record<string, string | number> = {};
+    for (const [k, v] of Object.entries(filtro)) if (v !== undefined && v !== null && v !== '') params[k] = v;
+    return firstValueFrom(this.http.get<ListaVendas>('/api/vendas', { params }));
+  }
+
+  venda(id: number): Promise<Cupom> {
+    return firstValueFrom(this.http.get<Cupom>(`/api/vendas/${id}`));
+  }
+
+  previaEstorno(id: number): Promise<EstornoPrevia> {
+    return firstValueFrom(this.http.get<EstornoPrevia>(`/api/vendas/${id}/estorno`));
+  }
+
+  cancelarVenda(id: number, motivo: string, autorizacao: Autorizacao | null, pix: OpcaoPixEstorno | null): Promise<Cupom> {
+    return firstValueFrom(this.http.post<Cupom>(`/api/vendas/${id}/cancelar`, { motivo, autorizacao, pix }));
+  }
+
+  cancelamentos(data: string, caixa?: number | null): Promise<CancelamentoRegistro[]> {
+    return firstValueFrom(this.http.get<CancelamentoRegistro[]>('/api/vendas/cancelamentos', { params: caixa ? { data, caixa } : { data } }));
+  }
+
+  gerentes(): Promise<Gerente[]> {
+    return firstValueFrom(this.http.get<Gerente[]>('/api/caixa/gerentes'));
+  }
+
+  // Tirar um item ou cancelar a compra em andamento (antes de pagar): só registra, com a autorização do gerente.
+  cancelarNoPdv(tipo: 'Item' | 'Compra', itens: { produtoId: number; quantidade: number }[], motivo: string,
+    autorizacao: Autorizacao | null): Promise<{ autorizadoPor: string; valor: number }> {
+    return firstValueFrom(this.http.post<{ autorizadoPor: string; valor: number }>('/api/caixa/cancelamentos', { tipo, itens, motivo, autorizacao }));
   }
 
   buscarClientes(termo: string): Promise<ClientePdv[]> {

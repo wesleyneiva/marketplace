@@ -48,7 +48,7 @@
   padding: 10px 14px;
   border-radius: 12px;
   background: #12261c;
-  color: var(--cor-verde-fundo);
+  color: #f0fdf4; // fundo sempre escuro: texto sempre claro (no tema escuro a variável ficava escura)
 
   .pilula {
     padding: 3px 10px;
@@ -688,3 +688,27 @@ dialog.pix-ok {
   .situacao.erro { color: var(--cor-erro); }
 }
 @keyframes pix-ok-entra { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+// ---------- Cancelar item / compra e vendas do caixa (estorno) ----------
+.cancelar-resumo {
+  display: flex; flex-direction: column; gap: 2px; padding: 10px 12px;
+  border: 1px solid var(--cor-borda); border-radius: 10px; background: var(--cor-fundo);
+  span { color: var(--cor-texto-suave); font-size: 14px; }
+}
+.janela.vendas-caixa { width: min(560px, calc(100vw - 32px)); }
+.janela .voltar { align-self: flex-start; }
+.lista-vendas {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px;
+  button {
+    width: 100%; display: grid; grid-template-columns: auto auto 1fr auto; gap: 10px; align-items: center;
+    padding: 9px 12px; border: 1px solid var(--cor-borda); border-radius: 8px; background: var(--cor-superficie);
+    color: var(--cor-texto); font: inherit; text-align: left; cursor: pointer;
+    &:hover, &:focus { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); }
+    &.cancelada { color: var(--cor-texto-suave); b { text-decoration: line-through; } }
+  }
+  .num-venda { font-weight: 700; }
+  .hora { color: var(--cor-texto-suave); font-variant-numeric: tabular-nums; }
+  .formas-venda { font-size: 13px; color: var(--cor-texto-suave); min-width: 0; }
+  b { font-variant-numeric: tabular-nums; }
+  .selo-cancelada { margin-left: 4px; padding: 1px 6px; border-radius: 99px; background: var(--cor-erro-fundo-forte); color: var(--cor-erro); font-weight: 600; font-size: 11px; }
+}

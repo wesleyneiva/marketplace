@@ -54,4 +54,5 @@ public enum TipoMovimentoCaixa
 {
     Sangria,     // retirar dinheiro da gaveta (segurança: não acumular muito)
     Suprimento,  // colocar dinheiro (ex.: faltou troco)
+    Devolucao,   // dinheiro devolvido ao cliente no estorno de uma venda de OUTRO caixa (já fechado)
 }

@@ -42,7 +42,8 @@ public record ResumoCaixaResponse(
     decimal? ValorContado,
     decimal? Diferenca,
     string? ObservacaoFechamento,
-    IReadOnlyList<TotalPorForma>? RecebimentosFiado = null); // clientes que vieram pagar o fiado neste caixa
+    IReadOnlyList<TotalPorForma>? RecebimentosFiado = null, // clientes que vieram pagar o fiado neste caixa
+    decimal Devolucoes = 0); // dinheiro devolvido em estornos de vendas de caixas já fechados
 
 // ----- Venda -----
 public record ItemVendaRequest(
@@ -60,13 +61,49 @@ public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos,
     int? ClienteId = null); // obrigatório quando há pagamento no fiado
 
+// ----- Autorização do gerente (cancelar item, compra e venda) -----
+// O gerente escolhe o nome dele e digita a senha no caixa. Se quem está logado é gerente, vai sem autorização.
+public record AutorizacaoRequest(string GerenteId, [StringLength(200)] string Senha);
+
+public record GerenteResponse(string Id, string Nome);
+
+// Cancelar no PDV, ANTES de pagar: um item (ou parte dele) ou a compra inteira. Os itens vão para o valor do registro.
+public record CancelamentoPdvRequest(
+    [Required] string Tipo, // "Item" ou "Compra"
+    [MinLength(1, ErrorMessage = "Nenhum item para cancelar.")] List<ItemVendaRequest> Itens,
+    [Required(ErrorMessage = "Informe o motivo.")]
+    [StringLength(200, MinimumLength = 3, ErrorMessage = "Motivo de 3 a 200 caracteres.")] string Motivo,
+    AutorizacaoRequest? Autorizacao = null);
+
+public record CancelamentoPdvResponse(string AutorizadoPor, decimal Valor);
+
+// Pix automático no estorno: Devolver (o Mercado Pago devolve ao cliente), Manter (fica como "Pix recebido sem venda",
+// para usar numa nova venda; só com o caixa aberto) ou PorFora (a loja devolve por conta própria).
 public record CancelarVendaRequest(
     [Required(ErrorMessage = "Informe o motivo.")]
-    [StringLength(200, MinimumLength = 3, ErrorMessage = "Motivo de 3 a 200 caracteres.")] string Motivo);
+    [StringLength(200, MinimumLength = 3, ErrorMessage = "Motivo de 3 a 200 caracteres.")] string Motivo,
+    AutorizacaoRequest? Autorizacao = null,
+    string? Pix = null);
+
+// O que acontece com o dinheiro de cada forma se a venda for cancelada (a tela mostra antes de confirmar).
+public record EstornoForma(string Forma, decimal Valor, string Como, bool PixAutomatico = false);
+
+public record EstornoPreviaResponse(
+    bool Pode,
+    string? Bloqueio,              // por que não dá (já cancelada, gaveta sem dinheiro…)
+    bool CaixaAberto,              // o caixa da venda ainda está aberto
+    bool PrecisaAutorizacao,       // quem está logado não é gerente: precisa da senha de um
+    IReadOnlyList<EstornoForma> Formas,
+    string? Aviso);                // ex.: caixa já fechado → o estorno entra no Financeiro
+
+// Linha da tela Vendas → Cancelamentos.
+public record AutorizacaoResponse(
+    int Id, DateTimeOffset DataHora, string Acao, int? NumeroCaixa, string Operador, string AutorizadoPor,
+    string Motivo, string Descricao, decimal Valor, int? VendaId);
 
 public record ItemVendaResponse(int ProdutoId, string Descricao, string Unidade, decimal Quantidade, decimal PrecoUnitario, decimal Total);
 
-public record PagamentoResponse(string Forma, decimal Valor);
+public record PagamentoResponse(string Forma, decimal Valor, bool PixConfirmado = false);
 
 public record VendaResponse(
     int Id,
@@ -82,12 +119,23 @@ public record VendaResponse(
     IReadOnlyList<ItemVendaResponse> Itens,
     IReadOnlyList<PagamentoResponse> Pagamentos,
     string? MotivoCancelamento,
-    ClienteCupom? Cliente = null);
+    ClienteCupom? Cliente = null,
+    CancelamentoCupom? Cancelamento = null);
+
+// Venda cancelada: quando, quem cancelou e quem autorizou.
+public record CancelamentoCupom(DateTimeOffset? Em, string? Por, string? AutorizadoPor);
 
 // Cliente identificado na venda; no fiado, quanto ele deve AGORA e quando esta compra vence (sai no cupom para assinar).
 public record ClienteCupom(string Nome, string? Apelido, decimal? SaldoDevedor, DateOnly? VencimentoFiado);
 
-public record VendaListaResponse(int Id, DateTimeOffset DataHora, int NumeroCaixa, string Operador, string Status, int QuantidadeItens, decimal Total, string Formas);
+public record VendaListaResponse(int Id, DateTimeOffset DataHora, int NumeroCaixa, string Operador, string Status, int QuantidadeItens, decimal Total, string Formas,
+    bool PixConfirmado = false, string? Origem = null);
+
+// Tela Vendas: a página da lista + os totais do filtro inteiro (não só da página).
+public record ListaVendasResponse(
+    IReadOnlyList<VendaListaResponse> Itens, int Total, int PaginaAtual, int TamanhoPagina,
+    int Concluidas, decimal TotalVendido, decimal TicketMedio, int Canceladas, decimal ValorCancelado,
+    IReadOnlyList<int> Caixas);
 
 public record VendasPorHora(int Hora, int Quantidade, decimal Total);
 

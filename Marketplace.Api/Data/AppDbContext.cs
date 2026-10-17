@@ -49,6 +49,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<ExtratoBancario> ExtratosBancarios => Set<ExtratoBancario>();
     public DbSet<LinhaExtrato> LinhasExtrato => Set<LinhaExtrato>();
     public DbSet<CobrancaPix> CobrancasPix => Set<CobrancaPix>();
+    public DbSet<AutorizacaoGerente> AutorizacoesGerente => Set<AutorizacaoGerente>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
     public DbSet<Plano> Planos => Set<Plano>();
@@ -353,6 +354,21 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(m => m.CategoriaFinanceira).WithMany().HasForeignKey(m => m.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.ContaPagar).WithMany().HasForeignKey(m => m.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(m => m.CriadoPor).WithMany().HasForeignKey(m => m.CriadoPorId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ----- Autorizações do gerente no caixa (cancelar item, compra e venda) -----
+        builder.Entity<AutorizacaoGerente>(e =>
+        {
+            e.ToTable("AutorizacoesGerente");
+            e.Property(x => x.Acao).HasConversion<string>().HasMaxLength(15);
+            e.Property(x => x.Motivo).HasMaxLength(200);
+            e.Property(x => x.Descricao).HasMaxLength(200);
+            e.Property(x => x.Valor).HasPrecision(14, 2);
+            e.HasIndex(x => new { x.EmpresaId, x.DataHora });
+            e.HasOne(x => x.SessaoCaixa).WithMany().HasForeignKey(x => x.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Operador).WithMany().HasForeignKey(x => x.OperadorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.AutorizadoPor).WithMany().HasForeignKey(x => x.AutorizadoPorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(x => x.Venda).WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
         });
 
         // ----- Pix automático (Mercado Pago) -----

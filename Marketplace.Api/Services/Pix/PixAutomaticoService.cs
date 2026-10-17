@@ -105,6 +105,20 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
             .OrderBy(c => c.PagaEm).ToListAsync();
     }
 
+    // Estorno: o Mercado Pago devolve o Pix inteiro ao cliente (o dinheiro sai da conta da loja). Quem chama grava.
+    public async Task DevolverAsync(CobrancaPix c)
+    {
+        if (c.Status == StatusCobrancaPix.Devolvida) return;
+        if (c.Status != StatusCobrancaPix.Paga || c.IdExterno is null) throw new PixException("Este Pix não está pago: não há o que devolver.");
+        var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == c.EmpresaId);
+        MercadoPago.Pagamento pg;
+        try { pg = await mp.DevolverAsync(Token(e), c.IdExterno, $"estorno-{c.Referencia}"); }
+        catch (MercadoPagoException ex) { throw new PixException($"O Mercado Pago não devolveu o Pix: {ex.Message}"); }
+        c.StatusExterno = Cortar(pg.Status, 30);
+        c.Status = StatusCobrancaPix.Devolvida;
+        c.DevolvidaEm = DateTimeOffset.UtcNow;
+    }
+
     // ================================================================ aviso do Mercado Pago (webhook, sem login)
 
     public async Task<bool> AvisoAsync(string avisoToken, string? pagamentoId)
@@ -155,7 +169,11 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
                 c.Status = StatusCobrancaPix.Paga;
                 c.PagaEm = (pg.AprovadoEm ?? DateTimeOffset.UtcNow).ToUniversalTime(); // o banco guarda em UTC (o Mercado Pago manda -03:00/-04:00)
                 break;
-            case "cancelled" or "rejected" or "refunded" or "charged_back":
+            case "refunded":
+                if (c.Status == StatusCobrancaPix.Paga) { c.Status = StatusCobrancaPix.Devolvida; c.DevolvidaEm ??= DateTimeOffset.UtcNow; }
+                else c.Status = StatusCobrancaPix.Cancelada;
+                break;
+            case "cancelled" or "rejected" or "charged_back":
                 c.Status = StatusCobrancaPix.Cancelada;
                 break;
             case "expired":

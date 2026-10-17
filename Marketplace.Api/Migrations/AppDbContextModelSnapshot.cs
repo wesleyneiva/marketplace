@@ -23,6 +23,68 @@ namespace Marketplace.Api.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Marketplace.Api.Models.AutorizacaoGerente", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)");
+
+                    b.Property<string>("AutorizadoPorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTimeOffset>("DataHora")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OperadorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("SessaoCaixaId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
+                    b.Property<int?>("VendaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AutorizadoPorId");
+
+                    b.HasIndex("OperadorId");
+
+                    b.HasIndex("SessaoCaixaId");
+
+                    b.HasIndex("VendaId");
+
+                    b.HasIndex("EmpresaId", "DataHora");
+
+                    b.ToTable("AutorizacoesGerente", (string)null);
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.Categoria", b =>
                 {
                     b.Property<int>("Id")
@@ -233,6 +295,9 @@ namespace Marketplace.Api.Migrations
 
                     b.Property<string>("CriadaPorId")
                         .HasColumnType("text");
+
+                    b.Property<DateTimeOffset?>("DevolvidaEm")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
@@ -2184,6 +2249,45 @@ namespace Marketplace.Api.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.AutorizacaoGerente", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Usuario", "AutorizadoPor")
+                        .WithMany()
+                        .HasForeignKey("AutorizadoPorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Usuario", "Operador")
+                        .WithMany()
+                        .HasForeignKey("OperadorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.SessaoCaixa", "SessaoCaixa")
+                        .WithMany()
+                        .HasForeignKey("SessaoCaixaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Marketplace.Api.Models.Venda", "Venda")
+                        .WithMany()
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("AutorizadoPor");
+
+                    b.Navigation("Operador");
+
+                    b.Navigation("SessaoCaixa");
+
+                    b.Navigation("Venda");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.Categoria", b =>

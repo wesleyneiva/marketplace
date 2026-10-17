@@ -21,6 +21,21 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   primeiro); histórico completo de "quem mexeu, quando e por quê"; alertas de validade e estoque baixo.
 - **Caixa (PDV)** — feito para teclado e leitor de código de barras; venda por peso (KG); desconto
   limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**.
+- **Cancelamentos com autorização do gerente** — no caixa, tirar um item (ou parte dele), cancelar a compra inteira e
+  cancelar uma venda **já paga com estorno** só com a senha de um gerente (o gerente escolhe o nome e digita a própria senha;
+  senha errada conta para o bloqueio da conta). Gerente logado autoriza a si mesmo. Tudo fica em `AutorizacoesGerente`
+  (quem pediu, quem autorizou, motivo, valor pelo preço do banco) e aparece em Vendas → Cancelamentos e autorizações.
+  API: `GET /api/caixa/gerentes`, `POST /api/caixa/cancelamentos` (item/compra antes de pagar), `GET /api/vendas/{id}/estorno`
+  (prévia: por onde volta cada forma) e `POST /api/vendas/{id}/cancelar` (`autorizacao`, `pix`: Devolver/Manter/PorFora).
+  **Estorno**: dinheiro sai da gaveta do caixa da venda (caixa aberto) ou, com o caixa da venda já fechado, da gaveta aberta de
+  quem cancela (movimento `Devolucao`, lançado no fechamento dela) ou do cofre; Pix automático é **devolvido pelo Mercado Pago**
+  (`POST /v1/orders/{id}/refund`, chave de idempotência fixa por cobrança) ou fica como "Pix recebido sem venda" (troca, só com o
+  caixa aberto); Pix manual e cartão: a tela orienta devolver pelo app do banco / estornar na maquininha. Caixa já lançado no
+  Financeiro: o estorno sai da conta de cada forma, hoje, na categoria Vendas no PDV (a DRE já tira a venda cancelada da receita).
+  O operador de caixa só cancela vendas do caixa aberto dele; as de caixas fechados, o gerente cancela na tela Vendas.
+- **Vendas** (menu, gerência) — lista do dia com filtros (dia, caixa, forma, situação), totais (vendas, total, ticket médio,
+  canceladas), selo "Pix confirmado pelo Mercado Pago", cupom completo com Reimprimir e Cancelar venda (estorno).
+  No caixa, "Vendas do caixa" faz o mesmo para o caixa aberto.
 - **Vendas automáticas (simulador)** — por empresa (`Empresa.VendasAutomaticas`: Desligado, SoVendas, Completo), no
   horário de funcionamento de cada loja; o robô abre o Caixa 9 (fora do plano) e vende o dia todo:
   clientes por hora (picos no almoço e às 18h, sábado mais forte, começo do mês), cesta sorteada por
@@ -153,20 +168,14 @@ Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migra
 Lojas e dados: o Mercadinho Juvenal (empresa 4) está com o Pix automático ligado em **modo teste** e tem 1 Pix de teste de
 R$ 3,50 pago e sem venda (aparece no caixa como "já recebido e sem venda").
 
-### Próximo passo: tela **Vendas** (combinado em 16/10/2026)
-Hoje não existe tela com a lista de vendas (só "Último cupom" no caixa, o painel, os relatórios e o fechamento do caixa).
-A API já tem tudo: `GET /api/vendas?data=&sessaoId=&pagina=&tamanho=` (gerência vê tudo; Caixa só o caixa aberto dele;
-devolve `VendaListaResponse`: id, data/hora, caixa, operador, status, itens, total, formas), `GET /api/vendas/{id}` (o cupom
-completo) e `POST /api/vendas/{id}/cancelar` (só gerência, com motivo; devolve estoque ao mesmo lote, exige dinheiro na
-gaveta e, no Pix automático, o Pix volta a "recebido sem venda"). O que fazer:
-1. Menu **Vendas** (ícone `receipt`) e rota `/vendas`.
-2. Lista do dia com filtros: **data**, **caixa**, **forma de pagamento** e situação (concluída/cancelada); totais no topo
-   (quantidade, total vendido, ticket médio); paginação.
-3. Cada linha: número, hora, caixa e operador, itens, total e formas (selo **"Pix confirmado pelo Mercado Pago"** quando o
-   pagamento tem `CobrancaPixId`: incluir esse dado na resposta da API).
-4. Ao clicar: o **cupom completo** (itens, pagamentos, troco), com **Reimprimir** (mesma impressão térmica do caixa) e
-   **Cancelar venda** (gerência; pede o motivo; mensagem de erro/sucesso junto do botão).
-5. Testar no dev (marketplace_dev), publicar e atualizar este README.
+### 16/10/2026 (noite) — tela Vendas e cancelamentos com autorização do gerente
+- Menu **Vendas** (`/vendas`), cancelar item/compra no caixa e cancelar venda paga com estorno, sempre com o gerente
+  (ver Funcionalidades). Migration `AutorizacaoGerente` (tabela `AutorizacoesGerente`, `CobrancasPix.DevolvidaEm`, status
+  `Devolvida`, movimento de caixa `Devolucao`). Corrigida a barra do caixa ilegível no tema escuro.
+- Testado no dev com a empresa "Teste Vendas" (#12 do marketplace_dev; usuários em `~/projetos/marketplace-testes/vendas/`) e o
+  simulador do Mercado Pago (agora com devolução); roteiro da API: 33 verificações.
+
+### Próximo passo: caixa offline (pedido em 16/10/2026)
 
 ## Estrutura
 

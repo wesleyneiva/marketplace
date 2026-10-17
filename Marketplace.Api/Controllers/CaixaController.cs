@@ -13,9 +13,10 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/caixa")]
 [Authorize]
-public class CaixaController(CaixaService caixa, AppDbContext db) : ControllerBase
+public class CaixaController(CaixaService caixa, AppDbContext db, VendaService vendas, AutorizacaoService autorizacoes) : ControllerBase
 {
     private string UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+    private bool EhGerencia => User.IsInRole(Perfis.Administrador) || User.IsInRole(Perfis.Gerente);
 
     // GET /api/caixa/atual → resumo do MEU caixa aberto (204 se não tenho caixa aberto).
     [HttpGet("atual")]
@@ -52,6 +53,33 @@ public class CaixaController(CaixaService caixa, AppDbContext db) : ControllerBa
     [HttpPost("fechar")]
     public Task<ActionResult<ResumoCaixaResponse>> Fechar(FecharCaixaRequest r) =>
         Executar(() => caixa.FecharAsync(UsuarioId, r.ValorContado, r.Observacao));
+
+    // GET /api/caixa/gerentes → quem pode autorizar um cancelamento (o gerente escolhe o nome e digita a senha).
+    [HttpGet("gerentes")]
+    public Task<List<GerenteResponse>> Gerentes() => autorizacoes.GerentesAsync();
+
+    // POST /api/caixa/cancelamentos → tirar um item ou cancelar a compra em andamento: só com autorização do gerente
+    // (fica registrado). A compra ainda não foi paga: o estoque não mudou, então só o registro é gravado.
+    [HttpPost("cancelamentos")]
+    public async Task<ActionResult<CancelamentoPdvResponse>> Cancelamento(CancelamentoPdvRequest r)
+    {
+        try
+        {
+            if (await caixa.ObterSessaoAbertaAsync(UsuarioId) is null) return BadRequest(new { mensagem = "Você não tem caixa aberto." });
+            var autorizou = await autorizacoes.ConferirAsync(UsuarioId, EhGerencia, r.Autorizacao);
+            var valor = await vendas.RegistrarCancelamentoPdvAsync(UsuarioId, autorizou, r);
+            var nome = await db.Users.Where(u => u.Id == autorizou).Select(u => u.NomeCompleto).FirstAsync();
+            return new CancelamentoPdvResponse(nome, valor);
+        }
+        catch (AutorizacaoException e)
+        {
+            return BadRequest(new { mensagem = e.Message, autorizacao = true });
+        }
+        catch (EstoqueException e)
+        {
+            return BadRequest(new { mensagem = e.Message });
+        }
+    }
 
     // GET /api/caixa/sessoes → últimas sessões (gerência confere os fechamentos e as diferenças).
     [HttpGet("sessoes")]

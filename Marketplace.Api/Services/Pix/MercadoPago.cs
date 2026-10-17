@@ -7,7 +7,7 @@ using System.Text.Json.Nodes;
 namespace Marketplace.Api.Services.Pix;
 
 // Conversa com a API do Mercado Pago (https://api.mercadopago.com) usando o Access Token DA LOJA.
-// Só três coisas: criar um Pix (QR único com o valor), consultar e cancelar um Pix que não foi pago (API de Orders).
+// Criar um Pix (QR único com o valor), consultar, cancelar um Pix que não foi pago e devolver um Pix pago (API de Orders).
 public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILogger<MercadoPago> log)
 {
     // Endereço da API (MercadoPago:Url só muda nos testes, com o simulador local).
@@ -59,7 +59,12 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
     public async Task<Pagamento> CancelarAsync(string token, string id, CancellationToken ct = default) =>
         Ler(await EnviarAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(id)}/cancel", token, null, Guid.NewGuid().ToString(), ct));
 
-    // Status da order → o "idioma" de sempre: processed/accredited = pago (approved); expired; canceled/failed/refunded = cancelado.
+    // POST /v1/orders/{id}/refund sem corpo = devolução TOTAL ao cliente (estorno de venda cancelada).
+    // A chave de idempotência é fixa por cobrança: se a rede cair e o Marcus tentar de novo, o Mercado Pago não devolve duas vezes.
+    public async Task<Pagamento> DevolverAsync(string token, string id, string idempotencia, CancellationToken ct = default) =>
+        Ler(await EnviarAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(id)}/refund", token, null, idempotencia, ct));
+
+    // Status da order → o "idioma" de sempre: processed/accredited = pago (approved); expired; refunded = devolvido; canceled/failed = cancelado.
     private static Pagamento Ler(JsonNode j)
     {
         var status = j["status"]?.GetValue<string>() ?? "";
@@ -69,7 +74,8 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
         {
             "processed" => "approved",
             "expired" => "expired",
-            "canceled" or "failed" or "refunded" or "charged_back" => "cancelled",
+            "refunded" => "refunded",
+            "canceled" or "failed" or "charged_back" => "cancelled",
             _ => "pending",
         };
         return new Pagamento(
