@@ -22,6 +22,7 @@ export class Dashboard {
   private readonly simuladorApi = inject(SimuladorApi);
 
   protected readonly hoje = new Date();
+  protected readonly comContas = computed(() => this.auth.liberado('contas'));
   protected readonly veEstoque = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
 
   protected readonly saudacao = computed(() => {
@@ -42,10 +43,10 @@ export class Dashboard {
   // Vendas: a gerência vê o dia inteiro (todos os caixas); o operador de caixa vê o caixa dele.
   protected readonly vendasDia = httpResource<ResumoVendas>(() => (this.veEstoque() ? '/api/vendas/resumo' : undefined));
   protected readonly contas = httpResource<{ vencidas: number; valorVencidas: number; vencemHoje: number; valorHoje: number; proximos7Dias: number; valorProximos7Dias: number }>(
-    () => (this.veEstoque() ? '/api/contas/resumo' : undefined));
+    () => (this.veEstoque() && this.auth.liberado('contas') ? '/api/contas/resumo' : undefined));
   // Pedidos de compra que o sistema montou sozinho ao abrir a loja (rascunhos para conferir e enviar).
   protected readonly comprasDoDia = httpResource<{ pedidos: number; itens: number; total: number; geradaEm: string | null; ligada: boolean }>(
-    () => (this.veEstoque() ? '/api/compras/sugestao-do-dia' : undefined));
+    () => (this.veEstoque() && this.auth.liberado('compras') ? '/api/compras/sugestao-do-dia' : undefined));
   protected readonly meuCaixa = httpResource<ResumoCaixa | null>(() => (this.veEstoque() ? undefined : '/api/caixa/atual'));
 
   protected readonly vendas = computed(() => {

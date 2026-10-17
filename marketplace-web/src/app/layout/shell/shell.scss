@@ -213,6 +213,13 @@ nav {
 
 .conteudo {
   padding: 24px;
+  flex: 1; // empurra o rodapé para o pé da tela
+}
+
+// Relógio de Brasília: separado do usuário por uma linha fina.
+.relogio-topo {
+  padding-right: 14px;
+  border-right: 1px solid var(--cor-borda);
 }
 
 .fundo-menu {
@@ -262,8 +269,14 @@ nav {
     display: none;
   }
 
+  .relogio-topo {
+    padding-right: 0;
+    border-right: 0;
+  }
+
   .topo {
     padding: 10px 16px;
+    gap: 10px;
   }
 
   .conteudo {

@@ -228,6 +228,7 @@ app.Use(ContextoEmpresa.Middleware);      // de qual empresa é quem está logad
 app.Use(RedeInterna.Middleware);          // rede interna: só o dono da plataforma
 app.Use(MarcaSenhaProvisoria.Middleware); // senha provisória: só deixa trocar a senha
 app.Use(SomenteLeitura.Middleware);       // visitante da demonstração: só olha
+app.Use(ModulosLiberados.Middleware);     // módulos que o dono da plataforma não liberou para o cliente
 app.UseAuthorization();
 
 app.MapControllers();

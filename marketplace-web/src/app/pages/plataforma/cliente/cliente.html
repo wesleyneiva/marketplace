@@ -128,6 +128,36 @@
     </section>
 
     <section class="painel secao">
+      <h2><app-icone nome="layout-dashboard" /> Módulos liberados</h2>
+      <p class="explica">O que este cliente usa no sistema. O básico (painel, caixa, produtos, estoque, usuários e configurações) é de todos.
+        Muda na hora: o menu do cliente se atualiza sozinho em até 1 minuto, sem precisar sair e entrar.</p>
+      <div class="escolha-modulos" role="radiogroup" aria-label="Módulos liberados">
+        <label class="marcar"><input type="radio" name="modulos" [value]="true" [(ngModel)]="todosModulos" /> <b>Todos os módulos</b>
+          <small>(inclusive os que forem lançados depois)</small></label>
+        <label class="marcar"><input type="radio" name="modulos" [value]="false" [(ngModel)]="todosModulos" /> <b>Escolher um a um</b></label>
+      </div>
+      @if (!todosModulos) {
+        <div class="lista-modulos">
+          @for (m of catalogo; track m.id) {
+            <label class="modulo" [class.ligado]="modulosMarcados.has(m.id)">
+              <input type="checkbox" [checked]="modulosMarcados.has(m.id)" (change)="marcarModulo(m.id, $any($event.target).checked)" />
+              <span><b>{{ m.nome }}</b><small>{{ m.descricao }}</small></span>
+            </label>
+          }
+        </div>
+        <p class="dica">
+          <button type="button" class="botao pequeno" (click)="marcarTodosUmAUm(true)">Marcar todos</button>
+          <button type="button" class="botao pequeno" (click)="marcarTodosUmAUm(false)">Desmarcar todos</button>
+          · {{ modulosMarcados.size }} de {{ catalogo.length }} marcados
+        </p>
+      }
+      <div class="salvar">
+        <button type="button" class="botao primario" [disabled]="salvando() === 'modulos'" (click)="salvarModulos()">Salvar módulos</button>
+        @if (avisoModulos(); as a) { <span class="msg" [class.ok]="a.ok" [class.falhou]="!a.ok" role="status"><app-icone [nome]="a.ok ? 'circle-check' : 'circle-alert'" /> {{ a.texto }}</span> }
+      </div>
+    </section>
+
+    <section class="painel secao">
       <h2><app-icone nome="map-pin" /> Cidade da loja</h2>
       <p class="explica">Define o clima dos relatórios e o fuso horário ("hoje", vendas do dia).</p>
       <p class="atual"><b>{{ r.cidade ?? 'Não definida' }}</b> · horário de {{ nomeDoFuso(d.fuso) }}</p>

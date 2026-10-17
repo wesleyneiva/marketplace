@@ -55,3 +55,17 @@
 .faturas { width: 100%; font-size: 14px; border-collapse: collapse; }
 .faturas th, .faturas td { padding: 6px 8px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
 .faturas .num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.escolha-modulos { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-bottom: 12px; font-size: 14px; }
+.escolha-modulos .marcar { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.escolha-modulos small { color: var(--cor-texto-suave); }
+.lista-modulos { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px; }
+.modulo {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; cursor: pointer;
+  border: 1px solid var(--cor-borda); border-radius: 8px; font-size: 14px;
+  span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  small { color: var(--cor-texto-suave); font-size: 13px; }
+  input { margin-top: 3px; }
+  &.ligado { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); }
+}
+.dica .botao.pequeno { margin-right: 4px; }

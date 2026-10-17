@@ -126,6 +126,19 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         return await DetalharAsync(e);
     }
 
+    // PUT /api/plataforma/empresas/5/modulos → módulos liberados ({ todos: true } ou a lista, um a um).
+    // Vale na hora: o servidor esquece o cache e a tela do cliente se atualiza sozinha (pergunta /api/auth/eu a cada minuto).
+    [HttpPut("{id:int}/modulos")]
+    public async Task<ActionResult<ClienteDetalheResponse>> SalvarModulos(int id, ModulosRequest r)
+    {
+        var e = await Clientes().FirstOrDefaultAsync(x => x.Id == id);
+        if (e is null) return NotFound();
+        e.Modulos = r.Todos ? null : Modulos.Normalizar(r.Modulos ?? []);
+        await db.SaveChangesAsync();
+        locais.Esquecer(id);
+        return await DetalharAsync(e);
+    }
+
     // POST /api/plataforma/empresas → cliente novo (empresa + categorias + administrador com senha provisória)
     [HttpPost]
     public async Task<ActionResult<EmpresaCriadaResponse>> Criar(NovaEmpresaRequest r)
@@ -262,7 +275,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             abertas.Select(f => f.Vencimento < hoje ? hoje.DayNumber - f.Vencimento.DayNumber : 0).DefaultIfEmpty(0).Max());
         return new(resumo,
             new FichaCliente(e.RazaoSocial, e.Documento, e.Responsavel, e.Telefone, e.EmailContato, e.Endereco, e.Observacoes),
-            e.Uf, e.Fuso, e.Horario, Services.Expediente.Descricao(e.Horario), assinatura);
+            e.Uf, e.Fuso, e.Horario, Services.Expediente.Descricao(e.Horario), assinatura, e.Modulos);
     }
 
     // Números de USO de cada cliente. De propósito, nada de valores de venda: o dono do sistema não precisa (nem deve)

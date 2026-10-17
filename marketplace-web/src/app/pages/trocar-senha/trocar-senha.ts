@@ -1,3 +1,4 @@
+import { Rodape } from '../../shared/rodape';
 import { Component, computed, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
@@ -9,7 +10,7 @@ import { Icone } from '../../shared/icone';
 // Primeiro acesso (senha provisória → obrigatório) ou "Trocar minha senha" (voluntário).
 @Component({
   selector: 'app-trocar-senha',
-  imports: [Icone, FormsModule, RouterLink, Logo],
+  imports: [Icone, FormsModule, RouterLink, Logo, Rodape],
   templateUrl: './trocar-senha.html',
   styleUrl: '../login/login.scss',
 })

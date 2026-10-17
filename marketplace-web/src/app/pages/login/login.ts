@@ -1,3 +1,4 @@
+import { Rodape } from '../../shared/rodape';
 import { Component, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -8,7 +9,7 @@ import { Logo } from '../../shared/logo';
 
 @Component({
   selector: 'app-login',
-  imports: [ReactiveFormsModule, Logo, Icone],
+  imports: [ReactiveFormsModule, Logo, Icone, Rodape],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })

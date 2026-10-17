@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
-import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaPerfil, precisaSerDono, soMercado, somenteDeslogado } from './core/auth/auth.guards';
-import { MODULOS } from './core/modulos';
+import { logadoMesmoComSenhaProvisoria, precisaLogin, precisaModulo, precisaPerfil, precisaSerDono, soMercado, somenteDeslogado } from './core/auth/auth.guards';
 
 // Mapa de páginas do sistema. loadComponent = a página só é baixada quando alguém abre (deixa o app leve).
 export const routes: Routes = [
@@ -51,8 +50,8 @@ export const routes: Routes = [
         children: [
           { path: '', loadComponent: () => import('./pages/produtos/produtos').then((m) => m.Produtos) },
           // "novo" e ":id" usam a mesma tela de formulário. O :id chega no componente como input().
-          { path: 'etiquetas', loadComponent: () => import('./pages/etiquetas/etiquetas').then((m) => m.Etiquetas) },
-          { path: 'importar', loadComponent: () => import('./pages/importar-produtos/importar-produtos').then((m) => m.ImportarProdutos) },
+          { path: 'etiquetas', canActivate: [precisaModulo('etiquetas')], loadComponent: () => import('./pages/etiquetas/etiquetas').then((m) => m.Etiquetas) },
+          { path: 'importar', canActivate: [precisaModulo('importacao')], loadComponent: () => import('./pages/importar-produtos/importar-produtos').then((m) => m.ImportarProdutos) },
           { path: 'novo', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
           { path: ':id', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
         ],
@@ -64,22 +63,22 @@ export const routes: Routes = [
       {
         // Vendas: lista do dia, cupom, reimprimir, cancelar com estorno e os cancelamentos autorizados pelo gerente.
         path: 'vendas',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('vendas'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/vendas/vendas').then((m) => m.Vendas),
       },
       {
         path: 'relatorios',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('relatorios'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/relatorios/relatorios').then((m) => m.Relatorios),
       },
       {
         path: 'fornecedores',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('compras'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/fornecedores/fornecedores').then((m) => m.Fornecedores),
       },
       {
         path: 'compras',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('compras'), precisaPerfil('Administrador', 'Gerente')],
         children: [
           { path: '', loadComponent: () => import('./pages/compras/compras').then((m) => m.Compras) },
           // Entrada de mercadoria pelo XML da nota fiscal (NF-e).
@@ -99,19 +98,18 @@ export const routes: Routes = [
       {
         // Financeiro: saldos das contas, lançamentos (o livro) e plano de contas. ?aba=lancamentos&conta=3
         path: 'financeiro',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('financeiro'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/financeiro/financeiro').then((m) => m.Financeiro),
       },
       {
         // Fiado (caderneta): clientes da loja, quem deve, receber, cobrar. A venda no fiado é pelo PDV.
         path: 'fiado',
-        canMatch: [() => MODULOS.fiado], // módulo opcional: desligado em core/modulos.ts
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('fiado'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/fiado/fiado').then((m) => m.Fiado),
       },
       {
         path: 'contas',
-        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        canActivate: [precisaModulo('contas'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/contas/contas').then((m) => m.Contas),
       },
       {

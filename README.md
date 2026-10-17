@@ -140,6 +140,16 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   plano/assinatura, cidade, horário, usuários, suspender), Cobranças (mensalidades geradas sozinhas, recebimento,
   cobrança no WhatsApp, bloqueio automático por atraso e liberação ao pagar), Planos e Sistema (endereços no ar,
   backups, disco, espaço por cliente). Só USO dos clientes: as vendas e o faturamento de cada mercado são dele.
+- **Módulos liberados por cliente** (área do dono → Clientes → ficha → Módulos liberados) — "Todos os módulos" (inclusive os
+  que vierem) ou um a um: Vendas, Compras e fornecedores, Financeiro, Contas a pagar, Relatórios, Importar planilha, Etiquetas
+  (e Fiado, quando `MODULOS.fiado` voltar a `true`). O básico (painel, caixa, produtos, estoque, usuários, configurações) é de todos.
+  `Empresa.Modulos` (text[], null = todos; `Models/Modulos.cs`), `PUT /api/plataforma/empresas/{id}/modulos`. No cliente: o login
+  traz `empresa.modulos`; menu, rotas (`precisaModulo`), botões e cartões do painel seguem a lista, e a casca pergunta
+  `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
+  barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
+  contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
+- **Relógio de Brasília e rodapé** — barra do topo com a hora de Brasília (`shared/relogio-brasilia.ts`, sempre America/Sao_Paulo);
+  rodapé "Desenvolvido por WN Labs · contato@wnlabs.com.br" (`shared/rodape.ts`) na casca, no login e na troca de senha.
 - **Demonstração pública** — com `Demonstracao__Ativa=true`, o login **do endereço `demo.wnlabs.com.br`** (`Demonstracao__Host`) mostra **"Ver demonstração"**: entra como
   visitante (perfil Gerente, **somente leitura** — qualquer gravação é barrada no servidor) na empresa 1, onde o
   simulador vende. Pela internet (Cloudflare Tunnel, cabeçalho `CF-Connecting-IP`): `/api/integracao` fechado,
@@ -207,6 +217,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (online, o servidor cobra o preço atual do cadastro).
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### 17/10/2026
+- **Módulos liberados por cliente** na área do dono (todos ou um a um), refletindo sozinho no sistema do cliente e barrado na API.
+  Migration `ModulosLiberados`.
+- **Relógio de Brasília** na barra do topo e **rodapé WN Labs** (contato@wnlabs.com.br) em todas as telas.
+- Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
 
 ### Para continuar num chat novo
 - Ler este README (Funcionalidades + Últimas atualizações). Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.

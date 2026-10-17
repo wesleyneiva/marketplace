@@ -12,7 +12,8 @@ public record UsuarioLogadoResponse(
     bool SoPlataforma);     // é da empresa da plataforma (não é mercado): só vê a área do dono
 
 // A empresa (mercado) de quem está logado: o nome aparece no menu; o limite de caixas, no PDV.
-public record EmpresaResponse(int Id, string Nome, int LimiteCaixas, bool Demonstracao);
+// Modulos: os liberados pelo dono da plataforma (null = todos) — o menu e as rotas do Angular seguem esta lista.
+public record EmpresaResponse(int Id, string Nome, int LimiteCaixas, bool Demonstracao, string[]? Modulos);
 
 // Para a tela de login, antes de logar: mostrar o botão "Ver demonstração"? Login com senha liberado?
 public record AcessoInfoResponse(bool Demonstracao, bool LoginComSenha, bool AreaDoDono); // AreaDoDono: endereço só do dono

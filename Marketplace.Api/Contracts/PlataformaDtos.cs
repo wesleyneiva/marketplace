@@ -25,7 +25,11 @@ public record FichaCliente(
 // Um cliente aberto na área do dono: resumo + ficha + configurações da loja.
 public record ClienteDetalheResponse(
     EmpresaResumoResponse Resumo, FichaCliente Ficha, string? Uf, string Fuso, Marketplace.Api.Models.HorarioFuncionamento Horario,
-    string HorarioResumo, AssinaturaResponse Assinatura);
+    string HorarioResumo, AssinaturaResponse Assinatura,
+    string[]? Modulos); // módulos liberados; null = todos
+
+// Módulos liberados para o cliente: todos (inclusive os que vierem) ou só os da lista (ver Models/Modulos.cs).
+public record ModulosRequest(bool Todos, string[]? Modulos);
 
 public record VisaoGeralResponse(
     int Clientes, int Ativos, int Suspensos, int Demonstracoes, int CaixasContratados, int UsuariosAtivos,

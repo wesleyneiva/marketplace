@@ -1,12 +1,14 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { copiarTexto } from '../../shared/copiar';
 import { TemaService } from '../../core/tema.service';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
-import { MODULOS } from '../../core/modulos';
+import { Modulo } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { Logo } from '../../shared/logo';
+import { RelogioBrasilia } from '../../shared/relogio-brasilia';
+import { Rodape } from '../../shared/rodape';
 
 interface ItemMenu {
   rotulo: string;
@@ -15,13 +17,19 @@ interface ItemMenu {
   perfis: string[];  // quem pode ver este item
   soDono?: boolean;  // só o dono da plataforma (administra os clientes)
   pronto: boolean;   // false = aparece como "em breve"
-  modulo?: keyof typeof MODULOS; // módulo opcional (core/modulos.ts): some do menu se estiver desligado
+  modulo?: Modulo;   // módulo opcional (core/modulos.ts): some do menu se não estiver liberado para o cliente
 }
+
+// Telas de cada módulo opcional (as mesmas do app.routes.ts com precisaModulo).
+const MODULO_DA_ROTA: Record<string, Modulo> = {
+  '/vendas': 'vendas', '/compras': 'compras', '/fornecedores': 'compras', '/financeiro': 'financeiro', '/contas': 'contas',
+  '/relatorios': 'relatorios', '/produtos/importar': 'importacao', '/produtos/etiquetas': 'etiquetas', '/fiado': 'fiado',
+};
 
 // "Casca" do sistema: menu lateral + barra do topo. As páginas aparecem no <router-outlet>.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo, Icone],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo, Icone, RelogioBrasilia, Rodape],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -50,15 +58,15 @@ export class Shell {
   private readonly menu: ItemMenu[] = [
     { rotulo: 'Dashboard', icone: 'layout-dashboard', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
     { rotulo: 'Caixa (PDV)', icone: 'receipt', rota: '/pdv', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
-    { rotulo: 'Vendas', icone: 'receipt-text', rota: '/vendas', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Vendas', icone: 'receipt-text', rota: '/vendas', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'vendas' },
     { rotulo: 'Produtos', icone: 'package', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Estoque', icone: 'tag', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Compras', icone: 'shopping-bag', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Financeiro', icone: 'circle-dollar-sign', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true },
-    { rotulo: 'Contas a pagar', icone: 'calendar-clock', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Compras', icone: 'shopping-bag', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'compras' },
+    { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'compras' },
+    { rotulo: 'Financeiro', icone: 'circle-dollar-sign', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'financeiro' },
+    { rotulo: 'Contas a pagar', icone: 'calendar-clock', rota: '/contas', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'contas' },
     { rotulo: 'Fiado', icone: 'notebook-pen', rota: '/fiado', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'fiado' },
-    { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Relatórios', icone: 'chart-line', rota: '/relatorios', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'relatorios' },
     { rotulo: 'Usuários', icone: 'users', rota: '/usuarios', perfis: ['Administrador'], pronto: true },
     { rotulo: 'Configurações', icone: 'settings', rota: '/configuracoes', perfis: ['Administrador', 'Gerente'], pronto: true },
     // Enquanto a área do dono não é separada (sem login próprio do dono), o dono chega nela por aqui.
@@ -93,7 +101,7 @@ export class Shell {
   protected readonly itensVisiveis = computed(() =>
     this.areaDoDono()
       ? this.menuDono
-      : this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || MODULOS[item.modulo])),
+      : this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || this.auth.liberado(item.modulo))),
   );
 
   protected readonly iniciais = computed(() =>
@@ -104,6 +112,24 @@ export class Shell {
       .map((p) => p[0].toUpperCase())
       .join(''),
   );
+
+  // Módulos liberados pelo dono da plataforma: confere a cada minuto e ao voltar para a aba. Se o módulo da tela aberta
+  // deixou de valer, volta para o início (o menu já se refaz sozinho pelo signal do usuário).
+  constructor() {
+    const atualizar = () => void this.auth.atualizar();
+    const id = setInterval(atualizar, 60_000);
+    const aoVoltar = () => { if (document.visibilityState === 'visible') atualizar(); };
+    document.addEventListener('visibilitychange', aoVoltar);
+    inject(DestroyRef).onDestroy(() => { clearInterval(id); document.removeEventListener('visibilitychange', aoVoltar); });
+
+    effect(() => {
+      this.usuario(); // refaz quando o usuário (e os módulos) mudam
+      const caminho = this.router.url.split('?')[0];
+      const bloqueado = Object.entries(MODULO_DA_ROTA).some(([rota, m]) =>
+        (caminho === rota || caminho.startsWith(rota + '/')) && !this.auth.liberado(m));
+      if (bloqueado) void this.router.navigateByUrl(this.inicio());
+    });
+  }
 
   async sair(): Promise<void> {
     await this.auth.logout();

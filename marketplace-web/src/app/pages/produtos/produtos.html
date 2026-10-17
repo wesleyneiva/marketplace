@@ -6,8 +6,8 @@
     </p>
   </div>
   <div class="botoes-topo">
-    <a class="botao" routerLink="/produtos/etiquetas"><app-icone nome="tag" /> Etiquetas</a>
-    <a class="botao" routerLink="/produtos/importar"><app-icone nome="import" /> Importar planilha</a>
+    @if (auth.liberado('etiquetas')) { <a class="botao" routerLink="/produtos/etiquetas"><app-icone nome="tag" /> Etiquetas</a> }
+    @if (auth.liberado('importacao')) { <a class="botao" routerLink="/produtos/importar"><app-icone nome="import" /> Importar planilha</a> }
     <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
   </div>
 </header>

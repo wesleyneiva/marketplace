@@ -69,6 +69,9 @@ public class Empresa
     // (um por fornecedor). A pessoa confere, ajusta e envia. Nada é enviado sozinho.
     public bool ComprasAutomaticas { get; set; } = true;
 
+    // Módulos liberados para este cliente (ver Models/Modulos.cs). null = todos. Só o dono da plataforma muda.
+    public string[]? Modulos { get; set; }
+
     // A "empresa" do DONO DA PLATAFORMA (WN Labs): não é um mercado. Quem é Administrador dela entra na área do dono
     // (clientes, planos, cobranças) e não vê telas de mercado. Só existe uma (criada pelo comando criar-dono).
     public bool Plataforma { get; set; }

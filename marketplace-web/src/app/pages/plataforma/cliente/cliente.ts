@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { CATALOGO_MODULOS } from '../../../core/modulos';
 import { Icone } from '../../../shared/icone';
 import { Cidade, CidadeBusca, nomeDoFuso } from '../../../shared/cidade-busca';
 import { HorarioEditor } from '../../../shared/horario-editor/horario-editor';
@@ -34,7 +35,7 @@ interface Assinatura {
   precoCombinado: number | null; cortesia: boolean; valorMensal: number; motivoSuspensao: string | null;
   faturasAbertas: number; emAberto: number; maiorAtraso: number;
 }
-interface Detalhe { resumo: Resumo; ficha: Ficha; uf: string | null; fuso: string; horario: Horario; horarioResumo: string; assinatura: Assinatura }
+interface Detalhe { resumo: Resumo; ficha: Ficha; uf: string | null; fuso: string; horario: Horario; horarioResumo: string; assinatura: Assinatura; modulos: string[] | null }
 type Aviso = { ok: boolean; texto: string } | null;
 
 const URL = '/api/plataforma/empresas';
@@ -91,6 +92,27 @@ export class Cliente {
   protected readonly avisoCidade = signal<Aviso>(null);
   protected readonly avisoHorario = signal<Aviso>(null);
   protected readonly avisoSituacao = signal<Aviso>(null);
+  protected readonly avisoModulos = signal<Aviso>(null);
+
+  // Módulos liberados: "todos" (inclusive os que vierem depois) ou um a um. Vale na hora no sistema do cliente.
+  protected readonly catalogo = CATALOGO_MODULOS;
+  protected todosModulos = true;
+  protected modulosMarcados = new Set<string>();
+
+  protected marcarModulo(id: string, marcado: boolean): void {
+    if (marcado) this.modulosMarcados.add(id); else this.modulosMarcados.delete(id);
+  }
+
+  protected marcarTodosUmAUm(marcar: boolean): void {
+    this.modulosMarcados = new Set(marcar ? this.catalogo.map((m) => m.id) : []);
+  }
+
+  async salvarModulos(): Promise<void> {
+    const lista = this.catalogo.map((m) => m.id).filter((id) => this.modulosMarcados.has(id));
+    await this.executar('modulos', this.avisoModulos, () => firstValueFrom(this.http.put(`${URL}/${this.id()}/modulos`,
+      { todos: this.todosModulos, modulos: lista })),
+      this.todosModulos ? 'Todos os módulos liberados.' : `${lista.length} de ${this.catalogo.length} módulos liberados.`);
+  }
 
   protected preencher(d: Detalhe): boolean {
     if (this.carregadoId !== d.resumo.id) {
@@ -99,6 +121,8 @@ export class Cliente {
       this.vendasAutomaticas = d.resumo.vendasAutomaticas;
       this.ficha = { ...d.ficha };
       this.horario = horarioParaTela(d.horario);
+      this.todosModulos = d.modulos === null;
+      this.modulosMarcados = new Set(d.modulos ?? this.catalogo.map((m) => m.id));
       const a = d.assinatura;
       this.assinatura = { planoId: a.planoId, diaVencimento: a.diaVencimento, testeAte: a.testeAte ?? '', cobrarDesde: a.cobrarDesde ?? '',
         precoCombinado: a.precoCombinado, cortesia: a.cortesia };

@@ -40,6 +40,7 @@
       <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu"><app-icone nome="menu" /></button>
 
       <div class="espaco"></div>
+      <app-relogio-brasilia class="relogio-topo" />
       @if (usuario(); as u) {
         <div class="usuario">
           <span class="avatar" aria-hidden="true">{{ iniciais() }}</span>
@@ -83,5 +84,6 @@
     <main class="conteudo">
       <router-outlet />
     </main>
+    <app-rodape />
   </div>
 </div>

@@ -1,6 +1,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from './auth.service';
+import { Modulo } from '../modulos';
 
 // Guard = "porteiro" de rota: decide se a página pode abrir.
 
@@ -53,3 +54,13 @@ export const soMercado: CanActivateFn = async () => {
   await auth.garantirSessao();
   return auth.usuario()?.soPlataforma ? router.createUrlTree(['/plataforma']) : true;
 };
+
+// Telas de um módulo opcional (core/modulos.ts): só abre se o dono da plataforma liberou para este cliente.
+export const precisaModulo =
+  (modulo: Modulo): CanActivateFn =>
+  async () => {
+    const auth = inject(AuthService);
+    const router = inject(Router);
+    await auth.garantirSessao();
+    return auth.liberado(modulo) ? true : router.createUrlTree([auth.inicio()]);
+  };

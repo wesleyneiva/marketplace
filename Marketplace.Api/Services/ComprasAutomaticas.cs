@@ -26,7 +26,7 @@ public class ComprasAutomaticas(IServiceScopeFactory escopos, LocaisDasLojas loc
             using (var scope = escopos.CreateScope())
             {
                 empresas = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
-                    .Where(e => e.Ativa && !e.Plataforma && e.ComprasAutomaticas && e.VendasAutomaticas != ModosVendasAutomaticas.Completo)
+                    .Where(e => e.Ativa && !e.Plataforma && e.ComprasAutomaticas && (e.Modulos == null || e.Modulos.Contains(Modulos.Compras)) && e.VendasAutomaticas != ModosVendasAutomaticas.Completo)
                     .Select(e => e.Id).ToListAsync(parar);
             }
             foreach (var id in empresas)

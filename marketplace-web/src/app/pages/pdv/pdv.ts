@@ -15,7 +15,6 @@ import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Logo } from '../../shared/logo';
 import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
-import { MODULOS } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { PixQrCodeComponent } from '../../shared/pix-qrcode';
 import { CobrancaPix, PixAutomatico } from '../../shared/pix-automatico';
@@ -62,8 +61,9 @@ export class Pdv {
     return qr ? this.sanitizer.bypassSecurityTrustHtml(qr.svg) : null;
   });
 
-  protected readonly formas = MODULOS.fiado ? FORMAS_PAGAMENTO : FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
-  protected readonly comFiado = MODULOS.fiado;
+  // Fiado: só com o módulo ligado na plataforma (core/modulos.ts) e liberado para este cliente.
+  protected readonly comFiado = this.auth.liberado('fiado');
+  protected readonly formas = this.comFiado ? FORMAS_PAGAMENTO : FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
   protected readonly ehGerencia = computed(() => this.auth.temPerfil('Administrador', 'Gerente'));
 
   // ----- Caixa (sessão) -----
@@ -1042,7 +1042,7 @@ export class Pdv {
     if (e.key === 'F2' && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirPagamento();
-    } else if (e.key === 'F6' && MODULOS.fiado && !algumaJanelaAberta && !this.produtoPeso()) {
+    } else if (e.key === 'F6' && this.comFiado && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirReceber();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {

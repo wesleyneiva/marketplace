@@ -84,6 +84,7 @@
       </small>
     </a>
 
+    @if (comContas()) {
     <a class="cartao clicavel" routerLink="/contas">
       <div class="topo-cartao"><span>Contas a pagar (7 dias)</span><span class="icone"><app-icone nome="calendar-clock" /></span></div>
       @if (contas.value(); as c) {
@@ -99,6 +100,7 @@
         <strong class="valor apagado">…</strong><small>Carregando…</small>
       }
     </a>
+    }
   }
 </section>
 

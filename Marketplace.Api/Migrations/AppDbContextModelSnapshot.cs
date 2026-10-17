@@ -694,6 +694,9 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)");
 
+                    b.PrimitiveCollection<string[]>("Modulos")
+                        .HasColumnType("text[]");
+
                     b.Property<string>("MotivoSuspensao")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");

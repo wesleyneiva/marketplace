@@ -1,3 +1,4 @@
+import { AuthService } from '../../core/auth/auth.service';
 import { Component, computed, inject, signal } from '@angular/core';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
@@ -13,6 +14,7 @@ import { Icone } from '../../shared/icone';
 })
 export class Produtos {
   private readonly api = inject(ProdutosApi);
+  protected readonly auth = inject(AuthService);
 
   // ----- Filtros (cada um é um signal: mudou → a lista recarrega sozinha) -----
   protected readonly busca = signal('');
