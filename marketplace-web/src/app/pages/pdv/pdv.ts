@@ -1,5 +1,5 @@
 import { MARCA } from '../../shared/marca';
-import { Component, ElementRef, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
@@ -196,6 +196,16 @@ export class Pdv {
 
   constructor() {
     void this.carregarCaixa();
+    // Venda em andamento guardada neste computador: ir ao Dashboard e voltar, apertar F5 ou o navegador fechar
+    // não apaga o que já foi bipado. Ao abrir o caixa, ela volta; a cada item/desconto, é guardada de novo.
+    effect(() => {
+      const sessao = this.caixa()?.sessaoId;
+      if (sessao && this.vendaRestaurada !== sessao) untracked(() => this.restaurarVenda(sessao));
+    });
+    effect(() => {
+      const itens = this.carrinho(), desconto = this.desconto(), sessao = this.caixa()?.sessaoId;
+      if (sessao && this.vendaRestaurada === sessao) untracked(() => this.guardarVenda(sessao, itens, desconto));
+    });
     // A fila de vendas offline diminuiu (foram enviadas) com internet: atualiza os números do caixa.
     let antes = 0;
     effect(() => {
@@ -1101,6 +1111,35 @@ export class Pdv {
 
   protected fiadoEmDinheiro(resumo: ResumoCaixa): number {
     return resumo.recebimentosFiado?.find((f) => f.forma === 'Dinheiro')?.valor ?? 0;
+  }
+
+  // ----- Venda em andamento guardada (localStorage, por usuário e por turno de caixa) -----
+  private vendaRestaurada: number | null = null;
+
+  private chaveVenda(sessao: number): string {
+    return `marcus.vendaEmAndamento:${this.auth.usuario()?.id ?? ''}:${sessao}`;
+  }
+
+  private guardarVenda(sessao: number, itens: ItemCarrinho[], desconto: number): void {
+    try {
+      if (itens.length) localStorage.setItem(this.chaveVenda(sessao), JSON.stringify({ itens, desconto }));
+      else localStorage.removeItem(this.chaveVenda(sessao));
+    } catch { /* sem armazenamento: a venda só não sobrevive a sair da tela */ }
+  }
+
+  private restaurarVenda(sessao: number): void {
+    this.vendaRestaurada = sessao;
+    try {
+      // Turnos antigos deste usuário (caixa já fechado): não servem mais.
+      const prefixo = `marcus.vendaEmAndamento:${this.auth.usuario()?.id ?? ''}:`;
+      for (const k of Object.keys(localStorage)) if (k.startsWith(prefixo) && k !== this.chaveVenda(sessao)) localStorage.removeItem(k);
+      const guardada = JSON.parse(localStorage.getItem(this.chaveVenda(sessao)) ?? 'null') as { itens: ItemCarrinho[]; desconto: number } | null;
+      if (!guardada?.itens?.length || this.carrinho().length) return;
+      this.carrinho.set(guardada.itens);
+      this.desconto.set(guardada.desconto ?? 0);
+      this.textoDesconto = guardada.desconto ? guardada.desconto.toFixed(2).replace('.', ',') : '';
+      this.mostrarAviso(`Venda em andamento recuperada: ${guardada.itens.length} ${guardada.itens.length === 1 ? 'item' : 'itens'}.`);
+    } catch { /* guardado inválido: começa do zero */ }
   }
 
   private limparVenda(focar = true): void {
