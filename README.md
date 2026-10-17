@@ -231,33 +231,58 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 17/10/2026
-- **Módulos liberados por cliente** na área do dono (todos ou um a um), refletindo sozinho no sistema do cliente e barrado na API.
-  Migration `ModulosLiberados`.
-- **Relógio de Brasília** (24 h, HH:MM, sem data) na barra do topo e **rodapé WN Labs** (contato@wnlabs.com.br) em todas as telas.
-- **Notificações do Telegram desligadas** (pedido do usuário, por enquanto): os 4 fluxos do n8n "Marketplace – Resumo do dia",
-  "– Alertas", "– Insights IA" e "– Semana" estão inativos (cópia em `~/backup/n8n-marcus-telegram-2026-10-17/`). Para religar:
-  `docker exec n8n n8n publish:workflow --id=<id>` e `docker restart n8n`. Os comandos /vendas e /estoque também saíram do
-  fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (cópias: `…-comandos-do-bot-antes.json` e `bot.py.antes-sem-marcus`);
-  o resto do assistente segue igual. A API `/api/integracao` continua no ar, sem ninguém chamando. **Falta**: tirar o Telegram do vídeo
-  (`~/projetos/marketplace-video`) — combinado para depois.
-- **Consultar produto no Estoque** (busca no topo: estoque, validades, movimentações); **perda com "Tudo"** e lote vencido já preenchido; **pedido de compra enviado ao fornecedor pelo WhatsApp ou e-mail** com a
-  mensagem pronta (ver Funcionalidades).
-- Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`).
+### 17/10/2026 — módulos por cliente, relógio, rodapé, Telegram desligado, estoque, compras e backup
+Tudo publicado em https://app.wnlabs.com.br (backup antes da migration: `~/backup/marketplace-antes-ModulosLiberados-2026-10-17.dump`).
+Detalhes técnicos em Funcionalidades.
+
+- **Módulos liberados por cliente** (área do dono → Clientes → ficha → Módulos liberados): todos ou um a um; o sistema do cliente
+  muda sozinho em até 1 min (menu, rotas, botões, painel) e a API barra o que não foi liberado. Migration `ModulosLiberados`.
+  Commit `cdd9cbc`. Todos os clientes atuais estão com "todos".
+- **Relógio de Brasília** na barra do topo (24 h, HH:MM, sem data) e **rodapé** "Desenvolvido por WN Labs · contato@wnlabs.com.br"
+  em todas as telas (casca, login, troca de senha).
+- **Telegram desligado** (decisão do usuário, por enquanto): os 4 fluxos do n8n "Marketplace – Resumo do dia / Alertas / Insights IA /
+  Semana" estão inativos e /vendas e /estoque saíram do fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (o resto do
+  assistente pessoal segue). Cópias em `~/backup/n8n-marcus-telegram-2026-10-17/` e `~/assistente/bot.py.antes-sem-marcus`.
+  Religar: `docker exec n8n n8n publish:workflow --id=<id>` + `docker restart n8n`. A API `/api/integracao` continua no ar.
+- **Estoque**: busca "Consultar produto" no topo (estoque, mínimo, lotes com validade, últimas movimentações, Entrada/Perda/Ajuste).
+- **Perda**: botão **Tudo** (saldo do lote ou estoque todo) e lote vencido já escolhido com a quantidade exata e motivo "Vencido";
+  "Dar baixa" (Validades) abre com aquele lote.
+- **Pedido de compra ao fornecedor**: "Enviar" abre a mensagem pronta e os canais do cadastro (WhatsApp wa.me, e-mail mailto,
+  copiar, "já enviei por outro meio"); só vira "Enviado" quando sai; "Reenviar" nos enviados. Campo do fornecedor agora
+  "WhatsApp / telefone".
+- **Backup**: o diário (03:45) passou a guardar também `configuracao.tar.gz` (`/etc/marketplace/marketplace.env` + chaves do
+  DataProtection). Vai para a nuvem da Oracle às 04:30, criptografado pelo rclone, 30 dias. **Restauração testada** (contagens
+  iguais à produção). Ver Rodando → Backup.
+
+Pendências:
+- **Usuário precisa guardar as 2 senhas do rclone** (password e password2 de `/root/.config/rclone/rclone.conf`) fora da VM; sem elas
+  o backup da nuvem não abre. Comando que mostra só no terminal dele:
+  `sudo bash -c 'for k in password password2; do v=$(grep "^$k = " /root/.config/rclone/rclone.conf | cut -d" " -f3); echo "$k: $(rclone reveal $v)"; done'`
+- **Senha do dono da plataforma** (produção: wesleyneiva15@hotmail.com, entra por http://oracle-a1:5100): o usuário esqueceu.
+  Não há como ver; proposto acrescentar `./criar-dono.sh --redefinir --email …` (senha provisória no terminal) — aguardando o ok.
+- **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
+- Backup da nuvem cobre só Marcus + n8n; oferecido incluir o assistente do Telegram e os outros serviços da VM (sem resposta).
+- Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
+  houver fornecedores reais.
+- Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`); o fornecedor
+  "Frigorífico Boa Carne" (#24) tem contato fictício e há o pedido #24 de teste.
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações). Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 17/10/2026). Memórias do assistente em
+  `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
-  `mp-simulador` (5399, agora com devolução `/refund`). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
+  `mp-simulador` (5399, com devolução `/refund`). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
-  usuários admin/gerente/caixa em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
-- Testes de navegador do caixa: o painel às vezes não desenha (fica oculto); dirigir a página por script (input + keydown Enter)
-  funciona. Para simular queda de internet no dev: parar o `api-dev` (o proxy devolve 502 = "sem internet").
-- Próximos passos possíveis: testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e (serviço fiscal, quando
-  houver CNPJ); credenciais de produção do Mercado Pago.
+  usuários admin/gerente/caixa (e o dono de teste) em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
+- Testes de navegador: o painel às vezes não desenha (fica oculto); dirigir a página por script (input + keydown Enter) funciona.
+  Logar por `fetch('/api/auth/login')` e depois recarregar a página. Para simular queda de internet no dev: parar o `api-dev`.
+- Ícones novos: acrescentar o nome em `marketplace-web/ferramentas/gerar-icones.py` e rodar o script (não editar `icones.ts`).
+- n8n 2.x: `update:workflow` está obsoleto; usar `publish:workflow`/`unpublish:workflow` e reiniciar o container.
+- Próximos passos possíveis: as pendências acima; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
+  (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
 
 ## Estrutura
 
