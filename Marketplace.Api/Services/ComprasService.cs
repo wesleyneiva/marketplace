@@ -149,7 +149,9 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
 
     // Recebimento: confere item a item; o que chegou entra no estoque (com a validade, se perecível).
     // Tudo numa transação: ou o pedido inteiro entra, ou nada entra.
-    public async Task ReceberAsync(int id, List<ItemRecebimento> conferidos, string usuarioId)
+    // Pagamento (nulo só no simulador, que lança os boletos dele): Boleto → conta a pagar; NaEntrega → conta já paga
+    // (sai da conta escolhida, no livro); Nota → nada agora, a conta entra com a NF-e ligada a este pedido.
+    public async Task ReceberAsync(int id, List<ItemRecebimento> conferidos, string usuarioId, PagamentoRecebimento? pagamento = null)
     {
         var pedido = await CarregarAsync(id);
         if (pedido.Status != StatusPedido.Enviado)
@@ -174,8 +176,50 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         pedido.Status = StatusPedido.Recebido;
         pedido.RecebidoEm = DateTimeOffset.UtcNow;
         pedido.RecebidoPorId = usuarioId;
+        if (pagamento is not null) await LancarPagamentoAsync(pedido, pagamento, usuarioId);
         await db.SaveChangesAsync();
         await transacao.CommitAsync();
+    }
+
+    // A conta a pagar do pedido recebido (o que faz o dinheiro sair do Financeiro).
+    private async Task LancarPagamentoAsync(PedidoCompra pedido, PagamentoRecebimento r, string usuarioId)
+    {
+        if (!PagamentosPedido.Valido(r.Modo)) throw new EstoqueException("Escolha como a mercadoria é paga.");
+        pedido.Pagamento = r.Modo;
+        if (r.Modo == PagamentosPedido.Nota) return;
+
+        var total = Math.Round(pedido.Itens.Sum(i => (i.QuantidadeRecebida ?? 0) * i.CustoUnitario), 2);
+        var valor = r.Valor is > 0 ? Math.Round(r.Valor.Value, 2) : total;
+        if (valor <= 0) return; // nada chegou: não há o que pagar
+
+        var hoje = Relogio.Hoje;
+        var conta = new ContaPagar
+        {
+            Descricao = $"Pedido de compra nº {pedido.Id} — {pedido.Fornecedor!.Nome}",
+            Documento = string.IsNullOrWhiteSpace(r.Documento) ? $"PED-{pedido.Id}" : r.Documento.Trim(),
+            Valor = valor, FornecedorId = pedido.FornecedorId, PedidoCompra = pedido, CriadaPorId = usuarioId,
+            CategoriaFinanceiraId = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Fornecedores),
+        };
+        if (r.Modo == PagamentosPedido.Boleto)
+        {
+            if (r.Vencimento is not { } venc) throw new EstoqueException("Informe o vencimento do boleto.");
+            if (venc < hoje.AddDays(-60)) throw new EstoqueException("Vencimento muito antigo: confira a data.");
+            conta.Vencimento = venc;
+            db.ContasPagar.Add(conta);
+            return;
+        }
+
+        // Pago na entrega: a conta já nasce paga e o dinheiro sai agora da conta escolhida.
+        var deOnde = await db.ContasFinanceiras.AsNoTracking().FirstOrDefaultAsync(c => c.Id == r.ContaFinanceiraId);
+        if (deOnde is null || !deOnde.Ativa) throw new EstoqueException("Escolha de qual conta saiu o dinheiro.");
+        if (await Financeiro.FaltaDinheiroAsync(db, deOnde.Id, valor) is { } falta) throw new EstoqueException(falta);
+        conta.Vencimento = hoje;
+        conta.PagaEm = hoje;
+        conta.ValorPago = valor;
+        conta.FormaPagamento = string.IsNullOrWhiteSpace(r.FormaPagamento) ? null : r.FormaPagamento.Trim();
+        conta.PagaPorId = usuarioId;
+        db.ContasPagar.Add(conta);
+        await Financeiro.RegistrarPagamentoAsync(db, conta, deOnde.Id, usuarioId);
     }
 
     // ---------------------------------------------------------------- apoio

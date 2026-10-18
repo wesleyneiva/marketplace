@@ -48,6 +48,7 @@ export interface PedidoAberto {
   previsaoEntrega: string | null;
   quantidadeItens: number;
   valorEstimado: number;
+  jaRecebido: boolean; // a mercadoria já entrou ("a conta vem com a NF-e"): ligar a nota lança só a conta
 }
 
 export interface ConferenciaNota {

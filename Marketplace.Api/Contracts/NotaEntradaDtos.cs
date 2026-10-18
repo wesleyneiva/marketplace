@@ -23,7 +23,8 @@ public record ParcelaNotaResponse(string? Numero, DateOnly Vencimento, decimal V
 
 public record FornecedorNotaResponse(int? Id, string Nome, string RazaoSocial, string Cnpj, bool Novo);
 
-public record PedidoAbertoResponse(int Id, DateTimeOffset CriadoEm, DateOnly? PrevisaoEntrega, int QuantidadeItens, decimal ValorEstimado);
+// JaRecebido: a mercadoria já entrou no recebimento ("a conta vem com a NF-e"); ligar a nota a ele lança só a conta.
+public record PedidoAbertoResponse(int Id, DateTimeOffset CriadoEm, DateOnly? PrevisaoEntrega, int QuantidadeItens, decimal ValorEstimado, bool JaRecebido);
 
 public record ItemConferenciaResponse(
     int NumeroItem,

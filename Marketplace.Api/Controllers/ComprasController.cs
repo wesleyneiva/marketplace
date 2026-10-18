@@ -71,7 +71,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
 
     [HttpPost("pedidos/{id:int}/receber")]
     public Task<IActionResult> Receber(int id, ReceberPedidoRequest r) =>
-        Executar(async () => { await compras.ReceberAsync(id, r.Itens, UsuarioId); return id; });
+        Executar(async () => { await compras.ReceberAsync(id, r.Itens, UsuarioId, r.Pagamento); return id; });
 
     private async Task<IActionResult> Executar(Func<Task<int>> acao)
     {
@@ -94,6 +94,9 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
                 p.Id, p.FornecedorId, Fornecedor = p.Fornecedor!.Nome, p.Status, p.Automatico, p.SugestaoAutomatica, p.Observacao,
                 p.CriadoEm, CriadoPor = p.CriadoPor!.NomeCompleto, p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm,
                 RecebidoPor = p.RecebidoPor != null ? p.RecebidoPor.NomeCompleto : null,
+                p.Pagamento,
+                Contas = db.ContasPagar.Count(c => c.PedidoCompraId == p.Id || (c.NotaEntrada != null && c.NotaEntrada.PedidoCompraId == p.Id)),
+                TemNota = db.NotasEntrada.Any(n => n.PedidoCompraId == p.Id),
                 Itens = p.Itens.OrderBy(i => i.Produto!.Nome).Select(i => new ItemPedidoResponse(
                     i.Id, i.ProdutoId, i.Produto!.Nome, i.Produto.Unidade, i.Produto.ControlaValidade, i.Quantidade,
                     i.CustoUnitario, i.QuantidadeRecebida, i.Validade,
@@ -104,6 +107,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
         return pedidos.OrderByDescending(p => p.Id).Select(p => new PedidoResponse(
             p.Id, p.FornecedorId, p.Fornecedor, p.Status.ToString(), p.Automatico, p.SugestaoAutomatica, p.Observacao, p.CriadoEm, p.CriadoPor,
             p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm, p.RecebidoPor, p.Itens.Sum(i => i.Total),
-            p.Status == StatusPedido.Enviado && p.PrevisaoEntrega < hoje, p.Itens)).ToList();
+            p.Status == StatusPedido.Enviado && p.PrevisaoEntrega < hoje, p.Itens,
+            p.Pagamento, p.Contas, p.Status == StatusPedido.Recebido && p.Pagamento == PagamentosPedido.Nota && !p.TemNota)).ToList();
     }
 }

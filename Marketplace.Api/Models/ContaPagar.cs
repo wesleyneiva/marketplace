@@ -14,6 +14,10 @@ public class ContaPagar : IDaEmpresa
     public int? FornecedorId { get; set; }
     public Fornecedor? Fornecedor { get; set; }
 
+    // Veio do recebimento de um pedido de compra (boleto do fornecedor ou pago na entrega)?
+    public int? PedidoCompraId { get; set; }
+    public PedidoCompra? PedidoCompra { get; set; }
+
     // Veio de uma NF-e (as parcelas da nota)?
     public int? NotaEntradaId { get; set; }
     public NotaEntrada? NotaEntrada { get; set; }

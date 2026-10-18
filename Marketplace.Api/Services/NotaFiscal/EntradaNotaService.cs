@@ -103,12 +103,29 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
                 comoAchou, fator, fatorDaNota, validade, sugestao, avisosItem));
         }
 
+        // Pedidos que esta nota pode fechar: os enviados (aguardando entrega) e os já RECEBIDOS com "a conta vem com a NF-e"
+        // (aí a nota lança só a conta: a mercadoria já entrou no estoque no recebimento).
         var pedidos = fornecedor is null ? [] : await db.PedidosCompra.AsNoTracking()
-            .Where(p => p.FornecedorId == fornecedor.Id && p.Status == StatusPedido.Enviado)
-            .OrderBy(p => p.PrevisaoEntrega)
+            .Where(p => p.FornecedorId == fornecedor.Id && (p.Status == StatusPedido.Enviado
+                || (p.Status == StatusPedido.Recebido && p.Pagamento == PagamentosPedido.Nota && !db.NotasEntrada.Any(n => n.PedidoCompraId == p.Id))))
+            .OrderBy(p => p.Status).ThenBy(p => p.PrevisaoEntrega)
             .Select(p => new PedidoAbertoResponse(p.Id, p.CriadoEm, p.PrevisaoEntrega, p.Itens.Count,
-                p.Itens.Sum(i => i.Quantidade * i.CustoUnitario)))
+                p.Itens.Sum(i => (p.Status == StatusPedido.Recebido ? i.QuantidadeRecebida ?? 0 : i.Quantidade) * i.CustoUnitario),
+                p.Status == StatusPedido.Recebido))
             .ToListAsync();
+
+        // Para não pagar duas vezes: pedido deste fornecedor recebido há pouco que JÁ tem conta (boleto / pago na entrega).
+        if (fornecedor is not null)
+        {
+            var desde = DateTimeOffset.UtcNow.AddDays(-15);
+            var comConta = await db.PedidosCompra.AsNoTracking()
+                .Where(p => p.FornecedorId == fornecedor.Id && p.Status == StatusPedido.Recebido && p.RecebidoEm >= desde
+                    && db.ContasPagar.Any(c => c.PedidoCompraId == p.Id))
+                .Select(p => p.Id).ToListAsync();
+            if (comConta.Count > 0)
+                avisos.Add($"Pedido(s) nº {string.Join(", ", comConta)} deste fornecedor já foram recebidos com a conta lançada. "
+                    + "Se esta nota é de um deles, a mercadoria e a conta já entraram: não registre de novo.");
+        }
 
         return new ConferenciaNotaResponse(nota.Chave, nota.Numero, nota.Serie, nota.DataEmissao, nota.ValorTotal,
             new FornecedorNotaResponse(fornecedor?.Id, fornecedor?.Nome ?? NomeDoFornecedor(nota), nota.EmitenteNome,
@@ -125,6 +142,19 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         var nota = Ler(xml);
         if (await db.NotasEntrada.AnyAsync(n => n.Chave == nota.Chave))
             throw new NotaEntradaException("Esta nota já foi lançada no estoque.");
+
+        // Nota de um pedido JÁ RECEBIDO (a conta vinha com a NF-e): entra só a parte financeira — sem estoque nem produtos.
+        PedidoCompra? jaRecebido = null;
+        if (pedido.PedidoCompraId is int idRecebido)
+        {
+            jaRecebido = await db.PedidosCompra.Include(p => p.Fornecedor).FirstOrDefaultAsync(p => p.Id == idRecebido && p.Status == StatusPedido.Recebido);
+            if (jaRecebido is not null)
+            {
+                if (jaRecebido.Pagamento != PagamentosPedido.Nota || await db.NotasEntrada.AnyAsync(n => n.PedidoCompraId == idRecebido))
+                    throw new NotaEntradaException($"O pedido #{idRecebido} já foi recebido e não está aguardando a nota.");
+                return await RegistrarSoContaAsync(xml, nota, jaRecebido, pedido, usuarioId);
+            }
+        }
 
         var decisoes = pedido.Itens.ToDictionary(d => d.NumeroItem);
         var faltando = nota.Itens.Where(i => !decisoes.ContainsKey(i.NumeroItem)).Select(i => i.NumeroItem).ToList();
@@ -233,6 +263,7 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
             compra.Status = StatusPedido.Recebido;
             compra.RecebidoEm = DateTimeOffset.UtcNow;
             compra.RecebidoPorId = usuarioId;
+            compra.Pagamento = PagamentosPedido.Nota; // a conta é a da nota (abaixo)
             pedidoRecebido = compra.Id;
         }
 
@@ -246,50 +277,7 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
         db.NotasEntrada.Add(registro);
 
         // 6) Contas a pagar: uma por parcela (duplicata); sem parcelas, uma só com o total (à vista).
-        var contas = new List<ContaPagar>();
-        if (pedido.GerarContas && nota.ValorTotal > 0)
-        {
-            var titulo = Cortar($"NF-e {nota.Numero} — {fornecedor.Nome}", 170);
-            if (nota.Duplicatas.Count > 0)
-            {
-                var n = nota.Duplicatas.Count;
-                contas.AddRange(nota.Duplicatas.Select((d, i) => new ContaPagar
-                {
-                    Descricao = n > 1 ? $"{titulo} · parcela {i + 1}/{n}" : titulo,
-                    Documento = Cortar(d.Numero ?? $"{nota.Numero}/{i + 1}", 60), Vencimento = d.Vencimento, Valor = d.Valor,
-                }));
-            }
-            else
-            {
-                var emissao = Relogio.DiaLocal(nota.DataEmissao);
-                var conta = new ContaPagar { Descricao = titulo + " · à vista", Documento = nota.Numero, Vencimento = emissao, Valor = nota.ValorTotal };
-                if (pedido.JaPaga)
-                {
-                    conta.PagaEm = emissao;
-                    conta.ValorPago = nota.ValorTotal;
-                    conta.FormaPagamento = nota.FormasPagamento.FirstOrDefault();
-                    conta.PagaPorId = usuarioId;
-                }
-                contas.Add(conta);
-            }
-            var categoria = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Fornecedores);
-            foreach (var c in contas)
-            {
-                c.Fornecedor = fornecedor;
-                c.NotaEntrada = registro;
-                c.CriadaPorId = usuarioId;
-                c.CategoriaFinanceiraId = categoria;
-            }
-            db.ContasPagar.AddRange(contas);
-
-            // Nota já paga (PIX, dinheiro na entrega): o pagamento entra no livro na hora.
-            // Dinheiro sai da gaveta da loja; o resto, da conta bancária.
-            foreach (var paga in contas.Where(c => c.PagaEm is not null))
-            {
-                var deOnde = paga.FormaPagamento == "Dinheiro" ? ChavesFinanceiras.ContaDinheiro : ChavesFinanceiras.ContaBanco;
-                await Financeiro.RegistrarPagamentoAsync(db, paga, await Financeiro.ContaAsync(db, deOnde), usuarioId);
-            }
-        }
+        var contas = pedido.GerarContas ? await CriarContasAsync(nota, registro, fornecedor, pedido.JaPaga, usuarioId) : [];
 
         try
         {
@@ -319,6 +307,78 @@ public partial class EntradaNotaService(AppDbContext db, EstoqueService estoque)
             .Select(n => new { n.Chave, n.Xml }).FirstOrDefaultAsync() is { } n ? ($"NFe{n.Chave}.xml", n.Xml) : null;
 
     // ===================================================================== apoio
+
+
+    // As contas a pagar da nota: uma por parcela (duplicata); sem parcelas, uma só com o total (à vista, já paga se jaPaga).
+    private async Task<List<ContaPagar>> CriarContasAsync(LeitorNfe.Nota nota, NotaEntrada registro, Fornecedor fornecedor, bool jaPaga, string usuarioId)
+    {
+        var contas = new List<ContaPagar>();
+        if (nota.ValorTotal > 0)
+        {
+            var titulo = Cortar($"NF-e {nota.Numero} — {fornecedor.Nome}", 170);
+            if (nota.Duplicatas.Count > 0)
+            {
+                var n = nota.Duplicatas.Count;
+                contas.AddRange(nota.Duplicatas.Select((d, i) => new ContaPagar
+                {
+                    Descricao = n > 1 ? $"{titulo} · parcela {i + 1}/{n}" : titulo,
+                    Documento = Cortar(d.Numero ?? $"{nota.Numero}/{i + 1}", 60), Vencimento = d.Vencimento, Valor = d.Valor,
+                }));
+            }
+            else
+            {
+                var emissao = Relogio.DiaLocal(nota.DataEmissao);
+                var conta = new ContaPagar { Descricao = titulo + " · à vista", Documento = nota.Numero, Vencimento = emissao, Valor = nota.ValorTotal };
+                if (jaPaga)
+                {
+                    conta.PagaEm = emissao;
+                    conta.ValorPago = nota.ValorTotal;
+                    conta.FormaPagamento = nota.FormasPagamento.FirstOrDefault();
+                    conta.PagaPorId = usuarioId;
+                }
+                contas.Add(conta);
+            }
+            var categoria = await Financeiro.CategoriaAsync(db, ChavesFinanceiras.Fornecedores);
+            foreach (var c in contas)
+            {
+                c.Fornecedor = fornecedor;
+                c.NotaEntrada = registro;
+                c.CriadaPorId = usuarioId;
+                c.CategoriaFinanceiraId = categoria;
+            }
+            db.ContasPagar.AddRange(contas);
+
+            // Nota já paga (PIX, dinheiro na entrega): o pagamento entra no livro na hora.
+            // Dinheiro sai da gaveta da loja; o resto, da conta bancária.
+            foreach (var paga in contas.Where(c => c.PagaEm is not null))
+            {
+                var deOnde = paga.FormaPagamento == "Dinheiro" ? ChavesFinanceiras.ContaDinheiro : ChavesFinanceiras.ContaBanco;
+                await Financeiro.RegistrarPagamentoAsync(db, paga, await Financeiro.ContaAsync(db, deOnde), usuarioId);
+            }
+        }
+
+        return contas;
+    }
+
+    // NF-e de um pedido já recebido ("a conta vem com a NF-e"): grava a nota (XML) ligada ao pedido e as contas. O estoque não muda.
+    private async Task<RegistroNotaResponse> RegistrarSoContaAsync(byte[] xml, LeitorNfe.Nota nota, PedidoCompra compra, RegistrarNotaRequest pedido, string usuarioId)
+    {
+        var fornecedor = compra.Fornecedor!;
+        if (await AcharFornecedorAsync(nota.EmitenteCnpj) is { } daNota && daNota.Id != fornecedor.Id)
+            throw new NotaEntradaException("O pedido escolhido é de outro fornecedor.");
+        await using var transacao = await db.Database.BeginTransactionAsync();
+        var registro = new NotaEntrada
+        {
+            Chave = nota.Chave, Numero = Cortar(nota.Numero, 9), Serie = Cortar(nota.Serie, 3), DataEmissao = nota.DataEmissao.ToUniversalTime(),
+            ValorTotal = nota.ValorTotal, QuantidadeItens = nota.Itens.Count, FornecedorId = fornecedor.Id,
+            PedidoCompraId = compra.Id, Xml = Encoding.UTF8.GetString(xml).TrimStart('\uFEFF'), RegistradaPorId = usuarioId,
+        };
+        db.NotasEntrada.Add(registro);
+        var contas = pedido.GerarContas ? await CriarContasAsync(nota, registro, fornecedor, pedido.JaPaga, usuarioId) : [];
+        await db.SaveChangesAsync();
+        await transacao.CommitAsync();
+        return new RegistroNotaResponse(registro.Id, 0, nota.Itens.Count, 0, false, fornecedor.Nome, compra.Id, contas.Count);
+    }
 
     private static LeitorNfe.Nota Ler(byte[] xml)
     {

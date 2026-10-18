@@ -560,6 +560,9 @@ namespace Marketplace.Api.Migrations
                     b.Property<string>("PagaPorId")
                         .HasColumnType("text");
 
+                    b.Property<int?>("PedidoCompraId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
@@ -584,6 +587,8 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("NotaEntradaId");
 
                     b.HasIndex("PagaPorId");
+
+                    b.HasIndex("PedidoCompraId");
 
                     b.HasIndex("EmpresaId", "PagaEm", "Vencimento");
 
@@ -1598,6 +1603,9 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
+                    b.Property<string>("Pagamento")
+                        .HasColumnType("text");
+
                     b.Property<DateOnly?>("PrevisaoEntrega")
                         .HasColumnType("date");
 
@@ -2430,6 +2438,10 @@ namespace Marketplace.Api.Migrations
                         .HasForeignKey("PagaPorId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("Marketplace.Api.Models.PedidoCompra", "PedidoCompra")
+                        .WithMany()
+                        .HasForeignKey("PedidoCompraId");
+
                     b.Navigation("CategoriaFinanceira");
 
                     b.Navigation("ContaFinanceira");
@@ -2441,6 +2453,8 @@ namespace Marketplace.Api.Migrations
                     b.Navigation("NotaEntrada");
 
                     b.Navigation("PagaPor");
+
+                    b.Navigation("PedidoCompra");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.Empresa", b =>

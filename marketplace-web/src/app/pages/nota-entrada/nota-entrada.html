@@ -98,10 +98,14 @@
           <option [ngValue]="null">Não vincular a pedido</option>
           @for (p of c.pedidosAbertos; track p.id) {
             <option [ngValue]="p.id">Pedido #{{ p.id }} · {{ p.quantidadeItens }} itens · {{ p.valorEstimado | currency: 'BRL' }}
-              @if (p.previsaoEntrega) { · previsto {{ p.previsaoEntrega | dia }} }</option>
+              @if (p.jaRecebido) { · já recebido, aguardando esta nota } @else if (p.previsaoEntrega) { · previsto {{ p.previsaoEntrega | dia }} }</option>
           }
         </select>
       </label>
+      @if (pedidoJaRecebido()) {
+        <p class="nota-aviso"><app-icone nome="circle-alert" /> O pedido #{{ pedidoId }} já foi recebido e a mercadoria já está no estoque.
+          Esta nota vai lançar <b>só a conta a pagar</b> (e guardar o XML); o estoque não muda.</p>
+      }
     }
     <div class="pagamento">
       <span class="rotulo">Pagamento</span>
@@ -126,6 +130,7 @@
     </div>
   </section>
 
+  @if (!pedidoJaRecebido()) {
   @for (i of itens(); track i.base.numeroItem) {
     <article class="painel item" [class.pendente]="pendencia(i)" [class.ignorado]="i.acao === 'ignorar'">
       <header>
@@ -223,11 +228,15 @@
     </article>
   }
 
+  }
+
   <section class="painel confirmar">
     <div>
       <strong>{{ resumo().existentes }} cadastrado(s) · {{ resumo().novos }} novo(s) · {{ resumo().ignorados }} ignorado(s)</strong>
       @if (c.bloqueio) {
         <p>Esta nota não pode ser lançada.</p>
+      } @else if (pedidoJaRecebido()) {
+        <p>Só a parte financeira: a nota fica guardada no pedido #{{ pedidoId }} e as contas a pagar dela entram{{ gerarContas ? '' : ' (desmarcado: nenhuma conta)' }}.</p>
       } @else if (resumo().pendentes) {
         <p>Falta resolver <strong>{{ resumo().pendentes }}</strong> {{ resumo().pendentes === 1 ? 'item' : 'itens' }} (marcados com <app-icone nome="circle-alert" />).</p>
       } @else {
@@ -235,8 +244,10 @@
       }
     </div>
     <button type="button" class="botao primario" (click)="darEntrada()"
-            [disabled]="!!c.bloqueio || resumo().pendentes > 0 || resumo().existentes + resumo().novos === 0 || gravando()">
-      @if (gravando()) { <app-icone nome="loader-circle" girando /> Gravando… } @else { <app-icone nome="circle-check" /> Dar entrada no estoque }
+            [disabled]="!!c.bloqueio || (!pedidoJaRecebido() && (resumo().pendentes > 0 || resumo().existentes + resumo().novos === 0)) || gravando()">
+      @if (gravando()) { <app-icone nome="loader-circle" girando /> Gravando… }
+      @else if (pedidoJaRecebido()) { <app-icone nome="circle-check" /> Lançar só a conta }
+      @else { <app-icone nome="circle-check" /> Dar entrada no estoque }
     </button>
   </section>
   @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }

@@ -155,6 +155,13 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 - **Perda com "Tudo" e lote vencido já preenchido** — na janela de perda, o botão **Tudo** põe o saldo inteiro do lote escolhido
   (ou, sem lote, o estoque todo); escolher o lote já põe a quantidade dele. Produto com lote vencido abre com esse lote, a quantidade
   exata (ex.: 4,673 kg) e o motivo "Vencido"; o "Dar baixa" da aba Validades abre com aquele lote (`shared/movimentar-dialog.ts`).
+- **Recebimento do pedido gera a conta a pagar** (Compras → Receber → "Pagamento ao fornecedor"): **Boleto / a prazo** (vencimento,
+  valor = recebido × custo ou digitado, nº do boleto) → conta em Contas a pagar; **Pago na entrega** (forma e de qual conta saiu) →
+  conta já paga e o dinheiro sai na hora no Financeiro (gaveta não fica negativa); **A conta vem com a NF-e** → nada agora, o pedido
+  fica "aguardando NF-e" e, na Entrada por NF-e, aparece como "já recebido": ligada a ele, a nota lança **só as contas** e guarda o
+  XML, sem repetir o estoque. Conferência da NF-e avisa quando o fornecedor tem pedido recebido há até 15 dias com conta lançada
+  (para não pagar duas vezes). `PedidoCompra.Pagamento`, `ContaPagar.PedidoCompraId` (migration `PagamentoDoPedido`). Pedidos
+  recebidos antes disso aparecem com o selo "sem conta a pagar" (no Juvenal: 105 pedidos, ~R$ 14 mil, nunca viraram conta).
 - **Pedido de compra ao fornecedor por WhatsApp/e-mail** — "Enviar" (e "Criar e enviar") abre a janela `pages/compras/enviar-pedido.ts`
   com a mensagem do pedido pronta (itens, observação, entrega pelo prazo do fornecedor; editável) e os canais do cadastro do
   fornecedor: **WhatsApp** (wa.me com o texto), **E-mail** (mailto com assunto e corpo), **Copiar** e "Já enviei por outro meio".
@@ -250,6 +257,8 @@ Detalhes técnicos em Funcionalidades.
 - **Pedido de compra ao fornecedor**: "Enviar" abre a mensagem pronta e os canais do cadastro (WhatsApp wa.me, e-mail mailto,
   copiar, "já enviei por outro meio"); só vira "Enviado" quando sai; "Reenviar" nos enviados. Campo do fornecedor agora
   "WhatsApp / telefone".
+- **Recebimento do pedido de compra gera a conta a pagar** (boleto, pago na entrega ou "vem com a NF-e", sem duplicar com a nota).
+  Antes, receber o pedido só punha no estoque e o dinheiro nunca saía do Financeiro. Migration `PagamentoDoPedido`.
 - **Backup**: o diário (03:45) passou a guardar também `configuracao.tar.gz` (`/etc/marketplace/marketplace.env` + chaves do
   DataProtection). Vai para a nuvem da Oracle às 04:30, criptografado pelo rclone, 30 dias. **Restauração testada** (contagens
   iguais à produção). Ver Rodando → Backup.

@@ -79,3 +79,19 @@ input.falta { border-color: var(--cor-alerta-medio); }
 .dica-rascunho { margin: 10px 0 0; font-size: 13px; color: var(--cor-texto-suave); }
 
 .janela footer .erro { margin-right: auto; padding: 6px 10px; }
+
+// Pagamento do pedido no recebimento
+.pagamento-pedido {
+  margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--cor-borda); border-radius: 10px;
+  legend { padding: 0 6px; font-weight: 700; font-size: 14px; }
+  .modos { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 8px; }
+  .modos label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--cor-borda); border-radius: 8px; cursor: pointer; font-size: 14px; }
+  .modos label.ativo { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); }
+  .modos input { margin-top: 3px; }
+  .modos span { display: flex; flex-direction: column; gap: 2px; }
+  .modos small { color: var(--cor-texto-suave); font-size: 12px; }
+  .campos-pag { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 10px; }
+  .campos-pag label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 13px; }
+  .campos-pag small { font-weight: 400; color: var(--cor-texto-suave); }
+  .dica { margin: 10px 0 0; }
+}

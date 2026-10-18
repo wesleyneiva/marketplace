@@ -43,10 +43,26 @@ public class PedidoCompra : IDaEmpresa
     public string? RecebidoPorId { get; set; }
     public Usuario? RecebidoPor { get; set; }
 
+    // Como a mercadoria foi paga (escolhido ao receber; ver PagamentosPedido). Nulo = pedidos antigos / simulador.
+    public string? Pagamento { get; set; }
+
     public List<ItemPedidoCompra> Itens { get; set; } = [];
 }
 
 public enum StatusPedido { Rascunho, Enviado, Recebido, Cancelado }
+
+// Pagamento do pedido ao receber:
+//   Boleto    → conta a pagar com vencimento (a prazo);
+//   NaEntrega → conta já paga, o dinheiro sai na hora da conta escolhida (gaveta, cofre, banco);
+//   Nota      → a conta vem com a NF-e: ao importar o XML ligado a este pedido, entra só a conta (o estoque já entrou).
+public static class PagamentosPedido
+{
+    public const string Boleto = "Boleto";
+    public const string NaEntrega = "NaEntrega";
+    public const string Nota = "Nota";
+
+    public static bool Valido(string? p) => p is Boleto or NaEntrega or Nota;
+}
 
 public class ItemPedidoCompra : IDaEmpresa
 {

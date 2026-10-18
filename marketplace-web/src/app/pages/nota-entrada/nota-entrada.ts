@@ -207,12 +207,21 @@ export class NotaEntradaPagina {
 
   // ------------------------------------------------------------------ gravar
 
+  // O pedido escolhido já foi recebido (mercadoria no estoque): a nota lança só a conta a pagar.
+  protected pedidoJaRecebido(): boolean {
+    return !!this.conferencia()?.pedidosAbertos.find((p) => p.id === this.pedidoId)?.jaRecebido;
+  }
+
   async darEntrada(): Promise<void> {
     const c = this.conferencia();
     const r = this.resumo();
-    if (!c || !this.arquivo || r.pendentes > 0 || c.bloqueio) return;
+    const soConta = this.pedidoJaRecebido();
+    if (!c || !this.arquivo || c.bloqueio || (!soConta && r.pendentes > 0)) return;
     const lancar = r.existentes + r.novos;
-    const texto = `Dar entrada de ${lancar} ${lancar === 1 ? 'item' : 'itens'} da NF-e ${c.numero} no estoque?`
+    const texto = soConta
+      ? `Lançar a NF-e ${c.numero} no pedido #${this.pedidoId}, que já foi recebido?\nO estoque NÃO muda (a mercadoria já entrou)`
+        + (this.gerarContas ? '; entram só as contas a pagar da nota.' : '.')
+      : `Dar entrada de ${lancar} ${lancar === 1 ? 'item' : 'itens'} da NF-e ${c.numero} no estoque?`
       + (r.novos ? `\n${r.novos} produto(s) novo(s) serão cadastrados.` : '')
       + (this.pedidoId ? `\nO pedido de compra #${this.pedidoId} será marcado como recebido.` : '');
     if (!confirm(texto)) return;

@@ -24,4 +24,7 @@ export interface Pedido {
   id: number; fornecedorId: number; fornecedor: string; status: StatusPedido; automatico: boolean; sugestaoAutomatica: boolean; observacao: string | null;
   criadoEm: string; criadoPor: string; enviadoEm: string | null; previsaoEntrega: string | null;
   recebidoEm: string | null; recebidoPor: string | null; total: number; atrasado: boolean; itens: ItemPedido[];
+  pagamento: 'Boleto' | 'NaEntrega' | 'Nota' | null; // como foi pago ao receber (null = antigo)
+  contasPagar: number;      // contas a pagar ligadas (do recebimento ou da NF-e)
+  aguardandoNota: boolean;  // recebido com "a conta vem com a NF-e" e a nota ainda não entrou
 }

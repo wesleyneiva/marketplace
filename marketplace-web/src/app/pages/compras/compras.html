@@ -89,6 +89,8 @@
             <td>
               <span class="status" [class]="'status s-' + p.status">{{ p.status }}</span>
               @if (p.atrasado) { <span class="selo alerta">atrasado</span> }
+              @if (p.aguardandoNota) { <span class="selo alerta" title="A conta entra quando a NF-e deste pedido for lançada">aguardando NF-e</span> }
+              @else if (p.status === 'Recebido' && p.contasPagar === 0 && p.pagamento !== 'Nota') { <span class="selo" title="Recebido sem conta a pagar (pedido antigo ou nada chegou)">sem conta a pagar</span> }
             </td>
             <td class="quando">{{ p.criadoEm | date: 'dd/MM HH:mm' }}</td>
             <td class="quando">@if (p.status === 'Recebido') { <app-icone nome="check" /> {{ p.recebidoEm | date: 'dd/MM HH:mm' }} } @else { {{ p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }} }</td>
@@ -172,11 +174,48 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pagamento: gera a conta a pagar (o que faz o dinheiro sair do Financeiro). -->
+      <fieldset class="pagamento-pedido">
+        <legend>Pagamento ao fornecedor · {{ (pagamento.valor || totalRecebido()) | currency: 'BRL' }}</legend>
+        <div class="modos" role="radiogroup" aria-label="Como a mercadoria é paga">
+          <label [class.ativo]="pagamento.modo === 'Boleto'"><input type="radio" name="modoPag" value="Boleto" [(ngModel)]="pagamento.modo" />
+            <span><b>Boleto / a prazo</b><small>entra em Contas a pagar com o vencimento</small></span></label>
+          <label [class.ativo]="pagamento.modo === 'NaEntrega'"><input type="radio" name="modoPag" value="NaEntrega" [(ngModel)]="pagamento.modo" (ngModelChange)="escolherForma(pagamento.forma)" />
+            <span><b>Pago na entrega</b><small>o dinheiro sai agora da conta escolhida</small></span></label>
+          <label [class.ativo]="pagamento.modo === 'Nota'"><input type="radio" name="modoPag" value="Nota" [(ngModel)]="pagamento.modo" />
+            <span><b>A conta vem com a NF-e</b><small>lance o XML depois: entra só a conta</small></span></label>
+        </div>
+        @if (pagamento.modo !== 'Nota') {
+          <div class="campos-pag">
+            <label>Valor (R$) <small>vazio = {{ totalRecebido() | currency: 'BRL' }}</small>
+              <input type="number" min="0" step="0.01" [(ngModel)]="pagamento.valor" [placeholder]="totalRecebido()" /></label>
+            @if (pagamento.modo === 'Boleto') {
+              <label>Vencimento <app-campo-data [(ngModel)]="pagamento.vencimento" /></label>
+              <label>Nº do boleto / documento <small>opcional</small><input [(ngModel)]="pagamento.documento" maxlength="60" /></label>
+            } @else {
+              <label>Forma
+                <select [ngModel]="pagamento.forma" (ngModelChange)="escolherForma($event)">
+                  @for (f of formasNaEntrega; track f) { <option [value]="f">{{ f }}</option> }
+                </select></label>
+              <label>Saiu de
+                <select [(ngModel)]="pagamento.contaId">
+                  <option [ngValue]="null" disabled>Escolha a conta…</option>
+                  @for (c of contasAtivas(); track c.id) { <option [ngValue]="c.id">{{ c.nome }} · {{ c.saldo | currency: 'BRL' }}</option> }
+                </select></label>
+            }
+          </div>
+        } @else {
+          <p class="dica">A mercadoria entra no estoque agora. Quando chegar o XML, use <b>Compras → Entrada por NF-e</b> e escolha este pedido:
+            a nota lança só as contas (sem repetir o estoque).</p>
+        }
+      </fieldset>
+
       @if (erroReceber()) { <div class="erro" role="alert">{{ erroReceber() }}</div> }
     </div>
     <footer>
       <button type="button" class="botao" (click)="dlgReceber.close()">Voltar</button>
-      <button type="button" class="botao primario" (click)="confirmarRecebimento()" [disabled]="ocupado()">{{ ocupado() ? 'Registrando…' : 'Confirmar entrada no estoque' }}</button>
+      <button type="button" class="botao primario" (click)="confirmarRecebimento()" [disabled]="ocupado()">{{ ocupado() ? 'Registrando…' : 'Confirmar recebimento' }}</button>
     </footer>
   }
 </dialog>

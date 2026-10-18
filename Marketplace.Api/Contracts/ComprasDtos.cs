@@ -33,7 +33,12 @@ public record NovoPedidoRequest(
 
 public record ItemRecebimento(int ItemId, [Range(0, 100000)] decimal QuantidadeRecebida, DateOnly? Validade, decimal? CustoUnitario);
 
-public record ReceberPedidoRequest([MinLength(1)] List<ItemRecebimento> Itens);
+// Pagamento: como a mercadoria é paga (ver PagamentosPedido). Valor vazio = o total do que chegou (recebido × custo).
+public record ReceberPedidoRequest([MinLength(1)] List<ItemRecebimento> Itens, PagamentoRecebimento? Pagamento = null);
+
+public record PagamentoRecebimento(
+    string Modo, DateOnly? Vencimento, decimal? Valor, [StringLength(60)] string? Documento,
+    int? ContaFinanceiraId, [StringLength(40)] string? FormaPagamento);
 
 public record ItemPedidoResponse(
     int Id, int ProdutoId, string Produto, string Unidade, bool Perecivel, decimal Quantidade, decimal CustoUnitario,
@@ -42,7 +47,10 @@ public record ItemPedidoResponse(
 public record PedidoResponse(
     int Id, int FornecedorId, string Fornecedor, string Status, bool Automatico, bool SugestaoAutomatica, string? Observacao,
     DateTimeOffset CriadoEm, string CriadoPor, DateTimeOffset? EnviadoEm, DateOnly? PrevisaoEntrega,
-    DateTimeOffset? RecebidoEm, string? RecebidoPor, decimal Total, bool Atrasado, IReadOnlyList<ItemPedidoResponse> Itens);
+    DateTimeOffset? RecebidoEm, string? RecebidoPor, decimal Total, bool Atrasado, IReadOnlyList<ItemPedidoResponse> Itens,
+    string? Pagamento,          // Boleto / NaEntrega / Nota (null = antigo)
+    int ContasPagar,            // contas a pagar ligadas (do recebimento ou da NF-e)
+    bool AguardandoNota);       // recebido com "a conta vem com a NF-e" e a nota ainda não entrou
 
 // Os pedidos de compra que o sistema montou sozinho ao abrir a loja (para o aviso do painel).
 public record SugestaoDoDiaResponse(int Pedidos, int Itens, decimal Total, DateTimeOffset? GeradaEm, bool Ligada);

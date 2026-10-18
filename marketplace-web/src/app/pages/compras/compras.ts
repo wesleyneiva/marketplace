@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ItemSugestao, Pedido, SugestaoFornecedor } from '../../core/api/compras.api';
+import { ContaFinanceira } from '../../core/api/financeiro.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
@@ -201,7 +202,28 @@ export class Compras {
   protected conferencia: Conferencia[] = [];
   protected readonly erroReceber = signal<string | null>(null);
 
+  // Pagamento da mercadoria (gera a conta a pagar — é o que faz o dinheiro sair no Financeiro).
+  protected readonly formasNaEntrega = ['Dinheiro', 'PIX', 'Transferência', 'Cartão de débito', 'Cartão de crédito', 'Cheque'];
+  private readonly carregarContas = signal(false);
+  protected readonly contasFinanceiras = httpResource<ContaFinanceira[]>(() => (this.carregarContas() ? '/api/financeiro/contas' : undefined));
+  protected readonly contasAtivas = computed(() => (this.contasFinanceiras.value() ?? []).filter((c) => c.ativa && c.tipo !== 'Maquininha'));
+  protected pagamento = { modo: 'Boleto' as 'Boleto' | 'NaEntrega' | 'Nota', vencimento: '', documento: '', forma: 'Dinheiro', contaId: null as number | null, valor: null as number | null };
+
+  // Total do que chegou (quantidade conferida × custo): é o valor da conta, se ninguém mudar.
+  protected totalRecebido(): number {
+    return Math.round(this.conferencia.reduce((t, c) => t + (Number(c.recebido) || 0) * (Number(c.custo) || 0), 0) * 100) / 100;
+  }
+
+  protected escolherForma(forma: string): void {
+    this.pagamento.forma = forma;
+    const tipo = forma === 'Dinheiro' ? 'Dinheiro' : 'Banco';
+    this.pagamento.contaId = this.contasAtivas().find((c) => c.tipo === tipo)?.id ?? this.pagamento.contaId;
+  }
+
   abrirRecebimento(p: Pedido): void {
+    this.carregarContas.set(true);
+    const venc = new Date(Date.now() + 7 * 86_400_000).toLocaleDateString('sv-SE'); // boleto: 7 dias (o mais comum); dá para mudar
+    this.pagamento = { modo: 'Boleto', vencimento: venc, documento: '', forma: 'Dinheiro', contaId: null, valor: null };
     this.recebendo.set(p);
     this.conferencia = p.itens.map((i) => ({
       itemId: i.id, produto: i.produto, unidade: i.unidade, perecivel: i.perecivel,
@@ -216,20 +238,39 @@ export class Compras {
     if (!p) return;
     const semValidade = this.conferencia.find((c) => c.perecivel && c.recebido > 0 && !c.validade);
     if (semValidade) return this.erroReceber.set(`Informe a validade de "${semValidade.produto}".`);
+    const pg = this.pagamento;
+    if (pg.modo === 'Boleto' && !pg.vencimento) return this.erroReceber.set('Informe o vencimento do boleto.');
+    if (pg.modo === 'NaEntrega' && !pg.contaId) {
+      this.escolherForma(pg.forma);
+      if (!pg.contaId) return this.erroReceber.set('Escolha de qual conta saiu o dinheiro.');
+    }
 
     this.ocupado.set(true);
     try {
       await firstValueFrom(this.http.post(`/api/compras/pedidos/${p.id}/receber`, {
         itens: this.conferencia.map((c) => ({ itemId: c.itemId, quantidadeRecebida: c.recebido, validade: c.validade || null, custoUnitario: c.custo })),
+        pagamento: {
+          modo: pg.modo, vencimento: pg.modo === 'Boleto' ? pg.vencimento : null, valor: pg.valor || null,
+          documento: pg.documento.trim() || null, contaFinanceiraId: pg.modo === 'NaEntrega' ? pg.contaId : null,
+          formaPagamento: pg.modo === 'NaEntrega' ? pg.forma : 'Boleto',
+        },
       }));
       this.dlgReceber()?.nativeElement.close();
-      this.mostrarAviso(`Pedido #${p.id} recebido: a mercadoria entrou no estoque.`);
+      this.mostrarAviso(`Pedido #${p.id} recebido: a mercadoria entrou no estoque` + ({
+        Boleto: ` e o boleto de ${this.reais(pg.valor || this.totalRecebido())} entrou em Contas a pagar (vence ${this.dia(pg.vencimento)}).`,
+        NaEntrega: ` e o pagamento de ${this.reais(pg.valor || this.totalRecebido())} (${pg.forma}) saiu do Financeiro.`,
+        Nota: '. A conta entra quando você lançar a NF-e deste pedido (Compras → Entrada por NF-e).',
+      })[pg.modo]);
       this.pedidos.reload();
     } catch (e) {
       this.erroReceber.set(this.mensagem(e));
     } finally {
       this.ocupado.set(false);
     }
+  }
+
+  private reais(v: number): string {
+    return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   }
 
   protected faltou(c: Conferencia): boolean {
