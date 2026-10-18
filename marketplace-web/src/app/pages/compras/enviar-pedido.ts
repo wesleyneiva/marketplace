@@ -7,6 +7,7 @@ import { Fornecedor, Pedido } from '../../core/api/compras.api';
 import { AuthService } from '../../core/auth/auth.service';
 import { copiarTexto } from '../../shared/copiar';
 import { Icone } from '../../shared/icone';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Mandar o pedido de compra ao fornecedor: a mensagem sai pronta e a pessoa escolhe o canal do cadastro do fornecedor
 // (WhatsApp ou e-mail, abertos no aparelho dela — sai do número/e-mail da própria loja) ou copia o texto.
@@ -14,9 +15,9 @@ import { Icone } from '../../shared/icone';
 // Envio automático (sem clicar) fica para quando houver fornecedores reais: WhatsApp da loja pela API ou e-mail próprio.
 @Component({
   selector: 'app-enviar-pedido',
-  imports: [Icone, FormsModule, RouterLink],
+  imports: [Icone, FormsModule, RouterLink, FecharAoClicarFora],
   template: `
-    <dialog #dlg class="dialogo-enviar">
+    <dialog #dlg fecharAoClicarFora class="dialogo-enviar">
       @if (pedido(); as p) {
         <header>
           <h2><app-icone nome="send" /> Enviar pedido #{{ p.id }} ao fornecedor</h2>

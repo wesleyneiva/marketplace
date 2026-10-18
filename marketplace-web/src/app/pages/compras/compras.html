@@ -152,7 +152,7 @@
 }
 
 <!-- ======================= CONFERÊNCIA NA ENTREGA ======================= -->
-<dialog #dlgReceber class="janela larga" (close)="erroReceber.set(null)">
+<dialog #dlgReceber fecharAoClicarFora class="janela larga" (close)="erroReceber.set(null)">
   @if (recebendo(); as p) {
     <header><h2><app-icone nome="package" /> Receber pedido #{{ p.id }} — {{ p.fornecedor }}</h2><button type="button" class="fechar" (click)="dlgReceber.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
@@ -221,7 +221,7 @@
 </dialog>
 
 <!-- ======================= NOVO PEDIDO (MANUAL) ======================= -->
-<dialog #dlgNovo class="janela larga" (close)="erroNovo.set(null)">
+<dialog #dlgNovo fecharAoClicarFora class="janela larga" (close)="erroNovo.set(null)">
   <header><h2><app-icone nome="clipboard-list" /> Novo pedido de compra</h2><button type="button" class="fechar" (click)="dlgNovo.close()" aria-label="Fechar"><app-icone nome="x" /></button></header>
   <div class="corpo">
     <label>Fornecedor

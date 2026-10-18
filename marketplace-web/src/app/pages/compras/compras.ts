@@ -13,6 +13,7 @@ import { CampoData } from '../../shared/campo-data';
 import { ProdutoBusca } from '../../shared/produto-busca';
 import { Produto } from '../../core/api/produtos.api';
 import { EnviarPedido } from './enviar-pedido';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
 interface ItemNovo { produtoId: number; produto: string; unidade: string; estoqueAtual: number; estoqueMinimo: number; fornecedorId: number | null; fornecedor: string | null; quantidade: number; custo: number }
@@ -21,7 +22,7 @@ interface Conferencia { itemId: number; produto: string; unidade: string; pereci
 
 @Component({
   selector: 'app-compras',
-  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe, CampoData, ProdutoBusca, EnviarPedido],
+  imports: [Icone, FormsModule, RouterLink, CurrencyPipe, DatePipe, DecimalPipe, DiaPipe, QuantidadePipe, CampoData, ProdutoBusca, EnviarPedido, FecharAoClicarFora],
   templateUrl: './compras.html',
   styleUrl: './compras.scss',
 })
