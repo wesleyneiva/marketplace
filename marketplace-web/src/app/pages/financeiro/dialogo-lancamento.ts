@@ -9,15 +9,16 @@ import {
 } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Receita ou despesa avulsa, já paga/recebida (ex.: comprou material de limpeza no PIX, rendimento do banco).
 // Para algo a pagar DEPOIS, o lugar é Contas a pagar.
 @Component({
   selector: 'app-dialogo-lancamento',
-  imports: [Icone, FormsModule, CurrencyPipe, CampoData],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, CampoData],
   styleUrl: './financeiro.scss',
   template: `
-    <dialog #dlg class="janela" (close)="erro.set(null)">
+    <dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
         <header>
           <h2>@if (!editando()) { <app-icone [nome]="tipo() === 'Entrada' ? 'plus' : 'minus'" /> }{{ editando() ? 'Editar lançamento' : tipo() === 'Entrada' ? 'Nova receita' : 'Nova despesa' }}</h2>

@@ -41,7 +41,7 @@
 </section>
 
 <!-- Cadastro / edição -->
-<dialog #dlgUsuario class="janela" (close)="erro.set(null)">
+<dialog #dlgUsuario fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar usuário' : 'Novo usuário' }}</h2><button type="button" class="fechar" (click)="dlgUsuario.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">

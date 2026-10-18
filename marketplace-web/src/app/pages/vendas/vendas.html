@@ -121,7 +121,7 @@
 }
 
 <!-- ======================= CUPOM DA VENDA ======================= -->
-<dialog #dlgVenda class="janela cupom-venda" (close)="venda.set(null); estornando.set(false)">
+<dialog #dlgVenda fecharAoClicarFora class="janela cupom-venda" (close)="venda.set(null); estornando.set(false)">
   <header>
     <h2><app-icone nome="receipt-text" /> {{ venda() ? 'Venda #' + venda()!.id : 'Venda' }}</h2>
     <button type="button" class="fechar" (click)="dlgVenda.close()" aria-label="Fechar"><app-icone nome="x" /></button>

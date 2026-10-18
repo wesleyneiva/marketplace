@@ -126,7 +126,7 @@
 }
 
 <!-- Detalhe de uma linha -->
-<dialog #dlgDetalhe class="janela larga" (close)="detalhe.set(null)">
+<dialog #dlgDetalhe fecharAoClicarFora class="janela larga" (close)="detalhe.set(null)">
   <header><h2>{{ detalhe()?.titulo ?? 'Carregando…' }}</h2><button type="button" class="fechar" (click)="dlgDetalhe.close()"><app-icone nome="x" /></button></header>
   <div class="corpo">
     @if (carregandoDetalhe()) { <p class="dica">Buscando…</p> }

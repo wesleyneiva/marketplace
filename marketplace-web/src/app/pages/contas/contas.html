@@ -92,7 +92,7 @@
 </section>
 
 <!-- Lançar / editar -->
-<dialog #dlgConta class="janela" (close)="erro.set(null)">
+<dialog #dlgConta fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar conta' : 'Lançar conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">
@@ -137,7 +137,7 @@
 </dialog>
 
 <!-- Pagar -->
-<dialog #dlgPagar class="janela" (close)="erro.set(null)">
+<dialog #dlgPagar fecharAoClicarFora class="janela" (close)="erro.set(null)">
   @if (pagando(); as c) {
     <form (ngSubmit)="pagar()" #fp="ngForm">
       <header><h2><app-icone nome="circle-check" /> Pagar conta</h2><button type="button" class="fechar" (click)="dlgPagar.close()"><app-icone nome="x" /></button></header>

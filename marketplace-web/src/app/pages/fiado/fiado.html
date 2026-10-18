@@ -86,7 +86,7 @@
 <app-dialogo-caderneta (mudou)="recarregar()" (editar)="editar($event)" />
 
 <!-- Cadastro -->
-<dialog #dlgCliente class="janela" (close)="erro.set(null)">
+<dialog #dlgCliente fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar cliente' : 'Novo cliente' }}</h2><button type="button" class="fechar" (click)="dlgCliente.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">

@@ -9,6 +9,7 @@ import { ProdutoBusca } from './produto-busca';
 import { QuantidadePipe } from './quantidade.pipe';
 import { Icone } from './icone';
 import { CampoData } from './campo-data';
+import { FecharAoClicarFora } from './fechar-ao-clicar-fora';
 
 export type TipoAcao = 'Entrada' | 'Perda' | 'Ajuste';
 
@@ -17,7 +18,7 @@ export type TipoAcao = 'Entrada' | 'Perda' | 'Ajuste';
 // Uso:  <app-movimentar-dialog #dialogo (salvo)="..." />   e   dialogo.abrir('Entrada', produto?)
 @Component({
   selector: 'app-movimentar-dialog',
-  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, ProdutoBusca, QuantidadePipe, CampoData],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DiaPipe, ProdutoBusca, QuantidadePipe, CampoData],
   templateUrl: './movimentar-dialog.html',
   styleUrl: './movimentar-dialog.scss',
 })

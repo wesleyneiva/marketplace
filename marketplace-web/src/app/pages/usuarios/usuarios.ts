@@ -6,6 +6,7 @@ import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { copiarTexto } from '../../shared/copiar';
 import { Icone } from '../../shared/icone';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 interface Usuario {
   id: string; nome: string; email: string; perfil: string; ativo: boolean; trocarSenha: boolean; sistema: boolean;
@@ -14,7 +15,7 @@ interface Usuario {
 
 @Component({
   selector: 'app-usuarios',
-  imports: [Icone, FormsModule, DatePipe],
+  imports: [FecharAoClicarFora, Icone, FormsModule, DatePipe],
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.scss',
 })

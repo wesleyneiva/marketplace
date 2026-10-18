@@ -1,4 +1,4 @@
-<dialog #dlg class="janela caderneta" (close)="painel.set('nada')">
+<dialog #dlg fecharAoClicarFora class="janela caderneta" (close)="painel.set('nada')">
   @if (caderneta(); as cd) {
     @let c = cd.cliente;
     <header>

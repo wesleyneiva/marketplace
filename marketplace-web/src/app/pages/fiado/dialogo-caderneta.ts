@@ -9,11 +9,12 @@ import { Caderneta, LancamentoFiado, URL_FIADO, linkCobranca, telefoneBonito } f
 import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // A caderneta de UM cliente: o extrato, receber fora do caixa, desfazer, dar baixa (Administrador) e cobrar no WhatsApp.
 @Component({
   selector: 'app-dialogo-caderneta',
-  imports: [Icone, CurrencyPipe, DatePipe, FormsModule, DiaPipe, CampoData],
+  imports: [FecharAoClicarFora, Icone, CurrencyPipe, DatePipe, FormsModule, DiaPipe, CampoData],
   templateUrl: './dialogo-caderneta.html',
   styleUrls: ['../financeiro/financeiro.scss', './fiado.scss'],
 })

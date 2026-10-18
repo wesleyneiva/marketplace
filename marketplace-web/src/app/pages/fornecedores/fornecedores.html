@@ -31,7 +31,7 @@
   </table>
 </section>
 
-<dialog #dlg class="janela" (close)="erro.set(null)">
+<dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar fornecedor' : 'Novo fornecedor' }}</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">

@@ -1,4 +1,4 @@
-<dialog #dialogo (close)="erro.set(null)">
+<dialog #dialogo fecharAoClicarFora (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header>
       <h2><app-icone [nome]="iconeTitulo()" /> {{ titulo() }}</h2>

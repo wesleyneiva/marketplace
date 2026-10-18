@@ -7,11 +7,12 @@ import {
   ConfiguracaoRecebimento, ContaFinanceira, ICONE_FORMA, NOME_FORMA, URL_FINANCEIRO, mensagemDeErro,
 } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // O contrato da maquininha: taxa, prazo e onde cai o dinheiro de cada forma. Vale para as PRÓXIMAS vendas.
 @Component({
   selector: 'app-dialogo-maquininha',
-  imports: [Icone, FormsModule, DiaPipe],
+  imports: [FecharAoClicarFora, Icone, FormsModule, DiaPipe],
   styleUrl: './financeiro.scss',
   styles: `
     .janela { width: min(640px, calc(100vw - 32px)); }
@@ -24,7 +25,7 @@ import { Icone } from '../../shared/icone';
     @media (max-width: 560px) { .campos { grid-template-columns: 1fr 1fr; } .campos .conta { grid-column: 1 / -1; } }
   `,
   template: `
-    <dialog #dlg class="janela" (close)="erro.set(null)">
+    <dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
         <header><h2><app-icone nome="settings" /> Maquininha e PIX</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
         <div class="corpo">

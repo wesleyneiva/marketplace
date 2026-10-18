@@ -25,7 +25,7 @@
   }
 </section>
 
-<dialog #dlg class="janela">
+<dialog #dlg fecharAoClicarFora class="janela">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header>
       <h2>{{ editando ? 'Editar plano' : 'Novo plano' }}</h2>

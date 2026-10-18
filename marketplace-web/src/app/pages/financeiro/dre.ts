@@ -7,6 +7,7 @@ import { DiaPipe } from '../../shared/dia.pipe';
 import { GraficoBarras, PontoBarra } from '../../shared/graficos/grafico-barras';
 import { DetalheDre, Dre, LinhaDre, MesDre, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 const URL_DRE = `${URL_FINANCEIRO}/dre`;
 
@@ -14,7 +15,7 @@ const URL_DRE = `${URL_FINANCEIRO}/dre`;
 // despesas fixas já entram inteiras e a receita ainda não, e isso assusta sem explicar.
 @Component({
   selector: 'app-dre',
-  imports: [Icone, CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, GraficoBarras],
+  imports: [FecharAoClicarFora, Icone, CurrencyPipe, DecimalPipe, FormsModule, DiaPipe, GraficoBarras],
   templateUrl: './dre.html',
   styleUrls: ['./financeiro.scss', './dre.scss'],
 })

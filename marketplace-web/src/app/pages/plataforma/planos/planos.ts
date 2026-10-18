@@ -5,11 +5,12 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Icone } from '../../../shared/icone';
 import { API, Plano, mensagemErro } from '../comum';
+import { FecharAoClicarFora } from '../../../shared/fechar-ao-clicar-fora';
 
 // Planos que o dono vende. Mensalidade = preço + caixas além dos incluídos × preço do caixa extra.
 @Component({
   selector: 'app-planos',
-  imports: [Icone, FormsModule, CurrencyPipe],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe],
   templateUrl: './planos.html',
   styleUrl: './planos.scss',
 })

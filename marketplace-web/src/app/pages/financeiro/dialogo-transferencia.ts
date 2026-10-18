@@ -6,14 +6,15 @@ import { firstValueFrom } from 'rxjs';
 import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Transferência entre contas (ex.: levar o dinheiro do cofre para o banco). Não é receita nem despesa.
 @Component({
   selector: 'app-dialogo-transferencia',
-  imports: [Icone, FormsModule, CurrencyPipe, CampoData],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, CampoData],
   styleUrl: './financeiro.scss',
   template: `
-    <dialog #dlg class="janela" (close)="erro.set(null)">
+    <dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
         <header><h2><app-icone nome="arrow-left-right" /> Transferência entre contas</h2><button type="button" class="fechar" (click)="dlg.close()"><app-icone nome="x" /></button></header>
         <div class="corpo">

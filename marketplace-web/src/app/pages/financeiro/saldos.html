@@ -79,7 +79,7 @@
 <app-dialogo-transferencia (salvo)="transferiu($event)" />
 
 <!-- Nova / editar conta -->
-<dialog #dlgConta class="janela" (close)="erro.set(null)">
+<dialog #dlgConta fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header><h2>{{ editando() ? 'Editar conta' : 'Nova conta' }}</h2><button type="button" class="fechar" (click)="dlgConta.close()"><app-icone nome="x" /></button></header>
     <div class="corpo">

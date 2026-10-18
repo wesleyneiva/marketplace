@@ -11,11 +11,12 @@ import {
 import { DialogoTransferencia } from './dialogo-transferencia';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Aba "Saldos": um cartão por conta (gaveta, cofre, banco...) com o saldo de hoje.
 @Component({
   selector: 'app-saldos',
-  imports: [Icone, CurrencyPipe, FormsModule, DiaPipe, DialogoTransferencia, CampoData],
+  imports: [FecharAoClicarFora, Icone, CurrencyPipe, FormsModule, DiaPipe, DialogoTransferencia, CampoData],
   templateUrl: './saldos.html',
   styleUrls: ['./financeiro.scss', './saldos.scss'],
 })

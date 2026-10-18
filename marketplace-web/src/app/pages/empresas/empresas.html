@@ -79,7 +79,7 @@
 </section>
 
 <!-- Cadastro / edição -->
-<dialog #dlgEmpresa class="janela" (close)="erro.set(null)">
+<dialog #dlgEmpresa fecharAoClicarFora class="janela" (close)="erro.set(null)">
   <form (ngSubmit)="salvar()" #f="ngForm">
     <header>
       <h2>{{ editando() ? 'Editar empresa' : 'Novo cliente' }}</h2>

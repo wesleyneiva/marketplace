@@ -10,6 +10,7 @@ import {
 } from '../../core/api/financeiro.api';
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Formatos iguais a Contracts/ContasDtos.cs.
 interface Conta {
@@ -54,7 +55,7 @@ const FORMAS = ['PIX', 'Boleto', 'Dinheiro', 'Transferência', 'Cartão de débi
 // Contas a pagar: as parcelas das notas (entram sozinhas pela NF-e) e as lançadas à mão (aluguel, luz, internet...).
 @Component({
   selector: 'app-contas',
-  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
   templateUrl: './contas.html',
   styleUrl: './contas.scss',
 })

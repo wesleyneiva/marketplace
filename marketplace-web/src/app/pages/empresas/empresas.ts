@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { copiarTexto } from '../../shared/copiar';
 import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 import { Icone } from '../../shared/icone';
+import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -62,7 +63,7 @@ export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
 // Mostra só o USO do sistema (acessos, dias com movimento), nunca quanto o cliente vende.
 @Component({
   selector: 'app-empresas',
-  imports: [Icone, FormsModule, CurrencyPipe, DatePipe, CidadeBusca, RouterLink],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DatePipe, CidadeBusca, RouterLink],
   templateUrl: './empresas.html',
   styleUrl: './empresas.scss',
 })

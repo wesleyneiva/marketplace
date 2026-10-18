@@ -8,6 +8,7 @@ import { Icone } from '../../../shared/icone';
 import { DiaPipe } from '../../../shared/dia.pipe';
 import { API, ConfiguracaoCobranca, FORMAS, Fatura, hojeIso, linkCobranca, mensagemErro, mesAno } from '../comum';
 import { CampoData } from '../../../shared/campo-data';
+import { FecharAoClicarFora } from '../../../shared/fechar-ao-clicar-fora';
 
 type Aba = 'abertas' | 'atrasadas' | 'pagas' | 'todas';
 interface ClienteLista { id: number; nome: string; cortesia: boolean }
@@ -15,7 +16,7 @@ interface ClienteLista { id: number; nome: string; cortesia: boolean }
 // Mensalidades dos clientes: receber, cobrar no WhatsApp, cancelar, gerar agora e as regras de cobrança/bloqueio.
 @Component({
   selector: 'app-cobrancas',
-  imports: [Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
+  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
   templateUrl: './cobrancas.html',
   styleUrl: './cobrancas.scss',
 })

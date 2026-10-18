@@ -80,7 +80,7 @@
   }
 </section>
 
-<dialog #dlgPagar class="janela">
+<dialog #dlgPagar fecharAoClicarFora class="janela">
   @if (pagando; as f) {
     <form (ngSubmit)="confirmarPagamento()">
       <header>
@@ -107,7 +107,7 @@
   }
 </dialog>
 
-<dialog #dlgNova class="janela">
+<dialog #dlgNova fecharAoClicarFora class="janela">
   <form (ngSubmit)="criarNova()" #fn="ngForm">
     <header>
       <h2>Cobrança avulsa</h2>
