@@ -238,8 +238,9 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 17/10/2026 — módulos por cliente, relógio, rodapé, Telegram desligado, estoque, compras e backup
-Tudo publicado em https://app.wnlabs.com.br (backup antes da migration: `~/backup/marketplace-antes-ModulosLiberados-2026-10-17.dump`).
+### 17/10/2026 — módulos por cliente, relógio, rodapé, Telegram desligado, estoque, compras, pagamento do pedido e backup
+Tudo publicado em https://app.wnlabs.com.br (último commit do dia: ver `git log`). Backups antes das migrations:
+`~/backup/marketplace-antes-ModulosLiberados-2026-10-17.dump` e `~/backup/marketplace-antes-PagamentoDoPedido-2026-10-17.dump`.
 Detalhes técnicos em Funcionalidades.
 
 - **Módulos liberados por cliente** (área do dono → Clientes → ficha → Módulos liberados): todos ou um a um; o sistema do cliente
@@ -259,6 +260,12 @@ Detalhes técnicos em Funcionalidades.
   "WhatsApp / telefone".
 - **Recebimento do pedido de compra gera a conta a pagar** (boleto, pago na entrega ou "vem com a NF-e", sem duplicar com a nota).
   Antes, receber o pedido só punha no estoque e o dinheiro nunca saía do Financeiro. Migration `PagamentoDoPedido`.
+  Testado no dev: boleto (conta com vencimento), pago na entrega por PIX (saiu R$ 60 do banco), gaveta sem dinheiro barrada sem
+  deixar nada pela metade, NF-e ligada ao pedido "aguardando NF-e" lançou só as 2 parcelas. Os 105 pedidos antigos do Juvenal
+  ficam sem conta (decisão do usuário: loja de teste).
+- **Janelas fecham ao clicar fora** (`shared/fechar-ao-clicar-fora.ts`, atributo `fecharAoClicarFora` no `<dialog>`; só fecha se o
+  clique começa e termina fora). Ficaram SÓ com X/Esc: as do caixa (PDV) e as que mostram senha provisória uma vez (Usuários →
+  senha nova, área do dono → credencial do cliente). Janela nova: pôr o atributo (menos nesses casos).
 - **Backup**: o diário (03:45) passou a guardar também `configuracao.tar.gz` (`/etc/marketplace/marketplace.env` + chaves do
   DataProtection). Vai para a nuvem da Oracle às 04:30, criptografado pelo rclone, 30 dias. **Restauração testada** (contagens
   iguais à produção). Ver Rodando → Backup.
@@ -274,7 +281,9 @@ Pendências:
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`); o fornecedor
-  "Frigorífico Boa Carne" (#24) tem contato fictício e há o pedido #24 de teste.
+  "Frigorífico Boa Carne" (#24) tem contato, e-mail e CNPJ fictícios (98.765.432/0001-98, o das notas de teste "distribuidora");
+  pedidos de teste #24 (boleto), #26 (pago na entrega), #27 (NF-e nota-4 já ligada), #28 (enviado, não recebido).
+  A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
 - Ler este README (Funcionalidades + Últimas atualizações, começando por 17/10/2026). Memórias do assistente em
