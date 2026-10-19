@@ -148,7 +148,7 @@
   }
 
   <section class="filtros">
-    <input type="search" class="busca" placeholder="Buscar por nome ou código de barras…" aria-label="Buscar produto"
+    <input #campoBuscaPos type="search" class="busca" placeholder="Buscar por nome ou código de barras…" aria-label="Buscar produto"
            (input)="digitarBuscaPos($any($event.target).value)" />
     <select aria-label="Categoria" (change)="mudarFiltroPos(() => posCategoria.set($any($event.target).value ? +$any($event.target).value : null))">
       <option value="" [selected]="posCategoria() === null">Todas as categorias</option>
@@ -169,6 +169,9 @@
       <option value="valor" [selected]="posOrdem() === 'valor'">Ordem: maior valor</option>
       <option value="quantidade" [selected]="posOrdem() === 'quantidade'">Ordem: menor quantidade</option>
     </select>
+    @if (temFiltroPos) {
+      <button type="button" class="botao" (click)="limparFiltrosPos(campoBuscaPos)"><app-icone nome="x" /> Limpar filtros</button>
+    }
   </section>
 
   <section class="painel tabela-rolagem" [class.carregando]="posicao.isLoading()">
@@ -207,7 +210,10 @@
           @if (!posicao.isLoading()) {
             <tr><td colspan="9" class="vazio">
               @if (posicao.error()) { Não foi possível carregar a posição do estoque. <button class="botao pequeno" (click)="posicao.reload()">Tentar de novo</button> }
-              @else { Nenhum produto com esses filtros. }
+              @else {
+                Nenhum produto com esses filtros.
+                @if (temFiltroPos) { <button type="button" class="botao pequeno" (click)="limparFiltrosPos(campoBuscaPos)">Limpar filtros</button> }
+              }
             </td></tr>
           }
         }

@@ -1,4 +1,4 @@
-import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { Component, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -87,6 +87,25 @@ export class Estoque {
 
   protected mudarFiltroPos(acao: () => void): void {
     acao();
+    this.posPagina.set(1);
+  }
+
+  // Os campos de filtro só existem com a aba aberta: ao sair dela, o filtro volta ao padrão para a tela
+  // não mostrar "sem filtro" com a lista ainda filtrada quando se volta.
+  private readonly zerarFiltrosAoSair = effect(() => {
+    if (this.abaAtual() !== 'posicao') this.limparFiltrosPos();
+  });
+
+  protected get temFiltroPos(): boolean {
+    return !!this.posBusca() || this.posCategoria() !== null || !!this.posSituacao();
+  }
+
+  protected limparFiltrosPos(campoBusca?: HTMLInputElement): void {
+    clearTimeout(this.esperaBuscaPos);
+    if (campoBusca) campoBusca.value = '';
+    this.posBusca.set('');
+    this.posCategoria.set(null);
+    this.posSituacao.set('');
     this.posPagina.set(1);
   }
 
