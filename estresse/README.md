@@ -45,3 +45,19 @@ vencidos, porque o teste mede velocidade e não falta de produto.
 - O caminho pela internet (Cloudflare Tunnel até app.wnlabs.com.br): o teste bate direto na API.
 - Pix automático (Mercado Pago), insights da IA (n8n/Gemini), NF-e e cancelamentos com estorno.
 - Queda e volta da internet no caixa (a fila offline fica no navegador).
+
+## Resultados (VM: 4 núcleos ARM, 23 GB; o gerador de carga roda na mesma VM e também gasta CPU)
+
+| Equivale a | 19/10 antes das correções | 19/10 depois das correções |
+|---|---|---|
+| 100 mercados | venda p95 41 ms, 0 erros, CPU 13% | venda p95 38 ms, 0 erros, CPU 11% |
+| 250 mercados | p95 56 ms, 0 erros, CPU 30% | p95 49 ms, 0 erros, CPU 26% · relatórios p95 761 → 370 ms |
+| 500 mercados | p95 118 ms, 0 erros, CPU 59% | p95 134 ms, 1,1% de erros numa rajada (fila de conexões da API cheia) |
+| 1000 mercados | **caiu**: 301 vendas/min, 11% de erros, conexões do banco esgotadas e a **produção caiu ~1 min** | **aguentou**: 2.794 vendas/min, 0% de erros, mas lento (venda p95 975 ms, CPU 88%); produção intacta |
+
+Correções do dia (commit aecaf1f e seguintes): rotinas de fundo não derrubam a API, nova tentativa ao ligar,
+60 conexões por aplicação (`Banco__MaxConexoes`), PostgreSQL com 300 conexões e 2 GB de cache, índices de cobertura
+para relatórios e migrations com até 10 min por comando. Relatórios em `estresse/resultados/`.
+
+Próximos gargalos: relatórios de produtos e DRE somam centenas de milhares de itens a cada abertura (guardar o
+resultado por alguns minutos resolveria), e a entrada de muitos usuários ao mesmo tempo (o login é pesado de propósito).
