@@ -35,8 +35,15 @@ iniciar() {
 }
 
 parar() {
-  if [[ -f "$PID" ]] && kill -0 "$(cat "$PID")" 2>/dev/null; then
-    kill "$(cat "$PID")"; sleep 2; echo "API de estresse desligada."
+  # Pelo pid anotado e, por garantia, por qualquer dotnet rodando da pasta ~/estresse/app (nunca a produção).
+  local pids=""
+  [[ -f "$PID" ]] && kill -0 "$(cat "$PID")" 2>/dev/null && pids="$(cat "$PID")"
+  for p in $(pgrep -f "dotnet Marketplace.Api.dll" || true); do
+    [[ "$(readlink "/proc/$p/cwd" 2>/dev/null)" == "$PASTA/app" ]] && pids="$pids $p"
+  done
+  pids=$(echo $pids | tr ' ' '\n' | sort -u | tr '\n' ' ')
+  if [[ -n "${pids// }" ]]; then
+    kill $pids; for _ in $(seq 1 15); do no_ar || break; sleep 1; done; echo "API de estresse desligada."
   else echo "API de estresse não estava no ar."; fi
   rm -f "$PID"
 }
