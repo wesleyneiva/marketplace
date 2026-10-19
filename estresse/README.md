@@ -59,7 +59,7 @@ vencidos, porque o teste mede velocidade e não falta de produto.
 
 Correções do dia (commit aecaf1f e seguintes): rotinas de fundo não derrubam a API, nova tentativa ao ligar,
 60 conexões por aplicação (`Banco__MaxConexoes`), PostgreSQL com 300 conexões e 2 GB de cache, índices de cobertura
-para relatórios e migrations com até 10 min por comando. Relatórios em `estresse/resultados/`.
+para relatórios e migrations com até 10 min por comando. Relatório oficial (o mais recente): `estresse/resultados/2026-10-19-com-cache.html`; os anteriores ficam no histórico do git.
 
 Depois (commit a7656cd): relatórios e DRE guardados 2 min por empresa (a DRE recalcula na hora quando o financeiro
 muda) e 90 conexões por aplicação.
