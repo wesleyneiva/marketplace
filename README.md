@@ -311,6 +311,15 @@ Pendências:
   Não há como ver; proposto acrescentar `./criar-dono.sh --redefinir --email …` (senha provisória no terminal) — aguardando o ok.
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
 - Backup da nuvem cobre só Marcus + n8n; oferecido incluir o assistente do Telegram e os outros serviços da VM (sem resposta).
+- (19/10) **Cofre de senhas**: o usuário está montando um arquivo único (guardado em 2+ lugares) com a lista passada no chat:
+  rclone (feito), chave S3 da Oracle (ID, secreta, namespace), contas Oracle/GitHub/Cloudflare/domínio/Tailscale, chave SSH,
+  IP do Tailscale (oracle-a1, 100.x) e IP público, integrações (Gemini, Telegram, Evolution, afiliados). Nunca mostrar senhas no
+  chat: passar o comando para ele rodar no terminal.
+- (19/10) **Treino mensal da recuperação**: `sudo infra/recuperar-banco.sh --teste --nuvem` (próximo: ~19/11/2026).
+- (19/10) **Compactar o banco do n8n** (VACUUM, n8n parado ~2 min) depois de ~26/10, quando a limpeza automática de 7 dias tiver passado.
+- (19/10) **Redundância fase 2** (2ª VM em outro provedor, réplica em tempo real, mesmo túnel Cloudflare): junto com o 1º cliente pagante.
+- (19/10) Ideias combinadas e não feitas: aba "Despesas e resultado" na Visão geral do dono quando houver custos; coluna
+  "Código na balança (PLU)" na planilha de importação de produtos (hoje só na ficha do produto).
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`); o fornecedor
@@ -319,8 +328,12 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 (tarde), 19/10 e 17/10). Memórias do assistente em
-  `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 (tarde), 19/10 e 17/10) e as Pendências acima.
+  Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
+- **Infra** (19/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo (compose);
+  plano de desastre em `docs/plano-de-desastre.md`; scripts em `infra/` (enviar-wal, recuperar-banco) e cópias versionadas das
+  rotinas da VM em `infra/vm/` (os originais rodam de `~/scripts` e `/etc/systemd/system`). Teste de estresse: `estresse/README.md`
+  (rodar fora do horário das lojas; o ambiente isolado foi desmontado e se recria em ~10 min).
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
