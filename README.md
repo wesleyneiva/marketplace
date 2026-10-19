@@ -249,6 +249,10 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   produtos com/sem estoque, abaixo do mínimo, valor por categoria e a lista de todos os produtos com saldo e valor. Sem migration.
   Antes, a tela Estoque não mostrava o estoque inteiro (só validades, movimentações e estoque baixo); o saldo só aparecia em Produtos.
   No dev (Teste Vendas): R$ 21.012,19 a custo e R$ 30.283,37 a venda, conferidos com SQL.
+- **Insights da IA (Relatórios) religado**: o fluxo "Marketplace – Insights IA" do n8n (Webhook → Gemini → resposta, sem Telegram)
+  tinha sido desligado em 17/10 junto com os do Telegram, e o botão "Gerar insights" parou. Religado só ele; testado com a chave
+  da produção (resposta em ~2 s). No dev o botão dá 403 porque o dev não tem `Integracao:ChaveApi` (a tela mostra "IA sobrecarregada"
+  para qualquer falha). Os outros 3 fluxos (Resumo do dia, Alertas, Semana) seguem desligados.
 - Visto e não mexido: as outras abas (Validades etc.) mostram erro no console quando a API cai (`value()` do httpResource em erro);
   a tela continua de pé.
 
@@ -262,8 +266,8 @@ Detalhes técnicos em Funcionalidades.
   Commit `cdd9cbc`. Todos os clientes atuais estão com "todos".
 - **Relógio de Brasília** na barra do topo (24 h, HH:MM, sem data) e **rodapé** "Desenvolvido por WN Labs · contato@wnlabs.com.br"
   em todas as telas (casca, login, troca de senha).
-- **Telegram desligado** (decisão do usuário, por enquanto): os 4 fluxos do n8n "Marketplace – Resumo do dia / Alertas / Insights IA /
-  Semana" estão inativos e /vendas e /estoque saíram do fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (o resto do
+- **Telegram desligado** (decisão do usuário, por enquanto): os fluxos do n8n "Marketplace – Resumo do dia / Alertas / Semana"
+  estão inativos (o "Insights IA", que só atende o botão dos Relatórios, foi religado em 19/10) e /vendas e /estoque saíram do fluxo "Comandos do bot" e da /ajuda do `~/assistente/bot.py` (o resto do
   assistente pessoal segue). Cópias em `~/backup/n8n-marcus-telegram-2026-10-17/` e `~/assistente/bot.py.antes-sem-marcus`.
   Religar: `docker exec n8n n8n publish:workflow --id=<id>` + `docker restart n8n`. A API `/api/integracao` continua no ar.
 - **Estoque**: busca "Consultar produto" no topo (estoque, mínimo, lotes com validade, últimas movimentações, Entrada/Perda/Ajuste).
