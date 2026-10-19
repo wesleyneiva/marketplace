@@ -18,7 +18,7 @@ import key-round landmark layout-dashboard lightbulb loader-circle lock lock-ope
 menu message-circle minus notebook-pen octagon-alert package package-minus package-plus pause
 pencil play plug plus printer qr-code receipt refresh-cw scale send settings shopping-bag
 shopping-cart smartphone snowflake sparkles store sun tag trash-2 trending-up triangle-alert truck
-undo-2 users x moon monitor panel-left-close panel-left-open receipt-text mail
+undo-2 users x moon monitor panel-left-close panel-left-open receipt-text mail boxes search
 """.split()))
 
 destino = pathlib.Path(__file__).resolve().parent.parent / "src/app/shared/icones.ts"

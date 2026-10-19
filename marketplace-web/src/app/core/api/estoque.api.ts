@@ -86,3 +86,35 @@ export class EstoqueApi {
     return firstValueFrom(this.http.get<Lote[]>(`/api/estoque/produtos/${produtoId}/lotes`));
   }
 }
+
+// GET /api/estoque/posicao (Contracts/EstoqueDtos.cs: PosicaoEstoqueResponse).
+export type SituacaoPosicao = 'Ok' | 'Baixo' | 'Zerado' | 'Negativo';
+
+export interface PosicaoItem {
+  id: number;
+  nome: string;
+  codigoBarras: string | null;
+  categoria: string;
+  unidade: string;
+  estoqueAtual: number;
+  estoqueMinimo: number;
+  precoCusto: number;
+  precoVenda: number;
+  valorCusto: number;
+  valorVenda: number;
+  situacao: SituacaoPosicao;
+}
+
+export interface PosicaoEstoque {
+  totais: {
+    produtosAtivos: number;
+    comSaldo: number;
+    zerados: number;
+    negativos: number;
+    abaixoDoMinimo: number;
+    valorCusto: number;
+    valorVenda: number;
+  };
+  categorias: { id: number; nome: string; produtos: number; valorCusto: number; valorVenda: number }[];
+  itens: { itens: PosicaoItem[]; total: number; paginaAtual: number; tamanhoPagina: number };
+}

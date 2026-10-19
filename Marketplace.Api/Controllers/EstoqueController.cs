@@ -69,6 +69,93 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
         return new Pagina<MovimentacaoResponse>(itens, total, pagina, tamanho);
     }
 
+    // GET /api/estoque/posicao?busca=arroz&categoriaId=3&situacao=zerado&ordem=valor&pagina=1&tamanho=50
+    // Posição do estoque: os totais (valor a custo e a venda, zerados, negativos, abaixo do mínimo) e a parte de cada
+    // categoria são sempre da loja inteira (só produtos ativos); a lista segue os filtros.
+    // situacao: comSaldo | semEstoque (zerado ou negativo) | zerado | negativo | baixo (baixo = como no painel: atual <= mínimo). ordem: nome | valor | quantidade.
+    [HttpGet("posicao")]
+    public async Task<PosicaoEstoqueResponse> Posicao(
+        string? busca, int? categoriaId, string? situacao, string? ordem, int pagina = 1, int tamanho = 50)
+    {
+        pagina = Math.Max(pagina, 1);
+        tamanho = Math.Clamp(tamanho, 1, 100);
+
+        var ativos = db.Produtos.AsNoTracking().Where(p => p.Ativo);
+
+        var porCategoria = await ativos
+            .GroupBy(p => new { p.CategoriaId, p.Categoria!.Nome })
+            .Select(g => new
+            {
+                g.Key.CategoriaId, g.Key.Nome,
+                Produtos = g.Count(),
+                ComSaldo = g.Count(p => p.EstoqueAtual > 0),
+                Zerados = g.Count(p => p.EstoqueAtual == 0),
+                Negativos = g.Count(p => p.EstoqueAtual < 0),
+                Baixo = g.Count(p => p.EstoqueAtual <= p.EstoqueMinimo),
+                ValorCusto = g.Sum(p => p.EstoqueAtual > 0 ? p.EstoqueAtual * p.PrecoCusto : 0),
+                ValorVenda = g.Sum(p => p.EstoqueAtual > 0 ? p.EstoqueAtual * p.PrecoVenda : 0),
+            })
+            .ToListAsync();
+
+        var totais = new PosicaoTotais(
+            porCategoria.Sum(c => c.Produtos), porCategoria.Sum(c => c.ComSaldo), porCategoria.Sum(c => c.Zerados),
+            porCategoria.Sum(c => c.Negativos), porCategoria.Sum(c => c.Baixo),
+            Math.Round(porCategoria.Sum(c => c.ValorCusto), 2), Math.Round(porCategoria.Sum(c => c.ValorVenda), 2));
+        var categorias = porCategoria
+            .OrderByDescending(c => c.ValorCusto).ThenBy(c => c.Nome)
+            .Select(c => new PosicaoCategoria(c.CategoriaId, c.Nome, c.Produtos, Math.Round(c.ValorCusto, 2), Math.Round(c.ValorVenda, 2)))
+            .ToList();
+
+        // A lista: mesma busca da tela Produtos (palavras em qualquer ordem, sem acento, ou o código de barras exato).
+        var consulta = ativos;
+        var termo = busca?.Trim() ?? "";
+        if (termo.Length > 0)
+        {
+            var palavras = termo.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6)
+                .Select(t => t.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_")).ToList();
+            var porNome = consulta;
+            foreach (var palavra in palavras)
+                porNome = porNome.Where(p => EF.Functions.ILike(EF.Functions.Unaccent(p.Nome), EF.Functions.Unaccent($"%{palavra}%")));
+            consulta = porNome.Union(consulta.Where(p => p.CodigoBarras == termo));
+        }
+        if (categoriaId is not null) consulta = consulta.Where(p => p.CategoriaId == categoriaId);
+        consulta = situacao switch
+        {
+            "comSaldo" => consulta.Where(p => p.EstoqueAtual > 0),
+            "semEstoque" => consulta.Where(p => p.EstoqueAtual <= 0),
+            "zerado" => consulta.Where(p => p.EstoqueAtual == 0),
+            "negativo" => consulta.Where(p => p.EstoqueAtual < 0),
+            "baixo" => consulta.Where(p => p.EstoqueAtual <= p.EstoqueMinimo),
+            _ => consulta,
+        };
+
+        var total = await consulta.CountAsync();
+        var ordenada = ordem switch
+        {
+            "valor" => consulta.OrderByDescending(p => p.EstoqueAtual > 0 ? p.EstoqueAtual * p.PrecoCusto : 0).ThenBy(p => p.Nome),
+            "quantidade" => consulta.OrderBy(p => p.EstoqueAtual).ThenBy(p => p.Nome),
+            _ => consulta.OrderBy(p => p.Nome),
+        };
+        var linhas = await ordenada
+            .Skip((pagina - 1) * tamanho).Take(tamanho)
+            .Select(p => new
+            {
+                p.Id, p.Nome, p.CodigoBarras, Categoria = p.Categoria!.Nome, p.Unidade,
+                p.EstoqueAtual, p.EstoqueMinimo, p.PrecoCusto, p.PrecoVenda,
+            })
+            .ToListAsync();
+
+        var itens = linhas.Select(p =>
+        {
+            var saldo = Math.Max(p.EstoqueAtual, 0);
+            var sit = p.EstoqueAtual < 0 ? "Negativo" : p.EstoqueAtual == 0 ? "Zerado" : p.EstoqueAtual <= p.EstoqueMinimo ? "Baixo" : "Ok";
+            return new PosicaoItem(p.Id, p.Nome, p.CodigoBarras, p.Categoria, p.Unidade, p.EstoqueAtual, p.EstoqueMinimo,
+                p.PrecoCusto, p.PrecoVenda, Math.Round(saldo * p.PrecoCusto, 2), Math.Round(saldo * p.PrecoVenda, 2), sit);
+        }).ToList();
+
+        return new PosicaoEstoqueResponse(totais, categorias, new Pagina<PosicaoItem>(itens, total, pagina, tamanho));
+    }
+
     // GET /api/estoque/validades?dias=7 → lotes com saldo que vencem até daqui a N dias (inclui os vencidos).
     [HttpGet("validades")]
     public Task<List<LoteResponse>> Validades(int dias = 7) =>

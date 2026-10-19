@@ -149,6 +149,12 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
   barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
   contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
+- **Posição do estoque** (Estoque → primeira aba, a que abre por padrão) — quanto a loja tem de cada produto e quanto vale:
+  mercadoria a custo, valor se vender tudo (e o lucro bruto possível), produtos com estoque, sem estoque (zerados/negativos) e
+  abaixo do mínimo; "Valor por categoria" (barra e % a custo, clicar filtra); lista com busca, categoria, situação e ordem (nome,
+  maior valor, menor quantidade), 50 por página, e "Consultar" abre o cartão do produto no topo. Valor só conta saldo positivo.
+  Totais e categorias são sempre da loja inteira (só ativos). `GET /api/estoque/posicao` (`busca`, `categoriaId`,
+  `situacao`: comSaldo/semEstoque/zerado/negativo/baixo, `ordem`: nome/valor/quantidade). Produtos = cadastro; Estoque = quanto tem e o movimento.
 - **Consultar produto no Estoque** — busca no topo da página Estoque (nome sem acento, palavras em qualquer ordem ou código de
   barras): cartão com estoque, mínimo, situação, custo/venda, lotes com validade (vencido em vermelho, com "Dar baixa"), últimas
   5 movimentações ("Ver todas" abre a aba filtrada) e Entrada/Perda/Ajuste; atualiza sozinho depois de registrar.
@@ -238,6 +244,14 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 19/10/2026 — Posição do estoque
+- **Aba "Posição do estoque"** (a primeira do Estoque): responde "quanto tenho de mercadoria?" — valor a custo e a venda,
+  produtos com/sem estoque, abaixo do mínimo, valor por categoria e a lista de todos os produtos com saldo e valor. Sem migration.
+  Antes, a tela Estoque não mostrava o estoque inteiro (só validades, movimentações e estoque baixo); o saldo só aparecia em Produtos.
+  No dev (Teste Vendas): R$ 21.012,19 a custo e R$ 30.283,37 a venda, conferidos com SQL.
+- Visto e não mexido: as outras abas (Validades etc.) mostram erro no console quando a API cai (`value()` do httpResource em erro);
+  a tela continua de pé.
+
 ### 17/10/2026 — módulos por cliente, relógio, rodapé, Telegram desligado, estoque, compras, pagamento do pedido e backup
 Tudo publicado em https://app.wnlabs.com.br (último commit do dia: ver `git log`). Backups antes das migrations:
 `~/backup/marketplace-antes-ModulosLiberados-2026-10-17.dump` e `~/backup/marketplace-antes-PagamentoDoPedido-2026-10-17.dump`.
@@ -286,7 +300,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 17/10/2026). Memórias do assistente em
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 e 17/10/2026). Memórias do assistente em
   `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
   O usuário autorizou commit, push e publicar sem perguntar.

@@ -52,3 +52,35 @@ public record LoteResponse(
     string Situacao,
     decimal QuantidadeAtual,
     decimal ValorEmRisco);
+
+// Posição do estoque: quanto a loja tem de cada produto e quanto isso vale (custo e venda).
+// Valor só conta saldo positivo (estoque negativo não "vale" dinheiro).
+public record PosicaoEstoqueResponse(
+    PosicaoTotais Totais,
+    IReadOnlyList<PosicaoCategoria> Categorias,
+    Pagina<PosicaoItem> Itens);
+
+public record PosicaoTotais(
+    int ProdutosAtivos,
+    int ComSaldo,
+    int Zerados,
+    int Negativos,
+    int AbaixoDoMinimo,
+    decimal ValorCusto,
+    decimal ValorVenda);
+
+public record PosicaoCategoria(int Id, string Nome, int Produtos, decimal ValorCusto, decimal ValorVenda);
+
+public record PosicaoItem(
+    int Id,
+    string Nome,
+    string? CodigoBarras,
+    string Categoria,
+    string Unidade,
+    decimal EstoqueAtual,
+    decimal EstoqueMinimo,
+    decimal PrecoCusto,
+    decimal PrecoVenda,
+    decimal ValorCusto,
+    decimal ValorVenda,
+    string Situacao);

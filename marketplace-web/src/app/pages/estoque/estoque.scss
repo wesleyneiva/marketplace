@@ -76,6 +76,19 @@
   &.amarelo strong {
     color: var(--cor-alerta-medio);
   }
+
+  &.verde strong {
+    color: var(--cor-primaria-escura);
+  }
+
+  // Cartão que filtra a lista (Sem estoque) ou leva a outra aba (Abaixo do mínimo).
+  &.clicavel {
+    font: inherit;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    &:hover { border-color: var(--cor-primaria); }
+  }
 }
 
 .periodo {
@@ -329,3 +342,26 @@ tbody tr:last-child td {
   .negativo { color: var(--cor-erro); }
 }
 .acoes-produto { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+
+// Posição do estoque → "Valor por categoria": barra proporcional à maior categoria; clicar filtra a lista.
+.por-categoria {
+  margin-bottom: 14px;
+  padding: 10px 16px;
+  summary { cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  ul { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  button {
+    width: 100%; display: grid; grid-template-columns: minmax(120px, 1.2fr) 2fr auto 52px; gap: 12px; align-items: center;
+    padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: inherit; font: inherit; font-size: 14px;
+    text-align: left; cursor: pointer;
+    &:hover, &.ativa { background: var(--cor-primaria-clara); }
+  }
+  .cat-nome small { color: var(--cor-texto-suave); }
+  .cat-barra { height: 8px; border-radius: 99px; background: var(--cor-borda); overflow: hidden; }
+  .cat-barra i { display: block; height: 100%; background: var(--cor-primaria); border-radius: 99px; }
+  .cat-valor, .cat-parte { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .cat-parte { color: var(--cor-texto-suave); }
+  @media (max-width: 600px) {
+    button { grid-template-columns: 1fr auto; }
+    .cat-barra, .cat-parte { display: none; }
+  }
+}

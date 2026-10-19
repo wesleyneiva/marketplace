@@ -1,8 +1,8 @@
-import { Component, computed, inject, input, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { Component, computed, inject, input, linkedSignal, signal } from '@angular/core';
+import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
-import { Lote, Movimentacao, TIPOS_MOVIMENTACAO } from '../../core/api/estoque.api';
+import { Lote, Movimentacao, PosicaoEstoque, TIPOS_MOVIMENTACAO } from '../../core/api/estoque.api';
 import { Pagina, Produto, ProdutosApi } from '../../core/api/produtos.api';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { MovimentarDialog } from '../../shared/movimentar-dialog';
@@ -12,11 +12,11 @@ import { Icone } from '../../shared/icone';
 import { FormsModule } from '@angular/forms';
 import { CampoData } from '../../shared/campo-data';
 
-type Aba = 'validades' | 'movimentacoes' | 'baixo';
+type Aba = 'posicao' | 'validades' | 'movimentacoes' | 'baixo';
 
 @Component({
   selector: 'app-estoque',
-  imports: [Icone, RouterLink, CurrencyPipe, DatePipe, DiaPipe, QuantidadePipe, MovimentarDialog, ProdutoBusca, FormsModule, CampoData],
+  imports: [Icone, RouterLink, CurrencyPipe, DatePipe, PercentPipe, DiaPipe, QuantidadePipe, MovimentarDialog, ProdutoBusca, FormsModule, CampoData],
   templateUrl: './estoque.html',
   styleUrl: './estoque.scss',
 })
@@ -41,11 +41,64 @@ export class Estoque {
   }
 
   // A aba vem da URL (?aba=movimentacoes) → dá para mandar o link direto de uma aba.
-  readonly aba = input<Aba>('validades');
-  protected readonly abaAtual = computed<Aba>(() => this.aba() ?? 'validades');
+  readonly aba = input<Aba>('posicao');
+  protected readonly abaAtual = computed<Aba>(() => this.aba() ?? 'posicao');
 
   protected readonly tipos = TIPOS_MOVIMENTACAO;
   protected readonly aviso = signal<string | null>(null);
+
+  // ----- Aba Posição do estoque: quanto tem de cada produto e quanto vale (a custo e a venda) -----
+  protected readonly posBusca = signal('');
+  protected readonly posCategoria = signal<number | null>(null);
+  protected readonly posSituacao = signal('');
+  protected readonly posOrdem = signal('nome');
+  protected readonly posPagina = signal(1);
+  protected readonly posicao = httpResource<PosicaoEstoque>(() =>
+    this.abaAtual() === 'posicao'
+      ? {
+          url: '/api/estoque/posicao',
+          params: {
+            ...(this.posBusca() ? { busca: this.posBusca() } : {}),
+            ...(this.posCategoria() !== null ? { categoriaId: this.posCategoria()! } : {}),
+            ...(this.posSituacao() ? { situacao: this.posSituacao() } : {}),
+            ordem: this.posOrdem(),
+            pagina: this.posPagina(),
+            tamanho: 50,
+          },
+        }
+      : undefined,
+  );
+  // Enquanto a lista recarrega (filtro, página), fica a última resposta na tela: os cartões não piscam
+  // e o "Valor por categoria" não fecha.
+  protected readonly pos = linkedSignal<PosicaoEstoque | undefined, PosicaoEstoque | undefined>({
+    source: () => (this.posicao.hasValue() ? this.posicao.value() : undefined), // com erro, value() lança
+    computation: (novo, anterior) => novo ?? anterior?.value,
+  });
+  protected readonly categoriasAbertas = signal(false);
+  protected readonly totalPaginasPos = computed(() => Math.max(1, Math.ceil((this.pos()?.itens.total ?? 0) / 50)));
+  // Fatia de cada categoria no valor a custo (para a barrinha de "Por categoria").
+  protected readonly maiorCategoria = computed(() => Math.max(1, ...(this.pos()?.categorias ?? []).map((c) => c.valorCusto)));
+
+  private esperaBuscaPos?: ReturnType<typeof setTimeout>;
+  protected digitarBuscaPos(texto: string): void {
+    clearTimeout(this.esperaBuscaPos);
+    this.esperaBuscaPos = setTimeout(() => this.mudarFiltroPos(() => this.posBusca.set(texto.trim())), 300);
+  }
+
+  protected mudarFiltroPos(acao: () => void): void {
+    acao();
+    this.posPagina.set(1);
+  }
+
+  protected alternarCategoria(id: number): void {
+    this.mudarFiltroPos(() => this.posCategoria.set(this.posCategoria() === id ? null : id));
+  }
+
+  // "Consultar" na lista: abre o cartão do produto no topo (lotes, últimas movimentações, Entrada/Perda/Ajuste).
+  protected async consultarPosicao(id: number): Promise<void> {
+    try { this.consultado.set(await this.produtosApi.obter(id)); } catch { return; }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 
   // ----- Aba Validades -----
   protected readonly diasValidade = signal(7);
@@ -97,6 +150,7 @@ export class Estoque {
       `${m.tipo} registrada: ${m.produto} — estoque ${this.fmt(m.estoqueAnterior, m.unidade)} → ${this.fmt(m.estoquePosterior, m.unidade)}.`,
     );
     setTimeout(() => this.aviso.set(null), 6000);
+    this.posicao.reload();
     this.validades.reload();
     this.movimentacoes.reload();
     this.baixo.reload();

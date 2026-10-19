@@ -1,7 +1,7 @@
 <header class="titulo-pagina">
   <div>
     <h1><app-icone nome="tag" /> Estoque</h1>
-    <p>Entradas, perdas, ajustes e validades</p>
+    <p>Quanto tem, quanto vale, o que entrou e saiu e o que vai vencer</p>
   </div>
   <div class="acoes-topo">
     <button type="button" class="botao primario" (click)="dialogo.abrir('Entrada')"><app-icone nome="import" /> Entrada</button>
@@ -89,10 +89,140 @@
 }
 
 <nav class="abas" role="tablist">
+  <button role="tab" [class.ativa]="abaAtual() === 'posicao'" (click)="irPara('posicao')"><app-icone nome="boxes" /> Posição do estoque</button>
   <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')"><app-icone nome="clock" /> Validades</button>
   <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')"><app-icone nome="history" /> Movimentações</button>
   <button role="tab" [class.ativa]="abaAtual() === 'baixo'" (click)="irPara('baixo')"><app-icone nome="triangle-alert" /> Estoque baixo</button>
 </nav>
+
+<!-- ===================== POSIÇÃO DO ESTOQUE ===================== -->
+@if (abaAtual() === 'posicao') {
+  @if (pos(); as pe) {
+    <section class="resumo">
+      <div class="cartao-resumo">
+        <span>Mercadoria em estoque (custo)</span>
+        <strong>{{ pe.totais.valorCusto | currency: 'BRL' }}</strong>
+        <small>o que foi pago pelo que está na loja</small>
+      </div>
+      <div class="cartao-resumo verde">
+        <span>Se vender tudo (preço de venda)</span>
+        <strong>{{ pe.totais.valorVenda | currency: 'BRL' }}</strong>
+        <small>{{ pe.totais.valorVenda - pe.totais.valorCusto | currency: 'BRL' }} de lucro bruto possível</small>
+      </div>
+      <div class="cartao-resumo">
+        <span>Produtos com estoque</span>
+        <strong>{{ pe.totais.comSaldo }}</strong>
+        <small>de {{ pe.totais.produtosAtivos }} produtos ativos</small>
+      </div>
+      <button type="button" class="cartao-resumo clicavel" [class.vermelho]="pe.totais.zerados + pe.totais.negativos > 0"
+              (click)="mudarFiltroPos(() => posSituacao.set('semEstoque'))">
+        <span>Sem estoque</span>
+        <strong>{{ pe.totais.zerados + pe.totais.negativos }}</strong>
+        <small>{{ pe.totais.zerados }} zerados@if (pe.totais.negativos) { · {{ pe.totais.negativos }} negativos }</small>
+      </button>
+      <button type="button" class="cartao-resumo clicavel" [class.amarelo]="pe.totais.abaixoDoMinimo > 0" (click)="irPara('baixo')">
+        <span>Abaixo do mínimo</span>
+        <strong>{{ pe.totais.abaixoDoMinimo }}</strong>
+        <small>ver a lista para repor</small>
+      </button>
+    </section>
+
+    @if (pe.categorias.length > 1) {
+      <details class="painel por-categoria" [open]="categoriasAbertas()" (toggle)="categoriasAbertas.set($any($event.target).open)">
+        <summary><app-icone nome="chart-column" /> Valor por categoria (a custo)</summary>
+        <ul>
+          @for (c of pe.categorias; track c.id) {
+            <li>
+              <button type="button" [class.ativa]="posCategoria() === c.id" (click)="alternarCategoria(c.id)"
+                      [title]="posCategoria() === c.id ? 'Mostrar todas as categorias' : 'Mostrar só ' + c.nome">
+                <span class="cat-nome">{{ c.nome }} <small>({{ c.produtos }})</small></span>
+                <span class="cat-barra"><i [style.width.%]="(c.valorCusto / maiorCategoria()) * 100"></i></span>
+                <span class="cat-valor">{{ c.valorCusto | currency: 'BRL' }}</span>
+                <span class="cat-parte">{{ pe.totais.valorCusto ? (c.valorCusto / pe.totais.valorCusto | percent: '1.0-1') : '–' }}</span>
+              </button>
+            </li>
+          }
+        </ul>
+      </details>
+    }
+  }
+
+  <section class="filtros">
+    <input type="search" class="busca" placeholder="Buscar por nome ou código de barras…" aria-label="Buscar produto"
+           (input)="digitarBuscaPos($any($event.target).value)" />
+    <select aria-label="Categoria" (change)="mudarFiltroPos(() => posCategoria.set($any($event.target).value ? +$any($event.target).value : null))">
+      <option value="" [selected]="posCategoria() === null">Todas as categorias</option>
+      @for (c of pos()?.categorias ?? []; track c.id) {
+        <option [value]="c.id" [selected]="posCategoria() === c.id">{{ c.nome }}</option>
+      }
+    </select>
+    <select aria-label="Situação" (change)="mudarFiltroPos(() => posSituacao.set($any($event.target).value))">
+      <option value="" [selected]="posSituacao() === ''">Todas as situações</option>
+      <option value="comSaldo" [selected]="posSituacao() === 'comSaldo'">Com estoque</option>
+      <option value="semEstoque" [selected]="posSituacao() === 'semEstoque'">Sem estoque</option>
+      <option value="zerado" [selected]="posSituacao() === 'zerado'">Zerados</option>
+      <option value="negativo" [selected]="posSituacao() === 'negativo'">Negativos</option>
+      <option value="baixo" [selected]="posSituacao() === 'baixo'">Abaixo do mínimo</option>
+    </select>
+    <select aria-label="Ordem" (change)="mudarFiltroPos(() => posOrdem.set($any($event.target).value))">
+      <option value="nome" [selected]="posOrdem() === 'nome'">Ordem: nome</option>
+      <option value="valor" [selected]="posOrdem() === 'valor'">Ordem: maior valor</option>
+      <option value="quantidade" [selected]="posOrdem() === 'quantidade'">Ordem: menor quantidade</option>
+    </select>
+  </section>
+
+  <section class="painel tabela-rolagem" [class.carregando]="posicao.isLoading()">
+    <table>
+      <thead>
+        <tr>
+          <th>Produto</th><th>Categoria</th><th class="num">Em estoque</th><th class="num">Mínimo</th>
+          <th class="num">Custo un.</th><th class="num">Valor a custo</th><th class="num">Valor de venda</th><th>Situação</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (p of pos()?.itens?.itens ?? []; track p.id) {
+          <tr>
+            <td><a class="nome" [routerLink]="['/produtos', p.id]">{{ p.nome }}</a>@if (p.codigoBarras) { <small class="sub">{{ p.codigoBarras }}</small> }</td>
+            <td>{{ p.categoria }}</td>
+            <td class="num" [class.negativo]="p.estoqueAtual <= 0">{{ p.estoqueAtual | quantidade: p.unidade }}</td>
+            <td class="num sub-num">{{ p.estoqueMinimo | quantidade: p.unidade }}</td>
+            <td class="num sub-num">{{ p.precoCusto | currency: 'BRL' }}</td>
+            <td class="num">{{ p.valorCusto | currency: 'BRL' }}</td>
+            <td class="num sub-num">{{ p.valorVenda | currency: 'BRL' }}</td>
+            <td>
+              @switch (p.situacao) {
+                @case ('Negativo') { <span class="selo-situacao ruim">negativo</span> }
+                @case ('Zerado') { <span class="selo-situacao ruim">zerado</span> }
+                @case ('Baixo') { <span class="selo-situacao alerta">baixo</span> }
+                @default { <span class="selo-situacao bom">ok</span> }
+              }
+            </td>
+            <td class="acoes">
+              <button type="button" class="botao pequeno" (click)="consultarPosicao(p.id)" title="Ver lotes, movimentações e registrar entrada, perda ou ajuste">
+                <app-icone nome="search" /> Consultar
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          @if (!posicao.isLoading()) {
+            <tr><td colspan="9" class="vazio">
+              @if (posicao.error()) { Não foi possível carregar a posição do estoque. <button class="botao pequeno" (click)="posicao.reload()">Tentar de novo</button> }
+              @else { Nenhum produto com esses filtros. }
+            </td></tr>
+          }
+        }
+      </tbody>
+    </table>
+  </section>
+
+  @if (totalPaginasPos() > 1) {
+    <nav class="paginacao">
+      <button class="botao pequeno" [disabled]="posPagina() === 1" (click)="posPagina.set(posPagina() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
+      <span>Página {{ posPagina() }} de {{ totalPaginasPos() }} · {{ pos()?.itens?.total }} produtos</span>
+      <button class="botao pequeno" [disabled]="posPagina() === totalPaginasPos()" (click)="posPagina.set(posPagina() + 1)">Próxima →</button>
+    </nav>
+  }
+}
 
 <!-- ===================== VALIDADES ===================== -->
 @if (abaAtual() === 'validades') {
