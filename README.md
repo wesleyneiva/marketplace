@@ -260,7 +260,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   menos os últimos minutos (perda máxima ~10 min). O `configuracao.tar.gz` diário agora leva também token da
   Cloudflare, `.env`, serviços do systemd e `~/scripts` (cópias versionadas em `infra/vm/`).
 - **Cartilha de implantação** do cliente (`docs/cartilha-implantacao/`) e apresentação para diretoria (artifact).
-- Pendência que continua a mais importante: **guardar fora da VM as 2 senhas do rclone** (sem elas, a nuvem não abre).
+- As 2 senhas do rclone (criptografia da nuvem) foram guardadas pelo usuário no gerenciador de senhas (19/10/2026).
 
 ### 19/10/2026 — Posição do estoque
 - **Aba "Posição do estoque"** (a primeira do Estoque): responde "quanto tenho de mercadoria?" — valor a custo e a venda,
@@ -307,9 +307,6 @@ Detalhes técnicos em Funcionalidades.
   iguais à produção). Ver Rodando → Backup.
 
 Pendências:
-- **Usuário precisa guardar as 2 senhas do rclone** (password e password2 de `/root/.config/rclone/rclone.conf`) fora da VM; sem elas
-  o backup da nuvem não abre. Comando que mostra só no terminal dele:
-  `sudo bash -c 'for k in password password2; do v=$(grep "^$k = " /root/.config/rclone/rclone.conf | cut -d" " -f3); echo "$k: $(rclone reveal $v)"; done'`
 - **Senha do dono da plataforma** (produção: wesleyneiva15@hotmail.com, entra por http://oracle-a1:5100): o usuário esqueceu.
   Não há como ver; proposto acrescentar `./criar-dono.sh --redefinir --email …` (senha provisória no terminal) — aguardando o ok.
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
