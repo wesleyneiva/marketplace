@@ -20,11 +20,12 @@ const estado = JSON.parse(fs.readFileSync(path.join(os.homedir(), 'estresse', 'e
 
 const psql = (sql) => executar('docker', ['exec', 'marketplace-db', 'psql', '-U', 'marketplace', '-d', 'marketplace_estresse', '-v', 'ON_ERROR_STOP=1', '-qtAc', sql], { maxBuffer: 1 << 24 });
 
-console.log(`Histórico: ${DIAS} dias × ${VENDAS_DIA} vendas/dia em ${estado.mercados.length} mercados de teste.`);
-for (const m of estado.mercados) {
+console.log(`Histórico: ${DIAS} dias × ${VENDAS_DIA} vendas/dia em ${estado.mercados.length} mercados de teste (4 por vez).`);
+const fila = [...estado.mercados];
+async function gerarUm(m) {
   const E = Number(m.empresaId);
   const { stdout: ja } = await psql(`select count(*) from "Vendas" where "EmpresaId" = ${E} and "Origem" = 'Historico'`);
-  if (Number(ja) > 0) { console.log(`  · Mercado ${m.n}: já tem histórico (${ja.trim()} vendas), pulando.`); continue; }
+  if (Number(ja) > 0) { console.log(`  · Mercado ${m.n}: já tem histórico (${ja.trim()} vendas), pulando.`); return; }
   const t0 = Date.now();
   await psql(`
     begin;
@@ -56,5 +57,6 @@ for (const m of estado.mercados) {
     commit;`);
   console.log(`  ✓ Mercado ${m.n} (empresa #${E}): ${DIAS * VENDAS_DIA} vendas em ${Math.round((Date.now() - t0) / 1000)} s`);
 }
+await Promise.all(Array.from({ length: 4 }, async () => { while (fila.length) await gerarUm(fila.shift()); }));
 const { stdout } = await psql(`select pg_size_pretty(pg_database_size('marketplace_estresse'))`);
 console.log(`Banco de estresse agora: ${stdout.trim()}.`);

@@ -1,0 +1,419 @@
+{
+  "quando": "2026-10-19T15:43:30.371Z",
+  "rotulo": "teste completo · 100 mercados · 90 dias de histórico",
+  "minutosPorEtapa": 5,
+  "acelerar": 10,
+  "vmCpus": 4,
+  "vmMemGb": 23,
+  "etapas": [
+    {
+      "mercados": 10,
+      "equivalentes": 100,
+      "pedidos": 11418,
+      "pedidosPorSeg": 42,
+      "vendasPorMin": 298,
+      "erroPct": 0,
+      "errosGraves": 0,
+      "recusasDeRegra": 1,
+      "exemplosRecusa": [
+        "venda 400 Falta pagar R$ 0,01."
+      ],
+      "barradosPorLimite": 0,
+      "semResposta": 0,
+      "erro5xx": 0,
+      "cpuMedia": 13,
+      "cpuMax": 27,
+      "memLivreMinMb": 16790,
+      "apiMaxMb": 2,
+      "tipos": {
+        "venda": {
+          "pedidos": 1343,
+          "p50": 24,
+          "p95": 41,
+          "p99": 398,
+          "max": 2064,
+          "erros": 0
+        },
+        "saude": {
+          "pedidos": 8100,
+          "p50": 2,
+          "p95": 6,
+          "p99": 32,
+          "max": 98,
+          "erros": 0
+        },
+        "sessao": {
+          "pedidos": 1350,
+          "p50": 11,
+          "p95": 56,
+          "p99": 74,
+          "max": 112,
+          "erros": 0
+        },
+        "relatorios": {
+          "pedidos": 129,
+          "p50": 124,
+          "p95": 554,
+          "p99": 572,
+          "max": 595,
+          "erros": 0
+        },
+        "listaVendas": {
+          "pedidos": 41,
+          "p50": 12,
+          "p95": 14,
+          "p99": 21,
+          "max": 21,
+          "erros": 0
+        },
+        "dre": {
+          "pedidos": 28,
+          "p50": 319,
+          "p95": 394,
+          "p99": 462,
+          "max": 462,
+          "erros": 0
+        },
+        "painel": {
+          "pedidos": 276,
+          "p50": 11,
+          "p95": 26,
+          "p99": 35,
+          "max": 47,
+          "erros": 0
+        },
+        "posicaoEstoque": {
+          "pedidos": 31,
+          "p50": 11,
+          "p95": 13,
+          "p99": 21,
+          "max": 21,
+          "erros": 0
+        },
+        "catalogo": {
+          "pedidos": 120,
+          "p50": 39,
+          "p95": 62,
+          "p99": 71,
+          "max": 72,
+          "erros": 0
+        }
+      },
+      "aprovada": true
+    },
+    {
+      "mercados": 25,
+      "equivalentes": 250,
+      "pedidos": 28529,
+      "pedidosPorSeg": 106,
+      "vendasPorMin": 741,
+      "erroPct": 0,
+      "errosGraves": 0,
+      "recusasDeRegra": 1,
+      "exemplosRecusa": [
+        "venda 400 Falta pagar R$ 0,01."
+      ],
+      "barradosPorLimite": 0,
+      "semResposta": 0,
+      "erro5xx": 0,
+      "cpuMedia": 30,
+      "cpuMax": 60,
+      "memLivreMinMb": 16613,
+      "apiMaxMb": 2,
+      "tipos": {
+        "venda": {
+          "pedidos": 3336,
+          "p50": 25,
+          "p95": 56,
+          "p99": 90,
+          "max": 239,
+          "erros": 0
+        },
+        "saude": {
+          "pedidos": 20245,
+          "p50": 2,
+          "p95": 5,
+          "p99": 10,
+          "max": 163,
+          "erros": 0
+        },
+        "painel": {
+          "pedidos": 740,
+          "p50": 12,
+          "p95": 28,
+          "p99": 41,
+          "max": 61,
+          "erros": 0
+        },
+        "sessao": {
+          "pedidos": 3375,
+          "p50": 8,
+          "p95": 30,
+          "p99": 61,
+          "max": 131,
+          "erros": 0
+        },
+        "posicaoEstoque": {
+          "pedidos": 70,
+          "p50": 11,
+          "p95": 23,
+          "p99": 61,
+          "max": 61,
+          "erros": 0
+        },
+        "dre": {
+          "pedidos": 51,
+          "p50": 324,
+          "p95": 413,
+          "p99": 578,
+          "max": 578,
+          "erros": 0
+        },
+        "relatorios": {
+          "pedidos": 324,
+          "p50": 207,
+          "p95": 761,
+          "p99": 1085,
+          "max": 1318,
+          "erros": 0
+        },
+        "listaVendas": {
+          "pedidos": 88,
+          "p50": 12,
+          "p95": 22,
+          "p99": 29,
+          "max": 29,
+          "erros": 0
+        },
+        "catalogo": {
+          "pedidos": 300,
+          "p50": 9,
+          "p95": 105,
+          "p99": 123,
+          "max": 143,
+          "erros": 0
+        }
+      },
+      "aprovada": true
+    },
+    {
+      "mercados": 50,
+      "equivalentes": 500,
+      "pedidos": 57532,
+      "pedidosPorSeg": 213,
+      "vendasPorMin": 1527,
+      "erroPct": 0,
+      "errosGraves": 0,
+      "recusasDeRegra": 3,
+      "exemplosRecusa": [
+        "venda 400 Falta pagar R$ 0,01."
+      ],
+      "barradosPorLimite": 0,
+      "semResposta": 0,
+      "erro5xx": 0,
+      "cpuMedia": 59,
+      "cpuMax": 92,
+      "memLivreMinMb": 16152,
+      "apiMaxMb": 2,
+      "tipos": {
+        "saude": {
+          "pedidos": 40491,
+          "p50": 2,
+          "p95": 10,
+          "p99": 29,
+          "max": 223,
+          "erros": 0
+        },
+        "sessao": {
+          "pedidos": 6750,
+          "p50": 13,
+          "p95": 55,
+          "p99": 120,
+          "max": 337,
+          "erros": 0
+        },
+        "dre": {
+          "pedidos": 97,
+          "p50": 486,
+          "p95": 2528,
+          "p99": 8556,
+          "max": 8556,
+          "erros": 0
+        },
+        "venda": {
+          "pedidos": 6876,
+          "p50": 33,
+          "p95": 118,
+          "p99": 204,
+          "max": 419,
+          "erros": 0
+        },
+        "relatorios": {
+          "pedidos": 686,
+          "p50": 280,
+          "p95": 1477,
+          "p99": 2724,
+          "max": 23711,
+          "erros": 0
+        },
+        "posicaoEstoque": {
+          "pedidos": 158,
+          "p50": 15,
+          "p95": 61,
+          "p99": 109,
+          "max": 131,
+          "erros": 0
+        },
+        "listaVendas": {
+          "pedidos": 210,
+          "p50": 15,
+          "p95": 51,
+          "p99": 112,
+          "max": 139,
+          "erros": 0
+        },
+        "painel": {
+          "pedidos": 1664,
+          "p50": 19,
+          "p95": 70,
+          "p99": 122,
+          "max": 336,
+          "erros": 0
+        },
+        "catalogo": {
+          "pedidos": 600,
+          "p50": 14,
+          "p95": 132,
+          "p99": 250,
+          "max": 326,
+          "erros": 0
+        }
+      },
+      "aprovada": true
+    },
+    {
+      "mercados": 100,
+      "equivalentes": 1000,
+      "pedidos": 85432,
+      "pedidosPorSeg": 316,
+      "vendasPorMin": 301,
+      "erroPct": 10.9,
+      "errosGraves": 9334,
+      "recusasDeRegra": 1165,
+      "exemplosRecusa": [
+        "venda 400 Abra o caixa antes de vender."
+      ],
+      "barradosPorLimite": 0,
+      "semResposta": 8831,
+      "erro5xx": 503,
+      "cpuMedia": 73,
+      "cpuMax": 100,
+      "memLivreMinMb": 16091,
+      "apiMaxMb": 2,
+      "tipos": {
+        "saude": {
+          "pedidos": 67379,
+          "p50": 1999,
+          "p95": 12199,
+          "p99": 30002,
+          "max": 30143,
+          "erros": 5013
+        },
+        "catalogo": {
+          "pedidos": 1160,
+          "p50": 10590,
+          "p95": 30001,
+          "p99": 30008,
+          "max": 30113,
+          "erros": 236
+        },
+        "sessao": {
+          "pedidos": 11122,
+          "p50": 10774,
+          "p95": 30003,
+          "p99": 30037,
+          "max": 30405,
+          "erros": 2297
+        },
+        "painel": {
+          "pedidos": 1137,
+          "p50": 12371,
+          "p95": 30003,
+          "p99": 30055,
+          "max": 31356,
+          "erros": 350
+        },
+        "relatorios": {
+          "pedidos": 507,
+          "p50": 20146,
+          "p95": 30004,
+          "p99": 30027,
+          "max": 30370,
+          "erros": 233
+        },
+        "login": {
+          "pedidos": 324,
+          "p50": 23266,
+          "p95": 31408,
+          "p99": 31409,
+          "max": 31410,
+          "erros": 127
+        },
+        "venda": {
+          "pedidos": 3145,
+          "p50": 11134,
+          "p95": 30002,
+          "p99": 30060,
+          "max": 31354,
+          "erros": 625
+        },
+        "dre": {
+          "pedidos": 83,
+          "p50": 30001,
+          "p95": 30042,
+          "p99": 30112,
+          "max": 30112,
+          "erros": 82
+        },
+        "posicaoEstoque": {
+          "pedidos": 122,
+          "p50": 11286,
+          "p95": 30003,
+          "p99": 30016,
+          "max": 30022,
+          "erros": 31
+        },
+        "listaVendas": {
+          "pedidos": 157,
+          "p50": 11736,
+          "p95": 30002,
+          "p99": 30022,
+          "max": 30034,
+          "erros": 49
+        },
+        "caixaAtual": {
+          "pedidos": 148,
+          "p50": 30004,
+          "p95": 30040,
+          "p99": 30043,
+          "max": 30044,
+          "erros": 145
+        },
+        "abrirCaixa": {
+          "pedidos": 148,
+          "p50": 23280,
+          "p95": 30003,
+          "p99": 30010,
+          "max": 30011,
+          "erros": 146
+        }
+      },
+      "aprovada": false
+    }
+  ],
+  "banco": {
+    "inicioMb": 4055,
+    "fimMb": 4085,
+    "conexoesMax": 103
+  }
+}
