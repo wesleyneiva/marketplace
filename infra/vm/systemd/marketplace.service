@@ -1,0 +1,24 @@
+# Marketplace — ERP do mercadinho (API ASP.NET Core + telas Angular)  →  http://oracle-a1:5100
+# Publicar uma versão nova: ~/projetos/marketplace/publicar.sh
+[Unit]
+Description=Marketplace (ERP do mercadinho)
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/servicos/marketplace/app
+ExecStart=/usr/bin/dotnet /home/ubuntu/servicos/marketplace/app/Marketplace.Api.dll
+EnvironmentFile=/etc/marketplace/marketplace.env
+# Se cair (ou se o banco ainda não estiver pronto no boot), tenta de novo em 5 s.
+Restart=always
+RestartSec=5
+# Proteções: sem ganhar privilégios, /tmp próprio, sistema somente leitura (menos a pasta home).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+SyslogIdentifier=marketplace
+
+[Install]
+WantedBy=multi-user.target

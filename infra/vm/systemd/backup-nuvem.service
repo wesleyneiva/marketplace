@@ -1,0 +1,8 @@
+[Unit]
+Description=Envia os backups (n8n e Marketplace) para o Oracle Object Storage, criptografados
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/scripts/backup-nuvem.sh

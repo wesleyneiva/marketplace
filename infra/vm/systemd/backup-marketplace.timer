@@ -1,0 +1,9 @@
+[Unit]
+Description=Roda o backup do Marketplace todo dia às 03:45
+
+[Timer]
+OnCalendar=*-*-* 03:45:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

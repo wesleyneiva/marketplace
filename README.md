@@ -244,6 +244,24 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 19/10/2026 (tarde) — teste de estresse, robustez, disco e redundância fase 1
+- **Teste de estresse** (`estresse/`, README próprio): ambiente isolado com 100 mercados de teste. Resultado oficial
+  (`estresse/resultados/2026-10-19-com-cache.html`): **aprovado até 500 mercados reais de 3 caixas**; recomendado
+  vender até ~300 nesta VM.
+- **Robustez** (achados do teste): rotinas de fundo não derrubam mais a API, nova tentativa ao ligar, 90 conexões por
+  aplicação (`Banco__MaxConexoes`), PostgreSQL com 300 conexões e 2 GB de cache (compose), índices de cobertura
+  (migration `IndicesRelatorios`), migrations com até 10 min, relatórios e DRE guardados 2 min (`CacheCurto`; a DRE
+  recalcula na hora quando o financeiro muda).
+- **Disco**: MEGA removido, caches limpos, n8n enxuto (PROMO FEET só salva erros; histórico de 7 dias), logs do
+  sistema com teto de 200 MB, volume aumentado para 200 GB (~165 GB livres).
+- **Redundância fase 1** (`docs/plano-de-desastre.md`): arquivamento contínuo do PostgreSQL (WAL a cada ≤5 min,
+  `infra/enviar-wal.sh` + `backup-wal.timer` levam à nuvem a cada 5 min), cópia base diária no backup das 03:45, e
+  `infra/recuperar-banco.sh` (`--teste` / `--vm-nova` / `--ate "horário"`). Testado: só com a nuvem, igual à produção
+  menos os últimos minutos (perda máxima ~10 min). O `configuracao.tar.gz` diário agora leva também token da
+  Cloudflare, `.env`, serviços do systemd e `~/scripts` (cópias versionadas em `infra/vm/`).
+- **Cartilha de implantação** do cliente (`docs/cartilha-implantacao/`) e apresentação para diretoria (artifact).
+- Pendência que continua a mais importante: **guardar fora da VM as 2 senhas do rclone** (sem elas, a nuvem não abre).
+
 ### 19/10/2026 — Posição do estoque
 - **Aba "Posição do estoque"** (a primeira do Estoque): responde "quanto tenho de mercadoria?" — valor a custo e a venda,
   produtos com/sem estoque, abaixo do mínimo, valor por categoria e a lista de todos os produtos com saldo e valor. Sem migration.
@@ -304,7 +322,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 e 17/10/2026). Memórias do assistente em
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 (tarde), 19/10 e 17/10). Memórias do assistente em
   `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
   O usuário autorizou commit, push e publicar sem perguntar.

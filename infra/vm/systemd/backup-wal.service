@@ -1,0 +1,8 @@
+[Unit]
+Description=Envia os pedaços novos do registro do banco (WAL) do Marcus para a nuvem, criptografados
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/home/ubuntu/projetos/marketplace/infra/enviar-wal.sh
