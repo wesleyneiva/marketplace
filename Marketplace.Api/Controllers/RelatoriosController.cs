@@ -12,19 +12,22 @@ namespace Marketplace.Api.Controllers;
 [Route("api/relatorios")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
 public class RelatoriosController(RelatoriosService relatorios, InsightsService insights, InsightsTarefas tarefas,
-    Marketplace.Api.Data.AppDbContext db) : ControllerBase
+    Marketplace.Api.Data.AppDbContext db, CacheCurto cache) : ControllerBase
 {
+    // Os três relatórios ficam guardados 2 min por empresa e período (CacheCurto).
+    private string Chave(string tipo, DateOnly? de, DateOnly? ate) => $"rel:{db.EmpresaAtual}:{tipo}:{de}:{ate}";
+
     // GET /api/relatorios/vendas?de=2026-09-09&ate=2026-10-08
     [HttpGet("vendas")]
-    public Task<RelatorioVendas> Vendas(DateOnly? de, DateOnly? ate) => relatorios.Vendas(de, ate);
+    public Task<RelatorioVendas> Vendas(DateOnly? de, DateOnly? ate) => cache.ObterAsync(Chave("vendas", de, ate), () => relatorios.Vendas(de, ate));
 
     // GET /api/relatorios/produtos → curva ABC + categorias
     [HttpGet("produtos")]
-    public Task<RelatorioProdutos> Produtos(DateOnly? de, DateOnly? ate) => relatorios.Produtos(de, ate);
+    public Task<RelatorioProdutos> Produtos(DateOnly? de, DateOnly? ate) => cache.ObterAsync(Chave("produtos", de, ate), () => relatorios.Produtos(de, ate));
 
     // GET /api/relatorios/clima → o clima influenciou as vendas?
     [HttpGet("clima")]
-    public Task<RelatorioClima> Clima(DateOnly? de, DateOnly? ate) => relatorios.Clima(de, ate);
+    public Task<RelatorioClima> Clima(DateOnly? de, DateOnly? ate) => cache.ObterAsync(Chave("clima", de, ate), () => relatorios.Clima(de, ate));
 
     // POST /api/relatorios/insights?de=…&ate=… → começa a análise da IA (Gemini, no n8n) em segundo plano.
     // Devolve { id }: a tela pergunta em GET /api/relatorios/insights/{id} até ficar pronto.

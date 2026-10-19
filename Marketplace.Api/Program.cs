@@ -26,11 +26,11 @@ builder.Services.AddScoped<ContextoEmpresa>();
 
 // Limite de conexões POR APLICAÇÃO: produção, dev e o teste de estresse dividem o mesmo PostgreSQL. Sem limite,
 // uma aplicação sob carga pegava todas as conexões e derrubava as outras (teste de estresse de 19/10/2026).
-// Acima do limite o pedido espera na fila (até 15 s) em vez de dar erro. Ajuste: Banco__MaxConexoes.
+// Acima do limite o pedido espera na fila (até 15 s) em vez de dar erro. Padrão 90 (produção, dev e estresse = 270 de 300). Ajuste: Banco__MaxConexoes.
 var textoConexao = builder.Configuration.GetConnectionString("Marketplace");
 if (!string.IsNullOrEmpty(textoConexao) && !textoConexao.Contains("Pool Size", StringComparison.OrdinalIgnoreCase))
     textoConexao = new Npgsql.NpgsqlConnectionStringBuilder(textoConexao)
-        { MaxPoolSize = builder.Configuration.GetValue("Banco:MaxConexoes", 60) }.ConnectionString;
+        { MaxPoolSize = builder.Configuration.GetValue("Banco:MaxConexoes", 90) }.ConnectionString;
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(textoConexao));
 
 // Regras de estoque (usadas pelo EstoqueController e, no futuro, pelo PDV).
@@ -43,6 +43,8 @@ builder.Services.AddScoped<Marketplace.Api.Services.Conciliacao.ConciliacaoServi
 builder.Services.AddScoped<Marketplace.Api.Services.Pix.MercadoPago>();
 builder.Services.AddScoped<Marketplace.Api.Services.Pix.PixAutomaticoService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<Marketplace.Api.Services.CacheCurto>(); // relatórios e DRE guardados por 2 min
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
 builder.Services.AddSingleton<Marketplace.Api.Services.InsightsTarefas>(); // insights da IA em segundo plano
 builder.Services.AddScoped<Marketplace.Api.Services.CobrancasService>(); // mensalidades dos clientes (área do dono)

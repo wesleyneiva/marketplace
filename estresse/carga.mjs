@@ -29,6 +29,14 @@ const MINUTOS = Number(arg('minutos', '3'));
 const ACELERAR = Number(arg('acelerar', '10'));
 const ROTULO = arg('rotulo', '');
 
+// node estresse/carga.mjs --refazer-relatorio arquivo.json → só regera o .html (com o texto atual) e sai.
+if (arg('refazer-relatorio')) {
+  const arq = arg('refazer-relatorio');
+  fs.writeFileSync(arq.replace(/\.json$/, '.html'), relatorioHtml(JSON.parse(fs.readFileSync(arq, 'utf8'))));
+  console.log('Relatório refeito: ' + arq.replace(/\.json$/, '.html'));
+  process.exit(0);
+}
+
 try {
   const r = await fetch(BASE + '/api/saude', { signal: AbortSignal.timeout(5000) });
   if (!r.ok) throw new Error('status ' + r.status);
@@ -159,7 +167,10 @@ async function gerente(m) {
 }
 
 // ---------------------------------------------------------------- monitor da VM e do banco
-const pidApi = Number(fs.readFileSync(path.join(PASTA, 'api.pid'), 'utf8'));
+// O processo da API de estresse: o dotnet que roda da pasta ~/estresse/app.
+const pidApi = fs.readdirSync('/proc').filter((d) => /^\d+$/.test(d)).find((d) => {
+  try { return fs.readlinkSync(`/proc/${d}/cwd`) === path.join(PASTA, 'app') && fs.readFileSync(`/proc/${d}/comm`, 'utf8').trim() === 'dotnet'; } catch { return false; }
+});
 let cpuAntes = null;
 function lerCpu() {
   const c = fs.readFileSync('/proc/stat', 'utf8').split('\n')[0].split(/\s+/).slice(1).map(Number);
@@ -196,11 +207,11 @@ for (const alvo of ETAPAS) {
     tarefas.push(gerente(m).catch((e) => console.error('gerente', m.n, e.message)));
   }
   const inicio = agora();
-  console.log(`\n▶ Etapa: ${alvo} mercados (${alvo * 3} caixas) = carga de ${alvo * ACELERAR} mercados reais. ${MINUTOS} min…`);
+  console.log(`\n▶ Etapa: carga de ${alvo * ACELERAR} MERCADOS REAIS (${alvo} mercados de teste × ${ACELERAR} de aceleração, ${alvo * 3} caixas). ${MINUTOS} min…`);
   await dormir(MINUTOS * 60000);
   janelas.push({ mercados: alvo, inicio: inicio + Math.min(30000, MINUTOS * 15000), fim: agora() }); // 30 s de aquecimento fora da conta
   const r = resumoDaJanela(janelas.at(-1));
-  console.log(`  vendas: ${r.vendasPorMin}/min · p95 ${r.tipos.venda?.p95 ?? '–'} ms · erros ${r.erroPct}% (5xx ${r.erro5xx}, sem resposta ${r.semResposta}, limite 429 ${r.barradosPorLimite}) · CPU média ${r.cpuMedia}% (máx ${r.cpuMax}%) · ${r.aprovada ? 'APROVADA' : 'REPROVADA'}`);
+  console.log(`  vendas: ${r.vendasPorMin}/min · p95 ${r.tipos.venda?.p95 ?? '–'} ms · erros ${r.erroPct}% (5xx ${r.erro5xx}, sem resposta ${r.semResposta}, limite 429 ${r.barradosPorLimite}) · CPU média ${r.cpuMedia}% (máx ${r.cpuMax}%) · ${situacaoTexto(r.situacao)}`);
 }
 rodando = false;
 console.log('\nEncerrando (esperando as últimas vendas)…');
@@ -236,6 +247,8 @@ function resumoDaJanela(j) {
     tipos: porTipo,
   };
   r.aprovada = (porTipo.venda?.p95 ?? 99999) < 800 && erroPct < 0.5 && (cpuMedia ?? 100) < 75;
+  // Três situações, para não confundir "lento" com "caiu":
+  r.situacao = !porTipo.venda ? 'Sem dados' : erroPct >= 0.5 ? 'Falhou' : r.aprovada ? 'Aprovada' : 'Lenta';
   return r;
 }
 const resultado = {
@@ -252,30 +265,38 @@ const arqHtml = arqJson.replace(/\.json$/, '.html');
 fs.writeFileSync(arqHtml, relatorioHtml(resultado));
 console.log(`\nRelatório: ${arqHtml}\nDados:     ${arqJson}`);
 
+function situacaoTexto(s) {
+  return { Aprovada: 'Aprovada: rápido e sem erros', Lenta: 'Lenta: sem erros, mas devagar', Falhou: 'Falhou: com erros' }[s] ?? s;
+}
+
 function relatorioHtml(R) {
   const fmt = (n) => (n ?? '–').toLocaleString?.('pt-BR') ?? n;
-  const linhas = R.etapas.map((e) => `<tr><td><b>${e.mercados}</b> (${e.mercados * 3} caixas)</td><td>${fmt(e.equivalentes)}</td><td>${fmt(e.vendasPorMin)}</td>
+  const sit = (e) => e.situacao ?? (e.aprovada ? 'Aprovada' : e.erroPct >= 0.5 ? 'Falhou' : 'Lenta');
+  const linhas = R.etapas.map((e) => `<tr><td><b>${fmt(e.equivalentes)} mercados reais</b><br><small>${e.mercados} de teste × ${R.acelerar}</small></td><td>${fmt(e.vendasPorMin)}</td>
     <td>${fmt(e.tipos.venda?.p50)} / <b>${fmt(e.tipos.venda?.p95)}</b> / ${fmt(e.tipos.venda?.p99)}</td><td>${fmt(e.pedidosPorSeg)}</td><td>${e.erroPct}%</td>
     <td>${fmt(e.cpuMedia)}% <small>(máx ${fmt(e.cpuMax)}%)</small></td><td>${fmt(e.memLivreMinMb)} MB</td><td>${fmt(e.apiMaxMb)} MB</td>
-    <td><span class="${e.aprovada ? 'ok' : 'ruim'}">${e.aprovada ? 'Aprovada' : 'Reprovada'}</span></td></tr>`).join('');
+    <td><span class="${{ Aprovada: 'ok', Lenta: 'lenta', Falhou: 'ruim' }[sit(e)] ?? 'ruim'}">${situacaoTexto(sit(e))}</span></td></tr>`).join('');
   const telas = [...new Set(R.etapas.flatMap((e) => Object.keys(e.tipos)))];
   const detalhe = telas.map((t) => `<tr><td>${t}</td>${R.etapas.map((e) => `<td>${e.tipos[t] ? `${fmt(e.tipos[t].p95)} ms <small>(${fmt(e.tipos[t].pedidos)})</small>` : '–'}</td>`).join('')}</tr>`).join('');
   const maxP95 = Math.max(1, ...R.etapas.map((e) => e.tipos.venda?.p95 ?? 0));
   const barras = R.etapas.map((e, i) => { const h = Math.round(160 * (e.tipos.venda?.p95 ?? 0) / Math.max(maxP95, 800));
-    return `<rect x="${40 + i * 90}" y="${190 - h}" width="56" height="${h}" rx="6" fill="${e.aprovada ? '#15803d' : '#b91c1c'}"/><text x="${68 + i * 90}" y="${184 - h}" text-anchor="middle">${e.tipos.venda?.p95 ?? '–'} ms</text><text x="${68 + i * 90}" y="210" text-anchor="middle">${e.mercados}</text>`; }).join('');
+    return `<rect x="${40 + i * 90}" y="${190 - h}" width="56" height="${h}" rx="6" fill="${e.aprovada ? '#15803d' : '#b91c1c'}"/><text x="${68 + i * 90}" y="${184 - h}" text-anchor="middle">${e.tipos.venda?.p95 ?? '–'} ms</text><text x="${68 + i * 90}" y="210" text-anchor="middle">${e.equivalentes}</text>`; }).join('');
   const linha800 = 190 - Math.round(160 * 800 / Math.max(maxP95, 800));
   const recusas = R.etapas.flatMap((e) => e.exemplosRecusa).filter((x, i, a) => a.indexOf(x) === i);
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Teste de estresse do Marcus</title><style>
   body{font-family:"Space Grotesk",Arial,sans-serif;background:#f4f6f5;color:#1c2321;margin:0;padding:32px}main{max-width:1100px;margin:auto}
   h1{margin:0}p.sub{color:#5f6b66;margin:4px 0 20px}.cartao{background:#fff;border:1px solid #e2e8e5;border-radius:12px;padding:16px 20px;margin-bottom:16px;overflow-x:auto}
   table{border-collapse:collapse;width:100%;font-size:14px}th{text-align:left;color:#5f6b66;font-size:12px;text-transform:uppercase;padding:6px 8px;border-bottom:1px solid #e2e8e5}
-  td{padding:6px 8px;border-bottom:1px solid #e2e8e5}small{color:#5f6b66}.ok,.ruim{padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px}.ok{background:#dcfce7;color:#166534}.ruim{background:#fee2e2;color:#b91c1c}
+  td{padding:6px 8px;border-bottom:1px solid #e2e8e5}small{color:#5f6b66}.ok,.ruim{padding:2px 10px;border-radius:99px;font-weight:600;font-size:13px}.ok{background:#dcfce7;color:#166534}.lenta{background:#fef3c7;color:#92400e}.ruim{background:#fee2e2;color:#b91c1c}
   svg text{font:12px Arial;fill:#5f6b66}</style></head><body><main>
   <h1>Teste de estresse do Marcus</h1><p class="sub">${new Date(R.quando).toLocaleString('pt-BR')} · ${R.rotulo ? R.rotulo + ' · ' : ''}${R.minutosPorEtapa} min por etapa · ${R.acelerar}x mais rápido que a vida real · VM ${R.vmCpus} núcleos, ${R.vmMemGb} GB</p>
-  <div class="cartao"><table><tr><th>Mercados ativos</th><th>Equivale a (mercados reais)</th><th>Vendas/min</th><th>Venda ms (mediana / p95 / p99)</th><th>Pedidos/s</th><th>Erros</th><th>CPU</th><th>Memória livre (mín.)</th><th>API (memória)</th><th>Resultado</th></tr>${linhas}</table>
-  <p><small>Aprovada = 95% das vendas em menos de 0,8 s, menos de 0,5% de erros (sem resposta, 5xx ou 429) e CPU média abaixo de 75%. Os primeiros 30 s de cada etapa ficam fora da conta (aquecimento).</small></p></div>
+  <div class="cartao"><table><tr><th>Carga testada</th><th>Vendas/min</th><th>Venda ms (mediana / p95 / p99)</th><th>Pedidos/s</th><th>Erros</th><th>CPU</th><th>Memória livre (mín.)</th><th>API (memória)</th><th>Resultado</th></tr>${linhas}</table>
+  <p><small><b>Como ler:</b> cada mercado de teste trabalha ${R.acelerar}x mais rápido que um mercado de verdade, então a primeira coluna já mostra a carga em <b>mercados reais de 3 caixas</b>.<br>
+  <b>Aprovada</b> = rápido e sem erros (95% das vendas em menos de 0,8 s, menos de 0,5% de erros e CPU média abaixo de 75%).
+  <b>Lenta</b> = funcionou sem erros, mas devagar ou com a CPU no limite: não vender até essa carga.
+  <b>Falhou</b> = 0,5% ou mais dos pedidos deram erro. Os primeiros 30 s de cada etapa ficam fora da conta (aquecimento).</small></p></div>
   <div class="cartao"><b>Tempo de 95% das vendas por etapa</b><br><svg width="${80 + R.etapas.length * 90}" height="220" aria-label="p95 das vendas por etapa"><line x1="30" x2="${50 + R.etapas.length * 90}" y1="${linha800}" y2="${linha800}" stroke="#b45309" stroke-dasharray="4 4"/><text x="34" y="${linha800 - 4}">limite 800 ms</text>${barras}</svg></div>
-  <div class="cartao"><b>Tempo de 95% dos pedidos, por tipo</b> <small>(entre parênteses: quantos pedidos)</small><table><tr><th>Tipo</th>${R.etapas.map((e) => `<th>${e.mercados} mercados</th>`).join('')}</tr>${detalhe}</table></div>
+  <div class="cartao"><b>Tempo de 95% dos pedidos, por tipo</b> <small>(entre parênteses: quantos pedidos)</small><table><tr><th>Tipo</th>${R.etapas.map((e) => `<th>${fmt(e.equivalentes)} reais</th>`).join('')}</tr>${detalhe}</table></div>
   <div class="cartao"><b>Banco</b>: ${fmt(R.banco.inicioMb)} MB → ${fmt(R.banco.fimMb)} MB · até ${fmt(R.banco.conexoesMax)} conexões abertas.
   ${recusas.length ? `<p><b>Recusas de regra de negócio</b> (não contam como erro do sistema):</p><ul>${recusas.map((x) => `<li><small>${x}</small></li>`).join('')}</ul>` : ''}</div>
   </main></body></html>`;

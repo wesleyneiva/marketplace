@@ -12,14 +12,16 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/financeiro/dre")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class DreController(DreService dre, AppDbContext db) : ControllerBase
+public class DreController(DreService dre, AppDbContext db, CacheCurto cache) : ControllerBase
 {
     // GET /api/financeiro/dre?ate=2026-10&meses=6
     [HttpGet]
     public async Task<ActionResult<DreResponse>> Calcular(string? ate, int meses = 6)
     {
         if (!Mes(ate, out var mes)) return BadRequest(new { mensagem = "Mês inválido (use AAAA-MM)." });
-        return await dre.CalcularAsync(mes, meses);
+        // Guardada 2 min; qualquer gravação no financeiro troca a versão e a próxima abertura recalcula.
+        var chave = $"dre:{db.EmpresaAtual}:{CacheCurto.VersaoFinanceiro(db.EmpresaAtual)}:{mes}:{meses}";
+        return await cache.ObterAsync(chave, () => dre.CalcularAsync(mes, meses));
     }
 
     // GET /api/financeiro/dre/detalhe?mes=2026-09&linha=cmv | categoria:12 | grupo:Pessoal ...

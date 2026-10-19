@@ -580,19 +580,39 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     }
 
     // Ao gravar: linha NOVA recebe a empresa atual sozinha; e nenhuma linha pode ir para outra empresa.
-    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         CarimbarEmpresa();
         MarcarPrecosAlterados();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var empresasDaDre = EmpresasComDreAlterada();
+        var linhas = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        foreach (var id in empresasDaDre) Services.CacheCurto.FinanceiroMudou(id);
+        return linhas;
     }
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         CarimbarEmpresa();
         MarcarPrecosAlterados();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        var empresasDaDre = EmpresasComDreAlterada();
+        var linhas = base.SaveChanges(acceptAllChangesOnSuccess);
+        foreach (var id in empresasDaDre) Services.CacheCurto.FinanceiroMudou(id);
+        return linhas;
     }
+
+    // Gravações que mudam a DRE: o financeiro, contas a pagar, perdas/ajustes de estoque, venda cancelada e a
+    // alíquota da empresa. Venda NOVA não entra (o caixa grava o tempo todo; a DRE do mês aberto aceita 2 min de atraso).
+    private List<int> EmpresasComDreAlterada() => ChangeTracker.Entries()
+        .Where(e => e.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
+        .Where(e => e.Entity switch
+        {
+            MovimentoFinanceiro or ContaPagar or CategoriaFinanceira or ContaFinanceira or Recebivel or Empresa => true,
+            Venda => e.State != EntityState.Added,
+            MovimentacaoEstoque m => m.Tipo is not (TipoMovimentacao.Venda or TipoMovimentacao.Entrada),
+            _ => false,
+        })
+        .Select(e => e.Entity is Empresa emp ? emp.Id : e.Entity is IDaEmpresa d ? d.EmpresaId : 0)
+        .Where(id => id > 0).Distinct().ToList();
 
     // Produto novo ou com preço de venda trocado (por qualquer tela, planilha ou nota) → anota a hora.
     private void MarcarPrecosAlterados()
