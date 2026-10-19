@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Cartilha de implantação do Marcus</title>
+<style>
+@font-face { font-family: "Space Grotesk"; src: url("../../marketplace-web/public/fontes/space-grotesk-latin.woff2") format("woff2"); font-weight: 300 700; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215; }
+@font-face { font-family: "Space Grotesk"; src: url("../../marketplace-web/public/fontes/space-grotesk-latin-ext.woff2") format("woff2"); font-weight: 300 700; unicode-range: U+0100-024F, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+:root {
+  --verde: #15803d; --verde-escuro: #166534; --verde-claro: #dcfce7; --verde-fundo: #f0fdf4; --verde-borda: #bbf7d0;
+  --escuro: #12261b; --fundo: #f4f6f5; --superficie: #ffffff; --texto: #1c2321; --suave: #5f6b66; --borda: #e2e8e5;
+  --alerta: #92400e; --alerta-fundo: #fffbeb; --alerta-borda: #fde68a;
+  --erro: #b91c1c; --erro-fundo: #fef2f2; --erro-borda: #fecaca;
+  --info: #1e40af; --info-fundo: #dbeafe;
+}
+@page { size: A4; margin: 12mm 14mm 15mm; }
+@page :first { margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: "Space Grotesk", Arial, sans-serif; color: var(--texto); font-size: 9.6pt; line-height: 1.42; background: var(--superficie); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1, h2, h3, h4 { margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+p { margin: 0 0 6px; }
+b, strong { font-weight: 700; }
+code { font-family: "Space Grotesk", monospace; background: var(--fundo); border: 1px solid var(--borda); border-radius: 4px; padding: 0 4px; font-size: 9.5pt; }
+
+/* ---------- capa ---------- */
+.capa { height: 297mm; width: 210mm; background: radial-gradient(circle at 85% 18%, #1f5235 0%, var(--escuro) 60%); color: #eef5f0; padding: 26mm 22mm; display: flex; flex-direction: column; page-break-after: always; break-after: page; }
+.capa .marca { display: flex; align-items: center; gap: 14px; }
+.capa .marca img { width: 56px; height: 56px; }
+.capa .marca b { font-size: 22pt; display: block; line-height: 1; }
+.capa .marca small { color: #a7c4b2; font-size: 10pt; }
+.capa .sobre { margin-top: auto; }
+.capa .rotulo { color: #86efac; font-weight: 700; letter-spacing: 0.2em; font-size: 10pt; margin-bottom: 14px; }
+.capa h1 { font-size: 40pt; line-height: 1.05; letter-spacing: -0.03em; }
+.capa .sub { font-size: 15pt; color: #cfe3d6; margin-top: 18px; max-width: 150mm; }
+.capa .fases { margin-top: 26mm; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.capa .fases div { background: #1a3325; border: 1px solid #2c5a40; border-radius: 10px; padding: 10px 12px; font-size: 9.5pt; color: #cfe3d6; }
+.capa .fases b { color: #86efac; display: block; font-size: 9pt; letter-spacing: 0.08em; }
+.capa .rodape { margin-top: 18mm; display: flex; justify-content: space-between; color: #a7c4b2; font-size: 9.5pt; border-top: 1px solid #2c5a40; padding-top: 10px; }
+
+/* ---------- páginas ---------- */
+.fase { break-before: page; }
+.cabeca { display: flex; align-items: center; gap: 14px; padding-bottom: 9px; border-bottom: 2px solid var(--verde); margin-bottom: 10px; }
+.cabeca .num { width: 46px; height: 46px; border-radius: 12px; background: var(--verde); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18pt; font-weight: 700; flex: none; }
+.cabeca .num.escuro { background: var(--escuro); color: #86efac; }
+.cabeca h2 { font-size: 20pt; }
+.cabeca p { margin: 2px 0 0; color: var(--suave); font-size: 10pt; }
+h3 { font-size: 12pt; margin: 11px 0 5px; color: var(--verde-escuro); }
+h4 { font-size: 11pt; margin: 10px 0 6px; }
+
+.meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.meta span { background: var(--verde-claro); color: var(--verde-escuro); border-radius: 99px; padding: 3px 12px; font-size: 9pt; font-weight: 600; }
+.meta span.cinza { background: var(--fundo); color: var(--suave); border: 1px solid var(--borda); }
+
+.cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 12px; margin: 6px 0; break-inside: avoid; }
+.grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grade2 .cartao { margin: 0; }
+.cartao h4 { margin-top: 0; }
+
+.passos { counter-reset: passo; list-style: none; padding: 0; margin: 6px 0; }
+.passos > li { counter-increment: passo; position: relative; padding: 1px 0 5px 32px; break-inside: avoid; }
+.passos > li::before { content: counter(passo); position: absolute; left: 0; top: 1px; width: 22px; height: 22px; border-radius: 6px; background: var(--verde-claro); color: var(--verde-escuro); font-weight: 700; font-size: 9.5pt; display: flex; align-items: center; justify-content: center; }
+.passos ul { margin: 4px 0 0; padding-left: 16px; }
+
+.check { list-style: none; padding: 0; margin: 4px 0; }
+.check li { position: relative; padding: 2px 0 4px 24px; break-inside: avoid; }
+.check li::before { content: ""; position: absolute; left: 0; top: 4px; width: 13px; height: 13px; border: 1.6px solid var(--verde); border-radius: 3px; background: #fff; }
+
+.perguntas { list-style: none; padding: 0; margin: 4px 0; }
+.perguntas li { padding: 4px 0; border-bottom: 1px dashed var(--borda); break-inside: avoid; }
+.perguntas li:last-child { border-bottom: 0; }
+.perguntas b { display: block; }
+.perguntas small { color: var(--suave); font-size: 9pt; display: block; }
+
+table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 4px 0 8px; break-inside: auto; }
+th { text-align: left; background: var(--fundo); color: var(--suave); font-weight: 700; font-size: 8pt; letter-spacing: 0.04em; text-transform: uppercase; padding: 4px 8px; border-bottom: 1px solid var(--borda); }
+td { padding: 4px 8px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+tr { break-inside: avoid; }
+td.obrig { color: var(--verde-escuro); font-weight: 700; white-space: nowrap; }
+
+.aviso, .perigo, .dica { border-radius: 10px; padding: 8px 12px; margin: 8px 0; break-inside: avoid; border: 1px solid; }
+.aviso { background: var(--alerta-fundo); border-color: var(--alerta-borda); color: #5c2c06; }
+.perigo { background: var(--erro-fundo); border-color: var(--erro-borda); color: #7f1d1d; }
+.dica { background: var(--verde-fundo); border-color: var(--verde-borda); color: #14532d; }
+.aviso b:first-child, .perigo b:first-child, .dica b:first-child { display: block; margin-bottom: 2px; }
+
+.caminho { font-weight: 600; color: var(--verde-escuro); }
+
+.linha-tempo { display: grid; grid-template-columns: 70px 1fr; gap: 0; margin: 8px 0; }
+.linha-tempo .quando { font-weight: 700; color: var(--verde-escuro); padding: 5px 0; border-right: 2px solid var(--verde-borda); font-size: 9.5pt; }
+.linha-tempo .oque { padding: 5px 0 5px 14px; border-bottom: 1px dashed var(--borda); }
+.linha-tempo .oque b { display: block; }
+.linha-tempo .oque span { color: var(--suave); font-size: 9.5pt; }
+
+.ficha td { height: 30px; }
+.ficha td:first-child { width: 40%; color: var(--suave); font-weight: 600; }
+.duas-colunas { columns: 2; column-gap: 18px; }
+.duas-colunas .cartao, .duas-colunas li { break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- ======================= CAPA ======================= -->
+<section class="capa">
+  <div class="marca">
+    <img src="../../marketplace-web/public/favicon.svg" alt="">
+    <div><b>Marcus</b><small>gestão inteligente para o seu negócio</small></div>
+  </div>
+  <div class="sobre">
+    <p class="rotulo">CARTILHA DO DONO · USO INTERNO WN LABS</p>
+    <h1>Implantação de um cliente novo, do contrato à primeira venda</h1>
+    <p class="sub">O passo a passo completo depois de fechar com um mercado: o que perguntar, o que pedir, o que configurar, como treinar a equipe e como passar o primeiro dia sem falhas.</p>
+  </div>
+  <div class="fases">
+    <div><b>FASE 1</b>Levantamento com o cliente</div>
+    <div><b>FASE 2</b>Cadastro na área do dono</div>
+    <div><b>FASE 3</b>Produtos e estoque</div>
+    <div><b>FASE 4</b>Financeiro e Pix</div>
+    <div><b>FASE 5</b>Caixas e equipamentos</div>
+    <div><b>FASE 6</b>Usuários e treinamento</div>
+    <div><b>FASE 7</b>Dia da virada</div>
+    <div><b>FASE 8</b>Acompanhamento</div>
+  </div>
+  <div class="rodape"><span>WN Labs · contato@wnlabs.com.br</span><span>Versão de 19/10/2026</span></div>
+</section>
+
+<!-- ======================= VISÃO GERAL ======================= -->
+<section>
+  <div class="cabeca"><div class="num escuro">0</div><div><h2>Como usar esta cartilha</h2><p>O mapa da implantação e as regras de ouro</p></div></div>
+
+  <p>Siga as fases <b>na ordem</b>. Cada uma depende da anterior: não dá para importar produtos sem o cliente cadastrado, nem treinar o caixa sem usuários criados. Marque os quadrados conforme for fazendo; leve a cartilha impressa em toda visita.</p>
+
+  <h3>Linha do tempo sugerida (mercado pequeno, 1 a 3 caixas)</h3>
+  <div class="linha-tempo">
+    <div class="quando">Dia 0</div><div class="oque"><b>Contrato fechado</b><span>Marcar a reunião de levantamento (Fase 1) e mandar a lista do que o cliente deve juntar (página "O que o cliente fornece").</span></div>
+    <div class="quando">Dia 1–2</div><div class="oque"><b>Levantamento e cadastro</b><span>Reunião, ficha preenchida, cliente criado na área do dono (Fases 1 e 2).</span></div>
+    <div class="quando">Dia 3–6</div><div class="oque"><b>Dados</b><span>Planilha de produtos conferida e importada, financeiro implantado, Pix configurado (Fases 3 e 4).</span></div>
+    <div class="quando">Dia 7</div><div class="oque"><b>Loja física e treinamento</b><span>Computadores dos caixas, impressora, leitor e balança; usuários e treino por perfil (Fases 5 e 6).</span></div>
+    <div class="quando">Dia 8</div><div class="oque"><b>Virada</b><span>Primeiro dia vendendo no Marcus, com você presente na abertura e no fechamento (Fase 7).</span></div>
+    <div class="quando">Dia 9–38</div><div class="oque"><b>Acompanhamento</b><span>Diário na primeira semana, semanal até completar 30 dias (Fase 8).</span></div>
+  </div>
+  <p style="color:var(--suave);font-size:9.5pt">Mercado maior (muitos produtos, vários caixas) leva mais tempo na Fase 3: a planilha é o que mais demora. Combine a data da virada só depois da planilha conferida.</p>
+
+  <h3>Regras de ouro</h3>
+  <div class="grade2">
+    <div class="cartao"><h4>Nunca vire num dia de movimento forte</h4>Sexta à tarde, sábado, véspera de feriado e começo de mês: não. A virada boa é segunda ou terça de manhã.</div>
+    <div class="cartao"><h4>Contagem de estoque antes da virada</h4>O estoque inicial precisa ser contado de verdade. Número chutado vira estoque errado, alerta errado e compra errada.</div>
+    <div class="cartao"><h4>Cada pessoa, um login</h4>Nunca deixe a equipe usar o login do dono. É o que garante "quem fez o quê" nos cancelamentos e no estoque.</div>
+    <div class="cartao"><h4>Teste antes, na frente do cliente</h4>Uma venda de teste em cada caixa, com impressão, e um cancelamento com a senha do gerente, antes de abrir as portas.</div>
+    <div class="cartao"><h4>Vendas automáticas sempre DESLIGADAS</h4>Em cliente real, o robô de vendas (simulador) fica em "Desligado". Ele existe só para lojas de demonstração.</div>
+    <div class="cartao"><h4>Prometa só o que o sistema faz hoje</h4>Veja o quadro abaixo: sem nota fiscal eletrônica de venda (NFC-e) e sem maquininha integrada, por enquanto.</div>
+  </div>
+  <div class="aviso"><b>O que dizer com sinceridade (antes que ele pergunte)</b>
+  O cupom do Marcus <b>não é documento fiscal</b>: a emissão de NFC-e virá por um serviço fiscal integrado. Se o cliente é obrigado a emitir NFC-e hoje, ele mantém o emissor fiscal atual por enquanto. A <b>maquininha de cartão não é integrada</b>: o caixa passa o cartão na maquininha e registra a forma no Marcus. O <b>fiado</b> está desligado nesta versão.</div>
+</section>
+
+<!-- ======================= FASE 1 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">1</div><div><h2>Levantamento com o cliente</h2><p>A reunião que define tudo o que vem depois</p></div></div>
+  <div class="meta"><span>1 a 2 horas</span><span>Na loja, de preferência</span><span class="cinza">Leve: esta cartilha, a ficha do cliente (última página) e um notebook</span></div>
+
+  <p>Faça na loja, andando pelo salão e pelo caixa: você vê os equipamentos, o tipo de produto (muito a granel? padaria? açougue?) e como a equipe trabalha. Anote tudo na <b>Ficha do cliente</b>, no fim da cartilha.</p>
+
+  <div class="duas-colunas">
+  <h3>A loja</h3>
+  <ul class="perguntas">
+    <li><b>Qual o nome que aparece no cupom e no sistema? E a razão social e o CNPJ?</b><small>Nome do mercado, razão social e CPF/CNPJ vão na ficha do cliente.</small></li>
+    <li><b>Em que cidade fica a loja?</b><small>Define o fuso horário ("vendas de hoje") e o clima dos relatórios.</small></li>
+    <li><b>Qual o horário de funcionamento, dia a dia? Abre domingo e feriado?</b><small>Feriados nacionais e locais seguem o horário de domingo.</small></li>
+    <li><b>Quem é o responsável e qual o WhatsApp e o e-mail dele?</b><small>O e-mail vira o login do administrador.</small></li>
+  </ul>
+
+  <h3>Caixas e equipamentos</h3>
+  <ul class="perguntas">
+    <li><b>Quantos caixas funcionam ao mesmo tempo?</b><small>É o número de caixas do plano (a mensalidade depende dele).</small></li>
+    <li><b>Que computador tem em cada caixa? Tem Chrome ou Edge?</b><small>O Marcus roda no navegador. Balança no caixa só funciona no Chrome ou no Edge.</small></li>
+    <li><b>Tem leitor de código de barras? Impressora térmica? De 80 ou 58 mm?</b><small>Leitor USB que "digita" o código funciona direto.</small></li>
+    <li><b>Vende por peso? Tem balança no caixa ou balança que imprime etiqueta (açougue, hortifrúti)?</b><small>Marca e modelo da balança. Etiqueta: o código tem 4 ou 5 dígitos? Traz preço ou peso?</small></li>
+    <li><b>Como é a internet da loja? Já caiu muito?</b><small>O caixa vende sem internet, mas precisa ser aberto com internet.</small></li>
+  </ul>
+
+  <h3>Produtos e estoque</h3>
+  <ul class="perguntas">
+    <li><b>Quantos produtos, mais ou menos? Já existe alguma lista (outro sistema, planilha)?</b><small>Peça para exportar em Excel ou CSV. É o que mais acelera a implantação.</small></li>
+    <li><b>Quais produtos controlam validade?</b><small>Frios, laticínios, padaria, carnes: entram com lote e data.</small></li>
+    <li><b>Quem pode fazer a contagem do estoque antes da virada, e quando?</b></li>
+  </ul>
+
+  <h3>Fornecedores e compras</h3>
+  <ul class="perguntas">
+    <li><b>Quais os principais fornecedores, com WhatsApp, e-mail e prazo de entrega?</b><small>O pedido de compra sai pronto para o WhatsApp ou e-mail do fornecedor.</small></li>
+    <li><b>Os fornecedores mandam nota fiscal (XML)? Quem recebe esses arquivos?</b><small>Com o XML, a entrada no estoque é automática.</small></li>
+    <li><b>Quer sugestões de compra automáticas todos os dias?</b><small>Configurações → Compras automáticas.</small></li>
+  </ul>
+
+  <h3>Dinheiro</h3>
+  <ul class="perguntas">
+    <li><b>Quais contas o mercado tem: banco(s), cofre, gaveta? Quanto tem em cada uma no dia da virada?</b></li>
+    <li><b>Qual maquininha usa, quais as taxas e em quantos dias cai (débito, crédito, Pix)?</b></li>
+    <li><b>Qual a chave Pix da loja? Quer o Pix confirmado sozinho pelo Mercado Pago?</b><small>O automático precisa de uma conta Mercado Pago com credenciais de produção.</small></li>
+    <li><b>Quais as contas fixas do mês (aluguel, salários, luz, água, contador...) e o dia de cada uma?</b></li>
+    <li><b>Tem boletos de fornecedor em aberto? Qual a alíquota efetiva do Simples?</b><small>Peça a alíquota ao contador do cliente.</small></li>
+    <li><b>Qual o saldo mínimo que ele quer manter no banco?</b><small>O fluxo de caixa avisa quando a previsão fica abaixo dele.</small></li>
+  </ul>
+
+  <h3>Equipe</h3>
+  <ul class="perguntas">
+    <li><b>Quem será administrador, quem será gerente e quem será caixa? Nome e e-mail de cada um.</b><small>Só administrador e gerente cancelam venda e dão desconto acima de 10%.</small></li>
+    <li><b>Qual o melhor horário para treinar cada turma sem parar a loja?</b></li>
+  </ul>
+  </div>
+
+
+</section>
+
+<!-- ======================= O QUE O CLIENTE FORNECE ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num escuro">+</div><div><h2>O que o cliente fornece e precisa ter</h2><p>Mande esta página para ele logo depois do contrato</p></div></div>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h4>Documentos e informações</h4>
+      <ul class="check">
+        <li>Nome do mercado, razão social, CNPJ (ou CPF) e endereço</li>
+        <li>Nome, WhatsApp e e-mail do responsável</li>
+        <li>Horário de funcionamento de cada dia</li>
+        <li>Lista de quem vai usar o sistema, com função e e-mail</li>
+        <li>Chave Pix da loja e o nome que aparece para quem paga</li>
+        <li>Alíquota efetiva do Simples (com o contador)</li>
+      </ul>
+    </div>
+    <div class="cartao">
+      <h4>Arquivos</h4>
+      <ul class="check">
+        <li>Lista de produtos em Excel ou CSV (do sistema atual ou do modelo do Marcus)</li>
+        <li>Contagem do estoque na véspera da virada</li>
+        <li>XML das últimas notas dos fornecedores, se tiver</li>
+        <li>Lista de fornecedores: WhatsApp, e-mail e prazo de entrega</li>
+        <li>Saldos de banco, cofre e gaveta na data da virada</li>
+        <li>Contas fixas do mês e boletos em aberto (valor e vencimento)</li>
+        <li>Taxas e prazos da maquininha</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Equipamentos em cada caixa</h3>
+  <table>
+    <tr><th style="width:28%">Item</th><th style="width:16%">Obrigatório?</th><th>Observação</th></tr>
+    <tr><td>Computador</td><td class="obrig">Sim</td><td>Windows ou Linux, com <b>Google Chrome ou Microsoft Edge</b> atualizado. Notebook serve.</td></tr>
+    <tr><td>Internet</td><td class="obrig">Sim</td><td>Cabo ou Wi-Fi estável. Sem internet o caixa continua vendendo, mas abrir e fechar o caixa exige conexão.</td></tr>
+    <tr><td>Leitor de código de barras</td><td>Recomendado</td><td>USB que funciona como teclado (o padrão do mercado). Sem leitor, o caixa digita o nome do produto.</td></tr>
+    <tr><td>Impressora térmica de cupom</td><td>Recomendado</td><td>Bobina de 80 mm ou 58 mm, instalada no Windows como impressora comum.</td></tr>
+    <tr><td>Balança no caixa</td><td>Se vende a granel</td><td>Protocolo Toledo ou Filizola, ligada por porta serial ou USB-serial. Só no Chrome ou Edge.</td></tr>
+    <tr><td>Balança de etiqueta</td><td>Se tem açougue ou hortifrúti</td><td>A balança imprime a etiqueta com código começando em 2. O Marcus exporta a lista de produtos para cadastrar nela.</td></tr>
+    <tr><td>Celular com o app do banco</td><td>Para Pix manual</td><td>O caixa confere o Pix recebido antes de confirmar a venda. Com o Mercado Pago automático, não precisa.</td></tr>
+    <tr><td>Fundo de troco</td><td class="obrig">Sim</td><td>Dinheiro em espécie para abrir cada caixa no primeiro dia.</td></tr>
+  </table>
+
+  <div class="dica"><b>Para o gerente e o dono</b>Qualquer computador, notebook ou celular com navegador acessa <b>app.wnlabs.com.br</b> de casa ou da loja. Não precisa instalar nada.</div>
+</section>
+
+<!-- ======================= FASE 2 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">2</div><div><h2>Cadastro do cliente na área do dono</h2><p>Criar a empresa, o administrador, o plano e a mensalidade</p></div></div>
+  <div class="meta"><span>30 minutos</span><span>No seu computador, na rede interna</span><span class="cinza">Endereço: http://oracle-a1:5100 (login do dono)</span></div>
+
+  <h3>Criar o cliente</h3>
+  <ol class="passos">
+    <li>Entre na área do dono e vá em <span class="caminho">Clientes → Novo cliente</span>.</li>
+    <li>Preencha <b>Nome do mercado</b>, <b>Cidade da loja</b> (busque e escolha da lista), <b>Plano</b> e o número de caixas.</li>
+    <li><b>Vendas automáticas: Desligado.</b> Confira duas vezes. Ligado, o robô abre um caixa e vende sozinho na loja do cliente.</li>
+    <li>Em <b>Administrador do cliente</b>, informe o nome e o e-mail do responsável. Esse e-mail é o login dele.</li>
+    <li>Salve. O sistema mostra a <b>senha provisória uma única vez</b>: anote na ficha e entregue pessoalmente ou por WhatsApp direto ao responsável. No primeiro acesso ele cria a senha dele.</li>
+  </ol>
+  <div class="dica"><b>Também dá pelo terminal</b><code>./nova-empresa.sh --nome "Mercado do Zé" --caixas 2 --admin-email ze@exemplo.com --admin-nome "José da Silva"</code> cria a empresa, as categorias padrão e o administrador com senha provisória.</div>
+
+  <h3>Completar a ficha do cliente</h3>
+  <p>Em <span class="caminho">Clientes → (o cliente)</span>:</p>
+  <ul class="check">
+    <li><b>Dados:</b> razão social, CPF ou CNPJ, responsável, WhatsApp, e-mail de contato, endereço. Observações só você vê.</li>
+    <li><b>Caixas (PDVs) contratados:</b> o número de caixas que podem ficar abertos ao mesmo tempo.</li>
+    <li><b>Mensalidade:</b> plano, dia do vencimento, valor combinado (se for diferente da tabela), teste grátis até e cobrar a partir de.</li>
+    <li><b>Cidade da loja:</b> confira o fuso mostrado (ex.: horário de Brasília).</li>
+    <li><b>Horário de funcionamento:</b> dia a dia, inclusive domingo.</li>
+    <li><b>Módulos liberados:</b> "Todos os módulos" ou um a um (Vendas, Compras e fornecedores, Financeiro, Contas a pagar, Relatórios, Importar planilha, Etiquetas). Painel, caixa, produtos, estoque, usuários e configurações são de todos.</li>
+  </ul>
+
+  <h3>Cobrança</h3>
+  <p>As mensalidades são geradas sozinhas em <span class="caminho">Cobranças</span>. Ali você registra o recebimento, manda a cobrança pelo WhatsApp e define a regra de bloqueio automático por atraso (o acesso volta sozinho ao registrar o pagamento).</p>
+
+  <div class="perigo"><b>Confira antes de seguir</b>Entre em <b>app.wnlabs.com.br</b> com o login do administrador do cliente (numa janela anônima). Confira se o nome do mercado aparece no topo, se o menu mostra os módulos combinados e se não há caixa aberto pelo robô.</div>
+</section>
+
+<!-- ======================= FASE 3 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">3</div><div><h2>Produtos e estoque</h2><p>A planilha é a fase que mais demora: comece cedo</p></div></div>
+  <div class="meta"><span>1 a 4 dias</span><span>Depende do tamanho do catálogo</span></div>
+
+  <h3>Montar a planilha</h3>
+  <ol class="passos">
+    <li>No sistema do cliente, vá em <span class="caminho">Produtos → Importar planilha</span> e baixe o <b>modelo</b>. Ele já vem com as categorias da empresa.</li>
+    <li>Copie os dados da lista do cliente para o modelo (ou use a planilha dele: o Marcus reconhece as colunas pelo nome). Excel brasileiro (.xlsx ou .csv com ponto e vírgula) funciona.</li>
+    <li>Cole a <b>contagem real</b> do estoque na coluna Estoque inicial e as datas na coluna Validade.</li>
+  </ol>
+
+  <table>
+    <tr><th style="width:26%">Coluna</th><th style="width:14%">Precisa?</th><th>Como preencher</th></tr>
+    <tr><td>Nome</td><td class="obrig">Sim</td><td>Como o caixa procura: "Arroz Branco Tipo 1 5kg".</td></tr>
+    <tr><td>Categoria</td><td class="obrig">Sim</td><td>Uma das categorias do modelo (Mercearia, Bebidas, Hortifrúti...).</td></tr>
+    <tr><td>Unidade</td><td class="obrig">Sim</td><td>UN, KG, L, PCT, CX ou DZ. Produto de peso = KG.</td></tr>
+    <tr><td>Preço de venda</td><td class="obrig">Sim</td><td>O preço da gôndola.</td></tr>
+    <tr><td>Código de barras</td><td>Não</td><td>EAN de 8 a 14 dígitos. Pão, frutas e carnes podem ficar sem.</td></tr>
+    <tr><td>Preço de custo</td><td>Não, mas peça</td><td>Sem custo não há margem, lucro nem valor do estoque.</td></tr>
+    <tr><td>Estoque mínimo</td><td>Não</td><td>Abaixo dele o produto entra no alerta de "estoque baixo".</td></tr>
+    <tr><td>Controla validade</td><td>Não</td><td>Sim para frios, laticínios, padaria, carnes.</td></tr>
+    <tr><td>Estoque inicial e Validade</td><td>Não</td><td>A contagem da véspera. Vira um lançamento de "Inventário" com o lote de validade.</td></tr>
+    <tr><td>NCM</td><td>Não</td><td>Código fiscal. Vem sozinho quando o produto entra por NF-e.</td></tr>
+    <tr><td>Fornecedor e Prazo de entrega</td><td>Não</td><td>Cria o fornecedor se ele ainda não existir.</td></tr>
+  </table>
+
+  <h3>Importar</h3>
+  <ol class="passos">
+    <li>Envie o arquivo: a <b>prévia</b> mostra linha a linha o que é Novo, Atualizar ou Erro, sem gravar nada.</li>
+    <li>Corrija os erros na planilha e envie de novo até a prévia ficar limpa.</li>
+    <li>Grave. Ou grava tudo ou não grava nada: nunca fica pela metade.</li>
+  </ol>
+  <div class="dica"><b>Pelo terminal (catálogo grande)</b><code>./importar-produtos.sh --empresa N --arquivo planilha.csv</code> mostra a prévia; acrescente <code>--gravar true</code> para gravar. O número N está na ficha do cliente.</div>
+
+  <h3>Depois da importação</h3>
+  <ul class="check">
+    <li><b>Fornecedores:</b> confira WhatsApp, e-mail e prazo em <span class="caminho">Fornecedores</span>.</li>
+    <li><b>Balança de etiqueta:</b> nos produtos de peso, preencha o <b>código na balança (PLU)</b>; em <span class="caminho">Configurações → Etiqueta da balança</span> defina os dígitos do código e se a etiqueta traz preço ou peso, e exporte o .csv para cadastrar na balança.</li>
+    <li><b>Etiquetas de gôndola:</b> imprima em <span class="caminho">Produtos → Etiquetas</span> (folha A4) se o cliente quiser trocar as etiquetas.</li>
+    <li><b>Conferência:</b> abra <span class="caminho">Estoque → Posição do estoque</span>. O valor da mercadoria a custo bate com o que o dono imagina? Produtos zerados ou negativos fazem sentido?</li>
+    <li>Escolha 10 produtos ao acaso e confira preço e estoque na gôndola.</li>
+  </ul>
+</section>
+
+<!-- ======================= FASE 4 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">4</div><div><h2>Financeiro e Pix</h2><p>Saldos de partida, contas fixas, maquininha e Pix da loja</p></div></div>
+  <div class="meta"><span>Meio dia</span><span>Com o dono do mercado ao lado</span></div>
+
+  <h3>Implantar o financeiro (terminal)</h3>
+  <p>Monte um arquivo .json com os dados que o cliente passou e rode primeiro a prévia:</p>
+  <p><code>./implantar-financeiro.sh --arquivo cliente-financeiro.json</code> (prévia) e depois <code>--gravar true</code>.</p>
+  <table>
+    <tr><th style="width:26%">Parte do arquivo</th><th>O que vai</th></tr>
+    <tr><td>empresa e data</td><td>O número do cliente e a <b>data da virada</b> (os saldos valem a partir dela).</td></tr>
+    <tr><td>contas</td><td>Gaveta (dinheiro), cofre e cada banco, com o saldo do dia. Banco: nome e instituição.</td></tr>
+    <tr><td>saldoMinimo</td><td>O mínimo que ele quer manter no banco: o fluxo de caixa avisa abaixo disso.</td></tr>
+    <tr><td>aliquotaSimples</td><td>A alíquota efetiva do Simples, em %. É o imposto da DRE.</td></tr>
+    <tr><td>contasFixas</td><td>Descrição, categoria, valor, dia do vencimento e por quantos meses (aluguel, salários, luz...).</td></tr>
+  </table>
+  <div class="dica"><b>Modelo pronto</b>O do Mercadinho Juvenal está em <code>~/projetos/marketplace-testes/juvenal/juvenal-financeiro.json</code>: copie e troque os valores.</div>
+
+  <h3>No sistema do cliente</h3>
+  <ul class="check">
+    <li><b>Maquininha:</b> em <span class="caminho">Financeiro → A receber</span>, ajuste taxa e prazo de débito, crédito e Pix e a conta onde o dinheiro cai. Padrão: Pix 0%, débito 1,37% em 1 dia útil, crédito 3,15% em 30 dias.</li>
+    <li><b>Boletos em aberto:</b> lance cada um em <span class="caminho">Contas a pagar</span> com o vencimento.</li>
+    <li><b>Saldos:</b> confira em <span class="caminho">Financeiro → Saldos</span> se cada conta mostra o valor da virada.</li>
+  </ul>
+
+  <h3>Pix da loja</h3>
+  <ol class="passos">
+    <li><span class="caminho">Configurações → Pix da loja</span>: tipo da chave, chave (CPF e CNPJ são conferidos) e o nome que o cliente vê. Pronto: no caixa aparece o QR com o valor da venda, e o dinheiro cai direto na conta da loja.</li>
+    <li><b>Pix confirmado sozinho (opcional):</b> o cliente cria uma aplicação no Mercado Pago, <b>ativa as credenciais de produção</b> e cola o Access Token em <span class="caminho">Confirmação automática</span>. Desmarque "credenciais de teste".</li>
+    <li>Copie o endereço do aviso mostrado na tela e cole no painel do Mercado Pago (Webhooks, evento Order). Sem isso também funciona, só demora alguns segundos a mais.</li>
+    <li><b>Teste com R$ 1,00 de verdade</b> antes da virada, e faça a devolução pela tela de Vendas.</li>
+  </ol>
+  <div class="aviso"><b>Token é senha</b>Quem cola o Access Token é o dono do mercado, na tela dele. Não peça o token por WhatsApp nem guarde em lugar nenhum: o sistema guarda criptografado e só mostra o final.</div>
+</section>
+
+<!-- ======================= FASE 5 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">5</div><div><h2>Caixas e equipamentos</h2><p>Preparar cada computador da frente de caixa</p></div></div>
+  <div class="meta"><span>30 a 40 minutos por caixa</span><span>Na loja, fora do horário de pico</span></div>
+
+  <p>As configurações de impressora e de balança do caixa ficam <b>guardadas em cada computador</b>. Faça o roteiro abaixo em todos, um por um.</p>
+
+  <ol class="passos">
+    <li>Atualize o <b>Chrome ou Edge</b> e abra <b>https://app.wnlabs.com.br</b>.</li>
+    <li>Crie um <b>atalho na área de trabalho</b> para o Marcus. Para imprimir o cupom sem a janela de impressão, acrescente <code>--kiosk-printing</code> ao destino do atalho e deixe a impressora térmica como <b>padrão do Windows</b>.</li>
+    <li>Entre com um usuário de gerente e abra <span class="caminho">Configurações → Impressora de cupom neste computador</span>: largura da bobina (80 ou 58 mm), vias, mensagem do rodapé e "imprimir direto".</li>
+    <li>Se tiver balança no caixa: <span class="caminho">Configurações → Balança do caixa neste computador</span>, escolha a porta, a velocidade (baud) e teste a leitura do peso.</li>
+    <li><b>Teste o leitor:</b> no caixa, bipe 5 produtos diferentes. Todos precisam aparecer.</li>
+    <li><b>Teste a etiqueta da balança</b> (se tiver): bipe uma etiqueta do açougue ou gere uma em <span class="caminho">Etiqueta de teste</span>.</li>
+    <li>Faça <b>uma venda de teste</b> completa com impressão e depois <b>cancele</b> com a senha do gerente.</li>
+  </ol>
+
+  <div class="grade2">
+    <div class="cartao"><h4>Se a impressora abre a janela</h4>O atalho não está com <code>--kiosk-printing</code>, ou o Chrome foi aberto por outro atalho. Feche todas as janelas do Chrome e abra pelo atalho certo.</div>
+    <div class="cartao"><h4>Se a balança não lê</h4>Use Chrome ou Edge, sempre pelo endereço https. Confira a porta e a velocidade iguais às da balança, e se o cabo USB-serial tem driver instalado.</div>
+    <div class="cartao"><h4>Se o leitor não acha o produto</h4>O código do produto no cadastro está diferente do da embalagem. Corrija em Produtos (o caixa pode vender pelo nome enquanto isso).</div>
+    <div class="cartao"><h4>Se a internet cair</h4>O caixa continua vendendo (dinheiro, cartão e Pix pelo QR fixo da loja) e envia tudo quando a internet volta. Ele precisa ter sido <b>aberto com internet</b>.</div>
+  </div>
+</section>
+
+<!-- ======================= FASE 6 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">6</div><div><h2>Usuários e treinamento</h2><p>Cada pessoa com o seu login, cada perfil com o seu treino</p></div></div>
+  <div class="meta"><span>Caixa: 1 h</span><span>Gerente: 2 h</span><span>Dono: 2 h</span></div>
+
+  <h3>Criar os usuários</h3>
+  <p>Com o administrador do cliente, em <span class="caminho">Usuários</span>: nome, e-mail e perfil de cada pessoa. O sistema gera a <b>senha provisória</b>, mostrada uma vez; no primeiro acesso a pessoa cria a dela.</p>
+  <table>
+    <tr><th style="width:18%">Perfil</th><th>O que faz</th></tr>
+    <tr><td><b>Administrador</b></td><td>Tudo, inclusive criar usuários. Normalmente o dono.</td></tr>
+    <tr><td><b>Gerente</b></td><td>Tudo da loja (produtos, estoque, compras, financeiro, relatórios, vendas), autoriza cancelamentos e descontos maiores. Não cria usuários.</td></tr>
+    <tr><td><b>Caixa</b></td><td>Painel e caixa. Desconto de até 10%; acima disso, e para cancelar, precisa da senha de um gerente.</td></tr>
+  </table>
+
+  <div class="duas-colunas">
+  <h3>Roteiro do caixa</h3>
+  <ul class="check">
+    <li>Entrar e abrir o caixa informando o fundo de troco</li>
+    <li>Bipar, digitar o nome e usar <b>3*arroz</b> para quantidade</li>
+    <li>Produto de peso: janela de peso (F4 lê a balança)</li>
+    <li>Finalizar (F2): dinheiro com troco, Pix, débito, crédito e pagamento dividido</li>
+    <li>Pix: mostrar o QR, conferir (ou esperar o "Pix recebido!")</li>
+    <li>Desconto, tirar um item e cancelar a compra (com o gerente)</li>
+    <li>Reimprimir o último cupom</li>
+    <li>Sangria e suprimento</li>
+    <li>Fechamento cego: contar a gaveta sem ver o valor esperado</li>
+  </ul>
+
+  <h3>Roteiro do gerente</h3>
+  <ul class="check">
+    <li>Autorizar cancelamento no caixa com a própria senha</li>
+    <li>Tela Vendas: cupom, reimpressão e cancelamento com estorno</li>
+    <li>Estoque: entrada, perda (com motivo), ajuste e validades</li>
+    <li>"Dar baixa" no lote vencido</li>
+    <li>Compras: pedido ao fornecedor por WhatsApp ou e-mail</li>
+    <li>Receber o pedido e escolher como paga (boleto, na entrega ou com a NF-e)</li>
+    <li>Entrada por NF-e (XML)</li>
+    <li>Cadastrar produto e mudar preço (e imprimir a etiqueta)</li>
+  </ul>
+
+  <h3>Roteiro do dono</h3>
+  <ul class="check">
+    <li>Painel do dia: vendas, ticket, estoque baixo, validade, contas</li>
+    <li>Posição do estoque: quanto vale a mercadoria</li>
+    <li>Financeiro: saldos, lançamentos, fluxo de caixa</li>
+    <li>DRE: de cada R$ 100 vendidos, quanto sobra</li>
+    <li>Contas a pagar e conferência com o extrato do banco (OFX)</li>
+    <li>Relatórios: período, curva ABC, clima, insights da IA</li>
+    <li>Usuários: criar, desativar e gerar senha nova</li>
+  </ul>
+  </div>
+
+  <div class="dica"><b>Como treinar</b>Treine no próprio sistema do cliente, antes da virada, com vendas de teste que você cancela depois. Peça para cada pessoa fazer sozinha enquanto você só observa. Quem só assistiu não aprendeu.</div>
+</section>
+
+<!-- ======================= FASE 7 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">7</div><div><h2>Dia da virada</h2><p>O primeiro dia vendendo no Marcus, com você na loja</p></div></div>
+  <div class="meta"><span>Chegue 1 hora antes de abrir</span><span>Fique até o fechamento</span></div>
+
+  <div class="grade2">
+    <div class="cartao">
+      <h4>Antes de abrir as portas</h4>
+      <ul class="check">
+        <li>Internet funcionando em todos os caixas</li>
+        <li>Cada operador entra com o próprio login</li>
+        <li>Caixas abertos com o fundo de troco contado</li>
+        <li>Impressora com bobina e cupom de teste saindo</li>
+        <li>Leitor e balança testados</li>
+        <li>Pix: QR aparecendo com o valor certo</li>
+        <li>Gerente presente e sabendo a própria senha</li>
+        <li>Estoque baixo e validades conferidos no painel</li>
+      </ul>
+    </div>
+    <div class="cartao">
+      <h4>Durante o dia</h4>
+      <ul class="check">
+        <li>Fique perto do caixa nas primeiras horas</li>
+        <li>Anote toda dúvida e todo produto "não encontrado"</li>
+        <li>Corrija códigos e preços na hora, em Produtos</li>
+        <li>Acompanhe as vendas no painel e na tela Vendas</li>
+        <li>Não mude configuração com a loja cheia</li>
+      </ul>
+      <h4 style="margin-top:12px">No fechamento</h4>
+      <ul class="check">
+        <li>Fechamento cego de cada caixa, com a equipe</li>
+        <li>Conferir diferenças (quebra ou sobra) com o gerente</li>
+        <li>Conferir no Financeiro se o caixa entrou</li>
+        <li>Revisar a lista de dúvidas com o dono</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Plano B</h3>
+  <table>
+    <tr><th style="width:32%">Se acontecer</th><th>Faça</th></tr>
+    <tr><td>A internet caiu</td><td>Continue vendendo: o caixa guarda as vendas e envia quando voltar. Não feche nem abra caixa até a internet voltar.</td></tr>
+    <tr><td>Produto não encontrado</td><td>Venda pelo nome de um produto equivalente só se o preço for igual; senão, cadastre na hora (gerente) e bipe de novo.</td></tr>
+    <tr><td>Preço errado no cadastro</td><td>O gerente corrige em Produtos; o caixa cobra o preço novo na próxima venda.</td></tr>
+    <tr><td>Produto vencido no caixa</td><td>O Marcus não vende produto vencido. Tire da prateleira e dê baixa como perda.</td></tr>
+    <tr><td>Esqueceram a senha</td><td>O administrador gera senha nova em Usuários.</td></tr>
+    <tr><td>Computador do caixa parou</td><td>Entre em outro computador com o mesmo login; a venda em andamento é guardada no computador onde começou.</td></tr>
+  </table>
+</section>
+
+<!-- ======================= FASE 8 ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num">8</div><div><h2>Acompanhamento</h2><p>Os 30 dias que fazem o cliente ficar</p></div></div>
+
+  <div class="linha-tempo">
+    <div class="quando">Semana 1</div><div class="oque"><b>Todo dia, 10 minutos</b><span>Painel do cliente: vendas, estoque baixo, validades, diferenças de caixa e cancelamentos. Ligue ou mande mensagem se algo estiver estranho.</span></div>
+    <div class="quando">Semana 2</div><div class="oque"><b>Primeira conferência com o banco</b><span>Ensine a baixar o extrato OFX e conferir em Financeiro → Extrato do banco.</span></div>
+    <div class="quando">Semana 3</div><div class="oque"><b>Compras pelo sistema</b><span>Confirme que as notas estão entrando por XML e os pedidos saindo pelo Marcus.</span></div>
+    <div class="quando">Dia 30</div><div class="oque"><b>Reunião de resultado</b><span>Mostre a DRE do mês, a posição do estoque e as perdas. É a hora de pedir indicação e depoimento.</span></div>
+  </div>
+
+  <h3>Sinais de alerta</h3>
+  <ul class="check">
+    <li>Muitos cancelamentos ou diferenças de caixa do mesmo operador</li>
+    <li>Estoque negativo crescendo: entradas não estão sendo lançadas</li>
+    <li>Painel sem venda num dia de loja aberta: o caixa voltou para o sistema antigo</li>
+    <li>Vendas "sem conferência" (canceladas sem internet) aparecendo com frequência</li>
+  </ul>
+
+  <h3>Do seu lado (área do dono)</h3>
+  <ul class="check">
+    <li>Primeira mensalidade gerada na data combinada em <span class="caminho">Cobranças</span></li>
+    <li>Recebimento registrado (libera o acesso se estiver bloqueado)</li>
+    <li>Espaço e backups do cliente em <span class="caminho">Sistema</span></li>
+  </ul>
+
+  <div class="dica"><b>O objetivo dos 30 dias</b>O dono do mercado abrir o Marcus de manhã sem você pedir. Quando isso acontece, o cliente está implantado.</div>
+</section>
+
+<!-- ======================= FICHA ======================= -->
+<section class="fase">
+  <div class="cabeca"><div class="num escuro">F</div><div><h2>Ficha do cliente</h2><p>Imprima uma por cliente e preencha na Fase 1</p></div></div>
+  <table class="ficha">
+    <tr><td>Nome do mercado (cupom)</td><td></td></tr>
+    <tr><td>Razão social</td><td></td></tr>
+    <tr><td>CNPJ / CPF</td><td></td></tr>
+    <tr><td>Endereço e cidade</td><td></td></tr>
+    <tr><td>Responsável, WhatsApp</td><td></td></tr>
+    <tr><td>E-mail do administrador (login)</td><td></td></tr>
+    <tr><td>Horário (seg–sex / sáb / dom e feriados)</td><td></td></tr>
+    <tr><td>Número de caixas</td><td></td></tr>
+    <tr><td>Plano, valor e dia do vencimento</td><td></td></tr>
+    <tr><td>Teste grátis até / cobrar a partir de</td><td></td></tr>
+    <tr><td>Módulos liberados</td><td></td></tr>
+    <tr><td>Equipamentos por caixa (PC, leitor, impressora, balança)</td><td></td></tr>
+    <tr><td>Balança de etiqueta (marca, dígitos, preço ou peso)</td><td></td></tr>
+    <tr><td>Quantidade de produtos / origem da lista</td><td></td></tr>
+    <tr><td>Data da contagem do estoque</td><td></td></tr>
+    <tr><td>Contas e saldos na virada</td><td></td></tr>
+    <tr><td>Maquininha (taxas e prazos)</td><td></td></tr>
+    <tr><td>Chave Pix / Mercado Pago automático?</td><td></td></tr>
+    <tr><td>Alíquota do Simples / saldo mínimo</td><td></td></tr>
+    <tr><td>Equipe (nome, perfil, e-mail)</td><td style="height:60px"></td></tr>
+    <tr><td>Data do treinamento</td><td></td></tr>
+    <tr><td>Data da virada</td><td></td></tr>
+    <tr><td>Observações</td><td style="height:60px"></td></tr>
+  </table>
+</section>
+
+</body>
+</html>
