@@ -23,11 +23,17 @@ public class ComprasAutomaticas(IServiceScopeFactory escopos, LocaisDasLojas loc
         do
         {
             List<int> empresas;
-            using (var scope = escopos.CreateScope())
+            try
             {
+                using var scope = escopos.CreateScope();
                 empresas = await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
                     .Where(e => e.Ativa && !e.Plataforma && e.ComprasAutomaticas && (e.Modulos == null || e.Modulos.Contains(Modulos.Compras)) && e.VendasAutomaticas != ModosVendasAutomaticas.Completo)
                     .Select(e => e.Id).ToListAsync(parar);
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                log.LogWarning("Compras automáticas: não consegui ler as empresas ({Erro}); tento na próxima rodada.", e.Message);
+                continue;
             }
             foreach (var id in empresas)
             {

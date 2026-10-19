@@ -1075,6 +1075,8 @@ namespace Marketplace.Api.Migrations
 
                     b.HasIndex("VendaId");
 
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("VendaId"), new[] { "ProdutoId", "Quantidade", "CustoUnitario", "Total" });
+
                     b.ToTable("ItensVenda");
                 });
 
@@ -1568,6 +1570,8 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("EmpresaId");
 
                     b.HasIndex("VendaId");
+
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("VendaId"), new[] { "Forma", "Valor" });
 
                     b.ToTable("PagamentosVenda");
                 });
@@ -2102,6 +2106,8 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("UsuarioId");
 
                     b.HasIndex("EmpresaId", "DataHora");
+
+                    NpgsqlIndexBuilderExtensions.IncludeProperties(b.HasIndex("EmpresaId", "DataHora"), new[] { "Status", "Total", "Troco" });
 
                     b.HasIndex("EmpresaId", "IdLocal")
                         .IsUnique()

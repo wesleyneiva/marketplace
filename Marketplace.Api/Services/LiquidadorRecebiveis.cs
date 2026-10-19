@@ -14,7 +14,11 @@ public class LiquidadorRecebiveis(IServiceScopeFactory escopos, ILogger<Liquidad
         await Task.Delay(TimeSpan.FromSeconds(30), ct); // deixa a API terminar de subir
         while (!ct.IsCancellationRequested)
         {
-            await RodadaAsync(ct);
+            try { await RodadaAsync(ct); }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                log.LogWarning("Financeiro (rodada de hora em hora): {Erro}; tento na próxima hora.", e.Message);
+            }
             await Task.Delay(TimeSpan.FromHours(1), ct);
         }
     }

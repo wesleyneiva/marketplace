@@ -66,12 +66,19 @@ public class SimuladorClientes(
         {
             if (!estado.Ativo) continue;
             List<(int Id, string Modo, int Caixas)> lojas;
-            using (var scope = escopos.CreateScope())
+            try
             {
+                using var scope = escopos.CreateScope();
                 lojas = (await scope.ServiceProvider.GetRequiredService<AppDbContext>().Empresas.AsNoTracking()
                     .Where(e => e.Ativa && e.VendasAutomaticas != ModosVendasAutomaticas.Desligado)
                     .Select(e => new { e.Id, e.VendasAutomaticas, e.LimiteCaixas }).ToListAsync(parar))
                     .Select(e => (e.Id, e.VendasAutomaticas, e.LimiteCaixas)).ToList();
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                // Banco indisponível por um instante: tenta no próximo minuto (antes, isto derrubava a API inteira).
+                log.LogWarning("Simulador: não consegui ler as lojas ({Erro}); tento de novo no próximo minuto.", e.Message);
+                continue;
             }
             foreach (var (empresaId, modo, caixas) in lojas)
             {

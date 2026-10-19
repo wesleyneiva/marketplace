@@ -24,8 +24,14 @@ builder.Services.AddControllers();
 builder.Services.AddSingleton<Marketplace.Api.Services.LocaisDasLojas>();
 builder.Services.AddScoped<ContextoEmpresa>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("Marketplace")));
+// Limite de conexões POR APLICAÇÃO: produção, dev e o teste de estresse dividem o mesmo PostgreSQL. Sem limite,
+// uma aplicação sob carga pegava todas as conexões e derrubava as outras (teste de estresse de 19/10/2026).
+// Acima do limite o pedido espera na fila (até 15 s) em vez de dar erro. Ajuste: Banco__MaxConexoes.
+var textoConexao = builder.Configuration.GetConnectionString("Marketplace");
+if (!string.IsNullOrEmpty(textoConexao) && !textoConexao.Contains("Pool Size", StringComparison.OrdinalIgnoreCase))
+    textoConexao = new Npgsql.NpgsqlConnectionStringBuilder(textoConexao)
+        { MaxPoolSize = builder.Configuration.GetValue("Banco:MaxConexoes", 60) }.ConnectionString;
+builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(textoConexao));
 
 // Regras de estoque (usadas pelo EstoqueController e, no futuro, pelo PDV).
 builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
@@ -40,6 +46,9 @@ builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.InsightsService>();
 builder.Services.AddSingleton<Marketplace.Api.Services.InsightsTarefas>(); // insights da IA em segundo plano
 builder.Services.AddScoped<Marketplace.Api.Services.CobrancasService>(); // mensalidades dos clientes (área do dono)
+// Rede de segurança: se uma rotina de fundo ainda assim lançar erro, só ELA para (fica no log); a API segue
+// atendendo. O padrão do .NET era DERRUBAR a API inteira (aconteceu no teste de estresse de 19/10/2026).
+builder.Services.Configure<HostOptions>(o => o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>();
 builder.Services.AddHostedService<Marketplace.Api.Services.ComprasAutomaticas>(); // rascunhos de compra ao abrir a loja // gera mensalidades e bloqueia atraso, de hora em hora
 builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoProdutosService>();
@@ -137,7 +146,16 @@ var app = builder.Build();
 if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
 {
     using var scope = app.Services.CreateScope();
-    await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync();
+    // Banco ocupado ou reiniciando: tenta por até 1 minuto antes de desistir (antes, a API caía e reiniciava em loop).
+    for (var tentativa = 1; ; tentativa++)
+    {
+        try { await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync(); break; }
+        catch (Npgsql.NpgsqlException e) when (tentativa < 12)
+        {
+            app.Logger.LogWarning("Banco indisponível ao ligar ({Erro}); nova tentativa em 5 s ({N}/12).", e.Message, tentativa);
+            await Task.Delay(TimeSpan.FromSeconds(5));
+        }
+    }
 }
 
 // Qual é a empresa do dono da plataforma (área do dono). Ver Seguranca/DonoDaPlataforma.cs.
