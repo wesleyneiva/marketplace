@@ -29,6 +29,14 @@ const MINUTOS = Number(arg('minutos', '3'));
 const ACELERAR = Number(arg('acelerar', '10'));
 const ROTULO = arg('rotulo', '');
 
+try {
+  const r = await fetch(BASE + '/api/saude', { signal: AbortSignal.timeout(5000) });
+  if (!r.ok) throw new Error('status ' + r.status);
+} catch (e) {
+  console.error(`A API de estresse não está respondendo (${e.message}). Ligue com: ./estresse/ambiente.sh iniciar`);
+  process.exit(1);
+}
+
 const estado = JSON.parse(fs.readFileSync(path.join(PASTA, 'estado.json'), 'utf8'));
 if (estado.mercados.length < Math.max(...ETAPAS)) {
   console.error(`Há ${estado.mercados.length} mercados de teste; a maior etapa pede ${Math.max(...ETAPAS)}. Rode: node estresse/mercados.mjs ${Math.max(...ETAPAS)}`);

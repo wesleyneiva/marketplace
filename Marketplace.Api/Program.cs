@@ -149,7 +149,15 @@ if (app.Configuration.GetValue<bool>("Banco:MigrarAoIniciar"))
     // Banco ocupado ou reiniciando: tenta por até 1 minuto antes de desistir (antes, a API caía e reiniciava em loop).
     for (var tentativa = 1; ; tentativa++)
     {
-        try { await scope.ServiceProvider.GetRequiredService<AppDbContext>().Database.MigrateAsync(); break; }
+        try
+        {
+            var banco = scope.ServiceProvider.GetRequiredService<AppDbContext>().Database;
+            // Criar índice numa tabela grande (meses de vendas) passa dos 30 s padrão de um comando.
+            banco.SetCommandTimeout(TimeSpan.FromMinutes(10));
+            await banco.MigrateAsync();
+            banco.SetCommandTimeout(null);
+            break;
+        }
         catch (Npgsql.NpgsqlException e) when (tentativa < 12)
         {
             app.Logger.LogWarning("Banco indisponível ao ligar ({Erro}); nova tentativa em 5 s ({N}/12).", e.Message, tentativa);
