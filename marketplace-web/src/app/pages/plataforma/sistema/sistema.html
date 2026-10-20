@@ -16,7 +16,7 @@
       </div>
     }
     <div class="painel cartao" [class.perigo]="!s.backup.continuoOk">
-      <span class="rotulo"><app-icone nome="refresh-cw" /> Backup contínuo (5 em 5 min)</span>
+      <span class="rotulo"><app-icone nome="refresh-cw" /> Backup contínuo (2 em 2 min)</span>
       <strong>{{ s.backup.continuoOk ? 'em dia' : 'PARADO' }}</strong>
       <small>último envio à nuvem: {{ s.backup.continuo ?? 'nunca' }}</small>
     </div>

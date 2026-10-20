@@ -244,6 +244,20 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), apresentação e área do dono
+- **Área do dono → Sistema**: card **Backup contínuo** (último envio à nuvem; vermelho "PARADO" se passar de 10 min)
+  separado do **Backup diário completo** (antes só aparecia o diário das 04:30, parecendo que o contínuo não existia).
+- **Perda máxima ~4 min** (antes ~10): `archive_timeout=120` no compose e `backup-wal.timer` a cada 2 min.
+  O `infra/enviar-wal.sh` agora manda só os pedaços novos desde o último envio bom (marcas em `/var/lib/enviar-wal`),
+  sem listar a nuvem inteira a cada vez (as nuvens cobram requisições acima da cota grátis).
+- **Segunda nuvem: Cloudflare R2** (`nuvem2:`, bucket `marcus-backup`, mesmas 2 senhas do rclone): cobre a conta da
+  Oracle suspensa (VM e bucket estão na mesma conta). `sudo infra/configurar-r2.sh` configura e copia o que já existe;
+  `backup-nuvem.sh` e `enviar-wal.sh` mandam para as duas; `recuperar-banco.sh --remoto nuvem2` recupera pelo R2.
+  Plano de desastre atualizado (Situação B pela outra nuvem).
+- **Apresentação para diretoria**: elementos entram sozinhos (build `auto`), transições em fade; 1 clique = próximo slide.
+- Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
+  (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
+
 ### 19/10/2026 (tarde) — teste de estresse, robustez, disco e redundância fase 1
 - **Teste de estresse** (`estresse/`, README próprio): ambiente isolado com 100 mercados de teste. Resultado oficial
   (`estresse/resultados/2026-10-19-com-cache.html`): **aprovado até 500 mercados reais de 3 caixas**; recomendado
@@ -307,8 +321,6 @@ Detalhes técnicos em Funcionalidades.
   iguais à produção). Ver Rodando → Backup.
 
 Pendências:
-- **Senha do dono da plataforma** (produção: wesleyneiva15@hotmail.com, entra por http://oracle-a1:5100): o usuário esqueceu.
-  Não há como ver; proposto acrescentar `./criar-dono.sh --redefinir --email …` (senha provisória no terminal) — aguardando o ok.
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
 - Backup da nuvem cobre só Marcus + n8n; oferecido incluir o assistente do Telegram e os outros serviços da VM (sem resposta).
 - (19/10) **Cofre de senhas**: o usuário está montando um arquivo único (guardado em 2+ lugares) com a lista passada no chat:

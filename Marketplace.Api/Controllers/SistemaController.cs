@@ -81,7 +81,7 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
     }
 
     // Backups: pasta diária do banco (~/backup/marketplace-auto/AAAA-MM-DD), o resultado do envio diário para a nuvem e o
-    // envio contínuo (WAL, a cada 5 min: infra/enviar-wal.sh → wal-ultimo.txt). Contínuo parado há mais de 15 min = falha.
+    // envio contínuo (WAL, a cada 2 min: infra/enviar-wal.sh → wal-ultimo.txt). Contínuo parado há mais de 10 min = falha.
     private BackupInfo Backups()
     {
         var raiz = config["Plataforma:PastaBackups"] ?? "/home/ubuntu/backup";
@@ -96,7 +96,7 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
             var nuvemOk = nuvemQuando is not null && System.IO.File.ReadLines(nuvemArquivo).LastOrDefault()?.Trim() == "OK";
             var walArquivo = Path.Combine(raiz, "wal-ultimo.txt");
             DateTime? walQuando = System.IO.File.Exists(walArquivo) ? System.IO.File.GetLastWriteTime(walArquivo) : null;
-            var walOk = walQuando is not null && DateTime.Now - walQuando < TimeSpan.FromMinutes(15)
+            var walOk = walQuando is not null && DateTime.Now - walQuando < TimeSpan.FromMinutes(10)
                 && System.IO.File.ReadLines(walArquivo).FirstOrDefault()?.Contains(" ok ") == true;
             return new BackupInfo(ultima is null ? null : Path.GetFileName(ultima), dump?.Exists == true ? dump.Length / 1024 : null,
                 pastas.Count, nuvemQuando?.ToString("dd/MM/yyyy HH:mm"), nuvemOk, walQuando?.ToString("dd/MM HH:mm"), walOk);

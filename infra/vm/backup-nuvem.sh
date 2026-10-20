@@ -7,6 +7,7 @@
 # Configuração: /root/.config/rclone/rclone.conf (feita pelo configurar-backup-nuvem.sh)
 #   oracle: → o bucket (chave de acesso S3 da Oracle)
 #   nuvem:  → "camada" de criptografia por cima do oracle:backup-oracle-a1
+#   r2: e nuvem2: → a mesma coisa na Cloudflare R2 (mesmas senhas; infra/configurar-r2.sh)
 #
 # Ver o que tem lá:      sudo rclone lsd nuvem:  /  sudo rclone ls nuvem:marketplace
 # Restaurar (ex.):       sudo rclone copy nuvem:marketplace/2026-10-09 /tmp/restaurar
@@ -20,12 +21,15 @@ LOG=/home/ubuntu/backup/nuvem-ultimo.txt
 falhou=0
 {
   echo "Backup na nuvem — $(date '+%F %T')"
-  for pasta in n8n marketplace; do
-    rclone copy "/home/ubuntu/backup/$pasta-auto" "nuvem:$pasta" --exclude '*.parcial/**' --transfers 4 || falhou=1
-    rclone delete "nuvem:$pasta" --min-age "${MANTER_DIAS}d" --rmdirs || falhou=1
+  # nuvem: = Oracle; nuvem2: = Cloudflare R2 (outra empresa, desde 20/10/2026; ver infra/configurar-r2.sh)
+  for destino in $(rclone listremotes | grep -xE 'nuvem2?:' | tr -d :); do
+    for pasta in n8n marketplace; do
+      rclone copy "/home/ubuntu/backup/$pasta-auto" "$destino:$pasta" --exclude '*.parcial/**' --transfers 4 || falhou=1
+      rclone delete "$destino:$pasta" --min-age "${MANTER_DIAS}d" --rmdirs || falhou=1
+    done
+    echo "Em $destino agora:"
+    rclone size "$destino:" | sed 's/^/  /' || falhou=1
   done
-  echo "Na nuvem agora:"
-  rclone size nuvem: | sed 's/^/  /' || falhou=1
 } > "$LOG" 2>&1 || falhou=1
 
 if [ "$falhou" = 1 ]; then echo "FALHOU" >> "$LOG"; exit 1; fi

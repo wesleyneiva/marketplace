@@ -13,6 +13,7 @@
 #        Depois: cd ~/projetos/marketplace && docker compose up -d db
 #
 #   --nuvem         busca tudo na nuvem (padrão: usa o que está na VM e, se não houver, a nuvem)
+#   --remoto nuvem2 qual nuvem: "nuvem" (Oracle, padrão) ou "nuvem2" (Cloudflare R2, se a conta da Oracle caiu)
 #   --manter-teste  no --teste, deixa o banco recuperado ligado na porta 5434 (a 5433 é do banco da Evolution) para olhar (apague depois com
 #                   --limpar-teste)
 #   --limpar-teste  apaga o contêiner e o volume de teste
@@ -25,23 +26,24 @@ CONTEINER=marketplace-db-recuperando
 LOCAL_BASES=/home/ubuntu/backup/marketplace-auto
 LOCAL_WAL=/var/lib/docker/volumes/$VOL_PRODUCAO/_data/wal-arquivo
 
-modo="" ate="" nuvem=0 manter=0
+modo="" ate="" nuvem=0 manter=0 remoto=nuvem
 while [ $# -gt 0 ]; do
   case "$1" in
     --teste) modo=teste ;;
     --vm-nova) modo=vm-nova ;;
     --ate) ate="$2"; shift ;;
     --nuvem) nuvem=1 ;;
+    --remoto) remoto="$2"; shift ;;
     --manter-teste) manter=1 ;;
     --limpar-teste)
       docker rm -f "$CONTEINER" >/dev/null 2>&1 || true
       docker volume rm "$VOL_TESTE" >/dev/null 2>&1 && echo "Banco de teste apagado." || echo "Não havia banco de teste."
       exit 0 ;;
-    *) sed -n 2,22p "$0"; exit 1 ;;
+    *) sed -n 2,23p "$0"; exit 1 ;;
   esac
   shift
 done
-[ -n "$modo" ] || { sed -n 2,22p "$0"; exit 1; }
+[ -n "$modo" ] || { sed -n 2,23p "$0"; exit 1; }
 [ "$(id -u)" = 0 ] || { echo "Rode com sudo."; exit 1; }
 
 TMP=$(mktemp -d /var/tmp/recuperar-banco.XXXX)
@@ -59,8 +61,8 @@ if [ "$nuvem" = 0 ] && ls "$LOCAL_BASES"/*/basebackup.tar.gz >/dev/null 2>&1; th
 fi
 if [ -z "$base" ]; then
   echo "▶ Buscando a cópia base na nuvem…"
-  for dia in $(rclone lsf nuvem:marketplace --dirs-only | tr -d / | sort -r); do
-    rclone copy "nuvem:marketplace/$dia/basebackup.tar.gz" "$TMP/base-$dia" 2>/dev/null || continue
+  for dia in $(rclone lsf "$remoto:marketplace" --dirs-only | tr -d / | sort -r); do
+    rclone copy "$remoto:marketplace/$dia/basebackup.tar.gz" "$TMP/base-$dia" 2>/dev/null || continue
     b="$TMP/base-$dia/basebackup.tar.gz"
     [ -f "$b" ] || continue
     if [ "$(date -d "$(inicio_da_base "$b")" +%s)" -lt "$alvo_seg" ]; then base=$b; break; fi
@@ -78,7 +80,7 @@ if [ "$fonte_wal" = local ] && [ -d "$LOCAL_WAL" ]; then
   wal="$LOCAL_WAL"
 else
   echo "▶ Buscando o registro contínuo na nuvem…"
-  mkdir -p "$TMP/wal"; rclone copy nuvem:marketplace-wal "$TMP/wal" --transfers 8
+  mkdir -p "$TMP/wal"; rclone copy "$remoto:marketplace-wal" "$TMP/wal" --transfers 8
   wal="$TMP/wal"
 fi
 echo "▶ Registro contínuo: $(ls "$wal" | grep -c '\.gz$') pedaços ($fonte_wal)"

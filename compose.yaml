@@ -15,10 +15,10 @@ services:
               "-c", "max_connections=300", "-c", "shared_buffers=2GB", "-c", "effective_cache_size=8GB",
               "-c", "work_mem=16MB", "-c", "maintenance_work_mem=256MB",
               # Arquivamento contínuo (redundância fase 1, 19/10/2026): cada pedaço do registro de alterações (WAL)
-              # é compactado em /var/lib/postgresql/wal-arquivo assim que fecha — no máximo a cada 5 min
-              # (archive_timeout) — e o infra/enviar-wal.sh leva para a nuvem a cada 5 min. Com a cópia base diária,
+              # é compactado em /var/lib/postgresql/wal-arquivo assim que fecha — no máximo a cada 2 min
+              # (archive_timeout) — e o infra/enviar-wal.sh leva para as 2 nuvens a cada 2 min (perda máx. ~4 min). Com a cópia base diária,
               # dá para recuperar o banco até qualquer minuto (infra/recuperar-banco.sh).
-              "-c", "archive_mode=on", "-c", "archive_timeout=300", "-c", "wal_compression=on",
+              "-c", "archive_mode=on", "-c", "archive_timeout=120", "-c", "wal_compression=on",
               "-c", "archive_command=test ! -f /var/lib/postgresql/wal-arquivo/%f.gz && gzip -c %p > /var/lib/postgresql/wal-arquivo/%f.gz.tmp && mv /var/lib/postgresql/wal-arquivo/%f.gz.tmp /var/lib/postgresql/wal-arquivo/%f.gz"]
     shm_size: 2gb
     environment:
