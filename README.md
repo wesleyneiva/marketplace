@@ -244,7 +244,11 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), apresentação e área do dono
+### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), stack, PLU na importação e atualizações
+Resumo do dia: perda máxima numa catástrofe caiu de ~10 para **~4 min**; backups agora em **duas nuvens de empresas
+diferentes** (Oracle + Cloudflare R2), recuperação testada pelas duas; ficha técnica da stack em PDF; coluna PLU na
+importação; VM e bibliotecas atualizadas. Tudo publicado (último commit do dia: ver `git log`). Sem migrations.
+
 - **Área do dono → Sistema**: card **Backup contínuo** (último envio à nuvem; vermelho "PARADO" se passar de 10 min)
   separado do **Backup diário completo** (antes só aparecia o diário das 04:30, parecendo que o contínuo não existia).
 - **Perda máxima ~4 min** (antes ~10): `archive_timeout=120` no compose e `backup-wal.timer` a cada 2 min.
@@ -271,6 +275,14 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   `ng update`: o `npm update` travava nos peers exatos), ASP.NET Identity/EF Core/OpenApi e dotnet-ef 10.0.13, QRCoder 1.8.1
   (o SVG do Pix mudou de formato e ficou ~4x menor; conferido com leitor de QR: mesmo código Pix da 1.6.0).
   **TypeScript 7 não**: o Angular 22 exige TypeScript `>=6.0 <6.1` (esperar o Angular 23).
+- **Stack do Marcus**: seção "Stack" neste README e ficha técnica em PDF para cliente/diretoria
+  (`docs/stack/Stack-do-Marcus.pdf`, fonte `docs/stack/stack.html`; gerar de novo com o Chromium do Playwright:
+  `~/.cache/ms-playwright/chromium-1248/chrome-linux-arm64/chrome --headless --no-sandbox --no-pdf-header-footer
+  --print-to-pdf=Stack-do-Marcus.pdf file://$PWD/stack.html`). Sem IPs, IDs ou tokens.
+- **Túnel explicado** no plano de desastre: o DNS aponta para o túnel (não para um IP); quem liga o `cloudflared` com o
+  token recebe o tráfego. Nunca ligar o `cloudflared` em duas VMs com bancos diferentes (VM de teste: túnel desligado).
+- **O que se perde numa queda**: só os ~4 min antes dela que o servidor já tinha confirmado (vendas online, cadastros);
+  vendas feitas no caixa offline durante a queda sobem depois, sem duplicar.
 - Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
   (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
 
@@ -358,10 +370,13 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 19/10/2026 (tarde), 19/10 e 17/10) e as Pendências acima.
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 20/10/2026, 19/10 (tarde), 19/10 e 17/10), a seção
+  Stack e as Pendências acima.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
-- **Infra** (19/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo (compose);
-  plano de desastre em `docs/plano-de-desastre.md`; scripts em `infra/` (enviar-wal, recuperar-banco) e cópias versionadas das
+- **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
+  2 min (compose); backup em `nuvem:` (Oracle) e `nuvem2:` (Cloudflare R2), conferir `~/backup/wal-ultimo.txt` ("R2 ok") e o card
+  da área do dono → Sistema; plano de desastre em `docs/plano-de-desastre.md`; scripts em `infra/` (enviar-wal, recuperar-banco,
+  configurar-r2) e cópias versionadas das
   rotinas da VM em `infra/vm/` (os originais rodam de `~/scripts` e `/etc/systemd/system`). Teste de estresse: `estresse/README.md`
   (rodar fora do horário das lojas; o ambiente isolado foi desmontado e se recria em ~10 min).
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
