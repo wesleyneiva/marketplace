@@ -16,7 +16,7 @@ set -euo pipefail
 [ "$(id -u)" = 0 ] || { echo "Rode com sudo."; exit 1; }
 CONF=/root/.config/rclone/rclone.conf
 
-read -rp  "Account ID da Cloudflare (32 caracteres, na página do R2): " CONTA
+read -rp  "Account ID (o código no endpoint padrão https://<ACCOUNT_ID>.r2.cloudflarestorage.com; NÃO é o ID da chave): " CONTA
 read -rp  "Nome do bucket [marcus-backup]: " BUCKET; BUCKET=${BUCKET:-marcus-backup}
 read -rp  "Access Key ID do token do R2: " CHAVE
 read -rsp "Secret Access Key do token do R2 (não aparece): " SECRETA; echo
@@ -36,7 +36,7 @@ echo "▶ Testando o acesso ao R2…"
 rclone lsf "r2:$BUCKET" --max-depth 1 >/dev/null || { echo "Falhou: confira o Account ID, o bucket e as chaves."; exit 1; }
 
 echo "▶ Copiando para o R2 o que já está na Oracle (arquivos já criptografados, cópia idêntica)…"
-rclone copy oracle:backup-oracle-a1 "r2:$BUCKET" --transfers 8 --checkers 16 --stats-one-line --stats 15s
+rclone copy oracle:backup-oracle-a1 "r2:$BUCKET" --disable Copy --transfers 8 --checkers 16 --stats-one-line --stats 15s
 
 echo "▶ Conferindo com as senhas de sempre:"
 rclone lsd nuvem2:

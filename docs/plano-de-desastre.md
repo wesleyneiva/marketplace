@@ -2,7 +2,7 @@
 
 Redundância fase 1 (19/10/2026; 20/10: 2 min e segunda nuvem): **perda máxima de ~4 minutos de dados** e **volta em
 30 a 60 minutos** numa VM nova, mesmo que esta VM **ou a conta inteira da Oracle** suma de vez. Testado em 19/10/2026:
-reconstrução completa só com a nuvem em 6 segundos.
+reconstrução completa só com a nuvem em 6 segundos; em 20/10/2026, **só com o R2**: igual à produção até a última venda.
 
 ## O que existe
 
