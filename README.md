@@ -266,6 +266,11 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Importação de produtos: coluna "Código na balança (PLU)"** (14ª do modelo; aceita também "PLU", "Código da balança",
   "Cód balança", "Balança"): inteiro de 1 a 99999, sem repetir na planilha nem com outro produto; produto existente com a
   célula vazia mantém a PLU atual. Sem migration (o campo `CodigoBalanca` já existia).
+- **Atualizações (20/10)**: Ubuntu todo (cloudflared 2026.10.2, systemd 259.9 — liberado em fases, instalado com
+  `-o APT::Get::Always-Include-Phased-Updates=true` —, python3-jwt de segurança), sem reiniciar a VM; Angular 22.2.3 (pelo
+  `ng update`: o `npm update` travava nos peers exatos), ASP.NET Identity/EF Core/OpenApi e dotnet-ef 10.0.13, QRCoder 1.8.1
+  (o SVG do Pix mudou de formato e ficou ~4x menor; conferido com leitor de QR: mesmo código Pix da 1.6.0).
+  **TypeScript 7 não**: o Angular 22 exige TypeScript `>=6.0 <6.1` (esperar o Angular 23).
 - Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
   (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
 
