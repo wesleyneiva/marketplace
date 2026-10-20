@@ -69,6 +69,7 @@ public partial class ImportacaoProdutosService
                 if (l.ControlaValidade is bool controla) p.ControlaValidade = controla;
                 if (l.Ncm is not null) p.Ncm = l.Ncm;
                 if (FornecedorDa(l) is { } f) p.Fornecedor = f;
+                if (l.CodigoBalanca is int plu) p.CodigoBalanca = plu;
                 p.Ativo = true;
                 p.AtualizadoEm = agora;
                 atualizados++;
@@ -87,6 +88,7 @@ public partial class ImportacaoProdutosService
                 ControlaValidade = l.ControlaValidade ?? false,
                 Ncm = l.Ncm,
                 Fornecedor = FornecedorDa(l),
+                CodigoBalanca = l.CodigoBalanca,
             };
             db.Produtos.Add(produto);
             novos++;

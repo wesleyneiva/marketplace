@@ -263,6 +263,9 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (build `auto`; imagens pela direita, itens da lista pela esquerda, cartões subindo), transições em fade; 1 clique =
   próximo slide. As animações só tocam no modo **Apresentar** e somem se o computador pede "reduzir movimento"
   (Windows: Acessibilidade → Efeitos visuais → Efeitos de animação ligado).
+- **Importação de produtos: coluna "Código na balança (PLU)"** (14ª do modelo; aceita também "PLU", "Código da balança",
+  "Cód balança", "Balança"): inteiro de 1 a 99999, sem repetir na planilha nem com outro produto; produto existente com a
+  célula vazia mantém a PLU atual. Sem migration (o campo `CodigoBalanca` já existia).
 - Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
   (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
 
@@ -330,7 +333,8 @@ Detalhes técnicos em Funcionalidades.
 
 Pendências:
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
-- Backup da nuvem cobre só Marcus + n8n; oferecido incluir o assistente do Telegram e os outros serviços da VM (sem resposta).
+- Backup da nuvem cobre só Marcus + n8n: **decidido em 20/10 não incluir** o assistente do Telegram e os outros serviços da VM
+  (se a VM sumir, eles se reinstalam do zero).
 - (19/10) **Cofre de senhas**: o usuário está montando um arquivo único (guardado em 2+ lugares) com a lista passada no chat:
   rclone (feito), chave S3 da Oracle (ID, secreta, namespace), contas Oracle/GitHub/Cloudflare/domínio/Tailscale, chave SSH,
   IP do Tailscale (oracle-a1, 100.x) e IP público, integrações (Gemini, Telegram, Evolution, afiliados). Nunca mostrar senhas no
@@ -340,8 +344,7 @@ Pendências:
 - (20/10) **Cofre de senhas**: acrescentar o token do R2 (Account ID, Access Key ID, Secret Access Key nova).
 - (19/10) **Compactar o banco do n8n** (VACUUM, n8n parado ~2 min) depois de ~26/10, quando a limpeza automática de 7 dias tiver passado.
 - (19/10) **Redundância fase 2** (2ª VM em outro provedor, réplica em tempo real, mesmo túnel Cloudflare): junto com o 1º cliente pagante.
-- (19/10) Ideias combinadas e não feitas: aba "Despesas e resultado" na Visão geral do dono quando houver custos; coluna
-  "Código na balança (PLU)" na planilha de importação de produtos (hoje só na ficha do produto).
+- (19/10) Ideia combinada e não feita: aba "Despesas e resultado" na Visão geral do dono quando houver custos.
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
 - Dev: o dono de teste `dono@marketplace.test` usa a mesma senha do admin da "Teste Vendas" (`usuarios-teste.txt`); o fornecedor

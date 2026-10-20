@@ -16,7 +16,8 @@ public partial class ImportacaoProdutosService
 
     // Posição de cada campo no array Colunas (e no array de valores de cada linha).
     private const int CodigoBarras = 0, Nome = 1, Categoria = 2, Unidade = 3, PrecoCusto = 4, PrecoVenda = 5,
-        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10, Fornecedor = 11, PrazoFornecedor = 12;
+        EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10, Fornecedor = 11, PrazoFornecedor = 12,
+        CodigoBalanca = 13;
 
     // Outros nomes aceitos no cabeçalho (planilha exportada de outro sistema). Comparados sem acento e sem maiúsculas.
     private static readonly Dictionary<string, int> NomesDasColunas = new()
@@ -37,6 +38,8 @@ public partial class ImportacaoProdutosService
         ["fornecedor"] = Fornecedor, ["distribuidor"] = Fornecedor, ["fornecedor principal"] = Fornecedor,
         ["prazo de entrega (dias)"] = PrazoFornecedor, ["prazo de entrega"] = PrazoFornecedor, ["prazo"] = PrazoFornecedor,
         ["prazo do fornecedor"] = PrazoFornecedor,
+        ["codigo na balanca (plu)"] = CodigoBalanca, ["codigo na balanca"] = CodigoBalanca, ["codigo da balanca"] = CodigoBalanca,
+        ["codigo balanca"] = CodigoBalanca, ["cod balanca"] = CodigoBalanca, ["plu"] = CodigoBalanca, ["balanca"] = CodigoBalanca,
     };
 
     // O que a análise descobriu sobre uma linha (a prévia mostra; a gravação usa).
@@ -55,6 +58,7 @@ public partial class ImportacaoProdutosService
         public DateOnly? Validade { get; set; }
         public string? Ncm { get; set; }
         public string? Fornecedor { get; set; }
+        public int? CodigoBalanca { get; set; }
         public int? ProdutoExistenteId { get; set; } // preenchido = atualiza esse produto
         public List<string> Erros { get; } = [];
         public List<string> Avisos { get; } = [];
@@ -103,7 +107,7 @@ public partial class ImportacaoProdutosService
 
         // 2) O que já existe no banco (só desta empresa: o filtro global cuida disso).
         var produtos = await db.Produtos.AsNoTracking()
-            .Select(p => new { p.Id, p.CodigoBarras, p.Nome, p.Unidade, p.ControlaValidade, p.Ativo }).ToListAsync();
+            .Select(p => new { p.Id, p.CodigoBarras, p.Nome, p.Unidade, p.ControlaValidade, p.Ativo, p.CodigoBalanca }).ToListAsync();
         var porCodigo = produtos.Where(p => p.CodigoBarras != null).ToDictionary(p => p.CodigoBarras!);
         var semCodigoPorNome = produtos.Where(p => p.CodigoBarras == null).ToLookup(p => Normalizar(p.Nome));
         var comCodigoPorNome = produtos.Where(p => p.CodigoBarras != null).ToLookup(p => Normalizar(p.Nome));
@@ -115,6 +119,8 @@ public partial class ImportacaoProdutosService
 
         var hoje = Relogio.Hoje;
         var codigosVistos = new Dictionary<string, int>();
+        var pluPorProduto = produtos.Where(p => p.CodigoBalanca != null).ToDictionary(p => p.CodigoBalanca!.Value);
+        var plusVistos = new Dictionary<int, int>();
         var nomesSemCodigoVistos = new Dictionary<string, int>();
         var categoriasNovas = new Dictionary<string, string>(); // normalizado → como o cliente escreveu (a 1ª vez)
         var resultado = new List<LinhaAnalisada>();
@@ -242,6 +248,25 @@ public partial class ImportacaoProdutosService
             if (a.ProdutoExistenteId is null && a.CodigoBarras is not null && !string.IsNullOrWhiteSpace(a.Nome)
                 && comCodigoPorNome[Normalizar(a.Nome)].FirstOrDefault() is { } parecido)
                 a.Avisos.Add($"Já existe um produto com este nome (código {parecido.CodigoBarras}): confira se não é o mesmo.");
+
+            // Código na balança (PLU): inteiro de 1 a 99999, sem repetir na planilha nem com OUTRO produto já cadastrado.
+            var plu = Valor(CodigoBalanca);
+            if (!plu.EstaVazia)
+            {
+                decimal? numero = null;
+                try { numero = LerNumero(plu); } catch (FormatException) { }
+                if (numero is not decimal pl || pl % 1 != 0 || pl is < 1 or > 99999)
+                    a.Erros.Add("Código na balança (PLU): use um número inteiro de 1 a 99999.");
+                else if (plusVistos.TryGetValue((int)pl, out var outraLinha))
+                    a.Erros.Add($"Código na balança {(int)pl} repetido (já está na linha {outraLinha}).");
+                else
+                {
+                    plusVistos[(int)pl] = a.Linha;
+                    a.CodigoBalanca = (int)pl;
+                    if (pluPorProduto.TryGetValue((int)pl, out var dono) && dono.Id != a.ProdutoExistenteId)
+                        a.Erros.Add($"Código na balança {(int)pl} já é do produto \"{dono.Nome}\".");
+                }
+            }
 
             if (a.ProdutoExistenteId is not null && a.EstoqueInicial > 0)
                 a.Avisos.Add("Produto já cadastrado: o estoque inicial será ignorado (para corrigir, use a tela de Estoque).");
