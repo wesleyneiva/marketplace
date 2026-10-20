@@ -370,6 +370,26 @@ Pendências:
 - Próximos passos possíveis: as pendências acima; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
 
+## Stack (conferida em 20/10/2026)
+Resumo: **Angular + ASP.NET Core (.NET 10) + PostgreSQL 18**, num Ubuntu ARM na Oracle, publicado pelo **Cloudflare Tunnel**,
+com backup contínuo criptografado em **duas nuvens**. Versão em PDF: `docs/stack/Stack-do-Marcus.pdf` (fonte: `docs/stack/stack.html`).
+
+| Camada | Tecnologia |
+|---|---|
+| Acesso | Cloudflare (DNS de wnlabs.com.br, HTTPS, proteção) → **Cloudflare Tunnel** (`cloudflared` 2026.10, a VM liga para a Cloudflare; o DNS aponta para o túnel, não para um IP) |
+| Acesso administrativo | Tailscale (SSH na `oracle-a1`, sem porta aberta) |
+| Telas | **Angular 22** + TypeScript 6; fonte Space Grotesk e ícones Lucide embutidos; service worker + IndexedDB (caixa offline) |
+| Servidor / API | **ASP.NET Core** em C#, **.NET 10**; entrega as telas e a API na porta 5100 (serviço `marketplace` do systemd); atende app.wnlabs.com.br e demo.wnlabs.com.br |
+| Dados | **PostgreSQL 18** (Docker, `postgres:18-alpine`, só 127.0.0.1); Entity Framework Core 10 + Npgsql |
+| Bibliotecas | ASP.NET Identity (login, perfis, bloqueio), ClosedXML (planilha de produtos), QRCoder (QR do Pix) |
+| Rotinas no servidor | compras automáticas, clima por cidade, cobranças, liquidação da maquininha, simulador da demonstração |
+| Integrações | Mercado Pago (API de Orders, Pix automático), n8n + Google Gemini (Insights IA), serviço de clima |
+| Backup | WAL contínuo (pedaço a cada 2 min) + cópia completa às 03:45; rclone criptografado → Oracle Object Storage e Cloudflare R2; `infra/recuperar-banco.sh` |
+| Máquina | VM Oracle Cloud Ampere (ARM `aarch64`), 4 núcleos, 23 GB RAM, disco 200 GB; Ubuntu 26.04 LTS; Docker |
+
+Na mesma VM, fora do Marcus: n8n (só o fluxo Insights IA atende o Marcus), Evolution API (WhatsApp, ainda não usada pelo
+Marcus), site PROMO FEET, assistente do Telegram, pgAdmin, Portainer e Homepage.
+
 ## Estrutura
 
 ```

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Stack do Marcus</title>
+<style>
+@font-face { font-family: "Space Grotesk"; src: url("../../marketplace-web/public/fontes/space-grotesk-latin.woff2") format("woff2"); font-weight: 300 700; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215; }
+@font-face { font-family: "Space Grotesk"; src: url("../../marketplace-web/public/fontes/space-grotesk-latin-ext.woff2") format("woff2"); font-weight: 300 700; unicode-range: U+0100-024F, U+1E00-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+:root {
+  --verde: #15803d; --verde-escuro: #166534; --verde-claro: #dcfce7; --verde-fundo: #f0fdf4; --verde-borda: #bbf7d0;
+  --escuro: #12261b; --fundo: #f4f6f5; --superficie: #ffffff; --texto: #1c2321; --suave: #5f6b66; --borda: #e2e8e5;
+  --info: #1e40af; --info-fundo: #dbeafe;
+}
+@page { size: A4; margin: 12mm 14mm 15mm; }
+@page :first { margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { font-family: "Space Grotesk", Arial, sans-serif; color: var(--texto); font-size: 9.6pt; line-height: 1.42; background: var(--superficie); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+h1, h2, h3, h4 { margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+p { margin: 0 0 6px; }
+b, strong { font-weight: 700; }
+code { font-family: "Space Grotesk", monospace; background: var(--fundo); border: 1px solid var(--borda); border-radius: 4px; padding: 0 4px; font-size: 9pt; }
+
+/* ---------- capa ---------- */
+.capa { height: 297mm; width: 210mm; background: radial-gradient(circle at 85% 18%, #1f5235 0%, var(--escuro) 60%); color: #eef5f0; padding: 26mm 22mm; display: flex; flex-direction: column; break-after: page; }
+.capa .marca { display: flex; align-items: center; gap: 14px; }
+.capa .marca img { width: 56px; height: 56px; }
+.capa .marca b { font-size: 22pt; display: block; line-height: 1; }
+.capa .marca small { color: #a7c4b2; font-size: 10pt; }
+.capa .sobre { margin-top: auto; }
+.capa .rotulo { color: #86efac; font-weight: 700; letter-spacing: 0.2em; font-size: 10pt; margin-bottom: 14px; }
+.capa h1 { font-size: 40pt; line-height: 1.05; letter-spacing: -0.03em; }
+.capa .sub { font-size: 15pt; color: #cfe3d6; margin-top: 18px; max-width: 160mm; }
+.capa .pilares { margin-top: 24mm; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.capa .pilares div { background: #1a3325; border: 1px solid #2c5a40; border-radius: 10px; padding: 10px 12px; font-size: 10pt; color: #eef5f0; font-weight: 600; }
+.capa .pilares small { color: #86efac; display: block; font-size: 8.5pt; letter-spacing: 0.08em; font-weight: 700; margin-bottom: 3px; }
+.capa .rodape { margin-top: 18mm; display: flex; justify-content: space-between; color: #a7c4b2; font-size: 9.5pt; border-top: 1px solid #2c5a40; padding-top: 10px; }
+
+/* ---------- páginas ---------- */
+.pagina { break-before: page; }
+.pagina:first-of-type { break-before: auto; }
+.cabeca { display: flex; align-items: center; gap: 14px; padding-bottom: 9px; border-bottom: 2px solid var(--verde); margin-bottom: 12px; }
+.cabeca .num { width: 46px; height: 46px; border-radius: 12px; background: var(--verde); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18pt; font-weight: 700; flex: none; }
+.cabeca h2 { font-size: 20pt; }
+.cabeca p { margin: 2px 0 0; color: var(--suave); font-size: 10pt; }
+h3 { font-size: 12pt; margin: 14px 0 6px; color: var(--verde-escuro); }
+
+.cartao { background: var(--superficie); border: 1px solid var(--borda); border-radius: 10px; padding: 9px 12px; break-inside: avoid; }
+.cartao h4 { font-size: 10.5pt; margin-bottom: 4px; }
+.cartao p { color: var(--suave); margin: 0; font-size: 9pt; }
+.grade3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.grade2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 9pt; margin: 4px 0 8px; }
+th { text-align: left; background: var(--fundo); color: var(--suave); font-weight: 700; font-size: 8pt; letter-spacing: 0.04em; text-transform: uppercase; padding: 5px 8px; border-bottom: 1px solid var(--borda); }
+td { padding: 5px 8px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+td:first-child { font-weight: 700; width: 27%; }
+td.versao { white-space: nowrap; color: var(--verde-escuro); font-weight: 700; width: 14%; }
+tr { break-inside: avoid; }
+
+.dica { background: var(--verde-fundo); border: 1px solid var(--verde-borda); color: #14532d; border-radius: 10px; padding: 8px 12px; margin: 10px 0; break-inside: avoid; }
+.dica b:first-child { display: block; margin-bottom: 2px; }
+
+/* ---------- caminho do acesso ---------- */
+.fluxo { display: grid; grid-template-columns: 1fr 22px 1fr 22px 1fr 22px 1fr; align-items: stretch; margin: 8px 0 4px; }
+.fluxo .no { border-radius: 10px; padding: 10px 10px; text-align: center; border: 1px solid var(--borda); background: var(--fundo); }
+.fluxo .no b { display: block; font-size: 10.5pt; }
+.fluxo .no span { display: block; color: var(--suave); font-size: 8.5pt; margin-top: 3px; }
+.fluxo .no.cf { background: #fff7ed; border-color: #fed7aa; }
+.fluxo .no.vm { background: var(--escuro); border-color: var(--escuro); color: #eef5f0; }
+.fluxo .no.vm span { color: #a7c4b2; }
+.fluxo .seta { display: flex; align-items: center; justify-content: center; color: var(--verde); font-weight: 700; font-size: 13pt; }
+.legenda-fluxo { color: var(--suave); font-size: 8.5pt; text-align: center; margin-bottom: 6px; }
+
+/* ---------- camadas ---------- */
+.camadas { display: flex; flex-direction: column; gap: 5px; margin: 6px 0; }
+.camada { display: grid; grid-template-columns: 34mm 1fr; border-radius: 10px; overflow: hidden; border: 1px solid var(--borda); break-inside: avoid; }
+.camada .nome { background: var(--verde); color: #fff; font-weight: 700; padding: 8px 10px; font-size: 9.5pt; display: flex; align-items: center; }
+.camada .itens { padding: 7px 10px; display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.camada .itens span { background: var(--verde-claro); color: var(--verde-escuro); border-radius: 99px; padding: 2px 10px; font-size: 8.8pt; font-weight: 600; }
+.camada.escura .nome { background: var(--escuro); color: #86efac; }
+
+.rodape-pag { margin-top: 14px; color: var(--suave); font-size: 8.5pt; border-top: 1px solid var(--borda); padding-top: 6px; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ======================= CAPA ======================= -->
+<section class="capa">
+  <div class="marca">
+    <img src="../../marketplace-web/public/favicon.svg" alt="">
+    <div><b>Marcus</b><small>gestão inteligente para o seu negócio</small></div>
+  </div>
+  <div class="sobre">
+    <div class="rotulo">FICHA TÉCNICA</div>
+    <h1>Stack do Marcus</h1>
+    <p class="sub">As tecnologias que fazem o Marcus funcionar, do navegador ao banco de dados, e como os dados ficam protegidos.</p>
+    <div class="pilares">
+      <div><small>TELAS</small>Angular 22</div>
+      <div><small>SERVIDOR</small>ASP.NET Core · .NET 10</div>
+      <div><small>DADOS</small>PostgreSQL 18</div>
+      <div><small>ACESSO</small>Cloudflare Tunnel</div>
+    </div>
+  </div>
+  <div class="rodape"><span>Desenvolvido por WN Labs · contato@wnlabs.com.br</span><span>Conferida em 20/10/2026</span></div>
+</section>
+
+<!-- ======================= 1. VISÃO GERAL ======================= -->
+<section class="pagina">
+  <div class="cabeca"><div class="num">1</div><div><h2>Visão geral</h2><p>Um sistema na nuvem, aberto pelo navegador, sem nada para instalar na loja</p></div></div>
+
+  <p>O Marcus é um único programa: o servidor entrega as telas e as regras do negócio (vendas, estoque, compras,
+  financeiro, relatórios) e guarda tudo num banco de dados. Os mercados acessam por <b>app.wnlabs.com.br</b>; a vitrine
+  pública de demonstração fica em <b>demo.wnlabs.com.br</b>, atendida pelo mesmo programa.</p>
+
+  <h3>O caminho de um acesso</h3>
+  <div class="fluxo">
+    <div class="no"><b>Navegador</b><span>computador, celular ou caixa da loja</span></div>
+    <div class="seta">→</div>
+    <div class="no cf"><b>Cloudflare</b><span>DNS, HTTPS (cadeado) e proteção contra ataques</span></div>
+    <div class="seta">→</div>
+    <div class="no cf"><b>Túnel</b><span>ligação criptografada aberta pelo servidor</span></div>
+    <div class="seta">→</div>
+    <div class="no vm"><b>Servidor do Marcus</b><span>telas + API + banco de dados</span></div>
+  </div>
+  <p class="legenda-fluxo">A resposta volta pelo mesmo caminho. O endereço aponta para o túnel, não para o servidor.</p>
+
+  <div class="dica"><b>Por que um túnel?</b>
+  O servidor liga para a Cloudflare e mantém a ligação aberta; quem acessa o site fala só com a Cloudflare. O servidor
+  não tem o endereço exposto nem porta de site aberta para a internet, e pode ser trocado por outro (em qualquer provedor)
+  sem mexer no domínio: basta o novo servidor abrir o túnel.</div>
+
+  <h3>As camadas</h3>
+  <div class="camadas">
+    <div class="camada"><div class="nome">Acesso</div><div class="itens"><span>Cloudflare DNS</span><span>HTTPS automático</span><span>Cloudflare Tunnel</span><span>Tailscale (administração)</span></div></div>
+    <div class="camada"><div class="nome">Telas</div><div class="itens"><span>Angular 22</span><span>TypeScript 6</span><span>Space Grotesk</span><span>Ícones Lucide</span><span>Service worker</span><span>IndexedDB</span></div></div>
+    <div class="camada"><div class="nome">Servidor</div><div class="itens"><span>ASP.NET Core</span><span>C#</span><span>.NET 10</span><span>ASP.NET Identity</span><span>Rotinas automáticas</span></div></div>
+    <div class="camada"><div class="nome">Dados</div><div class="itens"><span>PostgreSQL 18</span><span>Entity Framework Core 10</span><span>Npgsql</span></div></div>
+    <div class="camada"><div class="nome">Integrações</div><div class="itens"><span>Mercado Pago (Pix)</span><span>Google Gemini (IA)</span><span>n8n</span><span>Serviço de clima</span></div></div>
+    <div class="camada escura"><div class="nome">Proteção</div><div class="itens"><span>Backup a cada 2 min</span><span>Cópia completa diária</span><span>Criptografia (rclone)</span><span>Oracle Object Storage</span><span>Cloudflare R2</span></div></div>
+    <div class="camada escura"><div class="nome">Máquina</div><div class="itens"><span>Oracle Cloud (ARM)</span><span>Ubuntu 26.04 LTS</span><span>Docker</span><span>systemd</span></div></div>
+  </div>
+</section>
+
+<!-- ======================= 2. DETALHE ======================= -->
+<section class="pagina">
+  <div class="cabeca"><div class="num">2</div><div><h2>Camada por camada</h2><p>O que cada tecnologia faz no Marcus</p></div></div>
+
+  <h3>Telas (o que o usuário vê)</h3>
+  <table>
+    <tr><th>Tecnologia</th><th>Versão</th><th>Para quê</th></tr>
+    <tr><td>Angular + TypeScript</td><td class="versao">22 · 6</td><td>Todas as telas: caixa (PDV), estoque, compras, financeiro, relatórios, configurações e a área do dono da plataforma.</td></tr>
+    <tr><td>Space Grotesk e Lucide</td><td class="versao">embutidos</td><td>Fonte e ícones guardados no próprio sistema: abrem sem depender de serviços de fora.</td></tr>
+    <tr><td>Service worker + IndexedDB</td><td class="versao">navegador</td><td>Caixa offline: sem internet o caixa continua vendendo, guarda as vendas no computador e envia sozinho quando a conexão volta, sem duplicar.</td></tr>
+  </table>
+
+  <h3>Servidor (as regras do negócio)</h3>
+  <table>
+    <tr><th>Tecnologia</th><th>Versão</th><th>Para quê</th></tr>
+    <tr><td>ASP.NET Core em C#</td><td class="versao">.NET 10</td><td>A API e a entrega das telas, num único programa. Cada mercado só enxerga os próprios dados.</td></tr>
+    <tr><td>ASP.NET Identity</td><td class="versao">10</td><td>Login, perfis (administrador, gerente, caixa), bloqueio por senha errada e senha do gerente nas autorizações.</td></tr>
+    <tr><td>ClosedXML</td><td class="versao">0.105</td><td>Importação do catálogo de produtos pela planilha do Excel.</td></tr>
+    <tr><td>QRCoder</td><td class="versao">1.6</td><td>QR Code do Pix (padrão BR Code do Banco Central), gerado no servidor.</td></tr>
+    <tr><td>Rotinas automáticas</td><td class="versao">internas</td><td>Compras automáticas ao abrir a loja, clima de cada cidade com loja, cobranças das mensalidades, recebíveis da maquininha no financeiro, simulador da demonstração.</td></tr>
+  </table>
+
+  <h3>Dados</h3>
+  <table>
+    <tr><th>Tecnologia</th><th>Versão</th><th>Para quê</th></tr>
+    <tr><td>PostgreSQL</td><td class="versao">18</td><td>O banco de dados de todos os mercados. Roda em contêiner Docker e só aceita conexões de dentro do próprio servidor.</td></tr>
+    <tr><td>Entity Framework Core + Npgsql</td><td class="versao">10</td><td>A ponte entre o servidor e o banco; as mudanças de estrutura (migrations) são versionadas junto com o código.</td></tr>
+  </table>
+
+  <h3>Integrações</h3>
+  <table>
+    <tr><th>Serviço</th><th>Tipo</th><th>Para quê</th></tr>
+    <tr><td>Mercado Pago</td><td class="versao">API de Orders</td><td>Pix automático: o QR é gerado com o valor e a venda é registrada sozinha quando o pagamento é confirmado.</td></tr>
+    <tr><td>n8n + Google Gemini</td><td class="versao">IA</td><td>Botão "Gerar insights" dos Relatórios: sugestões de reposição, promoção e preparo para o fim de semana.</td></tr>
+    <tr><td>Serviço de clima</td><td class="versao">previsão</td><td>Clima hora a hora da cidade de cada loja, cruzado com as vendas nos relatórios.</td></tr>
+  </table>
+</section>
+
+<!-- ======================= 3. PROTEÇÃO E MÁQUINA ======================= -->
+<section class="pagina">
+  <div class="cabeca"><div class="num">3</div><div><h2>Proteção dos dados e máquina</h2><p>Backup contínuo em duas nuvens de empresas diferentes</p></div></div>
+
+  <div class="grade3">
+    <div class="cartao"><h4>A cada 2 minutos</h4><p>O registro de alterações do banco (WAL) fecha um pedaço e ele é enviado às duas nuvens.</p></div>
+    <div class="cartao"><h4>Todo dia, 03:45</h4><p>Cópia completa do banco e da configuração do servidor; vai para a nuvem às 04:30.</p></div>
+    <div class="cartao"><h4>Criptografado</h4><p>Os arquivos saem do servidor já criptografados (rclone); a nuvem nunca vê os dados abertos.</p></div>
+  </div>
+
+  <h3>Onde ficam as cópias</h3>
+  <table>
+    <tr><th>Destino</th><th>Empresa</th><th>Guarda</th></tr>
+    <tr><td>No próprio servidor</td><td class="versao">—</td><td>7 dias de cópias completas e 8 dias do registro contínuo (recuperação rápida de um erro).</td></tr>
+    <tr><td>Oracle Object Storage</td><td class="versao">Oracle</td><td>30 dias de cópias completas e 31 do registro contínuo (São Paulo).</td></tr>
+    <tr><td>Cloudflare R2</td><td class="versao">Cloudflare</td><td>A mesma coisa, em outra empresa: vale mesmo se a conta da Oracle inteira cair.</td></tr>
+  </table>
+
+  <h3>Se algo der errado</h3>
+  <div class="grade2">
+    <div class="cartao"><h4>Alguém apagou dados por engano</h4><p>O banco é reconstruído à parte até o minuto anterior ao erro, para copiar de volta só o que se perdeu. A produção não para.</p></div>
+    <div class="cartao"><h4>O servidor ou a conta caiu</h4><p>Servidor novo em qualquer provedor, banco reconstruído pela nuvem até o último pedaço e túnel religado: volta em 30 a 60 minutos, perdendo no máximo ~4 minutos.</p></div>
+  </div>
+  <div class="dica"><b>E as lojas durante a queda?</b>
+  O caixa entra sozinho em modo offline e continua vendendo (dinheiro, cartão e Pix pelo QR da loja). As vendas ficam
+  guardadas no computador da loja e sobem quando o servidor volta, sem duplicar. A recuperação é testada regularmente pelas
+  duas nuvens.</div>
+
+  <h3>A máquina</h3>
+  <table>
+    <tr><th>Item</th><th>Valor</th><th>Observação</th></tr>
+    <tr><td>Servidor</td><td class="versao">Oracle Cloud</td><td>Ampere, processador ARM (aarch64): 4 núcleos, 23 GB de memória, disco de 200 GB.</td></tr>
+    <tr><td>Sistema operacional</td><td class="versao">Ubuntu 26.04</td><td>Versão LTS (suporte longo); serviços controlados pelo systemd.</td></tr>
+    <tr><td>Contêineres</td><td class="versao">Docker</td><td>O banco de dados roda isolado num contêiner.</td></tr>
+    <tr><td>Capacidade testada</td><td class="versao">500 mercados</td><td>Teste de estresse aprovado para 500 mercados de 3 caixas neste servidor (recomendado operar até ~300).</td></tr>
+  </table>
+
+  <div class="rodape-pag"><span>Marcus · Desenvolvido por WN Labs · contato@wnlabs.com.br</span><span>Stack conferida em 20/10/2026</span></div>
+</section>
+
+</body>
+</html>
