@@ -277,6 +277,9 @@ importação; VM e bibliotecas atualizadas; **clima mantido, mas só afirma o qu
   `ng update`: o `npm update` travava nos peers exatos), ASP.NET Identity/EF Core/OpenApi e dotnet-ef 10.0.13, QRCoder 1.8.1
   (o SVG do Pix mudou de formato e ficou ~4x menor; conferido com leitor de QR: mesmo código Pix da 1.6.0).
   **TypeScript 7 não**: o Angular 22 exige TypeScript `>=6.0 <6.1` (esperar o Angular 23).
+  Aviso trimestral da Oracle (Critical Patch Update): só vale para software DA Oracle (Database, Java, MySQL, WebLogic…),
+  que não usamos. Único software da Oracle na VM: o agente da nuvem (snap `oracle-cloud-agent`, fica "held" = não se
+  atualiza sozinho); atualizado à mão de 1.61 para 1.64 com `sudo snap refresh oracle-cloud-agent`. Conferir a cada aviso.
 - **Stack do Marcus**: seção "Stack" neste README e ficha técnica em PDF para cliente/diretoria
   (`docs/stack/Stack-do-Marcus.pdf`, fonte `docs/stack/stack.html`; gerar de novo com o Chromium do Playwright:
   `~/.cache/ms-playwright/chromium-1248/chrome-linux-arm64/chrome --headless --no-sandbox --no-pdf-header-footer
