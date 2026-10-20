@@ -244,10 +244,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), stack, PLU na importação e atualizações
+### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), stack, PLU, atualizações e clima confiável
 Resumo do dia: perda máxima numa catástrofe caiu de ~10 para **~4 min**; backups agora em **duas nuvens de empresas
 diferentes** (Oracle + Cloudflare R2), recuperação testada pelas duas; ficha técnica da stack em PDF; coluna PLU na
-importação; VM e bibliotecas atualizadas. Tudo publicado (último commit do dia: ver `git log`). Sem migrations.
+importação; VM e bibliotecas atualizadas; **clima mantido, mas só afirma o que os dados de cada mercado comprovam**
+(30 h por condição + teste estatístico; IA sem regra fixa de chuva). Tudo publicado (último commit do dia: ver
+`git log`). Sem migrations.
 
 - **Área do dono → Sistema**: card **Backup contínuo** (último envio à nuvem; vermelho "PARADO" se passar de 10 min)
   separado do **Backup diário completo** (antes só aparecia o diário das 04:30, parecendo que o contínuo não existia).
@@ -398,6 +400,9 @@ Pendências:
   Logar por `fetch('/api/auth/login')` e depois recarregar a página. Para simular queda de internet no dev: parar o `api-dev`.
 - Ícones novos: acrescentar o nome em `marketplace-web/ferramentas/gerar-icones.py` e rodar o script (não editar `icones.ts`).
 - n8n 2.x: `update:workflow` está obsoleto; usar `publish:workflow`/`unpublish:workflow` e reiniciar o container.
+- **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
+  `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
+  clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
 - Próximos passos possíveis: as pendências acima; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
 
