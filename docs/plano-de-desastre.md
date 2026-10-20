@@ -25,7 +25,9 @@ Ver: `sudo rclone lsd nuvem:` / `sudo rclone lsd nuvem2:` · último envio: `~/b
 se o envio parar.
 
 Os caixas continuam vendendo sem o servidor (modo offline) e mandam as vendas quando ele volta: venda feita no
-caixa durante a queda **não se perde**.
+caixa durante a queda **não se perde**. O que pode se perder são os ~4 min **antes** da queda que o servidor já tinha
+confirmado e ainda não tinham subido para a nuvem (vendas online, cadastros, lançamentos): o caixa não guarda de novo
+o que o servidor confirmou. Essas vendas têm o cupom impresso e podem ser relançadas à mão.
 
 ## Guardar FORA da VM (gerenciador de senhas) — sem isto, nada abre
 

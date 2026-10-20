@@ -254,7 +254,15 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   Oracle suspensa (VM e bucket estão na mesma conta). `sudo infra/configurar-r2.sh` configura e copia o que já existe;
   `backup-nuvem.sh` e `enviar-wal.sh` mandam para as duas; `recuperar-banco.sh --remoto nuvem2` recupera pelo R2.
   Plano de desastre atualizado (Situação B pela outra nuvem).
-- **Apresentação para diretoria**: elementos entram sozinhos (build `auto`), transições em fade; 1 clique = próximo slide.
+  **Configurado e testado em 20/10** (conta Cloudflare wnlabss@gmail, Account ID `2365eeb5…`): cópia inicial idêntica
+  (468 arquivos, 1,2 GiB), envio de 2 em 2 min "R2 ok", e `recuperar-banco.sh --teste --nuvem --remoto nuvem2` reconstruiu
+  o banco **só com o R2**, igual à produção até a última venda. A chave secreta foi rotacionada (tinha passado pelo chat).
+  Supabase foi avaliado e descartado como clone: não aceita o registro contínuo (WAL) e não roda o Marcus; o ganho real
+  era ter os backups fora da conta da Oracle, que o R2 resolve.
+- **Apresentação para diretoria** (https://claude.ai/artifact/NMSermTFFHcn3r5zxh5yfa): elementos entram sozinhos
+  (build `auto`; imagens pela direita, itens da lista pela esquerda, cartões subindo), transições em fade; 1 clique =
+  próximo slide. As animações só tocam no modo **Apresentar** e somem se o computador pede "reduzir movimento"
+  (Windows: Acessibilidade → Efeitos visuais → Efeitos de animação ligado).
 - Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
   (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
 
@@ -327,7 +335,9 @@ Pendências:
   rclone (feito), chave S3 da Oracle (ID, secreta, namespace), contas Oracle/GitHub/Cloudflare/domínio/Tailscale, chave SSH,
   IP do Tailscale (oracle-a1, 100.x) e IP público, integrações (Gemini, Telegram, Evolution, afiliados). Nunca mostrar senhas no
   chat: passar o comando para ele rodar no terminal.
-- (19/10) **Treino mensal da recuperação**: `sudo infra/recuperar-banco.sh --teste --nuvem` (próximo: ~19/11/2026).
+- (19/10) **Treino mensal da recuperação**: `sudo infra/recuperar-banco.sh --teste --nuvem` e também
+  `--remoto nuvem2` (R2) (próximo: ~19/11/2026).
+- (20/10) **Cofre de senhas**: acrescentar o token do R2 (Account ID, Access Key ID, Secret Access Key nova).
 - (19/10) **Compactar o banco do n8n** (VACUUM, n8n parado ~2 min) depois de ~26/10, quando a limpeza automática de 7 dias tiver passado.
 - (19/10) **Redundância fase 2** (2ª VM em outro provedor, réplica em tempo real, mesmo túnel Cloudflare): junto com o 1º cliente pagante.
 - (19/10) Ideias combinadas e não feitas: aba "Despesas e resultado" na Visão geral do dono quando houver custos; coluna
