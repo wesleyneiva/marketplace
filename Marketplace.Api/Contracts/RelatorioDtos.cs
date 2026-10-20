@@ -96,4 +96,6 @@ public record ProdutoSensivel(string Nome, decimal Fator, string Explicacao);
 public record RelatorioClima(
     Periodo Periodo, IReadOnlyList<FaixaClima> PorTemperatura, IReadOnlyList<FaixaClima> PorChuva,
     IReadOnlyList<ProdutoSensivel> SobemNoCalor, IReadOnlyList<ProdutoSensivel> SobemNoFrio, IReadOnlyList<ProdutoSensivel> SobemNaChuva,
-    string? Cidade); // a cidade da loja (de onde vem o clima); null = cidade ainda não definida
+    string? Cidade, // a cidade da loja (de onde vem o clima); null = cidade ainda não definida
+    int? EfeitoChuvaPct, // efeito da chuva no movimento, só quando há dados suficientes E passa no teste estatístico
+    string AvisoChuva); // a frase pronta: o efeito, "sem diferença confiável" ou "ainda juntando dados"

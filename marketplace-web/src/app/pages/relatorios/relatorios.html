@@ -179,18 +179,26 @@
     <section class="painel bloco">
       <header>
         <h2><app-icone nome="cloud-sun-rain" /> O clima influenciou as vendas?</h2>
-        <p>Cruzamos cada venda com o clima real daquela hora {{ c.cidade ? 'em ' + c.cidade : 'na cidade da loja' }}.
-          @if (efeitoChuva() !== null) { Com chuva, o movimento foi <b>{{ efeitoChuva()! > 0 ? '+' : '' }}{{ efeitoChuva() }}%</b> em relação às horas secas. }</p>
+        <p>Cruzamos cada venda com o clima daquela hora {{ c.cidade ? 'em ' + c.cidade : 'na cidade da loja' }}.
+          @if (c.efeitoChuvaPct !== null) { <b>{{ c.avisoChuva }}</b> } @else { {{ c.avisoChuva }} }</p>
       </header>
 
       <div class="duas-colunas internas">
         <div>
           <h3 class="sub">Clientes por hora, pela temperatura</h3>
-          <app-grafico-barras [dados]="barrasTemperatura()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora por faixa de temperatura" />
+          @if (barrasTemperatura().length) {
+            <app-grafico-barras [dados]="barrasTemperatura()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora por faixa de temperatura" />
+          } @else {
+            <p class="vazio">Ainda juntando dados: cada faixa de temperatura precisa de pelo menos 30 horas de mercado aberto.</p>
+          }
         </div>
         <div>
           <h3 class="sub">Clientes por hora, com e sem chuva</h3>
-          <app-grafico-barras [dados]="barrasChuva()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora com e sem chuva" />
+          @if (barrasChuva().length) {
+            <app-grafico-barras [dados]="barrasChuva()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora com e sem chuva" />
+          } @else {
+            <p class="vazio">{{ c.avisoChuva }}</p>
+          }
         </div>
       </div>
 
@@ -215,7 +223,7 @@
       </div>
 
       <p class="nota">
-        <app-icone nome="triangle-alert" /> <b>Correlação não é causa.</b> Só aparecem padrões com ~99,7% de confiança estatística (teste z ≥ 3 — testamos muitos produtos de uma vez, e com menos confiança alguns "padrões" seriam só sorte), mas um padrão
+        <app-icone nome="triangle-alert" /> <b>Correlação não é causa.</b> O clima vem de um modelo meteorológico (Open-Meteo), com temperatura e chuva bem próximas das estações oficiais. Só aparecem padrões com pelo menos 30 horas de dados em cada condição e ~99,7% de confiança estatística (teste z ≥ 3 — testamos muitos produtos de uma vez, e com menos confiança alguns "padrões" seriam só sorte), mas um padrão
         pode ter outra explicação: as horas frias são as do começo da manhã, quando o café da manhã vende mais — por isso
         presunto e requeijão "sobem no frio".
       </p>

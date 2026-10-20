@@ -45,7 +45,7 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
             var clima = new ClimaAgora(
                 Math.Round(atual.GetProperty("temperature_2m").GetDecimal(), 1),
                 Math.Round(atual.GetProperty("precipitation").GetDecimal(), 1),
-                codigo, Descrever(codigo), Real: true);
+                codigo, DescreverAgora(codigo), Real: true);
             _ultimos[chave] = new Cache(clima, DateTimeOffset.UtcNow);
             await RegistrarHoraAsync(local, clima, ct);
             return clima;
@@ -156,6 +156,10 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
     private static string Lugar(LocalLoja l) =>
         string.Create(System.Globalization.CultureInfo.InvariantCulture, $"latitude={l.LatitudeClima}&longitude={l.LongitudeClima}")
         + "&timezone=" + Uri.EscapeDataString(l.Fuso);
+
+    // O tempo AGORA: o modelo acerta bem temperatura e chuva, mas erra nuvens (20/10/2026, Rio: "céu limpo" com o
+    // aeroporto vendo céu parcialmente nublado). Sem chuva, diz só "sem chuva" em vez de chutar o céu.
+    private static string DescreverAgora(int codigo) => codigo is >= 0 and <= 3 ? "sem chuva" : Descrever(codigo);
 
     // Códigos WMO (os mesmos explicados na ferramenta de clima do seu /pergunta).
     private static string Descrever(int codigo) => codigo switch

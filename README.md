@@ -283,6 +283,14 @@ importação; VM e bibliotecas atualizadas. Tudo publicado (último commit do di
   token recebe o tráfego. Nunca ligar o `cloudflared` em duas VMs com bancos diferentes (VM de teste: túnel desligado).
 - **O que se perde numa queda**: só os ~4 min antes dela que o servidor já tinha confirmado (vendas online, cadastros);
   vendas feitas no caixa offline durante a queda sobem depois, sem duplicar.
+- **Clima mais confiável** (o usuário viu "céu limpo" no Rio com tempo nublado e pensou em remover o clima). Conferido
+  com os METAR dos aeroportos SBRJ/SBGL: temperatura (±0,5 °C) e chuva do Open-Meteo batem; o que erra são as nuvens.
+  Mudanças: (1) o "agora" (aviso do simulador) diz só "sem chuva" nos códigos 0–3 (`ClimaService.DescreverAgora`);
+  (2) Relatórios → clima: faixa de temperatura só aparece com ≥30 horas de mercado aberto, e chuva × movimento só com
+  ≥30 horas com e sem chuva E diferença confiável (teste de taxas, z ≥ 3) — senão "ainda juntando dados" ou "sem
+  diferença confiável" (`RelatorioClima.EfeitoChuvaPct`/`AvisoChuva`); (3) Insights IA: saiu a regra FIXA "chuva reduz
+  o movimento" (verdade só no simulador); a IA só fala do efeito do clima como está nos dados daquele mercado.
+  Demo conferida: 7 dias → "juntando dados"; 30 dias → -25% na chuva; 90 dias → -22%, com produtos sensíveis.
 - Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
   (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
 

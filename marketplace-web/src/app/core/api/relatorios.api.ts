@@ -44,4 +44,6 @@ export interface RelatorioClima {
   sobemNoFrio: ProdutoSensivel[];
   sobemNaChuva: ProdutoSensivel[];
   cidade: string | null; // a cidade da loja (de onde vem o clima)
+  efeitoChuvaPct: number | null; // só com dados suficientes e diferença confiável (teste estatístico)
+  avisoChuva: string; // a frase pronta: o efeito, "sem diferença confiável" ou "ainda juntando dados"
 }

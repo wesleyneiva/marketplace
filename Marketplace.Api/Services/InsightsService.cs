@@ -47,10 +47,6 @@ public class InsightsService(
                 .Select(i => $"{i.Produto} (dura ~{i.DiasDeEstoque:0.#} dia(s), entrega em {s.PrazoEntregaDias})"))
             .ToList();
 
-        // Efeito da chuva já CALCULADO (a IA erra menos quando não precisa fazer a conta).
-        var seco = efeitoClima.PorChuva.FirstOrDefault(f => f.Faixa == "Sem chuva")?.ClientesPorHora ?? 0;
-        var chuva = efeitoClima.PorChuva.FirstOrDefault(f => f.Faixa == "Com chuva")?.ClientesPorHora ?? 0;
-        int? efeitoChuvaPct = seco > 0 && chuva > 0 ? (int)Math.Round((chuva / seco - 1) * 100) : null;
 
         var top = vendas.MapaDeCalor.OrderByDescending(c => c.MediaVendas).Take(3)
             .Select(c => $"{NomesDias[c.DiaSemana]} {c.Hora}h ({c.MediaVendas} clientes)").ToList();
@@ -79,8 +75,11 @@ public class InsightsService(
             ["Curva ABC"] = produtos.Classes.Select(c => $"Classe {c.Classe}: {c.Produtos} produtos, {c.Participacao}% do faturamento"),
             ["10 produtos que mais faturam"] = produtos.Produtos.Take(10).Select(p => $"{p.Nome} ({p.Classe}): {p.Faturamento:C0}, margem {p.MargemPercentual}%"),
             ["Categorias"] = produtos.Categorias.Select(c => $"{c.Categoria}: {c.Participacao}% do faturamento, margem {c.MargemPercentual}%"),
-            ["Efeito da chuva no movimento"] = efeitoChuvaPct is null ? "sem dados" : $"{efeitoChuvaPct:+0;-0}% de clientes por hora quando chove",
-            ["Clientes por hora, por temperatura"] = efeitoClima.PorTemperatura.Select(f => $"{f.Faixa}: {f.ClientesPorHora}/h"),
+            // Já CALCULADO e testado (a IA erra menos quando não precisa fazer a conta nem adivinhar).
+            ["Efeito da chuva no movimento"] = efeitoClima.AvisoChuva,
+            ["Clientes por hora, por temperatura"] = efeitoClima.PorTemperatura.Count == 0
+                ? "dados insuficientes"
+                : efeitoClima.PorTemperatura.Select(f => $"{f.Faixa}: {f.ClientesPorHora}/h ({f.Horas} horas)"),
             ["Produtos que vendem mais no calor"] = efeitoClima.SobemNoCalor.Select(p => $"{p.Nome}: {p.Fator}x no calor"),
             ["Produtos que vendem mais no frio"] = efeitoClima.SobemNoFrio.Select(p => $"{p.Nome}: {p.Fator}x no frio"),
             ["Produtos que vendem mais na chuva"] = efeitoClima.SobemNaChuva.Select(p => $"{p.Nome}: {p.Fator}x na chuva"),
@@ -102,8 +101,10 @@ public class InsightsService(
             - Cite os números dos dados para justificar, cada número com o SEU contexto (ex.: um fator "1,6x no frio"
               não pode ser usado para falar de chuva).
             - NÃO invente números, produtos ou fatos que não estejam nos dados.
-            - CHUVA REDUZ O MOVIMENTO (veja "Efeito da chuva no movimento"). Em dias de chuva prevista, NÃO sugira reforçar
-              equipe nem espere "fluxo intenso": sugira reduzir perecíveis e reforçar o que sobe na chuva.
+            - CLIMA: fale do efeito da chuva ou da temperatura no movimento SOMENTE como está em "Efeito da chuva no
+              movimento" e "Clientes por hora, por temperatura". Se lá disser "sem diferença confiável", "ainda juntando
+              dados" ou "dados insuficientes", NÃO suponha que a chuva ou o calor aumentam ou reduzem o movimento deste
+              mercado. Produtos sensíveis ao clima: só os listados (já passaram em teste estatístico).
             - Use a PREVISÃO DO TEMPO e os dias FECHADOS para planejar estoque e compras dos próximos dias.
             - Se houver "Produtos que podem faltar antes da próxima entrega", avise com prioridade (pedir JÁ).
             - "Lotes vencendo em até 2 dias" são lotes perto de vencer: sugira promoção/destaque para vender antes.

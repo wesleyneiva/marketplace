@@ -140,12 +140,6 @@ export class Relatorios {
     })),
   );
 
-  protected readonly efeitoChuva = computed(() => {
-    const [seco, chuva] = this.clima.value()?.porChuva ?? [];
-    if (!seco?.clientesPorHora || !chuva?.horas) return null;
-    return Math.round((chuva.clientesPorHora / seco.clientesPorHora - 1) * 100);
-  });
-
   // ---------------------------------------------------------------- insights da IA (via n8n + Gemini)
   protected readonly insights = signal<{ texto: string; periodo: string } | null>(null);
   protected readonly gerando = signal(false);

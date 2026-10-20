@@ -17,6 +17,7 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
     private static readonly string[] NomesDias = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     private const decimal Quente = 24m, Frio = 15m; // °C: "hora quente" ≥ 24, "hora fria" < 15
     private const double ZMinimo = 3.0;             // confiança exigida para mostrar um padrão de clima (~99,7%)
+    private const int MinHorasClima = 30;           // horas de mercado aberto exigidas em cada condição para comparar
 
     // Vendas: números do período, por dia, por dia da semana, mapa de calor e formas de pagamento.
     public async Task<RelatorioVendas> Vendas(DateOnly? de, DateOnly? ate)
@@ -167,13 +168,33 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
             Faixa("15 a 20 °C", abertas.Where(h => h.Temperatura >= 15 && h.Temperatura < 20)),
             Faixa("20 a 24 °C", abertas.Where(h => h.Temperatura >= 20 && h.Temperatura < 24)),
             Faixa("24 °C ou mais", abertas.Where(h => h.Temperatura >= 24)),
-        }.Where(f => f.Horas > 0).ToList();
+        }.Where(f => f.Horas >= MinHorasClima).ToList(); // faixa com poucas horas é ruído, não padrão
 
-        var porChuva = new List<FaixaClima>
+        // Chuva × movimento: só compara com horas suficientes nas duas condições, e só afirma um efeito se ele passar no
+        // teste estatístico (taxa de clientes por hora, aproximação de Poisson, z ≥ 3). Nada de supor que "chuva reduz o
+        // movimento": num mercado de bairro pode ser o contrário — quem diz são os dados de cada loja.
+        var seco = Faixa("Sem chuva", abertas.Where(h => !Chovendo(h)));
+        var molhado = Faixa("Com chuva", abertas.Where(Chovendo));
+        List<FaixaClima> porChuva = [];
+        int? efeitoChuvaPct = null;
+        string avisoChuva;
+        if (seco.Horas < MinHorasClima || molhado.Horas < MinHorasClima)
+            avisoChuva = $"Ainda juntando dados: para comparar, são precisas pelo menos {MinHorasClima} horas de mercado aberto com chuva " +
+                         $"e {MinHorasClima} sem chuva (neste período: {molhado.Horas} com chuva e {seco.Horas} sem).";
+        else
         {
-            Faixa("Sem chuva", abertas.Where(h => !Chovendo(h))),
-            Faixa("Com chuva", abertas.Where(Chovendo)),
-        };
+            porChuva = [seco, molhado];
+            double t1 = (double)seco.ClientesPorHora, t2 = (double)molhado.ClientesPorHora;
+            var erroTaxa = Math.Sqrt(t1 / seco.Horas + t2 / molhado.Horas);
+            var zChuva = erroTaxa == 0 ? 0 : Math.Abs(t2 - t1) / erroTaxa;
+            if (t1 > 0 && zChuva >= ZMinimo)
+            {
+                efeitoChuvaPct = (int)Math.Round((t2 / t1 - 1) * 100);
+                avisoChuva = $"Com chuva, o movimento foi {efeitoChuvaPct:+0;-0}% em relação às horas secas.";
+            }
+            else
+                avisoChuva = "Com chuva e sem chuva, o movimento foi parecido (sem diferença confiável).";
+        }
 
         // Sensibilidade: em quantas vendas o produto aparece nas horas quentes vs frias (e com/sem chuva).
         var sens = await db.Database.SqlQuery<LinhaSensibilidade>($"""
@@ -224,7 +245,7 @@ public class RelatoriosService(AppDbContext db, LocaisDasLojas locais)
             Top(s => (s.ComCalor, s.ComFrio), vendasCalor, vendasFrio, $"com {Quente:0} °C ou mais", $"abaixo de {Frio:0} °C"),
             Top(s => (s.ComFrio, s.ComCalor), vendasFrio, vendasCalor, $"abaixo de {Frio:0} °C", $"com {Quente:0} °C ou mais"),
             Top(s => (s.ComChuva, s.SemChuva), vendasChuva, vendasSeco, "com chuva", "sem chuva"),
-            locais.Local(db.EmpresaAtual)?.Nome);
+            locais.Local(db.EmpresaAtual)?.Nome, efeitoChuvaPct, avisoChuva);
     }
 
     // ------------------------------------------------------------------ apoio
