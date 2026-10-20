@@ -15,8 +15,13 @@
         <small>{{ e.noAr ? e.ms + ' ms pela internet' : e.erro }}</small>
       </div>
     }
+    <div class="painel cartao" [class.perigo]="!s.backup.continuoOk">
+      <span class="rotulo"><app-icone nome="refresh-cw" /> Backup contínuo (5 em 5 min)</span>
+      <strong>{{ s.backup.continuoOk ? 'em dia' : 'PARADO' }}</strong>
+      <small>último envio à nuvem: {{ s.backup.continuo ?? 'nunca' }}</small>
+    </div>
     <div class="painel cartao" [class.perigo]="!s.backup.nuvemOk || !s.backup.ultimoLocal">
-      <span class="rotulo"><app-icone nome="history" /> Backup do banco</span>
+      <span class="rotulo"><app-icone nome="history" /> Backup diário completo</span>
       <strong>{{ dataPasta(s.backup.ultimoLocal) }}</strong>
       <small>{{ s.backup.ultimoLocalKb ?? 0 | number }} KB · {{ s.backup.copiasLocais }} cópias na VM ·
         nuvem: {{ s.backup.nuvemOk ? 'ok' : 'FALHOU' }} {{ s.backup.nuvem }}</small>

@@ -14,7 +14,8 @@ public record SistemaResponse(
     List<RotinaInfo> Rotinas);
 
 public record EnderecoNoAr(string Endereco, bool NoAr, int? Ms, string? Erro);
-public record BackupInfo(string? UltimoLocal, long? UltimoLocalKb, int CopiasLocais, string? Nuvem, bool NuvemOk);
+public record BackupInfo(string? UltimoLocal, long? UltimoLocalKb, int CopiasLocais, string? Nuvem, bool NuvemOk,
+    string? Continuo, bool ContinuoOk);
 public record UsoCliente(int Id, string Nome, long Registros, double Percentual);
 public record RotinaInfo(string Nome, string Situacao);
 
@@ -79,7 +80,8 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
         }
     }
 
-    // Backups: pasta diária do banco (~/backup/marketplace-auto/AAAA-MM-DD) e o resultado do envio para a nuvem.
+    // Backups: pasta diária do banco (~/backup/marketplace-auto/AAAA-MM-DD), o resultado do envio diário para a nuvem e o
+    // envio contínuo (WAL, a cada 5 min: infra/enviar-wal.sh → wal-ultimo.txt). Contínuo parado há mais de 15 min = falha.
     private BackupInfo Backups()
     {
         var raiz = config["Plataforma:PastaBackups"] ?? "/home/ubuntu/backup";
@@ -92,12 +94,16 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
             var nuvemArquivo = Path.Combine(raiz, "nuvem-ultimo.txt");
             DateTime? nuvemQuando = System.IO.File.Exists(nuvemArquivo) ? System.IO.File.GetLastWriteTime(nuvemArquivo) : null;
             var nuvemOk = nuvemQuando is not null && System.IO.File.ReadLines(nuvemArquivo).LastOrDefault()?.Trim() == "OK";
+            var walArquivo = Path.Combine(raiz, "wal-ultimo.txt");
+            DateTime? walQuando = System.IO.File.Exists(walArquivo) ? System.IO.File.GetLastWriteTime(walArquivo) : null;
+            var walOk = walQuando is not null && DateTime.Now - walQuando < TimeSpan.FromMinutes(15)
+                && System.IO.File.ReadLines(walArquivo).FirstOrDefault()?.Contains(" ok ") == true;
             return new BackupInfo(ultima is null ? null : Path.GetFileName(ultima), dump?.Exists == true ? dump.Length / 1024 : null,
-                pastas.Count, nuvemQuando?.ToString("dd/MM/yyyy HH:mm"), nuvemOk);
+                pastas.Count, nuvemQuando?.ToString("dd/MM/yyyy HH:mm"), nuvemOk, walQuando?.ToString("dd/MM HH:mm"), walOk);
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return new BackupInfo(null, null, 0, null, false);
+            return new BackupInfo(null, null, 0, null, false, null, false);
         }
     }
 
