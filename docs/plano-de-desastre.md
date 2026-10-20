@@ -103,7 +103,11 @@ troque `nuvem:` por `nuvem2:` e use `--remoto nuvem2`. O resto é igual.
    sudo systemctl daemon-reload
    sudo systemctl enable --now marketplace cloudflared backup-marketplace.timer backup-nuvem.timer backup-wal.timer
    ```
-   O túnel da Cloudflare usa o mesmo token: **app.wnlabs.com.br volta a apontar para a VM nova sozinho**.
+   O túnel da Cloudflare usa o mesmo token: **app.wnlabs.com.br volta a apontar para a VM nova sozinho**. O DNS
+   aponta para o túnel, não para um IP: quem liga o `cloudflared` com o token recebe o tráfego, em segundos.
+   **Nunca** ligar o `cloudflared` em duas VMs com bancos diferentes ao mesmo tempo (a Cloudflare dividiria os
+   acessos entre elas): numa VM de teste ou de treino, deixar o `cloudflared` desligado. Token vazou? Gerar outro em
+   Cloudflare → Zero Trust → Redes → Túneis e trocar `/etc/cloudflared/token`.
 7. **Conferir**: `curl http://127.0.0.1:5100/api/saude`, abrir https://app.wnlabs.com.br, ver a última venda e
    `~/backup/wal-ultimo.txt` depois de 2 min. Se a VM nova não tiver o `r2`/`nuvem2` (ou o `nuvem`), criar o que
    falta: os backups voltam a ir para as duas nuvens sozinhos.
