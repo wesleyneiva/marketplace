@@ -17,23 +17,64 @@ public class ContasController(AppDbContext db) : ControllerBase
 {
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-    // GET /api/contas?situacao=abertas|vencidas|pagas|todas
+    // GET /api/contas?situacao=abertas|vencidas|pagas|todas&busca=luz&categoriaId=3&fornecedorId=2&origem=nota|manual
+    //   &de=2026-10-01&ate=2026-10-31&pagina=1&tamanho=25
+    // Período: na aba "pagas" é a data do pagamento; nas outras, o vencimento. Sem período, pagas/todas mostram só as
+    // pagas nos últimos 90 dias (com período, qualquer época).
     [HttpGet]
-    public async Task<List<ContaPagarResponse>> Listar(string situacao = "abertas")
+    public async Task<ContasPagina> Listar(
+        string situacao = "abertas", string? busca = null, int? categoriaId = null, int? fornecedorId = null,
+        string? origem = null, DateOnly? de = null, DateOnly? ate = null, int pagina = 1, int tamanho = 25)
     {
+        pagina = Math.Max(pagina, 1);
+        tamanho = Math.Clamp(tamanho, 1, 100);
         var hoje = Relogio.Hoje;
+        var semPeriodo = de is null && ate is null;
         var consulta = db.ContasPagar.AsNoTracking();
         consulta = situacao switch
         {
             "vencidas" => consulta.Where(c => c.PagaEm == null && c.Vencimento < hoje),
-            "pagas" => consulta.Where(c => c.PagaEm != null && c.PagaEm >= hoje.AddDays(-90)),
-            "todas" => consulta.Where(c => c.PagaEm == null || c.PagaEm >= hoje.AddDays(-90)),
+            "pagas" => consulta.Where(c => c.PagaEm != null && (!semPeriodo || c.PagaEm >= hoje.AddDays(-90))),
+            "todas" => consulta.Where(c => c.PagaEm == null || !semPeriodo || c.PagaEm >= hoje.AddDays(-90)),
             _ => consulta.Where(c => c.PagaEm == null),
         };
+
+        if (situacao == "pagas")
+        {
+            if (de is not null) consulta = consulta.Where(c => c.PagaEm >= de);
+            if (ate is not null) consulta = consulta.Where(c => c.PagaEm <= ate);
+        }
+        else
+        {
+            if (de is not null) consulta = consulta.Where(c => c.Vencimento >= de);
+            if (ate is not null) consulta = consulta.Where(c => c.Vencimento <= ate);
+        }
+
+        // Cada PALAVRA precisa aparecer na descrição, no documento, no fornecedor ou na observação (sem acento/maiúscula).
+        foreach (var palavra in (busca ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(6).Select(SemCuringa))
+        {
+            var termo = $"%{palavra}%";
+            consulta = consulta.Where(c =>
+                EF.Functions.ILike(EF.Functions.Unaccent(c.Descricao), EF.Functions.Unaccent(termo))
+                || EF.Functions.ILike(c.Documento ?? "", termo)
+                || EF.Functions.ILike(EF.Functions.Unaccent(c.Fornecedor!.Nome ?? ""), EF.Functions.Unaccent(termo))
+                || EF.Functions.ILike(EF.Functions.Unaccent(c.Observacao ?? ""), EF.Functions.Unaccent(termo)));
+        }
+        if (categoriaId is not null) consulta = consulta.Where(c => c.CategoriaFinanceiraId == categoriaId);
+        if (fornecedorId is not null) consulta = consulta.Where(c => c.FornecedorId == fornecedorId);
+        if (origem == "nota") consulta = consulta.Where(c => c.NotaEntradaId != null);
+        else if (origem == "manual") consulta = consulta.Where(c => c.NotaEntradaId == null);
+
+        var total = await consulta.CountAsync();
+        var valorTotal = await consulta.SumAsync(c => (decimal?)(c.ValorPago ?? c.Valor)) ?? 0;
         var ordenada = situacao == "pagas" ? consulta.OrderByDescending(c => c.PagaEm).ThenBy(c => c.Id)
             : consulta.OrderBy(c => c.Vencimento).ThenBy(c => c.Id);
-        return (await Projetar(ordenada.Take(500)).ToListAsync()).Select(c => Situar(c, hoje)).ToList();
+        var itens = (await Projetar(ordenada.Skip((pagina - 1) * tamanho).Take(tamanho)).ToListAsync())
+            .Select(c => Situar(c, hoje)).ToList();
+        return new ContasPagina(itens, total, pagina, tamanho, valorTotal);
     }
+
+    private static string SemCuringa(string texto) => texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
 
     // GET /api/contas/resumo → números do topo da tela (e do dashboard)
     [HttpGet("resumo")]

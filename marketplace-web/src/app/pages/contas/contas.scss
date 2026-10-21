@@ -27,6 +27,33 @@
   }
 }
 
+.filtros-contas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+  margin-bottom: 10px;
+
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--cor-texto-suave); }
+  .busca { flex: 1 1 240px; }
+  select { max-width: 220px; }
+}
+
+.total-filtro {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--cor-texto-suave);
+  font-variant-numeric: tabular-nums;
+
+  small { font-weight: 400; }
+}
+
+@media (max-width: 640px) {
+  .filtros-contas label { flex: 1 1 140px; }
+  .filtros-contas select { max-width: none; width: 100%; }
+}
+
 .tabela-rolagem {
   overflow-x: auto;
   transition: opacity 0.15s;

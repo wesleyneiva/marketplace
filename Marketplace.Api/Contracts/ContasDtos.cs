@@ -9,6 +9,9 @@ public record ContaPagarResponse(
     DateOnly? PagaEm, decimal? ValorPago, string? FormaPagamento, string? PagaPor, string? Observacao,
     int? CategoriaId, string? Categoria, int? ContaFinanceiraId, string? ContaFinanceira);
 
+// Uma página da lista + o total (em R$) de TODAS as contas do filtro, não só desta página.
+public record ContasPagina(IReadOnlyList<ContaPagarResponse> Itens, int Total, int PaginaAtual, int TamanhoPagina, decimal ValorTotal);
+
 public record ResumoContasResponse(
     int Vencidas, decimal ValorVencidas, int VencemHoje, decimal ValorHoje, int Proximos7Dias, decimal ValorProximos7Dias,
     int Abertas, decimal ValorAbertas, decimal PagoNoMes);

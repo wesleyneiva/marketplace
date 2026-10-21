@@ -31,9 +31,53 @@
 <nav class="abas" role="tablist">
   <button role="tab" [class.ativa]="filtro() === 'abertas'" (click)="mudarFiltro('abertas')">Em aberto</button>
   <button role="tab" [class.ativa]="filtro() === 'vencidas'" (click)="mudarFiltro('vencidas')">Vencidas</button>
-  <button role="tab" [class.ativa]="filtro() === 'pagas'" (click)="mudarFiltro('pagas')">Pagas (90 dias)</button>
+  <button role="tab" [class.ativa]="filtro() === 'pagas'" (click)="mudarFiltro('pagas')">Pagas</button>
   <button role="tab" [class.ativa]="filtro() === 'todas'" (click)="mudarFiltro('todas')">Todas</button>
 </nav>
+
+<section class="filtros-contas">
+  <label class="busca">Buscar
+    <input #campoBusca type="search" placeholder="Descrição, fornecedor, nº do documento…" maxlength="80"
+      [value]="busca()" (input)="digitouBusca(campoBusca.value)" />
+  </label>
+  <label>Categoria
+    <select name="fCategoria" [ngModel]="categoriaId()" (ngModelChange)="filtrar(() => categoriaId.set($event))">
+      <option [ngValue]="null">Todas</option>
+      @for (g of gruposFiltro(); track g.grupo) {
+        <optgroup [label]="g.grupo">
+          @for (cat of g.itens; track cat.id) { <option [ngValue]="cat.id">{{ cat.nome }}</option> }
+        </optgroup>
+      }
+    </select>
+  </label>
+  <label>Fornecedor
+    <select name="fFornecedor" [ngModel]="fornecedorId()" (ngModelChange)="filtrar(() => fornecedorId.set($event))">
+      <option [ngValue]="null">Todos</option>
+      @for (fo of fornecedores.value() ?? []; track fo.id) { <option [ngValue]="fo.id">{{ fo.nome }}</option> }
+    </select>
+  </label>
+  <label>Origem
+    <select name="fOrigem" [ngModel]="origem()" (ngModelChange)="filtrar(() => origem.set($event))">
+      <option value="">Todas</option>
+      <option value="nota">Nota de fornecedor</option>
+      <option value="manual">Lançada à mão</option>
+    </select>
+  </label>
+  <label>{{ filtro() === 'pagas' ? 'Pagas de' : 'Vencimento de' }}
+    <app-campo-data name="fDe" [ngModel]="de()" (ngModelChange)="filtrar(() => de.set($event))" />
+  </label>
+  <label>até <app-campo-data name="fAte" [ngModel]="ate()" [min]="de()" (ngModelChange)="filtrar(() => ate.set($event))" /></label>
+  @if (temFiltro()) {
+    <button type="button" class="botao pequeno" (click)="limparFiltros(campoBusca)"><app-icone nome="x" /> Limpar filtros</button>
+  }
+</section>
+
+@if (pg(); as p) {
+  <p class="total-filtro">
+    {{ p.total }} conta(s) · {{ p.valorTotal | currency: 'BRL' }}
+    @if ((filtro() === 'pagas' || filtro() === 'todas') && !de() && !ate()) { <small>· pagas: só as dos últimos 90 dias (escolha um período para ver antigas)</small> }
+  </p>
+}
 
 <section class="painel tabela-rolagem" [class.carregando]="contas.isLoading()">
   <table>
@@ -41,7 +85,7 @@
       <tr><th>Vencimento</th><th>Conta</th><th class="num">Valor</th><th>Situação</th><th></th></tr>
     </thead>
     <tbody>
-      @for (c of contas.value() ?? []; track c.id) {
+      @for (c of pg()?.itens ?? []; track c.id) {
         <tr [class]="c.situacao.toLowerCase()">
           <td class="data"><strong>{{ c.vencimento | dia }}</strong><small>{{ quando(c) }}</small></td>
           <td>
@@ -79,10 +123,12 @@
       } @empty {
         @if (!contas.isLoading()) {
           <tr><td colspan="5" class="vazio">
+            @if (temFiltro()) { Nenhuma conta com esses filtros. } @else {
             @switch (filtro()) {
               @case ('vencidas') { Nenhuma conta vencida. <app-icone nome="circle-check" /> }
               @case ('pagas') { Nenhuma conta paga nos últimos 90 dias. }
               @default { Nenhuma conta em aberto. }
+            }
             }
           </td></tr>
         }
@@ -90,6 +136,8 @@
     </tbody>
   </table>
 </section>
+
+<app-paginacao [pagina]="pagina()" [paginas]="paginas()" (irPara)="pagina.set($event)" />
 
 <!-- Lançar / editar -->
 <dialog #dlgConta fecharAoClicarFora class="janela" (close)="erro.set(null)">

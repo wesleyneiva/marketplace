@@ -5,10 +5,11 @@ import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { Categoria, Pagina, Produto, ProdutosApi } from '../../core/api/produtos.api';
 import { Icone } from '../../shared/icone';
+import { Paginacao } from '../../shared/paginacao';
 
 @Component({
   selector: 'app-produtos',
-  imports: [Icone, RouterLink, CurrencyPipe, DecimalPipe],
+  imports: [Icone, Paginacao, RouterLink, CurrencyPipe, DecimalPipe],
   templateUrl: './produtos.html',
   styleUrl: './produtos.scss',
 })

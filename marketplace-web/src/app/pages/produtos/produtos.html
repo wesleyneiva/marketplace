@@ -89,10 +89,4 @@
   }
 </section>
 
-@if (totalPaginas() > 1) {
-  <nav class="paginacao" aria-label="Paginação">
-    <button class="botao pequeno" [disabled]="pagina() === 1" (click)="irParaPagina(pagina() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
-    <span>Página {{ pagina() }} de {{ totalPaginas() }}</span>
-    <button class="botao pequeno" [disabled]="pagina() === totalPaginas()" (click)="irParaPagina(pagina() + 1)">Próxima →</button>
-  </nav>
-}
+<app-paginacao [pagina]="pagina()" [paginas]="totalPaginas()" (irPara)="irParaPagina($event)" />

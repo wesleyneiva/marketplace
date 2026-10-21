@@ -1,4 +1,4 @@
-import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, linkedSignal, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
@@ -11,6 +11,7 @@ import {
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Paginacao } from '../../shared/paginacao';
 
 // Formatos iguais a Contracts/ContasDtos.cs.
 interface Conta {
@@ -36,6 +37,14 @@ interface Conta {
   contaFinanceira: string | null;
 }
 
+interface ContasPagina {
+  itens: Conta[];
+  total: number;
+  paginaAtual: number;
+  tamanhoPagina: number;
+  valorTotal: number; // de todas as contas do filtro, não só desta página
+}
+
 interface Resumo {
   vencidas: number;
   valorVencidas: number;
@@ -49,13 +58,15 @@ interface Resumo {
 }
 
 type Filtro = 'abertas' | 'vencidas' | 'pagas' | 'todas';
+type Origem = '' | 'nota' | 'manual';
+const TAMANHO = 25;
 const URL = '/api/contas';
 const FORMAS = ['PIX', 'Boleto', 'Dinheiro', 'Transferência', 'Cartão de débito', 'Cartão de crédito', 'Cheque', 'Outros'];
 
 // Contas a pagar: as parcelas das notas (entram sozinhas pela NF-e) e as lançadas à mão (aluguel, luz, internet...).
 @Component({
   selector: 'app-contas',
-  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
+  imports: [FecharAoClicarFora, Icone, Paginacao, FormsModule, CurrencyPipe, DiaPipe, RouterLink, CampoData],
   templateUrl: './contas.html',
   styleUrl: './contas.scss',
 })
@@ -65,12 +76,40 @@ export class Contas {
   protected readonly formas = FORMAS;
   protected readonly hoje = new Date().toLocaleDateString('sv-SE');
   protected readonly filtro = signal<Filtro>('abertas');
-  protected readonly contas = httpResource<Conta[]>(() => ({ url: URL, params: { situacao: this.filtro() } }));
+  // Filtros da lista (trocar qualquer um volta para a página 1).
+  protected readonly busca = signal('');
+  protected readonly categoriaId = signal<number | null>(null);
+  protected readonly fornecedorId = signal<number | null>(null);
+  protected readonly origem = signal<Origem>('');
+  protected readonly de = signal('');
+  protected readonly ate = signal('');
+  protected readonly pagina = signal(1);
+  protected readonly temFiltro = computed(() =>
+    !!(this.busca() || this.categoriaId() || this.fornecedorId() || this.origem() || this.de() || this.ate()));
+  private esperaBusca?: ReturnType<typeof setTimeout>;
+
+  protected readonly contas = httpResource<ContasPagina>(() => {
+    const params: Record<string, string | number> = { situacao: this.filtro(), pagina: this.pagina(), tamanho: TAMANHO };
+    if (this.busca()) params['busca'] = this.busca();
+    if (this.categoriaId()) params['categoriaId'] = this.categoriaId()!;
+    if (this.fornecedorId()) params['fornecedorId'] = this.fornecedorId()!;
+    if (this.origem()) params['origem'] = this.origem();
+    if (this.de()) params['de'] = this.de();
+    if (this.ate()) params['ate'] = this.ate();
+    return { url: URL, params };
+  });
+  // Enquanto a próxima página carrega, a anterior continua na tela (sem a lista e a paginação sumirem e voltarem).
+  protected readonly pg = linkedSignal<ContasPagina | undefined, ContasPagina | undefined>({
+    source: () => this.contas.value(),
+    computation: (atual, anterior) => atual ?? anterior?.value,
+  });
+  protected readonly paginas = computed(() => Math.max(1, Math.ceil((this.pg()?.total ?? 0) / TAMANHO)));
   protected readonly resumo = httpResource<Resumo>(() => `${URL}/resumo`);
   protected readonly fornecedores = httpResource<{ id: number; nome: string; ativo: boolean }[]>(() => '/api/fornecedores');
   protected readonly categorias = httpResource<CategoriaFinanceira[]>(() => ({ url: `${URL_FINANCEIRO}/categorias`, params: { incluirInativas: true } }));
   protected readonly contasFinanceiras = httpResource<ContaFinanceira[]>(() => `${URL_FINANCEIRO}/contas`);
   protected readonly grupos = computed(() => categoriasPorGrupo(this.categorias.value() ?? [], 'Saida', this.editando()?.categoriaId));
+  protected readonly gruposFiltro = computed(() => categoriasPorGrupo(this.categorias.value() ?? [], 'Saida', this.categoriaId()));
 
   // ?situacao=pagas (ex.: veio do "Ver conta" do Financeiro).
   readonly situacao = input<string>();
@@ -102,7 +141,32 @@ export class Contas {
 
   mudarFiltro(f: Filtro): void {
     this.filtro.set(f);
+    this.pagina.set(1);
     this.aviso.set(null);
+  }
+
+  protected filtrar(acao: () => void): void {
+    acao();
+    this.pagina.set(1);
+  }
+
+  // Busca: 0,4 s depois de parar de digitar.
+  protected digitouBusca(texto: string): void {
+    clearTimeout(this.esperaBusca);
+    this.esperaBusca = setTimeout(() => this.filtrar(() => this.busca.set(texto.trim())), 400);
+  }
+
+  protected limparFiltros(campoBusca: HTMLInputElement): void {
+    clearTimeout(this.esperaBusca);
+    campoBusca.value = '';
+    this.filtrar(() => {
+      this.busca.set('');
+      this.categoriaId.set(null);
+      this.fornecedorId.set(null);
+      this.origem.set('');
+      this.de.set('');
+      this.ate.set('');
+    });
   }
 
   abrirNova(): void {

@@ -221,13 +221,7 @@
     </table>
   </section>
 
-  @if (totalPaginasPos() > 1) {
-    <nav class="paginacao">
-      <button class="botao pequeno" [disabled]="posPagina() === 1" (click)="posPagina.set(posPagina() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
-      <span>Página {{ posPagina() }} de {{ totalPaginasPos() }} · {{ pos()?.itens?.total }} produtos</span>
-      <button class="botao pequeno" [disabled]="posPagina() === totalPaginasPos()" (click)="posPagina.set(posPagina() + 1)">Próxima →</button>
-    </nav>
-  }
+  <app-paginacao [pagina]="posPagina()" [paginas]="totalPaginasPos()" (irPara)="posPagina.set($event)">· {{ pos()?.itens?.total }} produtos</app-paginacao>
 }
 
 <!-- ===================== VALIDADES ===================== -->
@@ -337,13 +331,7 @@
     </table>
   </section>
 
-  @if (totalPaginasMov() > 1) {
-    <nav class="paginacao">
-      <button class="botao pequeno" [disabled]="paginaMov() === 1" (click)="paginaMov.set(paginaMov() - 1)"><app-icone nome="arrow-left" /> Anterior</button>
-      <span>Página {{ paginaMov() }} de {{ totalPaginasMov() }}</span>
-      <button class="botao pequeno" [disabled]="paginaMov() === totalPaginasMov()" (click)="paginaMov.set(paginaMov() + 1)">Próxima →</button>
-    </nav>
-  }
+  <app-paginacao [pagina]="paginaMov()" [paginas]="totalPaginasMov()" (irPara)="paginaMov.set($event)" />
 }
 
 <!-- ===================== ESTOQUE BAIXO ===================== -->

@@ -11,6 +11,7 @@ import { CampoData } from '../../shared/campo-data';
 import { CupomDetalhe } from '../../shared/cupom-detalhe';
 import { EstornoVenda } from '../../shared/estorno-venda';
 import { Icone } from '../../shared/icone';
+import { Paginacao } from '../../shared/paginacao';
 import { hojeIso } from '../plataforma/comum';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
@@ -24,7 +25,7 @@ const ACOES: Record<CancelamentoRegistro['acao'], string> = {
 // Cancelar venda (estorno), e a aba Cancelamentos — tudo o que saiu do caixa com autorização do gerente.
 @Component({
   selector: 'app-vendas',
-  imports: [FecharAoClicarFora, Icone, FormsModule, CurrencyPipe, DatePipe, CampoData, CupomDetalhe, EstornoVenda],
+  imports: [FecharAoClicarFora, Icone, Paginacao, FormsModule, CurrencyPipe, DatePipe, CampoData, CupomDetalhe, EstornoVenda],
   templateUrl: './vendas.html',
   styleUrl: './vendas.scss',
 })

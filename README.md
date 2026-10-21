@@ -250,6 +250,14 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Disco** (15% usado): removidos os snaps órfãos do Firefox antigo (gnome-46-2404, mesa-2404, gtk-common-themes, bare,
   ~880 MB), a revisão antiga do `oracle-cloud-agent` (1.61), o cache do apt e um relatório de falha. O `core18` fica (é a base
   do agente da Oracle). Snapshot do Firefox (94 MB) em `/var/lib/snapd/snapshots` expira sozinho (~31 dias).
+- **Paginação com número digitável** (componente único `shared/paginacao.ts`, `<app-paginacao>`): Anterior / Próxima +
+  campo com o número da página (digita e Enter, ou sai do campo; fora da faixa volta para a válida). Usado em Vendas, Produtos,
+  Estoque (posição e movimentações) e Contas a pagar. Toda paginação nova deve usar esse componente.
+- **Contas a pagar com página e filtros**: `GET /api/contas` agora devolve `ContasPagina` (itens, total, valor total do filtro)
+  em páginas de 25, com busca (descrição, fornecedor, nº do documento, observação; sem acento), categoria, fornecedor, origem
+  (nota / à mão) e período (vencimento; na aba Pagas, a data do pagamento). Sem período, Pagas/Todas mostram só as pagas dos
+  últimos 90 dias; com período, qualquer época (a aba deixou de se chamar "Pagas (90 dias)"). Antes: até 500 linhas sem página.
+  No dev ficaram 72 contas de teste na "Teste Vendas" (#12): "Aluguel da loja" e "Conta de luz" (1/36 a 36/36).
 - **Atualizações**: n8n 2.42.4 → **2.44.5** (backup parado em `~/backup/n8n-2026-10-21-antes-2.44`, os 14 fluxos ativos
   conferidos iguais antes/depois; aviso "Python 3 is missing" do runner é inofensivo: nenhum fluxo usa Python), Homepage e
   Portainer (imagens novas), Ubuntu (cloudflared 2026.10.3, containerd, docker compose 5.6.1, cloud-init 26.2, tmux,

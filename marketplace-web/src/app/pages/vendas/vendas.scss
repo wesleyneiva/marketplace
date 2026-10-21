@@ -32,10 +32,6 @@ tfoot td { background: var(--cor-fundo); font-weight: 600; }
 
 .acao { font-weight: 600; &.CancelarVenda { color: var(--cor-erro); } }
 
-.paginacao {
-  display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 12px;
-  span { color: var(--cor-texto-suave); font-size: 14px; }
-}
 
 .janela.cupom-venda { width: min(560px, calc(100vw - 32px)); }
 .janela .corpo { display: flex; flex-direction: column; gap: 12px; }

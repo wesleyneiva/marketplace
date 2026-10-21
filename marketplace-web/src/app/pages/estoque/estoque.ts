@@ -9,6 +9,7 @@ import { MovimentarDialog } from '../../shared/movimentar-dialog';
 import { ProdutoBusca } from '../../shared/produto-busca';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
+import { Paginacao } from '../../shared/paginacao';
 import { FormsModule } from '@angular/forms';
 import { CampoData } from '../../shared/campo-data';
 
@@ -16,7 +17,7 @@ type Aba = 'posicao' | 'validades' | 'movimentacoes' | 'baixo';
 
 @Component({
   selector: 'app-estoque',
-  imports: [Icone, RouterLink, CurrencyPipe, DatePipe, PercentPipe, DiaPipe, QuantidadePipe, MovimentarDialog, ProdutoBusca, FormsModule, CampoData],
+  imports: [Icone, Paginacao, RouterLink, CurrencyPipe, DatePipe, PercentPipe, DiaPipe, QuantidadePipe, MovimentarDialog, ProdutoBusca, FormsModule, CampoData],
   templateUrl: './estoque.html',
   styleUrl: './estoque.scss',
 })
