@@ -264,7 +264,8 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   domingo fechado; plano **Lojas** R$ 1.899 cobrando de 21/11/2026; bot SoVendas com movimento baixo/moderado, ~6–7
   vendas por dia útil): admin `wesley@marcus.com` (senha provisória em `~/projetos/marketplace-testes/topspin/acesso-topspin.txt`,
   o sistema pede a senha definitiva no 1º acesso). Catálogo importado (`importar-produtos.sh`) e financeiro
-  (`topspin-financeiro.json`: Itaú PJ R$ 40 mil de exemplo, 16 contas fixas = R$ 32.649/mês, saldo mínimo 15 mil, Simples 6%).
+  (`topspin-financeiro.json`: Itaú PJ R$ 40 mil de exemplo, 14 contas fixas = R$ 22.099/mês — aluguel R$ 5 mil e UM
+  funcionário que é vendedor e encordoador (R$ 2.800) —, saldo mínimo 8 mil, Simples 6%).
 - Catálogo da TopSpin: `~/projetos/marketplace-testes/topspin/gerar-produtos-topspin.py` → `topspin-produtos.csv`
   (40 modelos/254 variações + 45 simples e serviços, 10 fornecedores; estoque ~R$ 300 mil a custo).
 
