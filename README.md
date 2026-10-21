@@ -244,7 +244,14 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 21/10/2026 (noite) — grade de tamanho e cor, serviços e bot da loja de esporte
+### 21/10/2026 (noite) — grade de tamanho e cor, serviços, oficina e a TopSpin Store
+Resumo do dia 21/10: o Marcus deixou de ser só de mercado. **Ramo da empresa** (mercado / loja de esporte), **grade de
+tamanho e cor**, **serviços sem estoque**, **Oficina** (ordens de encordoamento) e o **2º cliente de teste, a TopSpin Store**
+(loja de tênis em Porto Alegre, nos moldes do Juvenal, bot vendendo e encordoando). Também: paginação com número digitável
+em todas as listas, Contas a pagar com filtros, clima corrigido ao ligar a VM, limpeza do disco e atualizações (n8n 2.44.5).
+Plano completo dos ramos: `docs/plano-ramo-e-grade.md` (fases 1, 2 e 5 feitas). Migrations do dia: `RamoDaEmpresa`,
+`GradeEServicos`, `OrdensDeServico` (backups antes em `~/backup/marketplace-antes-*-2026-10-21.dump`).
+
 - **Grade** (fase 2 de `docs/plano-ramo-e-grade.md`, migration `GradeEServicos`, backup antes em
   `~/backup/marketplace-antes-GradeEServicos-2026-10-21.dump`): cada tamanho × cor é um produto comum agrupado num
   `Modelo`; venda, estoque, compras, NF-e e caixa offline seguem por produto. Telas em Produtos → Modelos com grade
@@ -269,7 +276,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Catálogo da TopSpin: `~/projetos/marketplace-testes/topspin/gerar-produtos-topspin.py` → `topspin-produtos.csv`
   (40 modelos/254 variações + 45 simples e serviços, 10 fornecedores; estoque ~R$ 300 mil a custo).
 
-### 21/10/2026 — limpeza do disco, clima ao ligar e atualizações
+### 21/10/2026 — limpeza do disco, clima ao ligar, atualizações, paginação, contas a pagar e ramo da empresa
 - **Clima ao ligar a VM**: duas rotinas pediam a mesma cidade ao mesmo tempo e a 2ª dava "chave duplicada" na tabela Clima,
   deixando o simulador ~5 min no clima neutro. `ClimaService.RegistrarHoraAsync` agora ignora a hora já gravada.
 - **Disco** (15% usado): removidos os snaps órfãos do Firefox antigo (gnome-46-2404, mesa-2404, gtk-common-themes, bare,
@@ -428,6 +435,12 @@ Pendências:
 - (21/10) **Outros ramos (loja de tênis)**: plano em `docs/plano-ramo-e-grade.md`. **Fase 1 (ramo) feita e publicada**;
   fase 2 (grade de tamanho/cor, cada variação = produto agrupado num Modelo) espera a conversa com a loja (fase 0) e as
   decisões em aberto no fim do plano.
+- (21/10) **Grade, o que ficou para depois**: NF-e "criar como variação do modelo", pedido de compra em matriz, relatórios
+  por modelo e curva de tamanhos, preço próprio marcado por variação, troca/vale-troca (fase 3), cliente/vendedor/comissão
+  (fase 4), demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
+  concluir" (marcar "Paga" na Oficina).
+- (21/10) **TopSpin**: o usuário entra com `wesley@marcus.com` e a senha provisória do `acesso-topspin.txt` e cria a dele;
+  acompanhar o bot (volume, ticket, oficina) nos próximos dias. Plano Lojas tem 2 caixas incluídos (a TopSpin usa 1).
 - (19/10) Ideia combinada e não feita: aba "Despesas e resultado" na Visão geral do dono quando houver custos.
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
@@ -437,8 +450,8 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 20/10/2026, 19/10 (tarde), 19/10 e 17/10), a seção
-  Stack e as Pendências acima.
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+  19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
   2 min (compose); backup em `nuvem:` (Oracle) e `nuvem2:` (Cloudflare R2), conferir `~/backup/wal-ultimo.txt` ("R2 ok") e o card
@@ -446,6 +459,12 @@ Pendências:
   configurar-r2) e cópias versionadas das
   rotinas da VM em `infra/vm/` (os originais rodam de `~/scripts` e `/etc/systemd/system`). Teste de estresse: `estresse/README.md`
   (rodar fora do horário das lojas; o ambiente isolado foi desmontado e se recria em ~10 min).
+- **Clientes de teste na produção**: Mercadinho do Juvenal (#4, mercado, Rio, plano Básico R$ 2.149) e **TopSpin Store**
+  (#5, ramo esporte, Porto Alegre, 1 caixa, seg–sex 9–18 e sáb 10–16, plano Lojas R$ 1.899, bot baixo/moderado ~6–7 vendas
+  por dia útil que também abre/faz/entrega as OS de encordoamento). Arquivos da TopSpin (catálogo, financeiro, acesso) em
+  `~/projetos/marketplace-testes/topspin/`. Clientes novos de outro ramo: `nova-empresa.sh ... --ramo esporte` ou a área do dono.
+- **Ramos** (`Models/Empresa.cs` → `Ramos` e `core/ramos.ts`): toda diferença entre mercado e loja vai como campo do perfil
+  do ramo (palavras, `balanca`, `validade`, `grade`, `servicos`, exemplos). Nunca escrever "mercado"/"arroz" fixo em tela nova.
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
@@ -453,6 +472,9 @@ Pendências:
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
   usuários admin/gerente/caixa (e o dono de teste) em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
+- **Loja de tênis no dev**: "Loja Teste Tênis" (#13, ramo esporte, 2 caixas, catálogo da TopSpin, bot SoVendas); admin em
+  `usuarios-teste.txt`. As cordas e várias bolas estão zeradas lá de tanto teste do bot (repor pela entrada de estoque).
+  Para rodar comando da API no banco de dev: `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile -- <comando>`.
 - Testes de navegador: o painel às vezes não desenha (fica oculto); dirigir a página por script (input + keydown Enter) funciona.
   Logar por `fetch('/api/auth/login')` e depois recarregar a página. Para simular queda de internet no dev: parar o `api-dev`.
 - Ícones novos: acrescentar o nome em `marketplace-web/ferramentas/gerar-icones.py` e rodar o script (não editar `icones.ts`).
@@ -460,7 +482,7 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- Próximos passos possíveis: as pendências acima; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
+- Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
 
 ## Stack (conferida em 20/10/2026)
