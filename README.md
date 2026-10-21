@@ -244,6 +244,18 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 21/10/2026 — limpeza do disco, clima ao ligar e atualizações
+- **Clima ao ligar a VM**: duas rotinas pediam a mesma cidade ao mesmo tempo e a 2ª dava "chave duplicada" na tabela Clima,
+  deixando o simulador ~5 min no clima neutro. `ClimaService.RegistrarHoraAsync` agora ignora a hora já gravada.
+- **Disco** (15% usado): removidos os snaps órfãos do Firefox antigo (gnome-46-2404, mesa-2404, gtk-common-themes, bare,
+  ~880 MB), a revisão antiga do `oracle-cloud-agent` (1.61), o cache do apt e um relatório de falha. O `core18` fica (é a base
+  do agente da Oracle). Snapshot do Firefox (94 MB) em `/var/lib/snapd/snapshots` expira sozinho (~31 dias).
+- **Atualizações**: n8n 2.42.4 → **2.44.5** (backup parado em `~/backup/n8n-2026-10-21-antes-2.44`, os 14 fluxos ativos
+  conferidos iguais antes/depois; aviso "Python 3 is missing" do runner é inofensivo: nenhum fluxo usa Python), Homepage e
+  Portainer (imagens novas), Ubuntu (cloudflared 2026.10.3, containerd, docker compose 5.6.1, cloud-init 26.2, tmux,
+  ubuntu-pro). Imagens velhas apagadas (2,3 GB). Evolution API fica na v2.3.7 fixa (WhatsApp do PROMO FEET; atualizar só
+  com calma).
+
 ### 20/10/2026 — backup de 2 em 2 min, segunda nuvem (R2), stack, PLU, atualizações e clima confiável
 Resumo do dia: perda máxima numa catástrofe caiu de ~10 para **~4 min**; backups agora em **duas nuvens de empresas
 diferentes** (Oracle + Cloudflare R2), recuperação testada pelas duas; ficha técnica da stack em PDF; coluna PLU na
