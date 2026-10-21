@@ -394,6 +394,9 @@ Pendências:
 - (20/10) **Cofre de senhas**: acrescentar o token do R2 (Account ID, Access Key ID, Secret Access Key nova).
 - (19/10) **Compactar o banco do n8n** (VACUUM, n8n parado ~2 min) depois de ~26/10, quando a limpeza automática de 7 dias tiver passado.
 - (19/10) **Redundância fase 2** (2ª VM em outro provedor, réplica em tempo real, mesmo túnel Cloudflare): junto com o 1º cliente pagante.
+- (21/10) **Outros ramos (loja de tênis)**: plano em `docs/plano-ramo-e-grade.md` (ramo da empresa, grade de tamanho/cor
+  com cada variação = produto agrupado num Modelo, troca/vale-troca, vendedor, encordoamento). Nada programado: esperar a
+  conversa com a loja (fase 0) e as decisões em aberto no fim do plano.
 - (19/10) Ideia combinada e não feita: aba "Despesas e resultado" na Visão geral do dono quando houver custos.
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
