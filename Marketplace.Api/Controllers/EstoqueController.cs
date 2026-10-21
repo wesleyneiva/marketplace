@@ -80,7 +80,7 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
         pagina = Math.Max(pagina, 1);
         tamanho = Math.Clamp(tamanho, 1, 100);
 
-        var ativos = db.Produtos.AsNoTracking().Where(p => p.Ativo);
+        var ativos = db.Produtos.AsNoTracking().Where(p => p.Ativo && !p.Servico); // serviço não tem estoque
 
         var porCategoria = await ativos
             .GroupBy(p => new { p.CategoriaId, p.Categoria!.Nome })
@@ -91,7 +91,7 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
                 ComSaldo = g.Count(p => p.EstoqueAtual > 0),
                 Zerados = g.Count(p => p.EstoqueAtual == 0),
                 Negativos = g.Count(p => p.EstoqueAtual < 0),
-                Baixo = g.Count(p => p.EstoqueAtual <= p.EstoqueMinimo),
+                Baixo = g.Count(p => !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo),
                 ValorCusto = g.Sum(p => p.EstoqueAtual > 0 ? p.EstoqueAtual * p.PrecoCusto : 0),
                 ValorVenda = g.Sum(p => p.EstoqueAtual > 0 ? p.EstoqueAtual * p.PrecoVenda : 0),
             })
@@ -125,7 +125,7 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
             "semEstoque" => consulta.Where(p => p.EstoqueAtual <= 0),
             "zerado" => consulta.Where(p => p.EstoqueAtual == 0),
             "negativo" => consulta.Where(p => p.EstoqueAtual < 0),
-            "baixo" => consulta.Where(p => p.EstoqueAtual <= p.EstoqueMinimo),
+            "baixo" => consulta.Where(p => !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo),
             _ => consulta,
         };
 

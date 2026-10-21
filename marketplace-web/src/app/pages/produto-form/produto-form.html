@@ -2,6 +2,10 @@
   <div>
     <a routerLink="/produtos" class="voltar"><app-icone nome="arrow-left" /> Produtos</a>
     <h1>{{ editando() ? 'Editar produto' : 'Novo produto' }}</h1>
+    @if (produto()?.modeloId) {
+      <p class="grade-de"><app-icone nome="layout-grid" /> Tamanho <b>{{ produto()!.tamanho }}</b> · cor <b>{{ produto()!.cor }}</b> do modelo
+        <a [routerLink]="['/produtos/modelos', produto()!.modeloId]">{{ produto()!.modelo }}</a>. Nome, categoria e fornecedor mudam pelo modelo; aqui vale para mudar o código e o preço só desta variação.</p>
+    }
   </div>
 </header>
 
@@ -101,6 +105,13 @@
         {{ editando() ? 'Muda por movimentação (entrada, venda, perda).' : 'Começa em zero: depois de salvar, registre a entrada no Estoque.' }}
       </small>
     </div>
+
+    @if (ramo().servicos || form.controls.servico.value) {
+    <label class="campo marcar largo">
+      <input type="checkbox" formControlName="servico" />
+      <span>Serviço (ex.: encordoamento, mão de obra): vende no caixa sem estoque</span>
+    </label>
+    }
 
     @if (ramo().validade || form.controls.controlaValidade.value) {
     <label class="campo marcar largo">

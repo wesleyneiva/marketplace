@@ -35,7 +35,7 @@ public class InsightsService(
         }
 
         var hoje = Relogio.Hoje;
-        var estoqueBaixo = await db.Produtos.Where(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo).Select(p => p.Nome).ToListAsync(ct);
+        var estoqueBaixo = await db.Produtos.Where(p => p.Ativo && !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo).Select(p => p.Nome).ToListAsync(ct);
         var vencendo = await db.Lotes.Where(l => l.QuantidadeAtual > 0 && l.DataValidade <= hoje.AddDays(2) && l.Produto!.Ativo)
             .Select(l => l.Produto!.Nome).Distinct().ToListAsync(ct);
 

@@ -17,7 +17,7 @@ public partial class ImportacaoProdutosService
     // Posição de cada campo no array Colunas (e no array de valores de cada linha).
     private const int CodigoBarras = 0, Nome = 1, Categoria = 2, Unidade = 3, PrecoCusto = 4, PrecoVenda = 5,
         EstoqueMinimo = 6, ControlaValidade = 7, EstoqueInicial = 8, Validade = 9, Ncm = 10, Fornecedor = 11, PrazoFornecedor = 12,
-        CodigoBalanca = 13;
+        CodigoBalanca = 13, ModeloCol = 14, TamanhoCol = 15, CorCol = 16, MarcaCol = 17, ServicoCol = 18;
 
     // Outros nomes aceitos no cabeçalho (planilha exportada de outro sistema). Comparados sem acento e sem maiúsculas.
     private static readonly Dictionary<string, int> NomesDasColunas = new()
@@ -40,6 +40,9 @@ public partial class ImportacaoProdutosService
         ["prazo do fornecedor"] = PrazoFornecedor,
         ["codigo na balanca (plu)"] = CodigoBalanca, ["codigo na balanca"] = CodigoBalanca, ["codigo da balanca"] = CodigoBalanca,
         ["codigo balanca"] = CodigoBalanca, ["cod balanca"] = CodigoBalanca, ["plu"] = CodigoBalanca, ["balanca"] = CodigoBalanca,
+        ["modelo"] = ModeloCol, ["grade"] = ModeloCol, ["produto pai"] = ModeloCol,
+        ["tamanho"] = TamanhoCol, ["tam"] = TamanhoCol, ["numeracao"] = TamanhoCol, ["numero"] = TamanhoCol,
+        ["cor"] = CorCol, ["marca"] = MarcaCol, ["servico"] = ServicoCol,
     };
 
     // O que a análise descobriu sobre uma linha (a prévia mostra; a gravação usa).
@@ -59,6 +62,11 @@ public partial class ImportacaoProdutosService
         public string? Ncm { get; set; }
         public string? Fornecedor { get; set; }
         public int? CodigoBalanca { get; set; }
+        public string? Modelo { get; set; }   // grade: nome do modelo (as linhas com o mesmo modelo viram um Modelo)
+        public string? Tamanho { get; set; }
+        public string? Cor { get; set; }
+        public string? Marca { get; set; }
+        public bool Servico { get; set; }
         public int? ProdutoExistenteId { get; set; } // preenchido = atualiza esse produto
         public List<string> Erros { get; } = [];
         public List<string> Avisos { get; } = [];
@@ -107,7 +115,11 @@ public partial class ImportacaoProdutosService
 
         // 2) O que já existe no banco (só desta empresa: o filtro global cuida disso).
         var produtos = await db.Produtos.AsNoTracking()
-            .Select(p => new { p.Id, p.CodigoBarras, p.Nome, p.Unidade, p.ControlaValidade, p.Ativo, p.CodigoBalanca }).ToListAsync();
+            .Select(p => new { p.Id, p.CodigoBarras, p.Nome, p.Unidade, p.ControlaValidade, p.Ativo, p.CodigoBalanca,
+                Modelo = p.Modelo != null ? p.Modelo.Nome : null, p.Tamanho, p.Cor }).ToListAsync();
+        var variacaoExistente = produtos.Where(p => p.Modelo != null)
+            .GroupBy(p => (Normalizar(p.Modelo!), p.Tamanho ?? "", p.Cor ?? "")).ToDictionary(g => g.Key, g => g.First());
+        var variacoesVistas = new Dictionary<(string, string, string), int>();
         var porCodigo = produtos.Where(p => p.CodigoBarras != null).ToDictionary(p => p.CodigoBarras!);
         var semCodigoPorNome = produtos.Where(p => p.CodigoBarras == null).ToLookup(p => Normalizar(p.Nome));
         var comCodigoPorNome = produtos.Where(p => p.CodigoBarras != null).ToLookup(p => Normalizar(p.Nome));
@@ -147,7 +159,31 @@ public partial class ImportacaoProdutosService
                     codigosVistos[texto] = a.Linha;
             }
 
-            a.Nome = Valor(Nome).Texto?.Trim();
+            // Grade: Modelo + Tamanho + Cor. O nome do cupom é montado ("Modelo Tamanho Cor").
+            a.Modelo = Valor(ModeloCol).Texto?.Trim() is { Length: > 0 } mod ? mod : null;
+            a.Tamanho = TextoDe(Valor(TamanhoCol));
+            a.Cor = Valor(CorCol).Texto?.Trim() is { Length: > 0 } cor ? cor : null;
+            a.Marca = Valor(MarcaCol).Texto?.Trim() is { Length: > 0 } marca ? marca : null;
+            if (a.Modelo is not null)
+            {
+                if (a.Modelo.Length > 120) a.Erros.Add("O nome do modelo pode ter no máximo 120 letras.");
+                if (a.Tamanho is null && a.Cor is null) a.Erros.Add("Linha de modelo (grade): informe o tamanho e/ou a cor.");
+                a.Tamanho ??= Models.Modelo.TamanhoUnico;
+                a.Cor ??= Models.Modelo.CorUnica;
+                if (a.Tamanho.Length > 20) a.Erros.Add("Tamanho: no máximo 20 letras.");
+                if (a.Cor.Length > 40) a.Erros.Add("Cor: no máximo 40 letras.");
+                var chaveV = (Normalizar(a.Modelo), a.Tamanho, a.Cor);
+                if (variacoesVistas.TryGetValue(chaveV, out var outraV)) a.Erros.Add($"Tamanho e cor repetidos neste modelo (linha {outraV}).");
+                else variacoesVistas[chaveV] = a.Linha;
+                if (variacaoExistente.TryGetValue(chaveV, out var jaTem) && jaTem.CodigoBarras is { } codJa
+                    && a.CodigoBarras is not null && a.CodigoBarras != codJa)
+                    a.Avisos.Add($"A variação já existe com o código {codJa}: o código será trocado.");
+            }
+            else if (a.Tamanho is not null || a.Cor is not null)
+                a.Avisos.Add("Tamanho/cor sem Modelo: ignorados (produto simples).");
+            a.Servico = LerSimNao(Valor(ServicoCol), a.Erros, "Serviço") ?? false;
+
+            a.Nome = a.Modelo is not null ? Models.Modelo.NomeDaVariacao(a.Modelo, a.Tamanho, a.Cor) : Valor(Nome).Texto?.Trim();
             if (string.IsNullOrWhiteSpace(a.Nome)) a.Erros.Add("Falta o nome.");
             else if (a.Nome.Length is < 2 or > 150) a.Erros.Add("O nome deve ter de 2 a 150 letras.");
 
@@ -179,7 +215,7 @@ public partial class ImportacaoProdutosService
                 a.Avisos.Add("Preço de venda menor que o custo (vende no prejuízo).");
 
             a.EstoqueMinimo = LerQuantidade(Valor(EstoqueMinimo), "Estoque mínimo", a.Unidade, a.Erros);
-            a.ControlaValidade = LerSimNao(Valor(ControlaValidade), a.Erros);
+            a.ControlaValidade = LerSimNao(Valor(ControlaValidade), a.Erros, "Controla validade");
             a.EstoqueInicial = LerQuantidade(Valor(EstoqueInicial), "Estoque inicial", a.Unidade, a.Erros);
             a.Validade = LerData(Valor(Validade), a.Erros);
 
@@ -217,8 +253,20 @@ public partial class ImportacaoProdutosService
             if (a.ControlaValidade == true && a.EstoqueInicial > 0 && a.Validade is null && Valor(Validade).EstaVazia)
                 a.Erros.Add("Controla validade e tem estoque inicial: informe a validade.");
 
-            // Produto já existe? Pelo código de barras; sem código, pelo nome (só entre os que também não têm código).
-            if (a.CodigoBarras is not null && porCodigo.TryGetValue(a.CodigoBarras, out var mesmoCodigo))
+            // Produto já existe? Variação da grade: pelo modelo + tamanho + cor. Senão, pelo código de barras;
+            // sem código, pelo nome (só entre os que também não têm código).
+            if (a.Modelo is not null && variacaoExistente.TryGetValue((Normalizar(a.Modelo), a.Tamanho!, a.Cor!), out var mesmaVariacao))
+            {
+                a.ProdutoExistenteId = mesmaVariacao.Id;
+                if (a.CodigoBarras is not null && porCodigo.TryGetValue(a.CodigoBarras, out var donoCodigo) && donoCodigo.Id != mesmaVariacao.Id)
+                    a.Erros.Add($"O código {a.CodigoBarras} já é do produto \"{donoCodigo.Nome}\".");
+            }
+            else if (a.Modelo is not null)
+            {
+                if (a.CodigoBarras is not null && porCodigo.TryGetValue(a.CodigoBarras, out var donoCodigo))
+                    a.Erros.Add($"O código {a.CodigoBarras} já é do produto \"{donoCodigo.Nome}\".");
+            }
+            else if (a.CodigoBarras is not null && porCodigo.TryGetValue(a.CodigoBarras, out var mesmoCodigo))
             {
                 a.ProdutoExistenteId = mesmoCodigo.Id;
                 if (!Normalizar(mesmoCodigo.Nome).Equals(Normalizar(a.Nome ?? "")))
@@ -270,6 +318,10 @@ public partial class ImportacaoProdutosService
 
             if (a.ProdutoExistenteId is not null && a.EstoqueInicial > 0)
                 a.Avisos.Add("Produto já cadastrado: o estoque inicial será ignorado (para corrigir, use a tela de Estoque).");
+            if (a.Servico && a.EstoqueInicial > 0)
+                a.Avisos.Add("Serviço não tem estoque: o estoque inicial será ignorado.");
+            if (a.Servico && a.ControlaValidade == true)
+                a.Erros.Add("Serviço não controla validade.");
         }
 
         // Só conta como categoria nova se alguma linha SEM erro precisar dela.
@@ -279,6 +331,10 @@ public partial class ImportacaoProdutosService
         var fornecedores = fornecedoresNovos.Where(f => fornecedoresUsados.Contains(f.Key)).Select(f => f.Value).OrderBy(f => f.Nome).ToList();
         return new(resultado, novas, [], avisosGerais, fornecedores);
     }
+
+    // Tamanho pode vir como número do Excel (42 → "42", não "42.0").
+    private static string? TextoDe(Celula c) =>
+        c.EstaVazia ? null : c.Numero is double n ? n.ToString("0.##", CultureInfo.InvariantCulture) : c.Texto!.Trim() is { Length: > 0 } t ? t : null;
 
     // "Hortifrúti " → "hortifruti" (para comparar nomes sem ligar para acento, maiúscula e espaços).
     internal static string Normalizar(string texto)
@@ -333,7 +389,7 @@ public partial class ImportacaoProdutosService
         return valor;
     }
 
-    private static bool? LerSimNao(Celula celula, List<string> erros)
+    private static bool? LerSimNao(Celula celula, List<string> erros, string campo)
     {
         if (celula.EstaVazia) return null;
         if (celula.Numero is double n) return n != 0;
@@ -341,7 +397,7 @@ public partial class ImportacaoProdutosService
         {
             case "sim" or "s" or "x" or "1" or "true" or "verdadeiro": return true;
             case "nao" or "n" or "0" or "false" or "falso": return false;
-            default: erros.Add($"Controla validade: \"{celula.Texto}\" deve ser Sim ou Não."); return null;
+            default: erros.Add($"{campo}: \"{celula.Texto}\" deve ser Sim ou Não."); return null;
         }
     }
 

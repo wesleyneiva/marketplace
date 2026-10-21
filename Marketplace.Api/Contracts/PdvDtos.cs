@@ -64,7 +64,9 @@ public record NovaVendaRequest(
 
 // ----- Caixa OFFLINE (vendas feitas sem internet, enviadas quando ela volta) -----
 // Catálogo que o caixa guarda no computador para vender sem internet (só o necessário).
-public record ProdutoCatalogoPdv(int Id, string Nome, string? CodigoBarras, string Unidade, decimal PrecoVenda, decimal EstoqueAtual);
+// ModeloId/Tamanho/Cor: grade (o caixa offline também escolhe o tamanho). Servico: vende sem estoque.
+public record ProdutoCatalogoPdv(int Id, string Nome, string? CodigoBarras, string Unidade, decimal PrecoVenda, decimal EstoqueAtual,
+    int? ModeloId = null, string? Tamanho = null, string? Cor = null, bool Servico = false);
 
 public record ItemVendaOfflineRequest(
     [Range(1, int.MaxValue)] int ProdutoId,

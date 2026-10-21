@@ -12,7 +12,10 @@ import { Conexao } from './conexao';
 // Cada venda leva um idLocal: se o envio se repetir (a rede caiu no meio da resposta), o servidor não grava duas vezes.
 // A fila é por usuário: se outra pessoa entrar neste computador, as vendas do anterior esperam ele voltar.
 
-export interface ProdutoCatalogo { id: number; nome: string; codigoBarras: string | null; unidade: string; precoVenda: number; estoqueAtual: number; }
+export interface ProdutoCatalogo {
+  id: number; nome: string; codigoBarras: string | null; unidade: string; precoVenda: number; estoqueAtual: number;
+  modeloId?: number | null; tamanho?: string | null; cor?: string | null; servico?: boolean; // grade e serviço
+}
 
 export interface ItemFila {
   idLocal: string;
@@ -113,8 +116,14 @@ export class CaixaOffline {
     return this.catalogo
       .filter((p) => palavras.every((w) => p.busca.includes(w)))
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+      .filter((p, i, lista) => !p.modeloId || lista.findIndex((x) => x.modeloId === p.modeloId) === i) // grade: 1 por modelo
       .slice(0, maximo)
       .map(comoProduto);
+  }
+
+  // As variações de um modelo da grade guardadas neste computador (o caixa escolhe o tamanho sem internet).
+  variacoes(modeloId: number): Produto[] {
+    return this.catalogo.filter((p) => p.modeloId === modeloId).map(comoProduto);
   }
 
   // ----- Resumo do caixa (para a tela abrir sem internet) -----
@@ -189,6 +198,7 @@ function comoProduto(p: ProdutoCatalogo): Produto {
     id: p.id, nome: p.nome, codigoBarras: p.codigoBarras, unidade: p.unidade, precoVenda: p.precoVenda, estoqueAtual: p.estoqueAtual,
     categoriaId: 0, categoria: '', precoCusto: 0, margemPercentual: 0, estoqueMinimo: 0, estoqueBaixo: false, controlaValidade: false,
     ativo: true, fornecedorId: null, fornecedor: null, codigoBalanca: null, ncm: null, cest: null, cfop: '', origem: 0, situacaoTributaria: null,
+    modeloId: p.modeloId ?? null, tamanho: p.tamanho ?? null, cor: p.cor ?? null, servico: p.servico ?? false,
   };
 }
 

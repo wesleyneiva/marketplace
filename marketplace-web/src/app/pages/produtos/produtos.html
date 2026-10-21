@@ -8,6 +8,7 @@
   <div class="botoes-topo">
     @if (auth.liberado('etiquetas')) { <a class="botao" routerLink="/produtos/etiquetas"><app-icone nome="tag" /> Etiquetas</a> }
     @if (auth.liberado('importacao')) { <a class="botao" routerLink="/produtos/importar"><app-icone nome="import" /> Importar planilha</a> }
+    @if (auth.ramo().grade) { <a class="botao" routerLink="/produtos/modelos"><app-icone nome="layout-grid" /> Modelos com grade</a> }
     <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
   </div>
 </header>
@@ -56,14 +57,18 @@
           <tr [class.inativo]="!p.ativo">
             <td>
               <a class="nome" [routerLink]="['/produtos', p.id]">{{ p.nome }}</a>
-              <small class="codigo">{{ p.codigoBarras ?? 'sem código de barras' }}</small>
+              <small class="codigo">{{ p.codigoBarras ?? 'sem código de barras' }}
+                @if (p.modeloId) { · <a [routerLink]="['/produtos/modelos', p.modeloId]">grade: {{ p.modelo }}</a> }
+                @if (p.servico) { · serviço }</small>
             </td>
             <td>{{ p.categoria }}</td>
             <td class="num">{{ p.precoCusto | currency: 'BRL' }}</td>
             <td class="num forte">{{ p.precoVenda | currency: 'BRL' }}</td>
             <td class="num">{{ p.margemPercentual | number: '1.1-1' }}%</td>
             <td class="num">
+              @if (p.servico) { <span class="selo">serviço</span> } @else {
               {{ p.estoqueAtual | number: (p.unidade === 'KG' ? '1.3-3' : '1.0-0') }} {{ p.unidade }}
+              }
               @if (p.estoqueBaixo && p.ativo) {
                 <span class="selo alerta" [title]="'Mínimo: ' + p.estoqueMinimo"><app-icone nome="triangle-alert" /> baixo</span>
               }

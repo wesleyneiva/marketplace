@@ -142,6 +142,7 @@ public class EstoqueService(AppDbContext db)
     public async Task PrepararVendaAsync(Produto produto, decimal quantidade, Venda venda, string usuarioId, bool permitirFaltar = false)
     {
         ValidarQuantidade(produto, quantidade);
+        if (produto.Servico) return; // serviço (encordoamento, mão de obra): vende sem estoque
         if (permitirFaltar)
         {
             await PrepararSaidaAsync(produto, quantidade, TipoMovimentacao.Venda, usuarioId, venda: venda, ignorarVencidos: true,
@@ -266,6 +267,8 @@ public class EstoqueService(AppDbContext db)
             ?? throw new EstoqueException("Produto não encontrado.");
         if (!produto.Ativo)
             throw new EstoqueException("Produto desativado: reative antes de movimentar o estoque.");
+        if (produto.Servico)
+            throw new EstoqueException($"\"{produto.Nome}\" é um serviço: não tem estoque.");
         return produto;
     }
 

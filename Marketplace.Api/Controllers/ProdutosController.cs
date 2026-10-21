@@ -20,7 +20,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<Pagina<ProdutoResponse>> Listar(
         string? busca, int? categoriaId, bool estoqueBaixo = false, bool incluirInativos = false,
-        int pagina = 1, int tamanho = 20)
+        int pagina = 1, int tamanho = 20, bool agruparGrade = false)
     {
         pagina = Math.Max(pagina, 1);
         tamanho = Math.Clamp(tamanho, 1, 100);
@@ -48,7 +48,12 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             consulta = consulta.Where(p => p.CategoriaId == categoriaId);
 
         if (estoqueBaixo)
-            consulta = consulta.Where(p => p.EstoqueAtual <= p.EstoqueMinimo);
+            consulta = consulta.Where(p => !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo);
+
+        // Caixa: um modelo da grade vem UMA vez (a 1ª variação ativa); o tamanho e a cor são escolhidos depois.
+        if (agruparGrade)
+            consulta = consulta.Where(p => p.ModeloId == null
+                || p.Id == db.Produtos.Where(x => x.ModeloId == p.ModeloId && x.Ativo).Min(x => x.Id));
 
         var total = await consulta.CountAsync();
 
@@ -95,6 +100,10 @@ public class ProdutosController(AppDbContext db) : ControllerBase
     [HttpGet("balanca/etiqueta/{codigo}")]
     public async Task<ActionResult<EtiquetaBalancaResponse>> LerEtiquetaBalanca(string codigo, [FromServices] Seguranca.ContextoEmpresa contexto)
     {
+        // Código que é o código de barras de um produto (ex.: código interno "2…" da grade) não é etiqueta de balança:
+        // 404 → o caixa segue a busca normal e acha o produto.
+        if (await db.Produtos.AnyAsync(p => p.CodigoBarras == codigo))
+            return NotFound(new { mensagem = "Não é etiqueta de balança." });
         var empresa = await db.Empresas.AsNoTracking().FirstAsync(e => e.Id == contexto.EmpresaId);
         var leitura = Services.EtiquetaBalanca.Ler(codigo, empresa.BalancaDigitosCodigo, empresa.BalancaEtiqueta, out var erro);
         if (leitura is null) return BadRequest(new { mensagem = erro });
@@ -267,6 +276,8 @@ public class ProdutosController(AppDbContext db) : ControllerBase
         produto.Cfop = Vazio(request.Cfop) ?? "5102";
         produto.Origem = request.Origem;
         produto.SituacaoTributaria = Vazio(request.SituacaoTributaria);
+        produto.Servico = request.Servico;
+        if (produto.Servico) produto.EstoqueMinimo = 0;
     }
 
     private static string? Vazio(string? texto) => string.IsNullOrWhiteSpace(texto) ? null : texto.Trim();
@@ -289,7 +300,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             p.PrecoVenda == 0 ? 0 : Math.Round((p.PrecoVenda - p.PrecoCusto) / p.PrecoVenda * 100, 1),
             p.EstoqueAtual,
             p.EstoqueMinimo,
-            p.EstoqueAtual <= p.EstoqueMinimo,
+            !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo,
             p.ControlaValidade,
             p.Ativo,
             p.FornecedorId,
@@ -299,5 +310,10 @@ public class ProdutosController(AppDbContext db) : ControllerBase
             p.Cest,
             p.Cfop,
             p.Origem,
-            p.SituacaoTributaria);
+            p.SituacaoTributaria,
+            p.ModeloId,
+            p.Modelo != null ? p.Modelo.Nome : null,
+            p.Tamanho,
+            p.Cor,
+            p.Servico);
 }

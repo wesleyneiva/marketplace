@@ -244,6 +244,20 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 21/10/2026 (noite) — grade de tamanho e cor, serviços e bot da loja de esporte
+- **Grade** (fase 2 de `docs/plano-ramo-e-grade.md`, migration `GradeEServicos`, backup antes em
+  `~/backup/marketplace-antes-GradeEServicos-2026-10-21.dump`): cada tamanho × cor é um produto comum agrupado num
+  `Modelo`; venda, estoque, compras, NF-e e caixa offline seguem por produto. Telas em Produtos → Modelos com grade
+  (só aparecem no ramo esporte: `ramo().grade`). Caixa: busca pelo nome → escolhe tamanho/cor; código de barras → direto.
+  Variação sem EAN ganha código interno `20…` (`Services/CodigoInterno.cs`).
+- **Serviços** (`Produto.Servico`, ex.: encordoamento): vendem sem estoque; fora de estoque baixo, posição e sugestão de compra.
+- **Planilha**: colunas Modelo, Tamanho, Cor, Marca e Serviço (as linhas com o mesmo Modelo viram um modelo).
+- **Bot da loja de esporte** (`Simulador/PerfilEsporte.cs`): ~16 clientes/dia útil (sábado 1,6x), cesta de 1–3 itens,
+  bolas/overgrip/cordas/encordoamento girando, raquete e tênis de vez em quando, 40–42 saindo mais, mais crédito.
+  Testado no dev (200 vendas): ticket ~R$ 380, raquete em ~7% das vendas, calçado ~15%.
+- Catálogo da TopSpin: `~/projetos/marketplace-testes/topspin/gerar-produtos-topspin.py` → `topspin-produtos.csv`
+  (40 modelos/254 variações + 45 simples e serviços, 10 fornecedores; estoque ~R$ 300 mil a custo).
+
 ### 21/10/2026 — limpeza do disco, clima ao ligar e atualizações
 - **Clima ao ligar a VM**: duas rotinas pediam a mesma cidade ao mesmo tempo e a 2ª dava "chave duplicada" na tabela Clima,
   deixando o simulador ~5 min no clima neutro. `ClimaService.RegistrarHoraAsync` agora ignora a hora já gravada.

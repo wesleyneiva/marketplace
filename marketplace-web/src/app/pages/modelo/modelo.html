@@ -1,0 +1,208 @@
+<header class="titulo-pagina">
+  <div>
+    @if (novo()) {
+      <h1><app-icone nome="layout-grid" /> Novo modelo com grade</h1>
+      <p>Um cadastro para todos os tamanhos e cores. Cada combinação vira um produto com código de barras e estoque próprios.</p>
+    } @else if (modelo(); as m) {
+      <h1><app-icone nome="layout-grid" /> {{ m.nome }}</h1>
+      <p>
+        {{ m.marca ?? '' }}{{ m.marca ? ' · ' : '' }}{{ m.referencia ? 'ref. ' + m.referencia + ' · ' : '' }}{{ m.categoria }}
+        {{ m.fornecedor ? ' · ' + m.fornecedor : '' }}
+        @if (!m.ativo) { · <span class="selo inativo">inativo</span> }
+      </p>
+    } @else {
+      <h1><app-icone nome="layout-grid" /> Modelo</h1>
+    }
+  </div>
+  <div class="botoes-topo">
+    <a class="botao" routerLink="/produtos/modelos"><app-icone nome="arrow-left" /> Modelos</a>
+    @if (modelo(); as m) {
+      <a class="botao" routerLink="/produtos/etiquetas" [queryParams]="{ ids: idsEtiquetas() }"><app-icone nome="tag" /> Etiquetas</a>
+      <button type="button" class="botao" (click)="editando.set(!editando())"><app-icone nome="pencil" /> Editar</button>
+      <button type="button" class="botao" [class.perigo]="m.ativo" (click)="alternarAtivo()">{{ m.ativo ? 'Desativar' : 'Reativar' }}</button>
+    }
+  </div>
+</header>
+
+@if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
+
+<!-- ===================== Dados do modelo (cadastro ou edição) ===================== -->
+@if (novo() || editando()) {
+  <form class="painel dados" (ngSubmit)="novo() ? criar() : salvarEdicao()">
+    <div class="campos">
+      <label class="largo">Nome do modelo
+        <input name="nome" [(ngModel)]="form.nome" required maxlength="120" placeholder="Ex.: Tênis Asics Gel-Resolution 10 Masculino" />
+      </label>
+      <label>Marca<input name="marca" [(ngModel)]="form.marca" maxlength="60" placeholder="Ex.: Asics" /></label>
+      <label>Referência <small>(do fabricante)</small><input name="referencia" [(ngModel)]="form.referencia" maxlength="40" /></label>
+      <label>Categoria
+        <select name="categoria" [(ngModel)]="form.categoriaId" required>
+          <option [ngValue]="null" disabled>Escolha…</option>
+          @for (c of categorias.value() ?? []; track c.id) { @if (c.ativa) { <option [ngValue]="c.id">{{ c.nome }}</option> } }
+        </select>
+      </label>
+      <label>Fornecedor <small>(opcional)</small>
+        <select name="fornecedor" [(ngModel)]="form.fornecedorId">
+          <option [ngValue]="null">—</option>
+          @for (f of fornecedores.value() ?? []; track f.id) { <option [ngValue]="f.id">{{ f.nome }}</option> }
+        </select>
+      </label>
+      @if (novo()) {
+        <label>Unidade
+          <select name="unidade" [(ngModel)]="form.unidade">
+            @for (u of unidades; track u.sigla) { <option [value]="u.sigla">{{ u.sigla }} · {{ u.nome }}</option> }
+          </select>
+        </label>
+      }
+      <label>NCM <small>(opcional)</small><input name="ncm" [(ngModel)]="form.ncm" maxlength="8" inputmode="numeric" placeholder="8 dígitos" /></label>
+    </div>
+
+    @if (!novo()) {
+      <label class="marcar"><input type="checkbox" name="aplicar" [(ngModel)]="aplicarPrecos" /> Mudar preço, custo e mínimo de <b>todas</b> as variações</label>
+    }
+    @if (novo() || aplicarPrecos) {
+      <div class="campos">
+        <label>Preço de custo (R$)<input name="custo" type="number" min="0" step="0.01" [(ngModel)]="form.precoCusto" /></label>
+        <label>Preço de venda (R$)<input name="venda" type="number" min="0.01" step="0.01" [(ngModel)]="form.precoVenda" required /></label>
+        <label>Estoque mínimo <small>(de cada tamanho/cor)</small><input name="minimo" type="number" min="0" step="1" [(ngModel)]="form.estoqueMinimo" /></label>
+      </div>
+    }
+
+    @if (novo()) {
+      <h2>Grade</h2>
+      <div class="grade-escolha">
+        <div class="lista-grade">
+          <span class="rotulo">Tamanhos</span>
+          <select (change)="usarGradePronta($any($event.target).value); $any($event.target).value = ''" aria-label="Grade pronta">
+            <option value="">Usar uma grade pronta…</option>
+            @for (g of gradesProntas; track g.nome; let i = $index) { <option [value]="i">{{ g.nome }}</option> }
+          </select>
+          <div class="chips">
+            @for (t of tamanhos(); track t) { <span class="chip">{{ t }} <button type="button" (click)="tirarTamanho(t)" [attr.aria-label]="'Tirar ' + t"><app-icone nome="x" /></button></span> }
+          </div>
+          <div class="acrescentar">
+            <input name="novoTamanho" [(ngModel)]="novoTamanho" placeholder="Ex.: 38, 39, 40 ou M" (keydown.enter)="$event.preventDefault(); adicionarTamanho()" />
+            <button type="button" class="botao pequeno" (click)="adicionarTamanho()">+ Tamanho</button>
+          </div>
+        </div>
+        <div class="lista-grade">
+          <span class="rotulo">Cores</span>
+          <div class="chips">
+            @for (c of cores(); track c) { <span class="chip">{{ c }} <button type="button" (click)="tirarCor(c)" [attr.aria-label]="'Tirar ' + c"><app-icone nome="x" /></button></span> }
+          </div>
+          <div class="acrescentar">
+            <input name="novaCor" [(ngModel)]="novaCor" placeholder="Ex.: Branco/Azul" (keydown.enter)="$event.preventDefault(); adicionarCor()" />
+            <button type="button" class="botao pequeno" (click)="adicionarCor()">+ Cor</button>
+          </div>
+          <small class="dica">Sem cor = só tamanho. Sem tamanho = só cor.</small>
+        </div>
+      </div>
+
+      @if (tamanhos().length || cores().length) {
+        <p class="dica">Digite o <b>estoque que já tem</b> de cada combinação (vazio = 0). Clique no <app-icone nome="x" /> para tirar uma combinação que a loja não trabalha.</p>
+        <div class="tabela-rolagem">
+          <table class="matriz">
+            <thead><tr><th>Tamanho</th>@for (c of colunas(); track c) { <th>{{ c }}</th> }</tr></thead>
+            <tbody>
+              @for (t of linhas(); track t) {
+                <tr>
+                  <th>{{ t }}</th>
+                  @for (c of colunas(); track c) {
+                    <td [class.desligada]="desligadas().has(chave(t, c))">
+                      @if (!desligadas().has(chave(t, c))) {
+                        <input type="number" min="0" step="1" [name]="'ini-' + chave(t, c)" [(ngModel)]="inicial[chave(t, c)]" placeholder="0" [attr.aria-label]="'Estoque ' + t + ' ' + c" />
+                      } @else { <span>—</span> }
+                      <button type="button" class="tirar" (click)="alternarCombinacao(t, c)" [title]="desligadas().has(chave(t, c)) ? 'Voltar a combinação' : 'A loja não trabalha esta combinação'">
+                        <app-icone [nome]="desligadas().has(chave(t, c)) ? 'plus' : 'x'" />
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    }
+
+    @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    <footer>
+      @if (!novo()) { <button type="button" class="botao" (click)="editando.set(false)">Cancelar</button> }
+      <button type="submit" class="botao primario" [disabled]="salvando()">
+        {{ salvando() ? 'Salvando…' : novo() ? 'Cadastrar ' + totalVariacoes() + ' variação(ões)' : 'Salvar' }}
+      </button>
+    </footer>
+  </form>
+}
+
+<!-- ===================== Matriz do estoque ===================== -->
+@if (!novo()) {
+  @if (modelo(); as m) {
+    <section class="painel matriz-estoque">
+      <header>
+        <h2>Estoque por tamanho e cor <small>{{ estoqueTotal() | number: '1.0-0' }} {{ m.unidade }} no total
+          @if (precoUnico() !== null) { · {{ precoUnico() | currency: 'BRL' }} cada }</small></h2>
+        @if (!modoEntrada()) {
+          <button type="button" class="botao primario" (click)="abrirEntrada()"><app-icone nome="package-plus" /> Entrada em grade</button>
+        }
+      </header>
+
+      <div class="tabela-rolagem">
+        <table class="matriz">
+          <thead><tr><th>Tamanho</th>@for (c of m.cores; track c) { <th>{{ c }}</th> }<th class="num">Total</th></tr></thead>
+          <tbody>
+            @for (t of m.tamanhos; track t) {
+              <tr>
+                <th>{{ t }}</th>
+                @for (c of m.cores; track c) {
+                  @let v = celula(t, c);
+                  <td [class.zerada]="v && v.ativo && v.estoqueAtual <= 0" [class.baixa]="v && v.ativo && v.estoqueAtual > 0 && v.estoqueAtual <= v.estoqueMinimo" [class.desligada]="!v || !v.ativo">
+                    @if (v && v.ativo) {
+                      @if (modoEntrada()) {
+                        <input type="number" min="0" step="1" [name]="'ent-' + v.produtoId" [(ngModel)]="entrada[v.produtoId]" placeholder="0" [attr.aria-label]="'Chegou ' + t + ' ' + c" />
+                      } @else {
+                        <a class="celula" [routerLink]="['/produtos', v.produtoId]" [title]="v.nome + ' · ' + (v.codigoBarras ?? 'sem código')">
+                          <strong>{{ v.estoqueAtual | number: '1.0-0' }}</strong>
+                          @if (precoUnico() === null) { <small>{{ v.precoVenda | currency: 'BRL' }}</small> }
+                        </a>
+                      }
+                    } @else if (!modoEntrada()) {
+                      <button type="button" class="criar" (click)="criarCelula(t, c)" title="Criar esta combinação">+</button>
+                    }
+                  </td>
+                }
+                <td class="num">{{ totalLinha(t) | number: '1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="legenda"><span class="ponto zerada"></span> zerado <span class="ponto baixa"></span> abaixo do mínimo · clique no número para abrir o produto (código, preço próprio, histórico).</p>
+
+      @if (modoEntrada()) {
+        <div class="entrada">
+          <label>Custo de cada peça (R$) <small>(opcional: atualiza o custo)</small><input name="custoEntrada" type="number" min="0" step="0.01" [(ngModel)]="custoEntrada" /></label>
+          <label>Observação<input name="obsEntrada" [(ngModel)]="obsEntrada" maxlength="200" placeholder="Ex.: NF 1234 da Asics" /></label>
+          <button type="button" class="botao" (click)="modoEntrada.set(false)">Cancelar</button>
+          <button type="button" class="botao primario" [disabled]="salvando()" (click)="confirmarEntrada()">{{ salvando() ? 'Salvando…' : 'Confirmar entrada' }}</button>
+        </div>
+      } @else {
+        <div class="acrescentar-grade">
+          <div class="acrescentar">
+            <input name="acTam" [(ngModel)]="acrescentarTamanho" placeholder="Novo tamanho (ex.: 46)" (keydown.enter)="acrescentar('tamanho')" />
+            <button type="button" class="botao pequeno" (click)="acrescentar('tamanho')">+ Tamanho</button>
+          </div>
+          <div class="acrescentar">
+            <input name="acCor" [(ngModel)]="acrescentarCor" placeholder="Nova cor (ex.: Preto)" (keydown.enter)="acrescentar('cor')" />
+            <button type="button" class="botao pequeno" (click)="acrescentar('cor')">+ Cor</button>
+          </div>
+        </div>
+      }
+      @if (erro() && !editando()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </section>
+  } @else if (carregando()) {
+    <p class="vazio"><app-icone nome="loader-circle" girando /> Carregando…</p>
+  } @else if (erro()) {
+    <div class="erro" role="alert">{{ erro() }}</div>
+  }
+}

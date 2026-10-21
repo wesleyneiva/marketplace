@@ -1,0 +1,72 @@
+.botoes-topo { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.aviso {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 12px; padding: 10px 12px; border-radius: 10px;
+  background: var(--cor-verde-fundo); color: var(--cor-primaria-escura); font-weight: 600;
+}
+.erro { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: var(--cor-erro-fundo); color: var(--cor-erro); font-weight: 600; }
+.dica { color: var(--cor-texto-suave); font-size: 13px; }
+.vazio { text-align: center; color: var(--cor-texto-suave); padding: 28px; }
+
+.dados {
+  padding: 16px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;
+  h2 { margin: 8px 0 0; font-size: 16px; }
+  footer { display: flex; justify-content: flex-end; gap: 8px; }
+}
+
+.campos {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px 14px;
+  .largo { grid-column: 1 / -1; }
+}
+
+label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 600; color: var(--cor-texto-suave); }
+label small { font-weight: 400; }
+label.marcar { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; color: var(--cor-texto); }
+
+.grade-escolha { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.lista-grade { display: flex; flex-direction: column; gap: 8px; .rotulo { font-size: 13px; font-weight: 600; color: var(--cor-texto-suave); } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border-radius: 99px;
+  background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); font-weight: 600; font-size: 13px;
+  button { display: inline-flex; border: 0; background: transparent; color: inherit; cursor: pointer; padding: 2px; border-radius: 99px; }
+  button:hover { background: rgba(0, 0, 0, 0.08); }
+}
+.acrescentar { display: flex; gap: 6px; input { flex: 1; min-width: 0; } }
+
+.tabela-rolagem { overflow-x: auto; }
+
+table.matriz {
+  border-collapse: collapse; font-size: 14px; min-width: 100%;
+  th, td { border: 1px solid var(--cor-borda); padding: 6px 8px; text-align: center; }
+  thead th { background: var(--cor-fundo); font-size: 12px; color: var(--cor-texto-suave); white-space: nowrap; }
+  tbody th { background: var(--cor-fundo); font-weight: 700; white-space: nowrap; }
+  td { position: relative; min-width: 84px; }
+  td input { width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+  td.desligada { background: repeating-linear-gradient(45deg, transparent, transparent 6px, var(--cor-fundo) 6px, var(--cor-fundo) 12px); color: var(--cor-texto-suave); }
+  td.zerada { background: var(--cor-erro-fundo); }
+  td.baixa { background: var(--cor-alerta-fundo-forte); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; color: var(--cor-texto-suave); }
+  .tirar {
+    position: absolute; top: 2px; right: 2px; display: inline-flex; padding: 1px; border: 0; border-radius: 4px;
+    background: transparent; color: var(--cor-texto-suave); cursor: pointer; opacity: 0.6;
+    &:hover { opacity: 1; color: var(--cor-erro); }
+  }
+  .celula {
+    display: flex; flex-direction: column; align-items: center; color: var(--cor-texto); text-decoration: none;
+    strong { font-size: 17px; font-variant-numeric: tabular-nums; }
+    small { font-size: 11px; color: var(--cor-texto-suave); }
+    &:hover strong { color: var(--cor-primaria); }
+  }
+  .criar { border: 1px dashed var(--cor-borda); background: transparent; border-radius: 6px; padding: 2px 10px; cursor: pointer; color: var(--cor-texto-suave); }
+}
+
+.matriz-estoque {
+  padding: 16px 18px;
+  > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  h2 { margin: 0; font-size: 16px; small { font-weight: 400; color: var(--cor-texto-suave); font-size: 13px; margin-left: 6px; } }
+}
+.legenda { font-size: 12px; color: var(--cor-texto-suave); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.ponto { display: inline-block; width: 12px; height: 12px; border-radius: 3px; &.zerada { background: var(--cor-erro-fundo); } &.baixa { background: var(--cor-alerta-fundo-forte); } }
+.entrada, .acrescentar-grade { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; margin-top: 12px; }
+.acrescentar-grade .acrescentar { flex: 1 1 240px; }

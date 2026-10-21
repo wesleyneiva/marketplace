@@ -47,6 +47,26 @@ public partial class ImportacaoProdutosService
         var idsExistentes = validas.Where(l => l.ProdutoExistenteId is not null).Select(l => l.ProdutoExistenteId!.Value).ToList();
         var existentes = await db.Produtos.Where(p => idsExistentes.Contains(p.Id)).ToDictionaryAsync(p => p.Id);
 
+        // Grade: os modelos que já existem + os novos (as linhas com o mesmo "Modelo" viram um só). Tamanhos e cores
+        // novos entram no fim da matriz, na ordem da planilha. Variação sem código de barras ganha um código interno.
+        var modelos = (await db.Modelos.ToListAsync()).GroupBy(m => Normalizar(m.Nome)).ToDictionary(g => g.Key, g => g.First());
+        foreach (var l in validas.Where(l => l.Modelo is not null))
+        {
+            var chave = Normalizar(l.Modelo!);
+            if (!modelos.TryGetValue(chave, out var m))
+            {
+                m = new Modelo { Nome = l.Modelo!, Categoria = categorias[Normalizar(l.Categoria!)], Fornecedor = FornecedorDa(l), Marca = l.Marca };
+                db.Modelos.Add(m);
+                modelos[chave] = m;
+            }
+            if (!m.Tamanhos.Contains(l.Tamanho)) m.Tamanhos = [.. m.Tamanhos, l.Tamanho!];
+            if (!m.Cores.Contains(l.Cor)) m.Cores = [.. m.Cores, l.Cor!];
+            if (l.Marca is not null) m.Marca = l.Marca;
+        }
+        var codigosInternos = await CodigoInterno.ReservarAsync(db,
+            validas.Count(l => l.Modelo is not null && l.CodigoBarras is null && l.ProdutoExistenteId is null));
+        Modelo? ModeloDa(LinhaAnalisada l) => l.Modelo is null ? null : modelos[Normalizar(l.Modelo)];
+
         var agora = DateTimeOffset.UtcNow;
         var observacao = $"Estoque inicial (importação: {Cortar(nomeDoArquivo, 120)})";
         int novos = 0, atualizados = 0, comEstoque = 0;
@@ -70,6 +90,8 @@ public partial class ImportacaoProdutosService
                 if (l.Ncm is not null) p.Ncm = l.Ncm;
                 if (FornecedorDa(l) is { } f) p.Fornecedor = f;
                 if (l.CodigoBalanca is int plu) p.CodigoBalanca = plu;
+                p.Servico = l.Servico;
+                if (ModeloDa(l) is { } mod) { p.Modelo = mod; p.Tamanho = l.Tamanho; p.Cor = l.Cor; }
                 p.Ativo = true;
                 p.AtualizadoEm = agora;
                 atualizados++;
@@ -89,13 +111,19 @@ public partial class ImportacaoProdutosService
                 Ncm = l.Ncm,
                 Fornecedor = FornecedorDa(l),
                 CodigoBalanca = l.CodigoBalanca,
+                Servico = l.Servico,
+                Modelo = ModeloDa(l),
+                Tamanho = l.Modelo is null ? null : l.Tamanho,
+                Cor = l.Modelo is null ? null : l.Cor,
             };
+            if (produto.Modelo is not null && produto.CodigoBarras is null) produto.CodigoBarras = codigosInternos.Dequeue();
+            if (produto.Servico) produto.EstoqueMinimo = 0;
             db.Produtos.Add(produto);
             novos++;
 
             // Estoque inicial: vira uma movimentação "Inventário" (o extrato do produto começa certo)
             // e, se controla validade, um lote com a data informada.
-            if (l.EstoqueInicial is decimal quantidade && quantidade > 0)
+            if (l.EstoqueInicial is decimal quantidade && quantidade > 0 && !produto.Servico)
             {
                 LoteValidade? lote = null;
                 if (produto.ControlaValidade)

@@ -27,6 +27,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Empresa> Empresas => Set<Empresa>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Produto> Produtos => Set<Produto>();
+    public DbSet<Modelo> Modelos => Set<Modelo>();
     public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
     public DbSet<LoteValidade> Lotes => Set<LoteValidade>();
     public DbSet<SessaoCaixa> SessoesCaixa => Set<SessaoCaixa>();
@@ -175,6 +176,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             // Um PLU por produto na loja (vários podem não ter balança).
             e.HasIndex(p => new { p.EmpresaId, p.CodigoBalanca }).IsUnique().HasFilter("\"CodigoBalanca\" IS NOT NULL");
             e.HasIndex(p => new { p.EmpresaId, p.Nome });
+            // Grade: uma variação por tamanho + cor dentro do modelo.
+            e.Property(p => p.Tamanho).HasMaxLength(20);
+            e.Property(p => p.Cor).HasMaxLength(40);
+            e.HasIndex(p => new { p.EmpresaId, p.ModeloId, p.Tamanho, p.Cor }).IsUnique().HasFilter("\"ModeloId\" IS NOT NULL");
+            e.HasOne(p => p.Modelo).WithMany(m => m.Variacoes).HasForeignKey(p => p.ModeloId).OnDelete(DeleteBehavior.Restrict);
 
             // xmin do PostgreSQL como "versão" da linha (controle de concorrência).
             e.Property(p => p.Versao).IsRowVersion();
@@ -237,6 +243,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(f => f.Telefone).HasMaxLength(30);
             e.Property(f => f.Email).HasMaxLength(150);
             e.Property(f => f.Observacao).HasMaxLength(300);
+        });
+
+        builder.Entity<Modelo>(e =>
+        {
+            e.Property(m => m.Nome).HasMaxLength(120).UseCollation(OrdemPortugues);
+            e.Property(m => m.Referencia).HasMaxLength(40);
+            e.Property(m => m.Marca).HasMaxLength(60);
+            e.HasIndex(m => new { m.EmpresaId, m.Nome });
+            e.HasOne(m => m.Categoria).WithMany().HasForeignKey(m => m.CategoriaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(m => m.Fornecedor).WithMany().HasForeignKey(m => m.FornecedorId).OnDelete(DeleteBehavior.SetNull);
         });
 
         builder.Entity<Produto>()

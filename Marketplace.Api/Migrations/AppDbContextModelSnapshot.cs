@@ -1267,6 +1267,62 @@ namespace Marketplace.Api.Migrations
                     b.ToTable("Lotes");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Modelo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("CategoriaId")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<string[]>("Cores")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("FornecedorId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Marca")
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .UseCollation("pt-BR-x-icu");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.PrimitiveCollection<string[]>("Tamanhos")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoriaId");
+
+                    b.HasIndex("FornecedorId");
+
+                    b.HasIndex("EmpresaId", "Nome");
+
+                    b.ToTable("Modelos");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.MovimentacaoEstoque", b =>
                 {
                     b.Property<long>("Id")
@@ -1729,6 +1785,10 @@ namespace Marketplace.Api.Migrations
                     b.Property<bool>("ControlaValidade")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("Cor")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<DateTimeOffset>("CriadoEm")
                         .HasColumnType("timestamp with time zone");
 
@@ -1744,6 +1804,9 @@ namespace Marketplace.Api.Migrations
                         .HasColumnType("numeric(12,3)");
 
                     b.Property<int?>("FornecedorId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("ModeloId")
                         .HasColumnType("integer");
 
                     b.Property<string>("Ncm")
@@ -1770,9 +1833,16 @@ namespace Marketplace.Api.Migrations
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
 
+                    b.Property<bool>("Servico")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("SituacaoTributaria")
                         .HasMaxLength(3)
                         .HasColumnType("character varying(3)");
+
+                    b.Property<string>("Tamanho")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Unidade")
                         .IsRequired()
@@ -1791,6 +1861,8 @@ namespace Marketplace.Api.Migrations
 
                     b.HasIndex("FornecedorId");
 
+                    b.HasIndex("ModeloId");
+
                     b.HasIndex("EmpresaId", "CodigoBalanca")
                         .IsUnique()
                         .HasFilter("\"CodigoBalanca\" IS NOT NULL");
@@ -1799,6 +1871,10 @@ namespace Marketplace.Api.Migrations
                         .IsUnique();
 
                     b.HasIndex("EmpresaId", "Nome");
+
+                    b.HasIndex("EmpresaId", "ModeloId", "Tamanho", "Cor")
+                        .IsUnique()
+                        .HasFilter("\"ModeloId\" IS NOT NULL");
 
                     b.ToTable("Produtos");
                 });
@@ -2659,6 +2735,30 @@ namespace Marketplace.Api.Migrations
                     b.Navigation("Produto");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Modelo", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Categoria", "Categoria")
+                        .WithMany()
+                        .HasForeignKey("CategoriaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Fornecedor", "Fornecedor")
+                        .WithMany()
+                        .HasForeignKey("FornecedorId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Categoria");
+
+                    b.Navigation("Fornecedor");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.MovimentacaoEstoque", b =>
                 {
                     b.HasOne("Marketplace.Api.Models.Empresa", null)
@@ -2867,9 +2967,16 @@ namespace Marketplace.Api.Migrations
                         .HasForeignKey("FornecedorId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Marketplace.Api.Models.Modelo", "Modelo")
+                        .WithMany("Variacoes")
+                        .HasForeignKey("ModeloId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Categoria");
 
                     b.Navigation("Fornecedor");
+
+                    b.Navigation("Modelo");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.Recebivel", b =>
@@ -3046,6 +3153,11 @@ namespace Marketplace.Api.Migrations
             modelBuilder.Entity("Marketplace.Api.Models.Fornecedor", b =>
                 {
                     b.Navigation("Produtos");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.Modelo", b =>
+                {
+                    b.Navigation("Variacoes");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.PedidoCompra", b =>

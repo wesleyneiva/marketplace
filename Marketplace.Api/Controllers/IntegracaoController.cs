@@ -61,7 +61,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
             .Select(g => new { Minima = g.Min(c => c.Temperatura), Maxima = g.Max(c => c.Temperatura), Chuva = g.Sum(c => c.Chuva) })
             .FirstOrDefaultAsync();
 
-        var estoqueBaixo = await db.Produtos.CountAsync(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo);
+        var estoqueBaixo = await db.Produtos.CountAsync(p => p.Ativo && !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo);
         var limite = Relogio.Hoje.AddDays(2);
         var vencendo = await db.Lotes.CountAsync(l => l.QuantidadeAtual > 0 && l.DataValidade <= limite && l.Produto!.Ativo);
 
@@ -113,7 +113,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
         var inicio = Relogio.InicioDoDiaUtc(hoje);
 
         var baixo = await db.Produtos.AsNoTracking()
-            .Where(p => p.Ativo && p.EstoqueAtual <= p.EstoqueMinimo)
+            .Where(p => p.Ativo && !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo)
             .OrderBy(p => p.EstoqueMinimo == 0 ? 1 : p.EstoqueAtual / p.EstoqueMinimo) // os mais críticos primeiro
             .Select(p => new { p.Nome, p.EstoqueAtual, p.EstoqueMinimo, p.Unidade })
             .ToListAsync();

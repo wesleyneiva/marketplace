@@ -44,7 +44,10 @@ public record ProdutoRequest(
     [RegularExpression(@"^\d{7}$", ErrorMessage = "CEST: 7 dígitos.")] string? Cest = null,
     [RegularExpression(@"^\d{4}$", ErrorMessage = "CFOP: 4 dígitos.")] string? Cfop = null,
     [Range(0, 8, ErrorMessage = "Origem: de 0 a 8.")] int Origem = 0,
-    [RegularExpression(@"^\d{2,3}$", ErrorMessage = "CSOSN/CST: 2 ou 3 dígitos.")] string? SituacaoTributaria = null);
+    [RegularExpression(@"^\d{2,3}$", ErrorMessage = "CSOSN/CST: 2 ou 3 dígitos.")] string? SituacaoTributaria = null,
+
+    // Serviço (encordoamento, mão de obra): vende no caixa sem estoque.
+    bool Servico = false);
 
 // O que a API devolve: já com o nome da categoria e a margem calculada.
 public record ProdutoResponse(
@@ -69,7 +72,13 @@ public record ProdutoResponse(
     string? Cest,
     string Cfop,
     int Origem,
-    string? SituacaoTributaria);
+    string? SituacaoTributaria,
+    // Grade (Models/Modelo.cs): variação Tamanho + Cor de um modelo. Vazios = produto simples.
+    int? ModeloId = null,
+    string? Modelo = null,
+    string? Tamanho = null,
+    string? Cor = null,
+    bool Servico = false);
 
 // Resultado paginado: uma "página" de itens + o total (para a tela montar a paginação).
 public record Pagina<T>(IReadOnlyList<T> Itens, int Total, int PaginaAtual, int TamanhoPagina);

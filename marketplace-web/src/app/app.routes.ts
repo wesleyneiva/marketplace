@@ -52,6 +52,9 @@ export const routes: Routes = [
           // "novo" e ":id" usam a mesma tela de formulário. O :id chega no componente como input().
           { path: 'etiquetas', canActivate: [precisaModulo('etiquetas')], loadComponent: () => import('./pages/etiquetas/etiquetas').then((m) => m.Etiquetas) },
           { path: 'importar', canActivate: [precisaModulo('importacao')], loadComponent: () => import('./pages/importar-produtos/importar-produtos').then((m) => m.ImportarProdutos) },
+          // Grade de tamanho e cor (loja de esporte): lista de modelos e um modelo ("novo" ou o número).
+          { path: 'modelos', loadComponent: () => import('./pages/modelos/modelos').then((m) => m.Modelos) },
+          { path: 'modelos/:id', loadComponent: () => import('./pages/modelo/modelo').then((m) => m.ModeloPagina) },
           { path: 'novo', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
           { path: ':id', loadComponent: () => import('./pages/produto-form/produto-form').then((m) => m.ProdutoForm) },
         ],

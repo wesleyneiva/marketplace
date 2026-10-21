@@ -18,6 +18,16 @@ public class Produto : IDaEmpresa
     public int? FornecedorId { get; set; }
     public Fornecedor? Fornecedor { get; set; }
 
+    // Grade (Models/Modelo.cs): este produto é a variação Tamanho + Cor de um modelo. Vazio = produto simples.
+    public int? ModeloId { get; set; }
+    public Modelo? Modelo { get; set; }
+    public string? Tamanho { get; set; }
+    public string? Cor { get; set; }
+
+    // Serviço (ex.: encordoamento, mão de obra): vende no caixa, mas NÃO tem estoque (não baixa, não entra em
+    // estoque baixo nem na sugestão de compra).
+    public bool Servico { get; set; }
+
     // UN (unidade), KG, L, PCT, CX, DZ
     public string Unidade { get; set; } = Unidades.Unidade;
 
@@ -70,6 +80,7 @@ public static class Unidades
     public const string Pacote = "PCT";
     public const string Caixa = "CX";
     public const string Duzia = "DZ";
+    public const string Par = "PAR"; // calçados, meias
 
-    public static readonly string[] Todas = [Unidade, Quilo, Litro, Pacote, Caixa, Duzia];
+    public static readonly string[] Todas = [Unidade, Quilo, Litro, Pacote, Caixa, Duzia, Par];
 }

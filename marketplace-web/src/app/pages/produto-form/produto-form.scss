@@ -263,3 +263,4 @@
   summary { cursor: pointer; font-weight: 600; small { font-weight: 400; color: var(--cor-texto-suave); } }
   .grade { margin-top: 12px; }
 }
+.grade-de { margin: 4px 0 0; font-size: 13px; color: var(--cor-texto-suave); display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }

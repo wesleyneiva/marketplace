@@ -35,7 +35,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
             .ToDictionaryAsync(x => x.Key, x => x.Qtd, ct);
 
         var produtos = await db.Produtos.AsNoTracking().Include(p => p.Fornecedor)
-            .Where(p => p.Ativo && p.FornecedorId != null && p.Fornecedor!.Ativo)
+            .Where(p => p.Ativo && !p.Servico && p.FornecedorId != null && p.Fornecedor!.Ativo)
             .ToListAsync(ct);
 
         var sugestoes = new List<(Fornecedor F, ItemSugestao Item)>();

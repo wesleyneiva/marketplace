@@ -27,6 +27,12 @@ export interface Produto {
   cfop: string;
   origem: number;
   situacaoTributaria: string | null;
+  // Grade (core/api/modelos.api.ts): variação Tamanho + Cor de um modelo. Ausentes/null = produto simples.
+  modeloId?: number | null;
+  modelo?: string | null;
+  tamanho?: string | null;
+  cor?: string | null;
+  servico?: boolean; // serviço (encordoamento): vende sem estoque
 }
 
 export interface ProdutoRequest {
@@ -45,6 +51,7 @@ export interface ProdutoRequest {
   cfop: string | null;
   origem: number;
   situacaoTributaria: string | null;
+  servico: boolean;
 }
 
 export interface Categoria {
@@ -68,6 +75,7 @@ export const UNIDADES = [
   { sigla: 'PCT', nome: 'Pacote' },
   { sigla: 'CX', nome: 'Caixa' },
   { sigla: 'DZ', nome: 'Dúzia' },
+  { sigla: 'PAR', nome: 'Par' },
 ];
 
 // Importação por planilha (Contracts/ImportacaoDtos.cs). Acao: o que aconteceria com a linha.

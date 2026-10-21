@@ -19,6 +19,7 @@ menu message-circle minus notebook-pen octagon-alert package package-minus packa
 pencil play plug plus printer qr-code receipt refresh-cw scale send settings shopping-bag
 shopping-cart smartphone snowflake sparkles store sun tag trash-2 trending-up triangle-alert truck
 undo-2 users x moon monitor panel-left-close panel-left-open receipt-text mail boxes search
+layout-grid wrench
 """.split()))
 
 destino = pathlib.Path(__file__).resolve().parent.parent / "src/app/shared/icones.ts"

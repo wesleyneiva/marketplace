@@ -49,6 +49,7 @@ export class ProdutoForm {
     cfop: ['5102', [Validators.pattern(/^\d{4}$/)]],
     origem: [0],
     situacaoTributaria: ['', [Validators.pattern(/^\d{2,3}$/)]],
+    servico: [false],
   });
 
   protected readonly produto = signal<Produto | null>(null);
@@ -111,6 +112,7 @@ export class ProdutoForm {
         cfop: p.cfop,
         origem: p.origem,
         situacaoTributaria: p.situacaoTributaria ?? '',
+        servico: p.servico ?? false,
       });
     } catch {
       this.erroGeral.set('Produto não encontrado.');

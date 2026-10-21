@@ -37,6 +37,13 @@ public partial class ImportacaoProdutosService(AppDbContext db)
             "depois, mude na tela de Fornecedores). Vazio = 2.", "2"),
         new("Código na balança (PLU)", false, "Número do produto na balança do açougue/hortifrúti (1 a 99999), o mesmo cadastrado " +
             "na balança: a etiqueta que ela imprime é lida no caixa. Opcional; não pode repetir entre produtos.", "1"),
+        new("Modelo", false, "Para produto com GRADE de tamanho e cor (calçado, roupa, raquete): o nome do modelo, igual em todas as " +
+            "linhas dele (uma linha por tamanho/cor). O nome no cupom vira \"Modelo Tamanho Cor\". Vazio = produto simples.",
+            "Tênis Asics Gel-Resolution 10"),
+        new("Tamanho", false, "Tamanho da variação (ex.: 42, M, L2). Só com Modelo.", "42"),
+        new("Cor", false, "Cor da variação (ex.: Branco/Azul). Só com Modelo.", "Branco/Azul"),
+        new("Marca", false, "Marca do modelo (opcional).", "Asics"),
+        new("Serviço", false, "Sim = serviço (ex.: encordoamento, mão de obra): vende no caixa sem estoque. Vazio = Não.", "Não"),
     ];
 
     public const string AbaProdutos = "Produtos";

@@ -119,7 +119,18 @@ cliente na área do dono e pode ser trocado depois.
 
 ---
 
-## Fase 2 — Grade de tamanho e cor (o trabalho de verdade)
+## Fase 2 — Grade de tamanho e cor (o trabalho de verdade) — FEITA em 21/10/2026 (sem conversa com loja, a pedido)
+
+**Como ficou:** `Models/Modelo.cs` (Tamanhos/Cores em arrays, na ordem da matriz) + `Produto.ModeloId/Tamanho/Cor`
+(migration `GradeEServicos`); `ModelosController` (listar, detalhar, criar com combinações, editar repassando às
+variações, acrescentar tamanho/cor, entrada em grade, desativar); código interno EAN-13 "20…" (`CodigoInterno`; a
+etiqueta de balança agora cede ao código exato de produto). Telas: Produtos → **Modelos com grade** (`/produtos/modelos`),
+modelo novo com matriz e estoque inicial, matriz do estoque com entrada em grade. Caixa: buscar pelo nome mostra o modelo
+uma vez e abre a escolha de tamanho/cor (também offline); bipar o código vai direto. Planilha: colunas Modelo, Tamanho,
+Cor, Marca e Serviço. **Serviços** (`Produto.Servico`): vendem sem estoque e ficam fora de estoque baixo/posição/compras.
+Bot: `PerfilEsporte` (movimento, cesta, tamanhos do meio, pagamento). Ficou para depois: NF-e "criar como variação",
+pedido de compra em matriz, relatórios por modelo/curva de tamanhos, preço próprio marcado por variação.
+
 
 Vale para qualquer ramo: mercado também pode usar, por exemplo "Refrigerante X" em 350 ml / 600 ml / 2 L. Liga por
 empresa pelo módulo novo `grade` (padrão: ligado no esporte, desligado no mercado).

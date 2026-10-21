@@ -7,6 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
+import { ModelosApi } from '../../core/api/modelos.api';
 import {
   CaixaDisponivel, ClientePdv, Cupom, FORMAS_PAGAMENTO, FORMAS_RECEBER, FormaPagamento, PdvApi, ReciboFiado, ResumoCaixa, VendaLista,
   arredondar, lerNumero,
@@ -53,6 +54,7 @@ export class Pdv {
   protected readonly impressora = inject(ImpressoraService);
   protected readonly conexao = inject(Conexao);
   protected readonly offline = inject(CaixaOffline);
+  private readonly modelosApi = inject(ModelosApi);
   protected readonly semInternet = computed(() => !this.conexao.online());
   // O QR fixo do Pix (SVG gerado pelo nosso servidor e guardado no caixa) para cobrar Pix sem internet.
   private readonly sanitizer = inject(DomSanitizer);
@@ -97,6 +99,8 @@ export class Pdv {
 
   // ----- Peso (produto por KG/L) -----
   protected readonly produtoPeso = signal<Produto | null>(null);
+  // Grade (tênis, roupa): buscou pelo NOME um modelo → escolhe o tamanho e a cor. Pelo código de barras vai direto.
+  protected readonly grade = signal<{ modelo: string; tamanhos: string[]; cores: string[]; itens: Produto[]; quantidade: number } | null>(null);
   protected textoPeso = '';
   protected readonly lendoBalanca = signal(false);
 
@@ -268,7 +272,7 @@ export class Pdv {
   private async procurar(termo: string): Promise<Produto[]> {
     if (!this.conexao.online() && this.offline.temCatalogo()) return this.offline.buscar(termo);
     try {
-      return (await firstValueFrom(this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8 } }))).itens;
+      return (await firstValueFrom(this.http.get<Pagina<Produto>>('/api/produtos', { params: { busca: termo, tamanho: 8, agruparGrade: true } }))).itens;
     } catch (e) {
       if (this.conexao.falhou(e) && this.offline.temCatalogo()) return this.offline.buscar(termo);
       throw e;
@@ -320,14 +324,14 @@ export class Pdv {
       const itens = await this.procurar(termo);
       const exato = itens.find((p) => p.codigoBarras === termo);
       if (exato || itens.length === 1) {
-        this.escolher(exato ?? itens[0]);
+        this.escolher(exato ?? itens[0], !!exato);
       } else if (itens.length === 0) {
         this.erro.set(this.avisoBalanca ?? (/^2\d{12}$/.test(termo) && this.semInternet()
           ? 'Sem internet a etiqueta da balança não é lida: busque o produto pelo nome e digite o peso.'
           : `Produto não encontrado: "${termo}"`));
         this.textoBusca = '';
       } else {
-        this.resultados.set(itens);
+        this.resultados.set(agruparGrade(itens));
         this.indiceResultado.set(0);
       }
     } finally {
@@ -391,7 +395,7 @@ export class Pdv {
       // Se a pessoa continuou digitando (ou já apertou Enter), esta resposta ficou velha.
       if (separarQuantidade(this.textoBusca.trim()).termo !== termo) return;
       this.termoDaLista = termo;
-      this.resultados.set(itens);
+      this.resultados.set(agruparGrade(itens));
       this.indiceResultado.set(0);
       this.semResultado.set(itens.length ? null : termo);
     } catch {
@@ -412,13 +416,18 @@ export class Pdv {
     this.escolher(produto);
   }
 
-  protected escolher(produto: Produto): void {
+  protected escolher(produto: Produto, peloCodigo = false): void {
     this.resultados.set([]);
     this.semResultado.set(null);
     clearTimeout(this.esperaDigitacao);
     this.textoBusca = '';
     const quantidade = this.quantidadeDaBusca;
     this.quantidadeDaBusca = null;
+
+    if (produto.modeloId && !peloCodigo) {
+      void this.abrirGrade(produto, quantidade ?? 1);
+      return;
+    }
 
     // Produto por peso/volume sem quantidade informada → pergunta o peso.
     if (quantidade === null && this.fracionado(produto)) {
@@ -429,6 +438,50 @@ export class Pdv {
       return;
     }
     this.adicionar(produto, quantidade ?? 1);
+  }
+
+  // As variações do modelo: do servidor; sem internet, do catálogo guardado neste computador.
+  private async abrirGrade(produto: Produto, quantidade: number): Promise<void> {
+    const id = produto.modeloId!;
+    let nome = produto.modelo ?? produto.nome;
+    let itens: Produto[];
+    let tamanhos: string[];
+    let cores: string[];
+    try {
+      if (!this.conexao.online()) throw new Error('offline');
+      const m = await this.modelosApi.obter(id);
+      nome = m.nome;
+      tamanhos = m.tamanhos;
+      cores = m.cores;
+      itens = m.variacoes.filter((v) => v.ativo).map((v) => ({
+        ...produto, id: v.produtoId, nome: v.nome, codigoBarras: v.codigoBarras, precoVenda: v.precoVenda, estoqueAtual: v.estoqueAtual,
+        tamanho: v.tamanho, cor: v.cor,
+      }));
+    } catch (e) {
+      if (e instanceof HttpErrorResponse) this.conexao.falhou(e);
+      itens = this.offline.variacoes(id);
+      if (!itens.length) { this.adicionar(produto, quantidade); return; }
+      tamanhos = [...new Set(itens.map((p) => p.tamanho ?? ''))];
+      cores = [...new Set(itens.map((p) => p.cor ?? ''))];
+    }
+    this.grade.set({ modelo: nome, tamanhos, cores, itens, quantidade });
+    // Foco no primeiro tamanho com estoque: setas/Tab andam entre eles, Enter escolhe e Esc cancela.
+    setTimeout(() => (document.querySelector<HTMLElement>('.grade-pdv .opcao:not(.sem)') ?? document.querySelector<HTMLElement>('.grade-pdv .opcao'))?.focus());
+  }
+
+  protected variacaoDaGrade(t: string, c: string): Produto | undefined {
+    return this.grade()?.itens.find((p) => p.tamanho === t && p.cor === c);
+  }
+
+  protected escolherVariacao(p: Produto): void {
+    const q = this.grade()?.quantidade ?? 1;
+    this.grade.set(null);
+    this.adicionar(p, q);
+  }
+
+  protected cancelarGrade(): void {
+    this.grade.set(null);
+    this.focarBusca();
   }
 
   protected confirmarPeso(): void {
@@ -487,7 +540,7 @@ export class Pdv {
     });
 
     const naLista = this.carrinho().find((i) => i.produto.id === produto.id)!;
-    if (naLista.quantidade > produto.estoqueAtual) {
+    if (!produto.servico && naLista.quantidade > produto.estoqueAtual) {
       this.erro.set(`Atenção: "${produto.nome}" tem só ${produto.estoqueAtual} ${produto.unidade} no estoque.`);
     }
     this.ultimoId.set(produto.id);
@@ -1209,4 +1262,10 @@ function tocarBipe(): void {
   } catch {
     /* navegador sem som: fica só o aviso na tela */
   }
+}
+
+// Na lista da busca, um modelo da grade aparece UMA vez (escolhe o tamanho/cor depois), não uma linha por número.
+function agruparGrade(itens: Produto[]): Produto[] {
+  const vistos = new Set<number>();
+  return itens.filter((p) => !p.modeloId || (!vistos.has(p.modeloId) && vistos.add(p.modeloId)));
 }

@@ -159,7 +159,10 @@ public class SimuladorClientes(
         }
 
         var tempo = await ClimaDaLojaAsync(empresaId, ct);
-        var porMinuto = ComportamentoCliente.ClientesNaHora(DateOnly.FromDateTime(agora.DateTime), agora.Hour, tempo, estado.Intensidade) / 60;
+        var hoje = DateOnly.FromDateTime(agora.DateTime);
+        var porMinuto = (await EsporteAsync(empresaId, ct)
+            ? PerfilEsporte.ClientesNaHora(hoje, agora.Hour, tempo, estado.Intensidade)
+            : ComportamentoCliente.ClientesNaHora(hoje, agora.Hour, tempo, estado.Intensidade)) / 60;
         var clientes = ComportamentoCliente.Poisson(porMinuto);
         for (var i = 0; i < clientes; i++)
             await AtenderClienteAsync(empresaId, completo, usuarioId, tempo, agora, ct);
@@ -175,6 +178,14 @@ public class SimuladorClientes(
         if (await caixa.ObterSessaoAbertaAsync(usuarioId) is null) return false;
         await FecharCaixaAsync(caixa, usuarioId, empresaId);
         return true;
+    }
+
+    // Loja de esporte (Empresa.Ramo)? Muda o movimento, a cesta e o pagamento (PerfilEsporte).
+    private async Task<bool> EsporteAsync(int empresaId, CancellationToken ct)
+    {
+        using var scope = escopos.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await db.Empresas.AsNoTracking().AnyAsync(e => e.Id == empresaId && e.Ramo == Ramos.Esporte, ct);
     }
 
     // O clima da cidade da loja (sem cidade cadastrada: um dia "neutro").
@@ -209,20 +220,25 @@ public class SimuladorClientes(
         var vendas = scope.ServiceProvider.GetRequiredService<VendaService>();
 
         var hoje = Relogio.Hoje;
-        var produtos = await db.Produtos.AsNoTracking().Where(p => p.Ativo && p.EstoqueAtual > 0).ToListAsync(ct);
+        var esporte = await EsporteAsync(empresaId, ct);
+        // Serviço (encordoamento) não tem estoque: está sempre "disponível".
+        var produtos = await db.Produtos.AsNoTracking().Include(p => p.Modelo)
+            .Where(p => p.Ativo && (p.EstoqueAtual > 0 || p.Servico)).ToListAsync(ct);
         var vencido = await db.Lotes.AsNoTracking()
             .Where(l => l.QuantidadeAtual > 0 && l.DataValidade < hoje)
             .GroupBy(l => l.ProdutoId).Select(g => new { g.Key, Qtd = g.Sum(l => l.QuantidadeAtual) })
             .ToDictionaryAsync(x => x.Key, x => x.Qtd, ct);
 
         // Só o que está na prateleira e dentro da validade.
-        var opcoes = produtos
-            .Select(p => (Produto: p, Habito: PerfilConsumo.Para(p), Disponivel: p.EstoqueAtual - vencido.GetValueOrDefault(p.Id)))
-            .Where(o => o.Disponivel > 0)
-            .ToList();
+        var disponiveis = produtos
+            .Select(p => (Produto: p, Disponivel: p.Servico ? 99m : p.EstoqueAtual - vencido.GetValueOrDefault(p.Id)))
+            .Where(o => o.Disponivel > 0);
+        var opcoes = esporte
+            ? PerfilEsporte.Opcoes(disponiveis)
+            : disponiveis.Select(o => (o.Produto, Habito: PerfilConsumo.Para(o.Produto), o.Disponivel)).ToList();
         if (opcoes.Count == 0) return false;
 
-        var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, agora);
+        var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, agora, esporte ? PerfilEsporte.TamanhosDeCesta : null);
         var total = itens.Sum(i => Math.Round(i.Quantidade * opcoes.First(o => o.Produto.Id == i.ProdutoId).Produto.PrecoVenda, 2, MidpointRounding.AwayFromZero));
         if (itens.Count == 0) return false;
 
@@ -232,7 +248,7 @@ public class SimuladorClientes(
             var noFiado = completo ? await scope.ServiceProvider.GetRequiredService<FiadoDemonstracao>().EscolherClienteAsync(total) : null;
             var pedido = noFiado is int clienteId
                 ? new NovaVendaRequest(itens, 0, [new PagamentoRequest("Fiado", total)], clienteId)
-                : new NovaVendaRequest(itens, 0, [ComportamentoCliente.Pagamento(total)]);
+                : new NovaVendaRequest(itens, 0, [esporte ? PerfilEsporte.Pagamento(total) : ComportamentoCliente.Pagamento(total)]);
             await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
             return true;
         }

@@ -85,7 +85,7 @@ public class CaixaController(CaixaService caixa, AppDbContext db, VendaService v
     [HttpGet("catalogo")]
     public Task<List<ProdutoCatalogoPdv>> Catalogo() =>
         db.Produtos.AsNoTracking().Where(p => p.Ativo).OrderBy(p => p.Id)
-            .Select(p => new ProdutoCatalogoPdv(p.Id, p.Nome, p.CodigoBarras, p.Unidade, p.PrecoVenda, p.EstoqueAtual))
+            .Select(p => new ProdutoCatalogoPdv(p.Id, p.Nome, p.CodigoBarras, p.Unidade, p.PrecoVenda, p.EstoqueAtual, p.ModeloId, p.Tamanho, p.Cor, p.Servico))
             .ToListAsync();
 
     // POST /api/caixa/cancelamentos/offline → item/compra cancelado SEM INTERNET. O gerente foi escolhido na lista, mas a

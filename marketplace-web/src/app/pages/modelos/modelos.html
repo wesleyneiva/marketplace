@@ -1,0 +1,53 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="layout-grid" /> Modelos com grade</h1>
+    <p>Tênis, roupas e raquetes com tamanho e cor. Cada combinação é um produto com código e estoque próprios.</p>
+  </div>
+  <div class="botoes-topo">
+    <a class="botao" routerLink="/produtos"><app-icone nome="arrow-left" /> Produtos</a>
+    <a class="botao primario" [routerLink]="['/produtos/modelos', 'novo']">+ Novo modelo</a>
+  </div>
+</header>
+
+<section class="filtros">
+  <input type="search" class="busca" placeholder="Buscar por nome, marca ou referência…" (input)="digitar($any($event.target).value)" aria-label="Buscar modelo" />
+  <select (change)="escolherCategoria($any($event.target).value)" aria-label="Categoria">
+    <option value="">Todas as categorias</option>
+    @for (c of categorias.value() ?? []; track c.id) { <option [value]="c.id">{{ c.nome }}</option> }
+  </select>
+  <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="alternarInativos()">Mostrar inativos</button>
+</section>
+
+<section class="painel tabela-rolagem" [class.carregando]="modelos.isLoading()">
+  <table>
+    <thead>
+      <tr><th>Modelo</th><th>Grade</th><th>Categoria</th><th class="num">Preço</th><th class="num">Estoque</th></tr>
+    </thead>
+    <tbody>
+      @for (m of modelos.value()?.itens ?? []; track m.id) {
+        <tr [class.inativo]="!m.ativo">
+          <td>
+            <a class="nome" [routerLink]="['/produtos/modelos', m.id]">{{ m.nome }}</a>
+            <small class="detalhe">{{ m.marca ?? '' }}{{ m.marca && m.referencia ? ' · ' : '' }}{{ m.referencia ? 'ref. ' + m.referencia : '' }}</small>
+          </td>
+          <td>{{ resumoGrade(m) }} <small class="detalhe">{{ m.variacoes }} variações</small></td>
+          <td>{{ m.categoria }}</td>
+          <td class="num forte">
+            {{ m.precoMinimo | currency: 'BRL' }}@if (m.precoMaximo !== m.precoMinimo) { – {{ m.precoMaximo | currency: 'BRL' }} }
+          </td>
+          <td class="num">
+            {{ m.estoqueTotal | number: '1.0-0' }}
+            @if (m.variacoesZeradas > 0 && m.ativo) { <span class="selo alerta" title="Tamanhos/cores zerados">{{ m.variacoesZeradas }} zerada(s)</span> }
+            @if (!m.ativo) { <span class="selo inativo">inativo</span> }
+          </td>
+        </tr>
+      } @empty {
+        @if (!modelos.isLoading()) {
+          <tr><td colspan="5" class="vazio">Nenhum modelo. Use <b>+ Novo modelo</b> para cadastrar a grade de um tênis, roupa ou raquete.</td></tr>
+        }
+      }
+    </tbody>
+  </table>
+</section>
+
+<app-paginacao [pagina]="pagina()" [paginas]="paginas()" (irPara)="pagina.set($event)">· {{ modelos.value()?.total }} modelo(s)</app-paginacao>

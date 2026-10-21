@@ -87,6 +87,37 @@
             <button type="button" class="botao" (click)="cancelarPeso()">Cancelar</button>
             @if (erro()) { <small class="erro-peso">{{ erro() }}</small> }
           </form>
+        } @else if (grade(); as g) {
+          <div class="grade-pdv" (keydown.escape)="cancelarGrade()">
+            <header>
+              <span><app-icone nome="layout-grid" /> <b>{{ g.modelo }}</b> · escolha o tamanho e a cor{{ g.quantidade > 1 ? ' (' + g.quantidade + ' un.)' : '' }}</span>
+              <button type="button" class="botao pequeno" (click)="cancelarGrade()">Cancelar <kbd>Esc</kbd></button>
+            </header>
+            <div class="grade-rolagem">
+              <table>
+                @if (g.cores.length > 1 || g.cores[0] !== 'Única') {
+                  <thead><tr><th></th>@for (c of g.cores; track c) { <th>{{ c }}</th> }</tr></thead>
+                }
+                <tbody>
+                  @for (t of g.tamanhos; track t) {
+                    <tr>
+                      @if (g.tamanhos.length > 1 || t !== 'Único') { <th>{{ t }}</th> } @else { <th></th> }
+                      @for (c of g.cores; track c) {
+                        @let v = variacaoDaGrade(t, c);
+                        <td>
+                          @if (v) {
+                            <button type="button" class="opcao" [class.sem]="v.estoqueAtual <= 0" (click)="escolherVariacao(v)" [title]="v.nome">
+                              <b>{{ t !== 'Único' ? t : c }}</b><small>{{ v.estoqueAtual <= 0 ? 'sem estoque' : v.estoqueAtual + ' em estoque' }}</small>
+                            </button>
+                          }
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         } @else {
           <div class="busca">
             <input #campoBusca name="busca" [(ngModel)]="textoBusca" autocomplete="off"
@@ -98,8 +129,13 @@
               <ul class="resultados" role="listbox">
                 @for (p of resultados(); track p.id; let i = $index) {
                   <li role="option" [class.ativo]="i === indiceResultado()" (mousedown)="escolherDaLista(p)">
-                    <span>{{ p.nome }}</span>
-                    <small>{{ p.codigoBarras ?? 'a granel' }} · estoque {{ p.estoqueAtual | quantidade: p.unidade }}</small>
+                    @if (p.modeloId) {
+                      <span>{{ p.modelo ?? p.nome }}</span>
+                      <small>escolher tamanho e cor</small>
+                    } @else {
+                      <span>{{ p.nome }}</span>
+                      <small>{{ p.servico ? 'serviço (sem estoque)' : (p.codigoBarras ?? 'a granel') + ' · estoque ' + (p.estoqueAtual | quantidade: p.unidade) }}</small>
+                    }
                     <b>{{ p.precoVenda | currency: 'BRL' }}<small>/{{ p.unidade }}</small></b>
                   </li>
                 }

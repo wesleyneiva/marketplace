@@ -32,11 +32,13 @@ public static class ComportamentoCliente
 
     // Monta a cesta de um cliente. "disponivel" = quanto ele pode levar de cada produto
     // (ao vivo: o estoque dentro da validade; no histórico: sem limite).
+    // "tamanhos": quantos itens a cesta costuma ter (padrão: o do mercadinho; a loja de esporte manda o dela).
     public static List<ItemVendaRequest> MontarCesta(
-        IReadOnlyList<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes, ClimaAgora clima, DateTimeOffset momento)
+        IReadOnlyList<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes, ClimaAgora clima, DateTimeOffset momento,
+        int[]? tamanhos = null)
     {
         var itens = new List<ItemVendaRequest>();
-        foreach (var (produto, habito, disponivel) in SortearProdutos(opcoes, clima, momento))
+        foreach (var (produto, habito, disponivel) in SortearProdutos(opcoes, clima, momento, tamanhos ?? TamanhosDeCesta))
         {
             var quantidade = Math.Min(Quantidade(produto, habito), disponivel);
             if (produto.Unidade is not (Unidades.Quilo or Unidades.Litro)) quantidade = Math.Floor(quantidade);
@@ -49,9 +51,10 @@ public static class ComportamentoCliente
     private static readonly int[] TamanhosDeCesta = [1, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 5, 5, 6, 7, 8, 10];
 
     private static IEnumerable<(Produto, Habito, decimal)> SortearProdutos(
-        IReadOnlyList<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes, ClimaAgora clima, DateTimeOffset momento)
+        IReadOnlyList<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes, ClimaAgora clima, DateTimeOffset momento,
+        int[] tamanhosDeCesta)
     {
-        var tamanho = Math.Min(TamanhosDeCesta[Random.Shared.Next(TamanhosDeCesta.Length)], opcoes.Count);
+        var tamanho = Math.Min(tamanhosDeCesta[Random.Shared.Next(tamanhosDeCesta.Length)], opcoes.Count);
         var pesos = opcoes.Select(o => o.Habito.Popularidade * PerfilConsumo.Multiplicador(o.Habito, clima, momento)).ToList();
         var restantes = Enumerable.Range(0, opcoes.Count).ToList();
 
