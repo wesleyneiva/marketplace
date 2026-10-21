@@ -4,10 +4,16 @@
     <p>Tênis, roupas e raquetes com tamanho e cor. Cada combinação é um produto com código e estoque próprios.</p>
   </div>
   <div class="botoes-topo">
-    <a class="botao" routerLink="/produtos"><app-icone nome="arrow-left" /> Produtos</a>
     <a class="botao primario" [routerLink]="['/produtos/modelos', 'novo']">+ Novo modelo</a>
   </div>
 </header>
+
+@if (auth.ramo().grade) {
+  <nav class="abas-produtos" aria-label="Produtos">
+    <a routerLink="/produtos" [class.ativa]="false"><app-icone nome="package" /> Todos os produtos</a>
+    <a routerLink="/produtos/modelos" [class.ativa]="true"><app-icone nome="layout-grid" /> Modelos com grade <small>tênis, roupas, raquetes</small></a>
+  </nav>
+}
 
 <section class="filtros">
   <input type="search" class="busca" placeholder="Buscar por nome, marca ou referência…" (input)="digitar($any($event.target).value)" aria-label="Buscar modelo" />

@@ -118,3 +118,21 @@ tr.inativo td {
   padding: 28px;
 }
 
+
+// Loja com grade: "Todos os produtos" | "Modelos com grade".
+.abas-produtos {
+  display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--cor-borda); margin-bottom: 14px;
+  a {
+    display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; font-weight: 600; text-decoration: none;
+    color: var(--cor-texto-suave); border-bottom: 3px solid transparent;
+    small { font-weight: 400; font-size: 12px; }
+    &:hover { color: var(--cor-texto); }
+    &.ativa { color: var(--cor-primaria-escura); border-bottom-color: var(--cor-primaria); }
+  }
+}
+
+// Variação de um modelo: selo com tamanho/cor que abre a grade.
+.selo.grade {
+  margin-top: 4px; text-decoration: none; background: var(--cor-primaria-clara); color: var(--cor-primaria-escura);
+  &:hover { outline: 1px solid var(--cor-primaria); }
+}

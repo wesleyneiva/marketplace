@@ -121,7 +121,7 @@
         } @else {
           <div class="busca">
             <input #campoBusca name="busca" [(ngModel)]="textoBusca" autocomplete="off"
-                   placeholder="Bipe o código ou digite o nome · 3*arroz = 3 unidades"
+                   [placeholder]="'Bipe o código ou digite o nome · ' + ramo().exemploBusca"
                    (input)="digitar()" (keydown.enter)="buscar()" (keydown.arrowdown)="moverSelecao(1, $event)"
                    (keydown.arrowup)="moverSelecao(-1, $event)" aria-label="Buscar produto" />
             @if (buscando()) { <app-icone class="girando" nome="loader-circle" girando /> }
@@ -134,7 +134,7 @@
                       <small>escolher tamanho e cor</small>
                     } @else {
                       <span>{{ p.nome }}</span>
-                      <small>{{ p.servico ? 'serviço (sem estoque)' : (p.codigoBarras ?? 'a granel') + ' · estoque ' + (p.estoqueAtual | quantidade: p.unidade) }}</small>
+                      <small>{{ p.servico ? 'serviço (sem estoque)' : (p.codigoBarras ?? ramo().semCodigo) + ' · estoque ' + (p.estoqueAtual | quantidade: p.unidade) }}</small>
                     }
                     <b>{{ p.precoVenda | currency: 'BRL' }}<small>/{{ p.unidade }}</small></b>
                   </li>

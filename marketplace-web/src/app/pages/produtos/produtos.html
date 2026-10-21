@@ -8,10 +8,16 @@
   <div class="botoes-topo">
     @if (auth.liberado('etiquetas')) { <a class="botao" routerLink="/produtos/etiquetas"><app-icone nome="tag" /> Etiquetas</a> }
     @if (auth.liberado('importacao')) { <a class="botao" routerLink="/produtos/importar"><app-icone nome="import" /> Importar planilha</a> }
-    @if (auth.ramo().grade) { <a class="botao" routerLink="/produtos/modelos"><app-icone nome="layout-grid" /> Modelos com grade</a> }
     <a class="botao primario" routerLink="/produtos/novo">+ Novo produto</a>
   </div>
 </header>
+
+@if (auth.ramo().grade) {
+  <nav class="abas-produtos" aria-label="Produtos">
+    <a routerLink="/produtos" [class.ativa]="true"><app-icone nome="package" /> Todos os produtos</a>
+    <a routerLink="/produtos/modelos" [class.ativa]="false"><app-icone nome="layout-grid" /> Modelos com grade <small>tênis, roupas, raquetes</small></a>
+  </nav>
+}
 
 <section class="filtros">
   <input type="search" class="busca" placeholder="Buscar por nome ou código de barras…"
@@ -57,9 +63,12 @@
           <tr [class.inativo]="!p.ativo">
             <td>
               <a class="nome" [routerLink]="['/produtos', p.id]">{{ p.nome }}</a>
-              <small class="codigo">{{ p.codigoBarras ?? 'sem código de barras' }}
-                @if (p.modeloId) { · <a [routerLink]="['/produtos/modelos', p.modeloId]">grade: {{ p.modelo }}</a> }
-                @if (p.servico) { · serviço }</small>
+              <small class="codigo">{{ p.codigoBarras ?? 'sem código de barras' }}</small>
+              @if (p.modeloId) {
+                <a class="selo grade" [routerLink]="['/produtos/modelos', p.modeloId]" title="Abrir a grade do modelo (todos os tamanhos e cores)">
+                  <app-icone nome="layout-grid" /> {{ p.tamanho !== 'Único' ? p.tamanho : '' }}{{ p.tamanho !== 'Único' && p.cor !== 'Única' ? ' · ' : '' }}{{ p.cor !== 'Única' ? p.cor : '' }} · ver grade
+                </a>
+              }
             </td>
             <td>{{ p.categoria }}</td>
             <td class="num">{{ p.precoCusto | currency: 'BRL' }}</td>

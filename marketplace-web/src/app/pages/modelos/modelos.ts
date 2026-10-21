@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
@@ -15,6 +16,7 @@ import { Paginacao } from '../../shared/paginacao';
   styleUrl: './modelos.scss',
 })
 export class Modelos {
+  protected readonly auth = inject(AuthService);
   protected readonly busca = signal('');
   protected readonly categoriaId = signal<number | null>(null);
   protected readonly incluirInativos = signal(false);

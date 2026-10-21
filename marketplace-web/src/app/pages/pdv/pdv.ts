@@ -52,6 +52,7 @@ export class Pdv {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly nomeLoja = computed(() => this.auth.usuario()?.empresa.nome ?? '');
+  protected readonly ramo = this.auth.ramo; // exemplos e palavras conforme o ramo (core/ramos.ts)
   protected readonly balanca = inject(BalancaService);
   protected readonly impressora = inject(ImpressoraService);
   protected readonly conexao = inject(Conexao);

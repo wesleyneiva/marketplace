@@ -17,7 +17,7 @@
   <div class="grade">
     <div class="campo largo">
       <label for="nome">Nome do produto *</label>
-      <input id="nome" formControlName="nome" placeholder="Ex.: Arroz branco tipo 1 5kg" />
+      <input id="nome" formControlName="nome" [placeholder]="'Ex.: ' + ramo().exemploProduto" />
       @if (erroDe('nome'); as msg) { <small class="erro">{{ msg }}</small> }
     </div>
 
@@ -25,7 +25,7 @@
       <label for="codigoBarras">Código de barras</label>
       <input id="codigoBarras" formControlName="codigoBarras" inputmode="numeric" placeholder="Opcional (EAN)" />
       @if (erroDe('codigoBarras'); as msg) { <small class="erro">{{ msg }}</small> }
-      @else { <small class="dica">Deixe vazio para itens a granel.</small> }
+      @else { <small class="dica">{{ ramo().balanca ? 'Deixe vazio para itens a granel.' : 'Opcional. Tênis e roupas com tamanho: cadastre pelo modelo com grade (o código sai sozinho).' }}</small> }
     </div>
 
     @if (ramo().balanca || form.controls.codigoBalanca.value) {
