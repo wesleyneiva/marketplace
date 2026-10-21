@@ -70,7 +70,9 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
         if (await db.Clima.AnyAsync(c => c.Latitude == lat && c.Longitude == lon && c.DataHora == hora, ct))
             return;
         db.Clima.Add(new ClimaRegistro { Latitude = lat, Longitude = lon, DataHora = hora, Temperatura = clima.Temperatura, Chuva = clima.Chuva, CodigoTempo = clima.Codigo });
-        await db.SaveChangesAsync(ct);
+        try { await db.SaveChangesAsync(ct); }
+        // Duas rotinas pedindo a mesma cidade ao mesmo tempo (ex.: ao ligar): a outra já gravou esta hora.
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation }) { }
     }
 
     // Clima HORA A HORA dos últimos N dias. Junta duas fontes da Open-Meteo:
