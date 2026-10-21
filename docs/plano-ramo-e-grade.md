@@ -231,7 +231,7 @@ Em calçado e roupa, troca de número é rotina, e hoje só existe cancelamento/
 
 ---
 
-## Fase 5 — Ordem de serviço: encordoamento
+## Fase 5 — Ordem de serviço: encordoamento — FEITA em 21/10/2026 (tela Oficina; sem cadastro de cliente: nome + WhatsApp)
 
 O diferencial de loja de tênis. Também serve depois para outros serviços (ajuste, conserto).
 

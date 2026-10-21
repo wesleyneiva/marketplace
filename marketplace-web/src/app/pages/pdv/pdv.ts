@@ -1,13 +1,15 @@
 import { MARCA } from '../../shared/marca';
-import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
+import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
 import { ModelosApi } from '../../core/api/modelos.api';
+import { Ordem, URL_ORDENS } from '../../core/api/ordens.api';
 import {
   CaixaDisponivel, ClientePdv, Cupom, FORMAS_PAGAMENTO, FORMAS_RECEBER, FormaPagamento, PdvApi, ReciboFiado, ResumoCaixa, VendaLista,
   arredondar, lerNumero,
@@ -55,6 +57,7 @@ export class Pdv {
   protected readonly conexao = inject(Conexao);
   protected readonly offline = inject(CaixaOffline);
   private readonly modelosApi = inject(ModelosApi);
+  private readonly router = inject(Router);
   protected readonly semInternet = computed(() => !this.conexao.online());
   // O QR fixo do Pix (SVG gerado pelo nosso servidor e guardado no caixa) para cobrar Pix sem internet.
   private readonly sanitizer = inject(DomSanitizer);
@@ -99,6 +102,10 @@ export class Pdv {
 
   // ----- Peso (produto por KG/L) -----
   protected readonly produtoPeso = signal<Produto | null>(null);
+  // Oficina → "Cobrar" (/pdv?os=5): o serviço e a corda da ordem entram no carrinho; ao concluir, a OS fica paga.
+  readonly os = input<string>();
+  protected readonly osEmCobranca = signal<{ id: number; numero: number } | null>(null);
+  private osCarregada: string | null = null;
   // Grade (tênis, roupa): buscou pelo NOME um modelo → escolhe o tamanho e a cor. Pelo código de barras vai direto.
   protected readonly grade = signal<{ modelo: string; tamanhos: string[]; cores: string[]; itens: Produto[]; quantidade: number } | null>(null);
   protected textoPeso = '';
@@ -200,6 +207,11 @@ export class Pdv {
 
   constructor() {
     void this.carregarCaixa();
+    effect(() => {
+      this.os();
+      this.caixa();
+      untracked(() => this.verificarOrdem());
+    });
     // Venda em andamento guardada neste computador: ir ao Dashboard e voltar, apertar F5 ou o navegador fechar
     // não apaga o que já foi bipado. Ao abrir o caixa, ela volta; a cada item/desconto, é guardada de novo.
     effect(() => {
@@ -909,6 +921,11 @@ export class Pdv {
       // O botão só existe depois que o Angular desenha o cupom → foca no próximo "tique".
       setTimeout(() => this.btnNovaVenda()?.nativeElement.focus());
       this.limparVenda(false);
+      const os = this.osEmCobranca();
+      if (os && !cupom.offline) {
+        this.osEmCobranca.set(null);
+        await firstValueFrom(this.http.post(`${URL_ORDENS}/${os.id}/paga`, {}, { params: { vendaId: cupom.id } })).catch(() => null);
+      }
       if (!cupom.offline) await this.atualizarResumo();
     } catch (e) {
       this.erro.set(this.mensagem(e));
@@ -1182,6 +1199,7 @@ export class Pdv {
 
   private restaurarVenda(sessao: number): void {
     this.vendaRestaurada = sessao;
+    setTimeout(() => this.verificarOrdem());
     try {
       // Turnos antigos deste usuário (caixa já fechado): não servem mais.
       const prefixo = `marcus.vendaEmAndamento:${this.auth.usuario()?.id ?? ''}:`;
@@ -1193,6 +1211,32 @@ export class Pdv {
       this.textoDesconto = guardada.desconto ? guardada.desconto.toFixed(2).replace('.', ',') : '';
       this.mostrarAviso(`Venda em andamento recuperada: ${guardada.itens.length} ${guardada.itens.length === 1 ? 'item' : 'itens'}.`);
     } catch { /* guardado inválido: começa do zero */ }
+  }
+
+  // Só depois que a venda guardada neste computador foi recuperada (senão ela apagaria os itens da OS).
+  private verificarOrdem(): void {
+    const os = this.os(), sessao = this.caixa()?.sessaoId;
+    if (os && sessao && this.osCarregada !== os && this.vendaRestaurada === sessao) void this.cobrarOrdem(os);
+  }
+
+  private async cobrarOrdem(id: string): Promise<void> {
+    this.osCarregada = id;
+    // Tira o ?os= do endereço: recarregar a página (F5) não lança a ordem de novo (a venda já fica guardada).
+    void this.router.navigate([], { queryParams: { os: null }, queryParamsHandling: 'merge', replaceUrl: true });
+    try {
+      const o = await firstValueFrom(this.http.get<Ordem>(`${URL_ORDENS}/${id}`));
+      if (o.paga) { this.mostrarAviso(`A OS ${o.numero} já está paga.`); return; }
+      const servico = (await this.procurar(o.servico)).find((p) => p.nome === o.servico && p.servico);
+      if (servico) this.adicionar(servico, 1);
+      if (o.corda && !/cliente/i.test(o.corda)) {
+        const corda = (await this.procurar(o.corda)).find((p) => !p.servico && p.nome.startsWith(o.corda!));
+        if (corda) this.adicionar(corda, 1);
+      }
+      this.osEmCobranca.set({ id: o.id, numero: o.numero });
+      this.mostrarAviso(`OS ${o.numero} de ${o.cliente}: confira os itens e finalize. A ordem fica paga ao concluir.`);
+    } catch (e) {
+      this.erro.set(this.mensagem(e));
+    }
   }
 
   private limparVenda(focar = true): void {

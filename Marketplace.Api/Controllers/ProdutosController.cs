@@ -20,7 +20,7 @@ public class ProdutosController(AppDbContext db) : ControllerBase
     [HttpGet]
     public async Task<Pagina<ProdutoResponse>> Listar(
         string? busca, int? categoriaId, bool estoqueBaixo = false, bool incluirInativos = false,
-        int pagina = 1, int tamanho = 20, bool agruparGrade = false)
+        int pagina = 1, int tamanho = 20, bool agruparGrade = false, bool apenasServicos = false)
     {
         pagina = Math.Max(pagina, 1);
         tamanho = Math.Clamp(tamanho, 1, 100);
@@ -49,6 +49,9 @@ public class ProdutosController(AppDbContext db) : ControllerBase
 
         if (estoqueBaixo)
             consulta = consulta.Where(p => !p.Servico && p.EstoqueAtual <= p.EstoqueMinimo);
+
+        if (apenasServicos)
+            consulta = consulta.Where(p => p.Servico);
 
         // Caixa: um modelo da grade vem UMA vez (a 1ª variação ativa); o tamanho e a cor são escolhidos depois.
         if (agruparGrade)

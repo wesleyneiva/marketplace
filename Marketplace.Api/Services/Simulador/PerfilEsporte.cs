@@ -7,16 +7,17 @@ namespace Marketplace.Api.Services.Simulador;
 // encordoamento girando muito, raquete e tênis de vez em quando, e os números do meio da grade saindo mais.
 public static class PerfilEsporte
 {
-    // Clientes por hora num dia comum: pouco de manhã, mais no fim da tarde (depois do trabalho / antes da aula).
+    // Clientes por hora num dia comum: movimento BAIXO/MODERADO (loja especializada ainda formando clientela, ~6–7
+    // vendas num dia útil): pouco de manhã, mais no fim da tarde (depois do trabalho / antes da aula).
     private static readonly Dictionary<int, double> ClientesPorHora = new()
     {
-        [8] = 0.4, [9] = 0.7, [10] = 1.0, [11] = 1.2, [12] = 1.3, [13] = 1.0, [14] = 1.0, [15] = 1.2,
-        [16] = 1.5, [17] = 2.0, [18] = 2.3, [19] = 2.0, [20] = 1.2, [21] = 0.6,
+        [8] = 0.2, [9] = 0.4, [10] = 0.6, [11] = 0.7, [12] = 0.8, [13] = 0.6, [14] = 0.6, [15] = 0.7,
+        [16] = 0.9, [17] = 1.1, [18] = 1.0, [19] = 0.8, [20] = 0.5, [21] = 0.3,
     };
 
     public static double ClientesNaHora(DateOnly dia, int hora, ClimaAgora clima, double intensidade)
     {
-        var porHora = ClientesPorHora.GetValueOrDefault(hora, 0.3);
+        var porHora = ClientesPorHora.GetValueOrDefault(hora, 0.2);
         porHora *= dia.DayOfWeek switch
         {
             DayOfWeek.Saturday => 1.6, // sábado: dia de jogar e de comprar
@@ -34,9 +35,9 @@ public static class PerfilEsporte
     // bola, overgrip, corda e encordoamento giram toda semana.
     private static readonly (string Palavra, Habito Habito)[] Regras =
     [
-        ("encordoamento", new(2.0, Etiqueta.Nenhuma)),
-        ("troca de grip", new(0.6, Etiqueta.Nenhuma)),
-        ("stencil", new(0.4, Etiqueta.Nenhuma)),
+        ("encordoamento", new(2.0, Etiqueta.Nenhuma, Pacotes: [1])), // 1 raquete por ordem
+        ("troca de grip", new(0.6, Etiqueta.Nenhuma, Pacotes: [1])),
+        ("stencil", new(0.4, Etiqueta.Nenhuma, Pacotes: [1])),
         ("overgrip", new(2.4, Etiqueta.Nenhuma, Pacotes: [1, 1, 1, 2, 3])),
         ("bola", new(2.2, Etiqueta.Nenhuma, Pacotes: [1, 1, 1, 2, 2, 3])),
         ("corda", new(1.1, Etiqueta.Nenhuma)),
@@ -108,6 +109,19 @@ public static class PerfilEsporte
             "L1" => 0.5, "L2" => 1.2, "L3" => 1.2, "L4" => 0.6, "L0" => 0.2,
             _ => 1,
         };
+    }
+
+    // Quem pede encordoamento quase sempre leva a corda nova da loja (~70%); o resto traz a corda dele.
+    public static void CompletarCesta(List<Contracts.ItemVendaRequest> itens,
+        IReadOnlyList<(Produto Produto, Habito Habito, decimal Disponivel)> opcoes)
+    {
+        var porId = opcoes.ToDictionary(o => o.Produto.Id, o => o.Produto);
+        var encordoa = itens.Any(i => porId.TryGetValue(i.ProdutoId, out var p) && p.Servico
+            && PerfilConsumo.SemAcento(p.Nome).Contains("encordoamento"));
+        var temCorda = itens.Any(i => porId.TryGetValue(i.ProdutoId, out var p) && p.Nome.StartsWith("Corda "));
+        if (!encordoa || temCorda || Random.Shared.NextDouble() > 0.7) return;
+        var cordas = opcoes.Where(o => o.Produto.Nome.StartsWith("Corda ") && o.Disponivel >= 1).ToList();
+        if (cordas.Count > 0) itens.Add(new(cordas[Random.Shared.Next(cordas.Count)].Produto.Id, 1));
     }
 
     // Quase todo mundo leva 1 ou 2 coisas (bola + overgrip, raquete + encordoamento).

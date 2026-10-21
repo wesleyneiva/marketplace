@@ -18,6 +18,7 @@ interface ItemMenu {
   soDono?: boolean;  // só o dono da plataforma (administra os clientes)
   pronto: boolean;   // false = aparece como "em breve"
   modulo?: Modulo;   // módulo opcional (core/modulos.ts): some do menu se não estiver liberado para o cliente
+  soRamo?: 'servicos' | 'grade'; // só nos ramos que têm isto (core/ramos.ts), ex.: Oficina na loja de esporte
 }
 
 // Telas de cada módulo opcional (as mesmas do app.routes.ts com precisaModulo).
@@ -61,6 +62,7 @@ export class Shell {
     { rotulo: 'Vendas', icone: 'receipt-text', rota: '/vendas', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'vendas' },
     { rotulo: 'Produtos', icone: 'package', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Estoque', icone: 'tag', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Oficina', icone: 'wrench', rota: '/oficina', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true, soRamo: 'servicos' },
     { rotulo: 'Compras', icone: 'shopping-bag', rota: '/compras', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'compras' },
     { rotulo: 'Fornecedores', icone: 'truck', rota: '/fornecedores', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'compras' },
     { rotulo: 'Financeiro', icone: 'circle-dollar-sign', rota: '/financeiro', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'financeiro' },
@@ -101,7 +103,7 @@ export class Shell {
   protected readonly itensVisiveis = computed(() =>
     this.areaDoDono()
       ? this.menuDono
-      : this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || this.auth.liberado(item.modulo))),
+      : this.menu.filter((item) => this.auth.temPerfil(...item.perfis) && (!item.soDono || !!this.usuario()?.donoDaPlataforma) && (!item.modulo || this.auth.liberado(item.modulo)) && (!item.soRamo || this.auth.ramo()[item.soRamo])),
   );
 
   protected readonly iniciais = computed(() =>

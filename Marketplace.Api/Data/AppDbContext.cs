@@ -28,6 +28,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Produto> Produtos => Set<Produto>();
     public DbSet<Modelo> Modelos => Set<Modelo>();
+    public DbSet<OrdemServico> OrdensServico => Set<OrdemServico>();
     public DbSet<MovimentacaoEstoque> Movimentacoes => Set<MovimentacaoEstoque>();
     public DbSet<LoteValidade> Lotes => Set<LoteValidade>();
     public DbSet<SessaoCaixa> SessoesCaixa => Set<SessaoCaixa>();
@@ -243,6 +244,23 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(f => f.Telefone).HasMaxLength(30);
             e.Property(f => f.Email).HasMaxLength(150);
             e.Property(f => f.Observacao).HasMaxLength(300);
+        });
+
+        builder.Entity<OrdemServico>(e =>
+        {
+            e.ToTable("OrdensServico");
+            e.Property(o => o.Cliente).HasMaxLength(100);
+            e.Property(o => o.Telefone).HasMaxLength(20);
+            e.Property(o => o.Raquete).HasMaxLength(120);
+            e.Property(o => o.Corda).HasMaxLength(120);
+            e.Property(o => o.Tensao).HasMaxLength(20);
+            e.Property(o => o.Servico).HasMaxLength(150);
+            e.Property(o => o.Observacao).HasMaxLength(300);
+            e.Property(o => o.Status).HasMaxLength(12);
+            e.Property(o => o.Valor).HasPrecision(10, 2);
+            e.HasIndex(o => new { o.EmpresaId, o.Numero }).IsUnique();
+            e.HasIndex(o => new { o.EmpresaId, o.Status, o.Prazo });
+            e.HasIndex(o => new { o.EmpresaId, o.Telefone });
         });
 
         builder.Entity<Modelo>(e =>

@@ -160,7 +160,14 @@ public class SimuladorClientes(
 
         var tempo = await ClimaDaLojaAsync(empresaId, ct);
         var hoje = DateOnly.FromDateTime(agora.DateTime);
-        var porMinuto = (await EsporteAsync(empresaId, ct)
+        var esporte = await EsporteAsync(empresaId, ct);
+        if (esporte)
+        {
+            // A oficina anda: começa, termina e entrega as raquetes que o bot recebeu.
+            using var oficina = escopos.CriarEscopo(empresaId);
+            await OficinaDemonstracao.AndarComAsOrdensAsync(oficina.ServiceProvider.GetRequiredService<AppDbContext>());
+        }
+        var porMinuto = (esporte
             ? PerfilEsporte.ClientesNaHora(hoje, agora.Hour, tempo, estado.Intensidade)
             : ComportamentoCliente.ClientesNaHora(hoje, agora.Hour, tempo, estado.Intensidade)) / 60;
         var clientes = ComportamentoCliente.Poisson(porMinuto);
@@ -239,6 +246,7 @@ public class SimuladorClientes(
         if (opcoes.Count == 0) return false;
 
         var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, agora, esporte ? PerfilEsporte.TamanhosDeCesta : null);
+        if (esporte) PerfilEsporte.CompletarCesta(itens, opcoes);
         var total = itens.Sum(i => Math.Round(i.Quantidade * opcoes.First(o => o.Produto.Id == i.ProdutoId).Produto.PrecoVenda, 2, MidpointRounding.AwayFromZero));
         if (itens.Count == 0) return false;
 
@@ -249,7 +257,9 @@ public class SimuladorClientes(
             var pedido = noFiado is int clienteId
                 ? new NovaVendaRequest(itens, 0, [new PagamentoRequest("Fiado", total)], clienteId)
                 : new NovaVendaRequest(itens, 0, [esporte ? PerfilEsporte.Pagamento(total) : ComportamentoCliente.Pagamento(total)]);
-            await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
+            var venda = await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
+            // Loja de tênis: o encordoamento vendido vira ordem de serviço (o bot faz e entrega depois).
+            if (esporte) await OficinaDemonstracao.AbrirOrdensAsync(db, venda, itens, produtos, usuarioId);
             return true;
         }
         catch (EstoqueException e)

@@ -255,6 +255,16 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Bot da loja de esporte** (`Simulador/PerfilEsporte.cs`): ~16 clientes/dia útil (sábado 1,6x), cesta de 1–3 itens,
   bolas/overgrip/cordas/encordoamento girando, raquete e tênis de vez em quando, 40–42 saindo mais, mais crédito.
   Testado no dev (200 vendas): ticket ~R$ 380, raquete em ~7% das vendas, calçado ~15%.
+- **Oficina** (ordens de serviço, migration `OrdensDeServico`; menu "Oficina" só no ramo com serviços): cliente deixa a
+  raquete (serviço, corda, tensão, prazo), Começar → Pronta → Avisar (WhatsApp com a mensagem pronta) → Entregar.
+  "Da última vez" pelo telefone. Cobrança no caixa: botão **Cobrar** abre `/pdv?os=N` com serviço e corda no carrinho e
+  marca a OS como paga ao concluir. O bot da loja de esporte abre OS para cada encordoamento que vende (~70% levam a corda
+  da loja), faz e entrega (`Simulador/OficinaDemonstracao.cs`, só nas OS `Automatica`).
+- **TopSpin Store implantada** (produção, empresa #5, ramo esporte, Porto Alegre/RS, 1 caixa, seg–sex 9–18 e sáb 10–16,
+  domingo fechado; plano **Lojas** R$ 1.899 cobrando de 21/11/2026; bot SoVendas com movimento baixo/moderado, ~6–7
+  vendas por dia útil): admin `wesley@marcus.com` (senha provisória em `~/projetos/marketplace-testes/topspin/acesso-topspin.txt`,
+  o sistema pede a senha definitiva no 1º acesso). Catálogo importado (`importar-produtos.sh`) e financeiro
+  (`topspin-financeiro.json`: Itaú PJ R$ 40 mil de exemplo, 16 contas fixas = R$ 32.649/mês, saldo mínimo 15 mil, Simples 6%).
 - Catálogo da TopSpin: `~/projetos/marketplace-testes/topspin/gerar-produtos-topspin.py` → `topspin-produtos.csv`
   (40 modelos/254 variações + 45 simples e serviços, 10 fornecedores; estoque ~R$ 300 mil a custo).
 

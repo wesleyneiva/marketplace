@@ -1,0 +1,12 @@
+@use '../contas/contas.scss';
+
+.filtros-oficina { margin-bottom: 10px; input { width: 100%; max-width: 420px; } }
+.selo.recebida { background: var(--cor-info-fundo); color: var(--cor-info); }
+.selo.emandamento { background: var(--cor-alerta-fundo-forte); color: var(--cor-alerta); }
+.selo.pronta { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+.selo.cancelada { background: var(--cor-erro-fundo); color: var(--cor-erro); }
+.txt-ok { color: var(--cor-primaria-escura); }
+.txt-alerta { color: var(--cor-alerta); }
+.txt-perigo { color: var(--cor-erro); }
+.historico { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--cor-texto-suave); }
+.janela label.marcar { flex-direction: row; align-items: center; gap: 8px; font-weight: 400; }

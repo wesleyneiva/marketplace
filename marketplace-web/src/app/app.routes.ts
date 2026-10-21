@@ -110,6 +110,8 @@ export const routes: Routes = [
         canActivate: [precisaModulo('fiado'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/fiado/fiado').then((m) => m.Fiado),
       },
+      // Oficina (loja de esporte): ordens de serviço de encordoamento. O menu só mostra no ramo com serviços.
+      { path: 'oficina', loadComponent: () => import('./pages/oficina/oficina').then((m) => m.Oficina) },
       {
         path: 'contas',
         canActivate: [precisaModulo('contas'), precisaPerfil('Administrador', 'Gerente')],
