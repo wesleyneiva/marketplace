@@ -147,7 +147,8 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         if (r.Ficha is not null && ValidarFicha(r.Ficha) is { } erroFicha) return BadRequest(new { mensagem = erroFicha });
         try
         {
-            var (id, senha) = await NovaEmpresa.CriarAsync(services, r.Nome, apelido, r.LimiteCaixas, r.AdminEmail, r.AdminNome, r.Cidade);
+            var (id, senha) = await NovaEmpresa.CriarAsync(services, r.Nome, apelido, r.LimiteCaixas, r.AdminEmail, r.AdminNome, r.Cidade,
+                r.Ramo ?? Ramos.Mercado);
             var empresa = await db.Empresas.FirstAsync(e => e.Id == id);
             if (r.Ficha is not null)
             {
@@ -173,9 +174,11 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             return BadRequest(new { mensagem = "Vendas automáticas: Desligado, SoVendas ou Completo." });
         if (r.VendasAutomaticas == ModosVendasAutomaticas.Completo && !empresa.Demonstracao)
             return BadRequest(new { mensagem = "O modo completo (compras, contas e fiado automáticos) é só da demonstração." });
+        if (r.Ramo is not null && !Ramos.Valido(r.Ramo)) return BadRequest(new { mensagem = $"Ramo: {string.Join(" ou ", Ramos.Todos)}." });
         empresa.Nome = r.Nome.Trim();
         empresa.LimiteCaixas = r.LimiteCaixas;
         if (r.VendasAutomaticas is not null) empresa.VendasAutomaticas = r.VendasAutomaticas;
+        if (r.Ramo is not null) empresa.Ramo = r.Ramo; // as categorias que já existem ficam como estão
         if (r.Ficha is not null) AplicarFicha(empresa, r.Ficha);
         await db.SaveChangesAsync();
         return (await ResumirAsync([empresa]))[0];
@@ -318,7 +321,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
                 u?.UltimoAcesso, m?.Ultimo, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}",
                 e.VendasAutomaticas, e.Responsavel, e.Telefone, e.Plano?.Nome, CobrancasService.ValorMensal(e, e.Plano), e.Cortesia,
                 e.MotivoSuspensao, atrasadas.GetValueOrDefault(e.Id)?.Total ?? 0,
-                atrasadas.GetValueOrDefault(e.Id) is { } a ? hoje.DayNumber - a.Mais.DayNumber : 0);
+                atrasadas.GetValueOrDefault(e.Id) is { } a ? hoje.DayNumber - a.Mais.DayNumber : 0, e.Ramo);
         }).ToList();
     }
 }

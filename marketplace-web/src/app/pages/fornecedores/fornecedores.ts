@@ -1,4 +1,5 @@
 import { Component, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -14,6 +15,7 @@ import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
   styleUrl: '../usuarios/usuarios.scss',
 })
 export class Fornecedores {
+  protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly http = inject(HttpClient);
 
   protected readonly incluirInativos = signal(false);

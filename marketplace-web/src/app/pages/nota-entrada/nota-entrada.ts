@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse, httpResource } from '@angular/common/http';
@@ -41,6 +42,7 @@ interface ItemEstado {
   styleUrl: './nota-entrada.scss',
 })
 export class NotaEntradaPagina {
+  protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly api = inject(NotasApi);
 
   protected readonly unidades = UNIDADES;

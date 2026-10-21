@@ -189,7 +189,7 @@
           @if (barrasTemperatura().length) {
             <app-grafico-barras [dados]="barrasTemperatura()" formato="numero" [larguraRotulos]="120" descricao="Clientes por hora por faixa de temperatura" />
           } @else {
-            <p class="vazio">Ainda juntando dados: cada faixa de temperatura precisa de pelo menos 30 horas de mercado aberto.</p>
+            <p class="vazio">Ainda juntando dados: cada faixa de temperatura precisa de pelo menos 30 horas de {{ ramo().aberto }}.</p>
           }
         </div>
         <div>

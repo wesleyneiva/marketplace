@@ -73,6 +73,7 @@
       <small>{{ (estoqueBaixo.value()?.total ?? 0) === 1 ? 'produto abaixo do mínimo' : 'produtos abaixo do mínimo' }}</small>
     </a>
 
+    @if (ramo().validade) {
     <a class="cartao clicavel" routerLink="/estoque" [queryParams]="{ aba: 'validades' }">
       <div class="topo-cartao"><span>Validade (7 dias)</span><span class="icone alerta"><app-icone nome="clock" /></span></div>
       <strong class="valor" [class.perigo]="resumoValidade().vencidos > 0">
@@ -83,6 +84,7 @@
         {{ resumoValidade().valor | currency: 'BRL' }} em risco
       </small>
     </a>
+    }
 
     @if (comContas()) {
     <a class="cartao clicavel" routerLink="/contas">
@@ -118,6 +120,7 @@
       }
     </article>
 
+    @if (ramo().validade) {
     <article class="painel lista">
       <h2><app-icone nome="clock" /> Vencendo primeiro</h2>
       @for (l of resumoValidade().primeiros; track l.id) {
@@ -131,5 +134,6 @@
         <p class="vazio"><app-icone nome="circle-check" /> Nada vencendo nos próximos 7 dias.</p>
       }
     </article>
+    }
   </section>
 }

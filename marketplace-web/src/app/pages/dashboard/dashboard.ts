@@ -19,6 +19,7 @@ import { SimuladorApi, SimuladorStatus } from '../../core/api/simulador.api';
 })
 export class Dashboard {
   private readonly auth = inject(AuthService);
+  protected readonly ramo = this.auth.ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly simuladorApi = inject(SimuladorApi);
 
   protected readonly hoje = new Date();
@@ -37,7 +38,7 @@ export class Dashboard {
     this.veEstoque() ? { url: '/api/produtos', params: { estoqueBaixo: true, tamanho: 5 } } : undefined,
   );
   protected readonly validades = httpResource<Lote[]>(() =>
-    this.veEstoque() ? { url: '/api/estoque/validades', params: { dias: 7 } } : undefined,
+    this.veEstoque() && this.ramo().validade ? { url: '/api/estoque/validades', params: { dias: 7 } } : undefined,
   );
 
   // Vendas: a gerência vê o dia inteiro (todos os caixas); o operador de caixa vê o caixa dele.

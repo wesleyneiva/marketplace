@@ -24,6 +24,7 @@
       @else { <small class="dica">Deixe vazio para itens a granel.</small> }
     </div>
 
+    @if (ramo().balanca || form.controls.codigoBalanca.value) {
     <div class="campo">
       <label for="codigoBalanca">Código na balança (PLU)</label>
       <div class="com-botao">
@@ -33,6 +34,7 @@
       @if (erroDe('codigoBalanca'); as msg) { <small class="erro">{{ msg }}</small> }
       @else { <small class="dica">Para pesar no açougue/hortifrúti: o mesmo número cadastrado na balança.</small> }
     </div>
+    }
 
     <div class="campo">
       <label for="categoriaId">Categoria *</label>
@@ -100,10 +102,12 @@
       </small>
     </div>
 
+    @if (ramo().validade || form.controls.controlaValidade.value) {
     <label class="campo marcar largo">
       <input type="checkbox" formControlName="controlaValidade" />
       <span>Produto perecível (controlar data de validade)</span>
     </label>
+    }
   </div>
 
   <details class="fiscal" [open]="!!form.controls.ncm.value">

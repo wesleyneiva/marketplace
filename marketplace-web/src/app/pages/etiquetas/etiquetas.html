@@ -61,7 +61,7 @@
     <section class="painel imprimir">
       <label>Tamanho da etiqueta
         <select [ngModel]="formatoAtual()" (ngModelChange)="formatoAtual.set($event)">
-          @for (f of formatos | keyvalue; track f.key) { <option [ngValue]="f.key">{{ f.value.nome }}</option> }
+          @for (f of formatos | keyvalue; track f.key) { <option [ngValue]="f.key">{{ f.key === 'gondola' ? ramo().etiquetaPreco + ' · ' : '' }}{{ f.value.nome }}</option> }
         </select>
       </label>
       <button type="button" class="botao primario" (click)="imprimir()" [disabled]="!totalEtiquetas()"><app-icone nome="printer" /> Imprimir {{ totalEtiquetas() }} etiquetas</button>

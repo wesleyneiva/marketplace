@@ -23,6 +23,7 @@
             @if (e.responsavel) { · {{ e.responsavel }} }</small>
         </div>
         <div class="selos">
+          @if (e.ramo !== 'mercado') { <span class="selo ramo">{{ perfilRamo(e.ramo).nome }}</span> }
           @if (e.demonstracao) { <span class="selo demo">demonstração</span> }
           @if (e.vendasAutomaticas !== 'Desligado') { <span class="selo demo" title="Clientes simulados comprando no horário da loja"><app-icone nome="bot" /> vendas automáticas</span> }
           @if (e.maiorAtraso > 0) { <span class="selo suspensa">{{ e.maiorAtraso }} dia(s) de atraso</span> }
@@ -86,7 +87,17 @@
       <button type="button" class="fechar" (click)="dlgEmpresa.close()"><app-icone nome="x" /></button>
     </header>
     <div class="corpo">
-      <label>Nome do mercado<input name="nome" [(ngModel)]="nome" required minlength="2" maxlength="100" /></label>
+      <label>Nome da empresa<input name="nome" [(ngModel)]="nome" required minlength="2" maxlength="100" /></label>
+      <label>Ramo
+        <select name="ramo" [(ngModel)]="ramo">
+          @for (r of ramos; track r.id) { <option [ngValue]="r.id">{{ r.nome }}</option> }
+        </select>
+        <small>@if (editando() && ramo !== editando()!.ramo) {
+          Muda as palavras e o que aparece nas telas do cliente. As categorias que ele já tem ficam como estão.
+        } @else if (!editando()) {
+          Define as categorias iniciais, as palavras das telas e o que aparece (balança e validade são de mercado).
+        }</small>
+      </label>
       @if (!editando()) {
         <label>Apelido interno <small>(opcional: identifica a empresa; não muda o endereço)</small>
           <input name="subdominio" [(ngModel)]="subdominio" maxlength="40" pattern="[a-z0-9]([a-z0-9-]*[a-z0-9])?" [placeholder]="apelidoSugerido() || 'mercado-do-ze'" />
@@ -120,7 +131,7 @@
           <label>WhatsApp<input name="telefone" [(ngModel)]="telefone" maxlength="20" placeholder="51 99999-8888" inputmode="tel" /></label>
           <label>CPF ou CNPJ<input name="documento" [(ngModel)]="documento" maxlength="18" inputmode="numeric" /></label>
         </fieldset>
-        <p class="dica">O sistema cria a empresa com as categorias padrão e gera uma <b>senha provisória</b> para o administrador.</p>
+        <p class="dica">O sistema cria a empresa com as categorias padrão do ramo e gera uma <b>senha provisória</b> para o administrador.</p>
       } @else if (limiteCaixas < editando()!.caixasAbertos) {
         <p class="dica"><app-icone nome="triangle-alert" /> Há {{ editando()!.caixasAbertos }} caixas abertos agora; os que passarem do plano somem da lista ao serem fechados.</p>
       }

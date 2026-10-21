@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -25,6 +26,7 @@ const FORMAS: Record<string, string> = { Pix: 'Pix', Debito: 'Débito', Credito:
   styleUrl: './relatorios.scss',
 })
 export class Relatorios {
+  protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly http = inject(HttpClient);
 
   protected readonly opcoesPeriodo = [7, 30, 60];
@@ -54,7 +56,7 @@ export class Relatorios {
         valor: d.faturamento,
         apagado: d.data === this.hoje,
         detalhes: d.vendas === 0 && d.data !== this.hoje
-          ? [`${NOMES[dia.getDay()]}: mercado fechado`]
+          ? [`${NOMES[dia.getDay()]}: ${this.ramo().fechado}`]
           : [
               NOMES[dia.getDay()] + (d.data === this.hoje ? ' (hoje, até agora)' : ''),
               `${d.vendas} vendas · lucro ${formatar(d.lucro, 'moeda')}`,
@@ -129,14 +131,14 @@ export class Relatorios {
   protected readonly barrasTemperatura = computed<PontoBarra[]>(() =>
     (this.clima.value()?.porTemperatura ?? []).map((f) => ({
       rotulo: f.faixa, valor: f.clientesPorHora, extra: f.ticketMedio ? `ticket ${formatar(f.ticketMedio, 'moeda')}` : undefined,
-      detalhes: [`${f.horas} horas com o mercado aberto`],
+      detalhes: [`${f.horas} horas com ${this.ramo().aberto}`],
     })),
   );
 
   protected readonly barrasChuva = computed<PontoBarra[]>(() =>
     (this.clima.value()?.porChuva ?? []).map((f) => ({
       rotulo: f.faixa, valor: f.clientesPorHora, extra: f.ticketMedio ? `ticket ${formatar(f.ticketMedio, 'moeda')}` : undefined,
-      detalhes: [`${f.horas} horas com o mercado aberto`],
+      detalhes: [`${f.horas} horas com ${this.ramo().aberto}`],
     })),
   );
 

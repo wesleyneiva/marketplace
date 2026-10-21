@@ -69,6 +69,10 @@ public class Empresa
     // (um por fornecedor). A pessoa confere, ajusta e envia. Nada é enviado sozinho.
     public bool ComprasAutomaticas { get; set; } = true;
 
+    // Ramo do comércio (ver Ramos): decide as categorias iniciais, as palavras das telas ("mercado" / "loja"), o que
+    // aparece (balança, validade) e o que a IA leva em conta. Só o dono da plataforma muda.
+    public string Ramo { get; set; } = Ramos.Mercado;
+
     // Módulos liberados para este cliente (ver Models/Modulos.cs). null = todos. Só o dono da plataforma muda.
     public string[]? Modulos { get; set; }
 
@@ -95,6 +99,27 @@ public class Empresa
     public bool Cortesia { get; set; }               // não cobra (demonstração, testes, parceiro)
     public string? MotivoSuspensao { get; set; }     // Atraso (volta sozinho ao pagar) ou Manual
     public DateTimeOffset? SuspensaEm { get; set; }
+}
+
+// Ramos de comércio atendidos. O sistema é um só: o ramo só muda textos, sugestões e o que fica à vista.
+// O Angular tem a mesma lista em core/ramos.ts.
+public static class Ramos
+{
+    public const string Mercado = "mercado";
+    public const string Esporte = "esporte"; // loja de material esportivo (raquetes, calçados, roupas, cordas…)
+
+    public static readonly string[] Todos = [Mercado, Esporte];
+    public static bool Valido(string? ramo) => ramo is not null && Todos.Contains(ramo);
+
+    // Categorias criadas junto com a empresa (vazias; o cliente muda à vontade).
+    public static string[] CategoriasPadrao(string ramo) => ramo switch
+    {
+        Esporte => ["Raquetes", "Calçados", "Roupas", "Bolas", "Cordas", "Acessórios", "Bolsas e mochilas", "Serviços"],
+        _ => ["Mercearia", "Bebidas", "Hortifrúti", "Padaria", "Açougue", "Frios e Laticínios", "Limpeza", "Higiene e Beleza"],
+    };
+
+    // Como a IA e os textos do servidor chamam o negócio.
+    public static string Negocio(string ramo) => ramo == Esporte ? "loja de material esportivo" : "mercado";
 }
 
 public static class ModosVendasAutomaticas

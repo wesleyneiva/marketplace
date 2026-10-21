@@ -18,9 +18,6 @@ public static partial class NovaEmpresa
 {
     public const string Comando = "nova-empresa";
 
-    private static readonly string[] CategoriasPadrao =
-        ["Mercearia", "Bebidas", "Hortifrúti", "Padaria", "Açougue", "Frios e Laticínios", "Limpeza", "Higiene e Beleza"];
-
     [GeneratedRegex("^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$")]
     private static partial Regex SubdominioValido();
 
@@ -34,18 +31,19 @@ public static partial class NovaEmpresa
         var email = args["admin-email"]?.Trim();
         var nomeAdmin = args["admin-nome"]?.Trim();
         if (string.IsNullOrEmpty(nome) || string.IsNullOrEmpty(subdominio) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(nomeAdmin))
-            return Erro("Uso: nova-empresa --nome \"Mercado do Zé\" --subdominio mercadoze --caixas 2 --admin-email ze@exemplo.com --admin-nome \"José\"");
+            return Erro("Uso: nova-empresa --nome \"Mercado do Zé\" --subdominio mercadoze --caixas 2 --admin-email ze@exemplo.com --admin-nome \"José\" [--ramo mercado|esporte]");
 
         try
         {
             var caixas = args.GetValue("caixas", 2);
-            var (empresaId, senha) = await CriarAsync(services, nome, subdominio, caixas, email, nomeAdmin);
+            var ramo = args["ramo"]?.Trim().ToLowerInvariant() ?? Ramos.Mercado;
+            var (empresaId, senha) = await CriarAsync(services, nome, subdominio, caixas, email, nomeAdmin, ramo: ramo);
             Console.WriteLine($"""
 
                 ✅ Empresa criada: #{empresaId} {nome}
                    Apelido interno: {subdominio}
                    Caixas: {caixas}
-                   Categorias padrão: {CategoriasPadrao.Length}
+                   Ramo: {ramo} · categorias padrão: {Ramos.CategoriasPadrao(ramo).Length}
 
                    Administrador: {nomeAdmin} <{email}>
                    Senha provisória: {senha}   ← anote e passe ao cliente (troca no 1º acesso)
@@ -64,7 +62,7 @@ public static partial class NovaEmpresa
     // Devolve o id da empresa e a senha provisória do administrador (mostrada uma vez só).
     public static async Task<(int EmpresaId, string Senha)> CriarAsync(
         IServiceProvider services, string nome, string subdominio, int caixas, string email, string nomeAdmin,
-        Contracts.CidadeRequest? cidade = null)
+        Contracts.CidadeRequest? cidade = null, string ramo = Ramos.Mercado)
     {
         nome = nome.Trim();
         subdominio = subdominio.Trim().ToLowerInvariant();
@@ -76,6 +74,7 @@ public static partial class NovaEmpresa
         if (caixas is < 1 or > 999) throw new NovaEmpresaException("Caixas: de 1 a 999.");
         if (nomeAdmin.Length < 2) throw new NovaEmpresaException("Informe o nome do administrador.");
         if (!email.Contains('@') || email.Length > 150) throw new NovaEmpresaException("E-mail do administrador inválido.");
+        if (!Ramos.Valido(ramo)) throw new NovaEmpresaException($"Ramo: {string.Join(" ou ", Ramos.Todos)}.");
 
         int empresaId;
         using (var scope = services.GetRequiredService<IServiceScopeFactory>().CreateScope())
@@ -87,7 +86,7 @@ public static partial class NovaEmpresa
             if (await db.Users.IgnoreQueryFilters().AnyAsync(u => u.NormalizedEmail == usuarios.NormalizeEmail(email)))
                 throw new NovaEmpresaException($"O e-mail {email} já é usuário do sistema.");
 
-            var empresa = new Empresa { Nome = nome, Subdominio = subdominio, LimiteCaixas = caixas };
+            var empresa = new Empresa { Nome = nome, Subdominio = subdominio, LimiteCaixas = caixas, Ramo = ramo };
             if (cidade is not null && Services.Geografia.FusoValido(cidade.Fuso))
             {
                 (empresa.Cidade, empresa.Uf, empresa.Latitude, empresa.Longitude, empresa.Fuso) =
@@ -102,7 +101,7 @@ public static partial class NovaEmpresa
         using (var scope = services.CriarEscopo(empresaId))
         {
             var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-            db.Categorias.AddRange(CategoriasPadrao.Select(c => new Categoria { Nome = c }));
+            db.Categorias.AddRange(Ramos.CategoriasPadrao(ramo).Select(c => new Categoria { Nome = c }));
             await db.SaveChangesAsync();
             await SeedFinanceiro.GarantirPadraoAsync(db); // plano de contas + caixa, cofre e banco
 

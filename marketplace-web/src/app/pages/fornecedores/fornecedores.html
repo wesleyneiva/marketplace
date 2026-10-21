@@ -1,7 +1,7 @@
 <header class="titulo-pagina">
   <div>
     <h1><app-icone nome="truck" /> Fornecedores</h1>
-    <p>De quem o mercado compra. O prazo de entrega entra no cálculo da sugestão de compra.</p>
+    <p>De quem {{ ramo().oNegocio }} compra. O prazo de entrega entra no cálculo da sugestão de compra.</p>
   </div>
   <div class="botoes-topo">
     <button type="button" class="botao" [class.ligado]="incluirInativos()" (click)="incluirInativos.set(!incluirInativos())">Mostrar inativos</button>

@@ -22,7 +22,7 @@ export const CATALOGO_MODULOS: { id: Modulo; nome: string; descricao: string }[]
   { id: 'contas', nome: 'Contas a pagar', descricao: 'Boletos e despesas, vencimentos e pagamentos.' },
   { id: 'relatorios', nome: 'Relatórios', descricao: 'Relatórios de vendas, clima e insights.' },
   { id: 'importacao', nome: 'Importar planilha', descricao: 'Cadastro de produtos em lote por .xlsx ou .csv.' },
-  { id: 'etiquetas', nome: 'Etiquetas de gôndola', descricao: 'Impressão de etiquetas de preço com código de barras.' },
+  { id: 'etiquetas', nome: 'Etiquetas de preço', descricao: 'Etiquetas de gôndola/prateleira com preço e código de barras.' },
   ...(MODULOS.fiado ? [{ id: 'fiado' as const, nome: 'Fiado', descricao: 'Caderneta de clientes e venda a prazo no caixa.' }] : []),
 ];
 

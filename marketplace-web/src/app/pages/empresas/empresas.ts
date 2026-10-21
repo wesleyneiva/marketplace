@@ -8,6 +8,7 @@ import { copiarTexto } from '../../shared/copiar';
 import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 import { Icone } from '../../shared/icone';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { LISTA_RAMOS, Ramo, perfilRamo } from '../../core/ramos';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -35,6 +36,7 @@ interface EmpresaResumo {
   motivoSuspensao: string | null;
   faturasAtrasadas: number;
   maiorAtraso: number;
+  ramo: Ramo;
 }
 
 interface UsuarioDaEmpresa {
@@ -87,6 +89,9 @@ export class Empresas {
   protected subdominio = '';
   protected limiteCaixas = 2;
   protected vendasAutomaticas: EmpresaResumo['vendasAutomaticas'] = 'Desligado';
+  protected ramo: Ramo = 'mercado';
+  protected readonly ramos = LISTA_RAMOS;
+  protected readonly perfilRamo = perfilRamo;
   protected responsavel = '';
   protected telefone = '';
   protected documento = '';
@@ -105,6 +110,7 @@ export class Empresas {
     this.nome = '';
     this.subdominio = '';
     this.limiteCaixas = 2;
+    this.ramo = 'mercado';
     this.adminNome = '';
     this.adminEmail = '';
     this.responsavel = '';
@@ -120,6 +126,7 @@ export class Empresas {
     this.nome = e.nome;
     this.limiteCaixas = e.limiteCaixas;
     this.vendasAutomaticas = e.vendasAutomaticas;
+    this.ramo = e.ramo;
     this.erro.set(null);
     this.dlgEmpresa()?.nativeElement.showModal();
   }
@@ -136,11 +143,11 @@ export class Empresas {
     try {
       const e = this.editando();
       if (e) {
-        await firstValueFrom(this.http.put(`${URL}/${e.id}`, { nome: this.nome, limiteCaixas: this.limiteCaixas, vendasAutomaticas: this.vendasAutomaticas }));
+        await firstValueFrom(this.http.put(`${URL}/${e.id}`, { nome: this.nome, limiteCaixas: this.limiteCaixas, vendasAutomaticas: this.vendasAutomaticas, ramo: this.ramo }));
         this.aviso.set(`"${this.nome}" atualizada.`);
       } else {
         const r = await firstValueFrom(this.http.post<{ empresa: EmpresaResumo; adminEmail: string; senhaProvisoria: string }>(URL, {
-          nome: this.nome, subdominio: this.subdominio || null, limiteCaixas: this.limiteCaixas,
+          nome: this.nome, subdominio: this.subdominio || null, limiteCaixas: this.limiteCaixas, ramo: this.ramo,
           adminNome: this.adminNome, adminEmail: this.adminEmail,
           ficha: { responsavel: this.responsavel || this.adminNome, telefone: this.telefone || null, documento: this.documento || null },
           cidade: this.cidade() ? { nome: this.cidade()!.nome, uf: this.cidade()!.uf, latitude: this.cidade()!.latitude, longitude: this.cidade()!.longitude, fuso: this.cidade()!.fuso } : null,

@@ -1,4 +1,5 @@
 import { Component, WritableSignal, inject, input, signal } from '@angular/core';
+import { perfilRamo } from '../../../core/ramos';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
@@ -29,6 +30,7 @@ interface Resumo {
   usuarios: number; usuariosAtivos: number; produtos: number; diasComMovimento30: number;
   ultimoAcesso: string | null; ultimoMovimento: string | null; caixasAbertos: number; cidade: string | null;
   vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';
+  ramo: string;
 }
 interface Assinatura {
   planoId: number | null; plano: string | null; diaVencimento: number; testeAte: string | null; cobrarDesde: string | null;
@@ -48,6 +50,7 @@ const URL = '/api/plataforma/empresas';
   styleUrl: './cliente.scss',
 })
 export class Cliente {
+  protected readonly perfilRamo = perfilRamo;
   private readonly http = inject(HttpClient);
   readonly id = input.required<string>(); // vem da rota /plataforma/clientes/:id
 

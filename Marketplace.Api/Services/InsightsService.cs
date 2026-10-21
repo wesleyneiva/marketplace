@@ -26,7 +26,7 @@ public class InsightsService(
         var efeitoClima = await relatorios.Clima(periodo.De, periodo.Ate);
 
         var local = locais.Local(db.EmpresaAtual);
-        var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == db.EmpresaAtual).Select(e => new { e.Nome, e.Demonstracao }).FirstAsync(ct);
+        var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == db.EmpresaAtual).Select(e => new { e.Nome, e.Demonstracao, e.Ramo }).FirstAsync(ct);
         List<PrevisaoDia> previsao = [];
         if (local is not null)
         {
@@ -54,11 +54,12 @@ public class InsightsService(
         // Dicionário com nomes EM PORTUGUÊS: a IA lê como texto e não copia nomes técnicos ("variacaoPct") na resposta.
         var agora = Relogio.Agora;
         var hojeParcial = periodo.Ate == hoje && Expediente.AbertoNaHora(hoje, agora.Hour);
+        var negocio = Ramos.Negocio(empresa.Ramo);
         var dados = new Dictionary<string, object?>
         {
-            ["Mercado"] = empresa.Demonstracao
-                ? $"Mercado de demonstração em {local?.Nome ?? "Porto Alegre/RS"}. Horário: {Expediente.Descricao()}."
-                : $"Mercado \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + $". Horário: {Expediente.Descricao()}.",
+            ["Negócio"] = empresa.Demonstracao
+                ? $"{Maiuscula(negocio)} de demonstração em {local?.Nome ?? "Porto Alegre/RS"}. Horário: {Expediente.Descricao()}."
+                : $"{Maiuscula(negocio)} \"{empresa.Nome}\"" + (local is null ? "" : $" em {local.Nome}") + $". Horário: {Expediente.Descricao()}.",
             ["Período analisado"] = $"{periodo.De:dd/MM/yyyy} a {periodo.Ate:dd/MM/yyyy} ({periodo.Dias} dias)",
             ["Atenção"] = hojeParcial
                 ? $"O dia de hoje ({hoje:dd/MM}) ainda está em andamento (agora são {agora:HH:mm}): os números de hoje são PARCIAIS, não compare hoje com dias inteiros."
@@ -93,8 +94,9 @@ public class InsightsService(
         };
 
         var prompt = $"""
-            Você é um consultor de varejo experiente e direto. Analise os dados do mercadinho abaixo e escreva de 4 a 6
+            Você é um consultor de varejo experiente e direto. Analise os dados {(empresa.Ramo == Ramos.Esporte ? "da loja" : "do mercado")} abaixo e escreva de 4 a 6
             recomendações práticas para o gerente, em português do Brasil. {foco}
+            {DoRamo(empresa.Ramo)}
 
             Regras:
             - Formato: uma lista; cada item começa com um título curto (sem emojis), seguido de "—" e no máximo 2 frases.
@@ -104,7 +106,7 @@ public class InsightsService(
             - CLIMA: fale do efeito da chuva ou da temperatura no movimento SOMENTE como está em "Efeito da chuva no
               movimento" e "Clientes por hora, por temperatura". Se lá disser "sem diferença confiável", "ainda juntando
               dados" ou "dados insuficientes", NÃO suponha que a chuva ou o calor aumentam ou reduzem o movimento deste
-              mercado. Produtos sensíveis ao clima: só os listados (já passaram em teste estatístico).
+              negócio. Produtos sensíveis ao clima: só os listados (já passaram em teste estatístico).
             - Use a PREVISÃO DO TEMPO e os dias FECHADOS para planejar estoque e compras dos próximos dias.
             - Se houver "Produtos que podem faltar antes da próxima entrega", avise com prioridade (pedir JÁ).
             - "Lotes vencendo em até 2 dias" são lotes perto de vencer: sugira promoção/destaque para vender antes.
@@ -121,6 +123,18 @@ public class InsightsService(
             """;
         return (dados, prompt);
     }
+
+    // O que olhar em cada ramo. Só PONTOS DE ATENÇÃO: a IA continua proibida de afirmar o que não está nos dados.
+    private static string DoRamo(string ramo) => ramo == Ramos.Esporte
+        ? """
+          É uma loja de material esportivo (ex.: tênis: raquetes, calçados, roupas, bolas, cordas, acessórios). Pontos de
+          atenção típicos do ramo, para usar SÓ quando os dados mostrarem: itens de reposição frequente (bolas, cordas,
+          overgrips) não podem faltar; produtos caros parados prendem dinheiro; venda de maior valor pede atenção ao
+          parcelamento e ao atendimento. Não fale de validade nem de perecíveis, a não ser que apareçam nos dados.
+          """
+        : "";
+
+    private static string Maiuscula(string t) => t.Length == 0 ? t : char.ToUpperInvariant(t[0]) + t[1..];
 
     private static string Variacao(decimal? v, string contra) =>
         v is null ? "" : $" ({(v >= 0 ? "alta" : "queda")} de {Math.Abs(v.Value):0.#}% contra o {contra})";

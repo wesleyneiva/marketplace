@@ -166,7 +166,7 @@ public class AuthController(
     private async Task<UsuarioLogadoResponse> MontarRespostaAsync(Usuario usuario)
     {
         var empresa = await db.Empresas.AsNoTracking().Where(e => e.Id == usuario.EmpresaId)
-            .Select(e => new { Resposta = new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao, e.Modulos), e.Plataforma }).FirstAsync();
+            .Select(e => new { Resposta = new EmpresaResponse(e.Id, e.Nome, e.LimiteCaixas, e.Demonstracao, e.Modulos, e.Ramo), e.Plataforma }).FirstAsync();
         var perfis = await userManager.GetRolesAsync(usuario);
         var dono = !usuario.SomenteLeitura && perfis.Contains(Perfis.Administrador)
                    && usuario.EmpresaId == Plataforma.EmpresaDona(config) && !HttpContext.VeioDaInternet();

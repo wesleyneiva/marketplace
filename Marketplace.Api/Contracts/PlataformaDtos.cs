@@ -10,7 +10,7 @@ public record EmpresaResumoResponse(
     int Usuarios, int UsuariosAtivos, int Produtos, int DiasComMovimento30,
     DateTimeOffset? UltimoAcesso, DateTimeOffset? UltimoMovimento, int CaixasAbertos, string? Cidade, string VendasAutomaticas,
     string? Responsavel, string? Telefone, string? Plano, decimal ValorMensal, bool Cortesia, string? MotivoSuspensao,
-    int FaturasAtrasadas, int MaiorAtraso);
+    int FaturasAtrasadas, int MaiorAtraso, string Ramo);
 
 // Ficha cadastral do cliente (só o dono vê e muda).
 public record FichaCliente(
@@ -43,12 +43,14 @@ public record NovaEmpresaRequest(
     [Required(ErrorMessage = "Informe o nome do administrador.")][StringLength(100, MinimumLength = 2)] string AdminNome,
     [Required(ErrorMessage = "Informe o e-mail do administrador.")][EmailAddress(ErrorMessage = "E-mail inválido.")][StringLength(150)] string AdminEmail,
     CidadeRequest? Cidade = null,
+    string? Ramo = null, // null = mercado
     FichaCliente? Ficha = null);
 
 public record EditarEmpresaRequest(
     [Required][StringLength(100, MinimumLength = 2)] string Nome,
     [Range(1, 999, ErrorMessage = "Caixas: de 1 a 999.")] int LimiteCaixas,
     string? VendasAutomaticas = null, // null = não muda
+    string? Ramo = null,              // null = não muda
     FichaCliente? Ficha = null);      // null = não muda
 
 public record EmpresaCriadaResponse(EmpresaResumoResponse Empresa, string AdminEmail, string SenhaProvisoria);

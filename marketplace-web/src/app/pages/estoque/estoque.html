@@ -90,7 +90,9 @@
 
 <nav class="abas" role="tablist">
   <button role="tab" [class.ativa]="abaAtual() === 'posicao'" (click)="irPara('posicao')"><app-icone nome="boxes" /> Posição do estoque</button>
-  <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')"><app-icone nome="clock" /> Validades</button>
+  @if (ramo().validade) {
+    <button role="tab" [class.ativa]="abaAtual() === 'validades'" (click)="irPara('validades')"><app-icone nome="clock" /> Validades</button>
+  }
   <button role="tab" [class.ativa]="abaAtual() === 'movimentacoes'" (click)="irPara('movimentacoes')"><app-icone nome="history" /> Movimentações</button>
   <button role="tab" [class.ativa]="abaAtual() === 'baixo'" (click)="irPara('baixo')"><app-icone nome="triangle-alert" /> Estoque baixo</button>
 </nav>

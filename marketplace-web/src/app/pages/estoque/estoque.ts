@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, input, linkedSignal, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DatePipe, PercentPipe } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
@@ -22,6 +23,7 @@ type Aba = 'posicao' | 'validades' | 'movimentacoes' | 'baixo';
   styleUrl: './estoque.scss',
 })
 export class Estoque {
+  protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly router = inject(Router);
   private readonly produtosApi = inject(ProdutosApi);
 

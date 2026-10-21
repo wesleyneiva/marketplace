@@ -195,10 +195,12 @@
           <label>Preço de venda (R$)
             <input type="number" min="0.01" step="0.01" [ngModel]="i.novo.precoVenda" (ngModelChange)="i.novo.precoVenda = $event; mexeu()" />
           </label>
+          @if (ramo().validade) {
           <label class="marcar">
             <input type="checkbox" [ngModel]="i.novo.controlaValidade" (ngModelChange)="i.novo.controlaValidade = $event; mexeu()" />
             Controla validade
           </label>
+          }
         </div>
       }
 

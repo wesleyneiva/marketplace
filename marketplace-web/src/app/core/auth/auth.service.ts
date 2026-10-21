@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { perfilRamo } from '../ramos';
 import { firstValueFrom } from 'rxjs';
 import { semConexao } from '../offline/conexao';
 import { Modulo, moduloLiberado } from '../modulos';
@@ -27,6 +28,7 @@ export interface Empresa {
   limiteCaixas: number;
   demonstracao: boolean;
   modulos: string[] | null; // módulos liberados pelo dono da plataforma (null = todos) — ver core/modulos.ts
+  ramo?: string;             // ramo do comércio (core/ramos.ts); ausente = mercado
 }
 
 // O que a tela de login deve mostrar (pela internet, só o botão da demonstração).
@@ -48,6 +50,8 @@ export class AuthService {
 
   readonly usuario = this.usuarioAtual.asReadonly();
   readonly logado = computed(() => this.usuarioAtual() !== null);
+  // Palavras e o que aparece conforme o ramo da empresa (core/ramos.ts).
+  readonly ramo = computed(() => perfilRamo(this.usuarioAtual()?.empresa?.ramo));
 
   // Para onde a pessoa vai depois de entrar: o dono da plataforma para a área do dono; os demais, para o painel do mercado.
   inicio(): string {

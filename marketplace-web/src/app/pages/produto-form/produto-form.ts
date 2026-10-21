@@ -1,4 +1,5 @@
 import { Component, computed, effect, inject, input, signal } from '@angular/core';
+import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse, httpResource } from '@angular/common/http';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -20,6 +21,7 @@ import { Icone } from '../../shared/icone';
   styleUrl: './produto-form.scss',
 })
 export class ProdutoForm {
+  protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly api = inject(ProdutosApi);
   private readonly router = inject(Router);
 

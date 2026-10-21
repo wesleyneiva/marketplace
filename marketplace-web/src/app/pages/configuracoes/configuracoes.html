@@ -1,7 +1,7 @@
 <header class="titulo-pagina">
   <div>
     <h1><app-icone nome="settings" /> Configurações</h1>
-    <p>Cidade, horário de funcionamento, balança, leitor e impressora.</p>
+    <p>Cidade, horário de funcionamento, {{ ramo().balanca ? 'balança, ' : '' }}leitor e impressora.</p>
   </div>
 </header>
 
@@ -84,7 +84,7 @@
           <input name="pixChave" [(ngModel)]="pixChave" [placeholder]="exemploChave()" autocomplete="off" maxlength="100" required />
         </label>
         <label class="largo">Nome que o cliente vê <small>(até 25 letras; vazio = nome da empresa)</small>
-          <input name="pixNome" [(ngModel)]="pixNome" maxlength="60" placeholder="SEU MERCADO" />
+          <input name="pixNome" [(ngModel)]="pixNome" maxlength="60" [placeholder]="ramo().seuNegocio" />
         </label>
         <div class="acoes-pix">
           <button type="submit" class="botao primario" [disabled]="salvandoPix()">{{ salvandoPix() ? 'Salvando…' : 'Salvar chave Pix' }}</button>
@@ -164,6 +164,7 @@
   }
 </section>
 
+@if (ramo().balanca) {
 <section class="painel secao">
   <h2><app-icone nome="tag" /> Etiqueta da balança (açougue, hortifrúti, padaria)</h2>
   <p class="explica">
@@ -287,6 +288,8 @@
     }
   </p>
 </section>
+
+}
 
 <section class="painel secao">
   <h2><app-icone nome="printer" /> Impressora de cupom <small class="neste">neste computador</small></h2>

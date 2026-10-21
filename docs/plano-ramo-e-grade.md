@@ -80,7 +80,17 @@ O que sair daqui pode mudar a ordem das fases 3 a 5.
 
 ---
 
-## Fase 1 — Ramo da empresa (pequena, sem risco)
+## Fase 1 — Ramo da empresa (pequena, sem risco) — FEITA em 21/10/2026
+
+**Como ficou:** `Empresa.Ramo` (migration `RamoDaEmpresa`), `Ramos` em `Models/Empresa.cs` (categorias padrão e nome
+do negócio) e `core/ramos.ts` no Angular (`AuthService.ramo()`: palavras, `balanca`, `validade`, nome da etiqueta).
+O ramo é escolhido em Área do dono → Clientes (novo/editar) e aparece como selo na lista e na ficha. Para esporte, ficam
+escondidos: PLU no produto, seções de balança nas Configurações, "perecível" no produto e na entrada da NF-e, cartão e
+lista de validade no painel, aba Validades do estoque (o produto que já controla validade continua mostrando). Insights IA
+fala "loja de material esportivo" e ganha pontos de atenção do ramo. **Módulos por ramo: não precisou** — o fiado já está
+desligado para todos e as etiquetas servem para loja (o formato aparece como "Prateleira"); o módulo `grade` da fase 2
+é que vai nascer ligado no esporte.
+
 
 **O que é:** um campo `Empresa.Ramo` ("mercado" | "esporte", com espaço para outros). É escolhido no cadastro do
 cliente na área do dono e pode ser trocado depois.

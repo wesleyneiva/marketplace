@@ -28,7 +28,7 @@ interface Linha {
 
 // Tamanhos das folhas de etiqueta A4 mais comuns (papelaria: "etiqueta adesiva A4").
 const FORMATOS = {
-  gondola: { nome: 'Gôndola · 3 × 8 por folha (70 × 37 mm)', colunas: 3, linhas: 8 },
+  gondola: { nome: '3 × 8 por folha (70 × 37 mm)', colunas: 3, linhas: 8 }, // na tela: "Gôndola" ou "Prateleira" (ramo)
   pequena: { nome: 'Pequena · 4 × 10 por folha (52 × 29 mm)', colunas: 4, linhas: 10 },
 } as const;
 type Formato = keyof typeof FORMATOS;
@@ -44,6 +44,7 @@ type Formato = keyof typeof FORMATOS;
 export class Etiquetas implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  protected readonly ramo = this.auth.ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
 
   // Atalhos vindos de outras telas: /produtos/etiquetas?desde=2026-10-09 ou ?ids=1,2,3
   readonly desde = input<string>();

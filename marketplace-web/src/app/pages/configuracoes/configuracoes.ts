@@ -48,7 +48,7 @@ const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; exemplo: string }[] = 
   { valor: 'Cnpj', rotulo: 'CNPJ', exemplo: '12.345.678/0001-90' },
   { valor: 'Cpf', rotulo: 'CPF', exemplo: '123.456.789-09' },
   { valor: 'Celular', rotulo: 'Celular', exemplo: '(51) 99999-9999' },
-  { valor: 'Email', rotulo: 'E-mail', exemplo: 'pix@seumercado.com.br' },
+  { valor: 'Email', rotulo: 'E-mail', exemplo: 'pix@suaempresa.com.br' },
   { valor: 'Aleatoria', rotulo: 'Chave aleatória', exemplo: '123e4567-e89b-12d3-a456-426614174000' },
 ];
 
@@ -62,6 +62,7 @@ const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; exemplo: string }[] = 
 export class Configuracoes {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
+  protected readonly ramo = this.auth.ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
 
   private readonly sanitizer = inject(DomSanitizer);
   protected readonly balanca = inject(BalancaService);
