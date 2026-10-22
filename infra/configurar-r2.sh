@@ -22,8 +22,11 @@ read -rp  "Access Key ID do token do R2: " CHAVE
 read -rsp "Secret Access Key do token do R2 (não aparece): " SECRETA; echo
 
 rclone config delete r2 2>/dev/null || true
+# no_head: depois de cada envio o rclone 1.60 confere o arquivo com HEAD ?versionId=…, que o R2 não implementa (501
+# NotImplemented na 1ª tentativa, "ok" só na 2ª). Sem essa conferência extra; a integridade fica pelo Content-MD5,
+# que o R2 confere ao receber.
 rclone config create r2 s3 provider Cloudflare access_key_id "$CHAVE" secret_access_key "$SECRETA" \
-  endpoint "https://$CONTA.r2.cloudflarestorage.com" region auto no_check_bucket true >/dev/null
+  endpoint "https://$CONTA.r2.cloudflarestorage.com" region auto no_check_bucket true no_head true >/dev/null
 
 # As 2 senhas do "nuvem:" já estão embaralhadas (obscure) no arquivo: copia como estão.
 senha() { awk -v k="$1" '/^\[/{s=($0=="[nuvem]")} s && $1==k {print $3}' "$CONF"; }

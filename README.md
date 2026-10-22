@@ -260,8 +260,10 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   do R2 (justo o caso em que o R2 importa). `wal-ultimo.txt`: "… · Oracle ok · R2 ok".
 - **Área do dono → Sistema → "Backup nas nuvens"**: uma linha para a Oracle e outra para a Cloudflare R2, cada uma com o
   contínuo (2 em 2 min), o diário e quanto está guardado (lê `wal-ultimo.txt` e `nuvem-ultimo.txt`).
-- Pendência pequena: na cópia diária para o R2 o rclone leva alguns "501 NotImplemented" e acerta na 2ª tentativa (está ok
-  hoje); se um dia falhar de vez, ver as opções do rclone para Cloudflare (`provider = Cloudflare`, checksum).
+- **Resolvido (22/10)**: os "501 NotImplemented" da cópia diária para o R2. O envio dava certo; o erro era a conferência
+  que o rclone 1.60 faz logo depois (`HEAD ?versionId=…`, que o R2 não implementa), e a 2ª tentativa só pulava os
+  arquivos. `no_head = true` no `r2:` (já no `configurar-r2.sh`): backup completo rodado em seguida sem nenhum erro,
+  Oracle e R2 com 1290 arquivos / 1,802 GiB cada.
 
 ### 22/10/2026 (noite) — bot que morria em silêncio e histórico da TopSpin (ago–out)
 - **Causa do "bot parado"** (as paradas de hoje depois de publicar): os `catch` das rotinas em segundo plano deixavam passar
