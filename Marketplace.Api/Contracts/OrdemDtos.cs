@@ -25,7 +25,7 @@ public record OrdemRequest(
 public record StatusOrdemRequest([Required] string Status);
 
 public record ResumoOrdensResponse(int Recebidas, int EmAndamento, int Prontas, int Atrasadas, int EntreguesHoje,
-    int RetrabalhosMes = 0, decimal CustoRetrabalhoMes = 0, int EntreguesMes = 0);
+    int RetrabalhosMes = 0, decimal CustoRetrabalhoMes = 0, int EntreguesMes = 0, int VoltaramMes = 0); // VoltaramMes: raquetes diferentes
 
 // Refazer (garantia): por quê, qual corda sai do estoque (nenhuma = só reajuste) e o prazo.
 public record GarantiaRequest([Required] string Motivo, int? CordaProdutoId, DateTimeOffset Prazo, [StringLength(300)] string? Observacao);

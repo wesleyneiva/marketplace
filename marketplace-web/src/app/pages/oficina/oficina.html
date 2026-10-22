@@ -14,7 +14,7 @@
     <button type="button" class="cartao" [class.alerta]="r.prontas" (click)="mudarAba('prontas')"><span>Prontas</span><strong>{{ r.prontas }}</strong><small>esperando o cliente</small></button>
     <button type="button" class="cartao" (click)="mudarAba('entregues')"><span>Entregues hoje</span><strong>{{ r.entreguesHoje }}</strong><small>ver entregues</small></button>
     <div class="cartao" [class.alerta]="r.retrabalhosMes"><span>Retrabalho no mês</span><strong>{{ r.retrabalhosMes }}</strong>
-      <small>@if (r.retrabalhosMes) { {{ r.custoRetrabalhoMes | currency: 'BRL' }} em corda@if (r.entreguesMes) { · {{ (r.retrabalhosMes / r.entreguesMes * 100).toFixed(0) }}% das entregues } } @else { nenhuma voltou }</small></div>
+      <small>@if (r.retrabalhosMes) { {{ r.custoRetrabalhoMes | currency: 'BRL' }} em corda@if (r.entreguesMes) { · {{ (Math.min(1, r.voltaramMes / r.entreguesMes) * 100).toFixed(0) }}% das raquetes voltaram } } @else { nenhuma voltou }</small></div>
   </section>
 }
 

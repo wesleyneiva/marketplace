@@ -32,7 +32,7 @@ export const MOTIVOS_GARANTIA = ['Corda estourou', 'Tensão errada', 'Encordoame
 
 export interface ResumoOrdens {
   recebidas: number; emAndamento: number; prontas: number; atrasadas: number; entreguesHoje: number;
-  retrabalhosMes: number; custoRetrabalhoMes: number; entreguesMes: number; // garantia: quantas voltaram no mês e o custo em corda
+  retrabalhosMes: number; custoRetrabalhoMes: number; entreguesMes: number; voltaramMes: number; // garantia no mês: retrabalhos, custo em corda, entregues e raquetes que voltaram
 }
 export interface HistoricoCliente { cliente: string; raquete: string | null; corda: string | null; tensao: string | null; em: string }
 

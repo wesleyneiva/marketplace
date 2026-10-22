@@ -66,13 +66,13 @@ public class OrdensController(AppDbContext db, ClientesService clientes, Estoque
         var inicioMes = Relogio.InicioDoDiaUtc(new DateOnly(Relogio.Hoje.Year, Relogio.Hoje.Month, 1));
         var garantias = await db.OrdensServico.AsNoTracking()
             .Where(o => o.GarantiaDeId != null && o.Status != StatusOrdem.Cancelada && o.CriadaEm >= inicioMes)
-            .Select(o => o.CustoGarantia).ToListAsync();
+            .Select(o => new { o.CustoGarantia, o.GarantiaDeId }).ToListAsync();
         var entreguesMes = await db.OrdensServico.CountAsync(o => o.Status == StatusOrdem.Entregue && o.GarantiaDeId == null && o.EntregueEm >= inicioMes);
         return new ResumoOrdensResponse(
             abertas.Count(o => o.Status == StatusOrdem.Recebida), abertas.Count(o => o.Status == StatusOrdem.EmAndamento),
             abertas.Count(o => o.Status == StatusOrdem.Pronta),
             abertas.Count(o => StatusOrdem.EmAberto(o.Status) && o.Prazo < agora), entreguesHoje,
-            garantias.Count, garantias.Sum(), entreguesMes);
+            garantias.Count, garantias.Sum(g => g.CustoGarantia), entreguesMes, garantias.Select(g => g.GarantiaDeId).Distinct().Count());
     }
 
     // GET /api/ordens/historico?telefone=21999998888 → as últimas raquetes/cordas/tensões do cliente.

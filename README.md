@@ -247,6 +247,18 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 22/10/2026 (noite) — Oficina: refazer em garantia
+Pedido do usuário (caso real numa loja de POA: encordoamento ruim, a loja refez e deu saída "zerada" na corda).
+Migration `GarantiaDaOficina` (backup antes em `~/backup/marketplace-antes-GarantiaDaOficina-2026-10-22.dump`):
+`OrdensServico` ganha GarantiaDeId, MotivoGarantia, CordaGarantiaId e CustoGarantia.
+- OS **entregue** → botão **Refazer** (`POST /api/ordens/{id}/garantia`): motivo (corda estourou, tensão errada, encordoamento
+  malfeito, cliente não gostou, outro), corda nova (já vem a mesma da 1ª vez, se tem estoque; ou "só reajuste"), prazo.
+  Abre OS nova **ligada à original**, valor 0 e paga; a corda sai do estoque como **perda "Garantia da oficina"** (pelo custo;
+  na DRE em "Perdas e ajustes"). Tudo numa transação.
+- Lista: selo "garantia da OS nº X" na nova e "voltou Nx" na original. Card **Retrabalho no mês**: quantos, custo em corda e
+  % das raquetes entregues que voltaram. Motivo "Garantia da oficina" entrou em `EstoqueService.MotivosPerda`.
+- Testado no dev (OS 50 → garantias 51 com corda, estoque 5→4, e 52 sem corda; OS não entregue recusada).
+
 ### 22/10/2026 (fim da tarde) — cliente, vendedor e parcelas (fase 4 do plano dos ramos)
 Migration `ClientesVendedoresParcelas` (backup antes em `~/backup/marketplace-antes-ClientesVendedoresParcelas-2026-10-22.dump`):
 `Clientes` ganha Nascimento, Email, Raquete, Corda, Tensao e Simulado; tabelas `Vendedores` e `ComissoesMes`;
@@ -521,7 +533,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (noite), 22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada

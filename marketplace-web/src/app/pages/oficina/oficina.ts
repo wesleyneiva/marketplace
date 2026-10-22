@@ -26,6 +26,7 @@ export class Oficina {
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly nomeStatus = NOME_STATUS;
+  protected readonly Math = Math;
 
   protected readonly aba = signal<Aba>('abertas');
   protected readonly busca = signal('');
