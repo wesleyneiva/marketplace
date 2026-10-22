@@ -21,6 +21,16 @@
       "url": "http://localhost:5200"
     },
     {
+      "name": "api-dev-bb-real",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 dotnet run --launch-profile http"
+      ],
+      "port": 5200,
+      "url": "http://localhost:5200"
+    },
+    {
       "name": "mp-simulador",
       "runtimeExecutable": "python3",
       "runtimeArgs": [

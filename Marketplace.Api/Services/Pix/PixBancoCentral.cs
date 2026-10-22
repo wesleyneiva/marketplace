@@ -48,7 +48,10 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
     {
         var fim = DateTimeOffset.UtcNow;
         var faixa = $"?inicio={Uri.EscapeDataString(fim.AddHours(-1).ToString("yyyy-MM-ddTHH:mm:ssZ"))}&fim={Uri.EscapeDataString(fim.ToString("yyyy-MM-ddTHH:mm:ssZ"))}";
-        await EnviarAsync(p, c, HttpMethod.Get, "/cob" + faixa, null, ct);
+        // O BB responde 404 "Nenhum resultado encontrado" quando não há cobranças no período (em vez de uma lista vazia):
+        // o login e a chave passaram, então está certo (visto no ambiente de testes real em 22/10/2026).
+        try { await EnviarAsync(p, c, HttpMethod.Get, "/cob" + faixa, null, ct); }
+        catch (BancoPixException e) when (e.Codigo == HttpStatusCode.NotFound) { }
     }
 
     // PUT /cob/{txid}: o txid é a NOSSA referência (32 letras/números). A mesma referência = a mesma cobrança: se a rede

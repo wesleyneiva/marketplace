@@ -272,7 +272,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   ligar pela tela; no caixa "Gerar QR" → "Pix recebido! Confirmado pelo Banco do Brasil" → venda registrada sozinha; cancelar a
   venda → "Devolver ao cliente pelo Banco do Brasil agora" → devolvido; cancelar Pix não pago; modo produção com certificado
   .pfx de teste (senha errada recusada; "nome · vence"); desligar. Mercado Pago testado de novo depois (continua igual).
-- **Não testado com o BB de verdade** (falta conta/aplicação no portal): ver Pendências → "Pix pelo BB".
+- **Testado no ambiente de testes REAL do BB** (22/10, aplicação "Marcus - teste" do usuário, launch `api-dev-bb-real`): login
+  OAuth + chave do desenvolvedor ok; ligar ok; criar cobrança ok (chave de teste `hmtestes2@bb.com.br` aceita, QR
+  `qrcodepix-h.bb.com.br/...`); consulta ok (ATIVA); cancelar ok (REMOVIDA_PELO_USUARIO_RECEBEDOR). Achado: o BB responde
+  **404 "Nenhum resultado encontrado"** ao listar `/cob` sem cobranças no período (corrigido: conta como acesso ok). Falta:
+  simular o pagamento (endpoint de testes do BB `/testes-portal-desenvolvedor/v1/boletos-pix/pagar`, formato só na
+  documentação logada) para ver o CONCLUIDA com a lista "pix" e a devolução.
 - Ajuste visual: a caixinha "São credenciais de teste" (e a do BB) ficava em cima do texto no formulário do Pix.
 
 ### 22/10/2026 (fim da noite) — restaurar uma loja só e as duas nuvens na área do dono
@@ -569,11 +574,10 @@ Detalhes técnicos em Funcionalidades.
   iguais à produção). Ver Rodando → Backup.
 
 Pendências:
-- (22/10) **Pix pelo BB, conferir com o BB de verdade** antes do 1º cliente (montado pelo padrão + notas de integradores, porque
-  a documentação do portal developers.bb.com.br só abre logado): (1) criar uma aplicação no portal (o usuário tem conta salário
-  no BB e ia tentar o cadastro em 22/10) e testar no **ambiente de testes** com "Ambiente de testes do BB" marcado; (2) conferir
-  os escopos (`cob.write cob.read pix.write pix.read`), se o QR vem em `pixCopiaECola` ou `textoImagemQRcode`, e se a produção
-  usa `gw-dev-app-key` ou `gw-app-key` (dá para trocar sem código: `PixBanco:BancoDoBrasil:ParamChaveProducao`); (3) na
+- (22/10) **Pix pelo BB, o que falta conferir**: (1) ~~aplicação no portal e ambiente de testes~~ feito em 22/10 (login,
+  escopos, criar, consultar e cancelar ok no BB real); (2) **simular o pagamento** no ambiente de testes (ver o CONCLUIDA e a
+  devolução) e confirmar se a produção usa `gw-dev-app-key` ou `gw-app-key` (dá para trocar sem código:
+  `PixBanco:BancoDoBrasil:ParamChaveProducao`); (3) na
   produção, com o cliente: aplicação dele no portal, API Pix liberada pelo gerente, certificado A1 cadastrado no portal e
   tarifa do Pix recebido no pacote PJ dele. Credenciais nunca no chat: ele cola na tela (Configurações → Pix da loja).
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
@@ -637,7 +641,8 @@ Pendências:
   da demonstração: `./gerar-historico.sh`.
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` e `PixBanco__BancoDoBrasil__*` dos
-  simuladores), `web-dev` (4200), `mp-simulador` (5399, com devolução `/refund`), `bb-simulador` (5398, API Pix do BB). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
+  simuladores), `web-dev` (4200), `mp-simulador` (5399, com devolução `/refund`), `bb-simulador` (5398, API Pix do BB); `api-dev-bb-real` = a API de dev
+  apontando para o ambiente de testes REAL do BB (no lugar do `api-dev`, mesma porta). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
   usuários admin/gerente/caixa (e o dono de teste) em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
