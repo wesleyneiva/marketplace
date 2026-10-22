@@ -247,6 +247,24 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 22/10/2026 (noite) — bot que morria em silêncio e histórico da TopSpin (ago–out)
+- **Causa do "bot parado"** (as paradas de hoje depois de publicar): os `catch` das rotinas em segundo plano deixavam passar
+  `OperationCanceledException` (para respeitar o desligamento), mas o tempo esgotado do HttpClient (Open-Meteo lento) também é
+  `TaskCanceledException`: o erro escapava e, com `BackgroundServiceExceptionBehavior.Ignore`, a rotina morria sem log até o
+  próximo reinício. Agora os `catch` olham o token de parada (`when (!parar.IsCancellationRequested)`) no bot, clima, coletor,
+  cobranças e liquidação; o clima tem timeout de 20 s. Venda recusada do bot aparece no log normal (Information).
+- O bot da TopSpin estava funcionando (conferido com log de cada rodada): ~0,6 cliente/hora às 14h, ~6 vendas/dia útil;
+  4 horas sem venda foi sorteio. Para diagnosticar serviço travado: `dotnet-stack` instalado (`~/.dotnet/tools`); o socket
+  do processo fica no /tmp privado do systemd (caminho longo: criar um link curto e usar `TMPDIR`).
+- **Histórico da TopSpin** (`./gerar-historico-loja.sh --empresa 5 --de 2026-08-01 --ate 2026-10-20`,
+  `GeradorHistoricoEsporte`; backup antes em `~/backup/marketplace-antes-historico-topspin-2026-10-22.dump`): 346 vendas,
+  R$ 201,7 mil (ago 80,5 mil; set 72,8 mil; 1–20/out 50,6 mil), ~metade com cliente fixo (60 criados, "desde" 01/08),
+  vendedor Lucas, crédito parcelado, 40 OS entregues (numeradas antes das de agora). Financeiro desde 01/08: caixas lançados e
+  depositados, maquininha, 91 boletos de fornecedor pelo custo vendido, contas fixas copiadas da implantação (sem a mensalidade
+  do Marcus) e DAS 6%, tudo pago no vencimento. **Saldo de abertura do Itaú em 01/08 = R$ 60 mil** (com 40 mil ficava
+  negativo: o crédito parcelado cai mês a mês); hoje ~R$ 10,8 mil + R$ 87 mil a receber da maquininha.
+  Mesmo perfil do bot ao vivo com 75% do movimento e item caro (≥ R$ 150) saindo 1 unidade. Desfazer: restaurar o backup.
+
 ### 22/10/2026 (noite) — Oficina: refazer em garantia
 Pedido do usuário (caso real numa loja de POA: encordoamento ruim, a loja refez e deu saída "zerada" na corda).
 Migration `GarantiaDaOficina` (backup antes em `~/backup/marketplace-antes-GarantiaDaOficina-2026-10-22.dump`):
@@ -533,7 +551,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (noite), 22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
