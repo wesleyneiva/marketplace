@@ -1,0 +1,12 @@
+.voltar { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--cor-texto-suave); text-decoration: none; }
+h1 small.selo { font-size: 12px; margin-left: 8px; vertical-align: middle; }
+.cartao.alerta { border-color: var(--cor-alerta-borda); background: var(--cor-alerta-fundo); }
+.usa { display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin-bottom: 12px; font-size: 14px;
+  app-icone { font-size: 22px; color: var(--cor-primaria); } div { display: flex; flex-direction: column; gap: 2px; } }
+.obs { display: flex; gap: 8px; align-items: center; color: var(--cor-texto-suave); font-size: 14px; margin: 0 0 12px; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.painel h2 { margin: 0; padding: 12px 14px 4px; font-size: 16px; }
+.painel + .painel { margin-top: 14px; }
+.forte { font-weight: 600; }
+code { font-weight: 700; letter-spacing: 1px; }
+@media (max-width: 860px) { .duas { grid-template-columns: 1fr; } }

@@ -38,6 +38,8 @@ builder.Services.AddScoped<Marketplace.Api.Services.EstoqueService>();
 builder.Services.AddScoped<Marketplace.Api.Services.CaixaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.VendaService>();
 builder.Services.AddScoped<Marketplace.Api.Services.TrocaService>(); // troca e vale-troca
+builder.Services.AddScoped<Marketplace.Api.Services.ClientesService>(); // cadastro e histórico do cliente
+builder.Services.AddScoped<Marketplace.Api.Services.ComissaoService>(); // comissão dos vendedores
 builder.Services.AddScoped<Marketplace.Api.Services.AutorizacaoService>(); // "chama o gerente": senha do gerente no caixa
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.Conciliacao.ConciliacaoService>();

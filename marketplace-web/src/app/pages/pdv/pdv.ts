@@ -28,6 +28,8 @@ import { Conexao } from '../../core/offline/conexao';
 import { CaixaOffline, novoIdLocal } from '../../core/offline/caixa-offline.service';
 import { Troca, TrocasApi } from '../../core/api/trocas.api';
 import { TrocaCaixa } from '../../shared/troca-caixa';
+import { ClienteCaixa } from '../../shared/cliente-caixa';
+import { ClienteBuscaPdv, ClientesApi, Vendedor } from '../../core/api/clientes.api';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -38,13 +40,14 @@ interface ItemCarrinho {
 //   • Bipa o código de barras (ou digita parte do nome) e Enter.
 //   • "3*arroz" ou "3*789..." → 3 unidades.  Produto por KG pede o peso.
 //   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).  F7 → troca.
+//   • F8 → cliente da venda (histórico).  O vendedor (comissão) fica escolhido neste computador até trocar.
 //   • Tirar item, cancelar a compra e cancelar uma venda já paga (estorno): só com a senha de um gerente.
 //   • SEM INTERNET (caixa offline): continua vendendo com o catálogo guardado neste computador; as vendas ficam numa
 //     fila e são enviadas sozinhas quando a internet volta (ver core/offline). Abrir/fechar caixa, sangria e estorno esperam.
 @Component({
   selector: 'app-pdv',
   imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico, AutorizacaoGerente,
-    EstornoVenda, CupomDetalhe, TrocaCaixa],
+    EstornoVenda, CupomDetalhe, TrocaCaixa, ClienteCaixa],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -115,13 +118,23 @@ export class Pdv {
   protected readonly lendoBalanca = signal(false);
 
   // ----- Pagamento -----
-  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number; valeCodigo?: string }[]>([]);
+  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number; valeCodigo?: string; parcelas?: number }[]>([]);
   // Troca (F7) com "escolher o produto novo": o crédito do vale entra sozinho no pagamento desta compra.
   protected readonly creditoTroca = signal<{ valeId: number; codigo: string; saldo: number } | null>(null);
   private readonly trocasApi = inject(TrocasApi);
   private readonly janelaTroca = viewChild.required(TrocaCaixa);
   protected textoVale = '';
   protected readonly buscandoVale = signal(false);
+  // Crédito: em quantas vezes (a maquininha deposita uma parcela por mês).
+  protected parcelas = 1;
+  protected readonly opcoesParcelas = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  // ----- Cliente da venda (F8) e vendedor -----
+  private readonly clientesApi = inject(ClientesApi);
+  private readonly janelaCliente = viewChild.required(ClienteCaixa);
+  protected readonly clienteVenda = signal<ClienteBuscaPdv | null>(null);
+  protected readonly vendedores = signal<Vendedor[]>(this.lerVendedores());
+  protected readonly vendedorId = signal<number | null>(this.lerVendedorId());
   protected readonly formaAtual = signal<FormaPagamento>('Dinheiro');
   // O valor digitado no pagamento (sinal: o QR Code do Pix acompanha o valor enquanto o caixa digita).
   private readonly valorDigitado = signal('');
@@ -217,6 +230,7 @@ export class Pdv {
 
   constructor() {
     void this.carregarCaixa();
+    void this.carregarVendedores();
     effect(() => {
       this.os();
       this.caixa();
@@ -745,6 +759,47 @@ export class Pdv {
 
   // ================================================================ troca (F7)
 
+  // ================================================================ cliente (F8) e vendedor
+
+  protected abrirCliente(): void {
+    if (this.precisaInternet('procurar o cliente')) return;
+    this.janelaCliente().abrir();
+  }
+
+  protected aoEscolherCliente(c: ClienteBuscaPdv): void {
+    this.clienteVenda.set(c);
+    if (c.aniversarioHoje) this.mostrarAviso(`Hoje é aniversário de ${c.nome}!`);
+  }
+
+  protected escolherVendedor(id: number | null): void {
+    this.vendedorId.set(id);
+    try { localStorage.setItem('marcus.vendedor', id === null ? '' : String(id)); } catch { /* sem armazenamento */ }
+    this.focarBusca();
+  }
+
+  protected nomeVendedor(): string | null {
+    return this.vendedores().find((v) => v.id === this.vendedorId())?.nome ?? null;
+  }
+
+  // Lista dos vendedores (guardada também neste computador, para o caixa sem internet).
+  private async carregarVendedores(): Promise<void> {
+    try {
+      const lista = await this.clientesApi.vendedores();
+      this.vendedores.set(lista);
+      try { localStorage.setItem('marcus.vendedores', JSON.stringify(lista)); } catch { /* sem armazenamento */ }
+      if (this.vendedorId() !== null && !lista.some((v) => v.id === this.vendedorId())) this.escolherVendedor(lista.length === 1 ? lista[0].id : null);
+      else if (this.vendedorId() === null && lista.length === 1) this.escolherVendedor(lista[0].id); // um vendedor só: já vem escolhido
+    } catch { /* sem internet: fica a lista guardada */ }
+  }
+
+  private lerVendedores(): Vendedor[] {
+    try { return JSON.parse(localStorage.getItem('marcus.vendedores') ?? '[]'); } catch { return []; }
+  }
+
+  private lerVendedorId(): number | null {
+    try { const v = localStorage.getItem('marcus.vendedor'); return v ? Number(v) : null; } catch { return null; }
+  }
+
   protected abrirTroca(): void {
     if (this.precisaInternet('fazer troca')) return;
     this.erro.set(null);
@@ -926,7 +981,9 @@ export class Pdv {
       }
     }
     this.erro.set(null);
-    this.pagamentos.update((p) => [...p, { forma: this.formaAtual(), valor }]);
+    const parcelas = this.formaAtual() === 'Credito' ? Math.min(12, Math.max(1, Number(this.parcelas) || 1)) : 1;
+    this.pagamentos.update((p) => [...p, { forma: this.formaAtual(), valor, ...(parcelas > 1 ? { parcelas } : {}) }]);
+    this.parcelas = 1;
 
     if (this.falta() > 0) {
       this.escolherForma(this.formaAtual());
@@ -958,7 +1015,8 @@ export class Pdv {
       itens: this.carrinho().map((i) => ({ produtoId: i.produto.id, quantidade: i.quantidade })),
       desconto: this.desconto(),
       pagamentos: this.pagamentos(),
-      clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : null,
+      clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : this.clienteVenda()?.id ?? null,
+      vendedorId: this.vendedorId(),
       idLocal: novoIdLocal(), // se a internet cair na resposta e a venda for guardada, o servidor não grava duas vezes
     };
     const podeOffline = !pedido.pagamentos.some((p) => p.cobrancaPixId || p.forma === 'Fiado' || p.forma === 'ValeTroca');
@@ -993,7 +1051,7 @@ export class Pdv {
   }
 
   // Sem internet: monta o cupom aqui (preço do catálogo guardado) e coloca a venda na fila para enviar depois.
-  private async guardarVendaOffline(pedido: { desconto: number; pagamentos: { forma: FormaPagamento; valor: number }[]; idLocal: string }): Promise<Cupom> {
+  private async guardarVendaOffline(pedido: { desconto: number; pagamentos: { forma: FormaPagamento; valor: number }[]; idLocal: string; clienteId?: number | null; vendedorId?: number | null }): Promise<Cupom> {
     const cx = this.caixa()!;
     const itens = this.carrinho().map((i) => ({
       produtoId: i.produto.id, descricao: i.produto.nome, unidade: i.produto.unidade, quantidade: i.quantidade,
@@ -1004,7 +1062,8 @@ export class Pdv {
       id: 0, dataHora, numeroCaixa: cx.numeroCaixa, operador: this.auth.usuario()?.nome ?? cx.operador, status: 'Concluida',
       subtotal: this.subtotal(), desconto: this.desconto(), total: this.total(), valorPago: this.pago(), troco: this.troco(),
       itens, pagamentos: pedido.pagamentos.map((p) => ({ forma: p.forma, valor: p.valor })), motivoCancelamento: null,
-      offline: true, idLocal: pedido.idLocal,
+      offline: true, idLocal: pedido.idLocal, vendedor: this.nomeVendedor(),
+      cliente: this.clienteVenda() ? { nome: this.clienteVenda()!.nome, apelido: this.clienteVenda()!.apelido, saldoDevedor: null, vencimentoFiado: null } : null,
     };
     await this.offline.guardarVenda({ ...pedido, itens: [] }, cupom, pedido.idLocal, dataHora);
     return cupom;
@@ -1176,6 +1235,9 @@ export class Pdv {
     } else if (e.key === 'F7' && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirTroca();
+    } else if (e.key === 'F8' && !algumaJanelaAberta && !this.produtoPeso()) {
+      e.preventDefault();
+      this.abrirCliente();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {
       clearTimeout(this.esperaDigitacao);
       this.resultados.set([]);
@@ -1303,6 +1365,7 @@ export class Pdv {
   private limparVenda(focar = true): void {
     this.carrinho.set([]);
     this.creditoTroca.set(null);
+    this.clienteVenda.set(null);
     this.desconto.set(0);
     this.textoDesconto = '';
     this.pagamentos.set([]);

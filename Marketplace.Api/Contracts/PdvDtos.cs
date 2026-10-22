@@ -54,14 +54,16 @@ public record PagamentoRequest(
     [Required] string Forma,
     [Range(0.01, 1000000, ErrorMessage = "Valor de pagamento inválido.")] decimal Valor,
     int? CobrancaPixId = null,    // Pix automático: a cobrança paga no Mercado Pago
-    int? ValeTrocaId = null);     // vale-troca (achado pelo código antes de pagar)
+    int? ValeTrocaId = null,      // vale-troca (achado pelo código antes de pagar)
+    int Parcelas = 1);            // crédito: em quantas vezes (1 a 12)
 
 public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaRequest> Itens,
     [Range(0, 1000000, ErrorMessage = "Desconto inválido.")] decimal Desconto,
     [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos,
-    int? ClienteId = null, // obrigatório quando há pagamento no fiado
-    Guid? IdLocal = null); // criado no caixa: se a internet cair na resposta e o caixa guardar a venda offline, ela não entra duas vezes
+    int? ClienteId = null, // cliente identificado (obrigatório quando há pagamento no fiado)
+    Guid? IdLocal = null,  // criado no caixa: se a internet cair na resposta e o caixa guardar a venda offline, ela não entra duas vezes
+    int? VendedorId = null); // quem atendeu (comissão)
 
 // ----- Caixa OFFLINE (vendas feitas sem internet, enviadas quando ela volta) -----
 // Catálogo que o caixa guarda no computador para vender sem internet (só o necessário).
@@ -79,7 +81,9 @@ public record VendaOfflineRequest(
     DateTimeOffset DataHora,      // quando foi feita (no relógio do caixa)
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaOfflineRequest> Itens,
     [Range(0, 1000000, ErrorMessage = "Desconto inválido.")] decimal Desconto,
-    [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos);
+    [MinLength(1, ErrorMessage = "Informe a forma de pagamento.")] List<PagamentoRequest> Pagamentos,
+    int? VendedorId = null,
+    int? ClienteId = null);
 
 // Item/compra cancelado sem internet: o gerente foi escolhido na lista, mas a senha não pôde ser conferida.
 public record CancelamentoOfflineRequest(
@@ -134,7 +138,7 @@ public record ItemVendaResponse(int ProdutoId, string Descricao, string Unidade,
 
 // Vale-troca: o código, o saldo que ficou e até quando vale (impresso no cupom).
 public record PagamentoResponse(string Forma, decimal Valor, bool PixConfirmado = false,
-    string? ValeCodigo = null, decimal? ValeSaldo = null, DateOnly? ValeValidade = null);
+    string? ValeCodigo = null, decimal? ValeSaldo = null, DateOnly? ValeValidade = null, int Parcelas = 1);
 
 public record VendaResponse(
     int Id,
@@ -153,7 +157,8 @@ public record VendaResponse(
     ClienteCupom? Cliente = null,
     CancelamentoCupom? Cancelamento = null,
     bool Offline = false,
-    Guid? IdLocal = null);
+    Guid? IdLocal = null,
+    string? Vendedor = null);
 
 // Venda cancelada: quando, quem cancelou e quem autorizou.
 public record CancelamentoCupom(DateTimeOffset? Em, string? Por, string? AutorizadoPor);

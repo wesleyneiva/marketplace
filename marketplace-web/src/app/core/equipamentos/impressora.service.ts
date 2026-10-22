@@ -46,7 +46,7 @@ export class ImpressoraService {
     const itens = c.itens.map((i, n) => `
       <div class="item"><span>${String(n + 1).padStart(3, '0')} ${esc(i.descricao)}</span></div>
       <div class="linha"><span>${qtd(i.quantidade, i.unidade)} ${esc(i.unidade)} x ${dinheiro(i.precoUnitario)}</span><span>${dinheiro(i.total)}</span></div>`).join('');
-    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}${p.valeCodigo ? ' ' + esc(p.valeCodigo) : ''}</span><span>${dinheiro(p.valor)}</span></div>`
+    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}${p.valeCodigo ? ' ' + esc(p.valeCodigo) : ''}${p.parcelas && p.parcelas > 1 ? ` ${p.parcelas}x de ${dinheiro(p.valor / p.parcelas)}` : ''}</span><span>${dinheiro(p.valor)}</span></div>`
       // Vale-troca com saldo: o que ficou e até quando vale (o cliente guarda este cupom junto com o vale).
       + (p.valeCodigo && p.valeSaldo ? `<div class="linha"><span>Saldo no vale${p.valeValidade ? ' (até ' + diaBr(p.valeValidade) + ')' : ''}</span><span>${dinheiro(p.valeSaldo)}</span></div>` : '')).join('');
     // Fiado: quem comprou, quanto deve agora, quando vence e a ASSINATURA (a "nota" da caderneta).
@@ -81,6 +81,7 @@ export class ImpressoraService {
         <div class="tracos"></div>
         <div class="linha"><span>${c.id ? `Venda nº ${c.id}` : `Venda sem internet ${esc((c.idLocal ?? '').slice(0, 8).toUpperCase())}`}</span><span>${data}</span></div>
         <div class="linha"><span>Caixa ${c.numeroCaixa}</span><span>${esc(c.operador)}</span></div>
+        ${c.vendedor ? `<div class="linha"><span>Vendedor</span><span>${esc(c.vendedor)}</span></div>` : ''}
         ${c.status === 'Cancelada' ? '<div class="centro forte">*** VENDA CANCELADA ***</div>' : ''}
         <div class="tracos"></div>
         ${itens}

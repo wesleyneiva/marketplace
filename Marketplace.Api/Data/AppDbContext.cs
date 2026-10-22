@@ -56,6 +56,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<CobrancaPix> CobrancasPix => Set<CobrancaPix>();
     public DbSet<AutorizacaoGerente> AutorizacoesGerente => Set<AutorizacaoGerente>();
     public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<Vendedor> Vendedores => Set<Vendedor>();
+    public DbSet<ComissaoMes> ComissoesMes => Set<ComissaoMes>();
     public DbSet<LancamentoFiado> LancamentosFiado => Set<LancamentoFiado>();
     public DbSet<Plano> Planos => Set<Plano>();
     public DbSet<Fatura> Faturas => Set<Fatura>();
@@ -158,6 +160,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
         {
             e.Property(c => c.Nome).HasMaxLength(60).UseCollation(OrdemPortugues);
             e.HasIndex(c => new { c.EmpresaId, c.Nome }).IsUnique(); // o mesmo nome pode existir em outra empresa
+            e.Property(c => c.ComissaoPercentual).HasPrecision(5, 2);
         });
 
         builder.Entity<Produto>(e =>
@@ -254,6 +257,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
         {
             e.ToTable("OrdensServico");
             e.Property(o => o.Cliente).HasMaxLength(100);
+            e.HasOne(o => o.ClienteCadastro).WithMany().HasForeignKey(o => o.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(o => new { o.EmpresaId, o.ClienteId });
             e.Property(o => o.Telefone).HasMaxLength(20);
             e.Property(o => o.Raquete).HasMaxLength(120);
             e.Property(o => o.Corda).HasMaxLength(120);
@@ -473,13 +478,15 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
         {
             e.ToTable("Recebiveis");
             e.Property(r => r.Forma).HasConversion<string>().HasMaxLength(10);
+            e.Property(r => r.Parcela).HasDefaultValue(1);
+            e.Property(r => r.Parcelas).HasDefaultValue(1);
             e.Property(r => r.Status).HasConversion<string>().HasMaxLength(10);
             e.Property(r => r.ValorBruto).HasPrecision(14, 2);
             e.Property(r => r.TaxaPercentual).HasPrecision(6, 4);
             e.Property(r => r.Taxa).HasPrecision(14, 2);
             e.Property(r => r.ValorLiquido).HasPrecision(14, 2);
             e.HasIndex(r => new { r.EmpresaId, r.Status, r.Previsao }); // "o que vence até hoje e não caiu"
-            e.HasIndex(r => new { r.SessaoCaixaId, r.Forma }).IsUnique(); // um recebível por caixa e forma (nunca lança duas vezes)
+            e.HasIndex(r => new { r.SessaoCaixaId, r.Forma, r.Parcelas, r.Parcela }).IsUnique(); // um recebível por caixa, forma e parcela (nunca lança duas vezes)
             e.HasIndex(r => r.LiquidacaoId);
             e.HasOne(r => r.SessaoCaixa).WithMany().HasForeignKey(r => r.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(r => r.ContaFinanceira).WithMany().HasForeignKey(r => r.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
@@ -497,6 +504,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(c => c.LimiteCredito).HasPrecision(12, 2);
             e.HasIndex(c => new { c.EmpresaId, c.Nome });
             e.HasIndex(c => new { c.EmpresaId, c.Cpf }).IsUnique().HasFilter("\"Cpf\" IS NOT NULL");
+            e.HasIndex(c => new { c.EmpresaId, c.Telefone });
+            e.Property(c => c.Email).HasMaxLength(120);
+            e.Property(c => c.Raquete).HasMaxLength(120);
+            e.Property(c => c.Corda).HasMaxLength(120);
+            e.Property(c => c.Tensao).HasMaxLength(20);
             e.ToTable(t => t.HasCheckConstraint("CK_Clientes_DiaPagamento", "\"DiaPagamento\" BETWEEN 1 AND 28"));
         });
 
@@ -519,6 +531,24 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
         });
 
         builder.Entity<Venda>().HasOne(v => v.Cliente).WithMany().HasForeignKey(v => v.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<Venda>().HasIndex(v => new { v.EmpresaId, v.ClienteId, v.DataHora }).HasFilter("\"ClienteId\" IS NOT NULL");
+        builder.Entity<Venda>().HasOne(v => v.Vendedor).WithMany().HasForeignKey(v => v.VendedorId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Vendedor>(e =>
+        {
+            e.ToTable("Vendedores");
+            e.Property(v => v.Nome).HasMaxLength(80).UseCollation(OrdemPortugues);
+            e.Property(v => v.ComissaoPercentual).HasPrecision(5, 2);
+        });
+
+        builder.Entity<ComissaoMes>(e =>
+        {
+            e.ToTable("ComissoesMes");
+            e.Property(c => c.Valor).HasPrecision(12, 2);
+            e.HasIndex(c => new { c.EmpresaId, c.VendedorId, c.Competencia }).IsUnique();
+            e.HasOne(c => c.Vendedor).WithMany().HasForeignKey(c => c.VendedorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(c => c.ContaPagar).WithMany().HasForeignKey(c => c.ContaPagarId).OnDelete(DeleteBehavior.Restrict);
+        });
 
         // ----- PDV -----
         builder.Entity<SessaoCaixa>(e =>
@@ -587,6 +617,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
         {
             e.Property(p => p.Forma).HasConversion<string>().HasMaxLength(10);
             e.Property(p => p.Valor).HasPrecision(12, 2);
+            e.Property(p => p.Parcelas).HasDefaultValue(1);
             e.HasOne(p => p.Venda).WithMany(v => v.Pagamentos).HasForeignKey(p => p.VendaId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(p => p.VendaId).IncludeProperties(p => new { p.Forma, p.Valor }); // "formas de pagamento" (4x mais rápido)
             e.HasOne(p => p.ValeTroca).WithMany().HasForeignKey(p => p.ValeTrocaId).OnDelete(DeleteBehavior.Restrict);

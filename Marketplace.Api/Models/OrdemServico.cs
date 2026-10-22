@@ -10,6 +10,8 @@ public class OrdemServico : IDaEmpresa
     public int Numero { get; set; }                 // sequência da loja (OS nº 1, 2, 3…)
 
     public string Cliente { get; set; } = "";
+    public int? ClienteId { get; set; }             // cliente cadastrado (histórico); o nome e o telefone ficam copiados
+    public Cliente? ClienteCadastro { get; set; }
     public string? Telefone { get; set; }           // WhatsApp, só números com DDD (para avisar que ficou pronta)
     public string Raquete { get; set; } = "";       // "Babolat Pure Aero (a azul)"
     public string? Corda { get; set; }              // "Babolat RPM Blast 1.25" ou "corda do cliente"

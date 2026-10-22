@@ -1,0 +1,50 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="users" /> Clientes</h1>
+    <p>Quem compra, quanto e quando. O caixa identifica o cliente na venda (<kbd>F8</kbd>)@if (ramo().servicos) {<span> e a oficina liga a ordem ao cadastro pelo telefone</span>}.</p>
+  </div>
+  <div class="botoes-topo">
+    <button type="button" class="botao primario" (click)="novo()">+ Novo cliente</button>
+  </div>
+</header>
+
+@if (lista.value(); as l) {
+  <section class="resumo-clientes">
+    <div class="cartao"><span>Clientes ativos</span><strong>{{ l.ativos }}</strong></div>
+    <div class="cartao"><span>Compraram nos últimos 30 dias</span><strong>{{ l.comprouNosUltimos30Dias }}</strong></div>
+    <button type="button" class="cartao" (click)="filtrar('aniversariantes')"><span>Aniversariantes do mês</span><strong>{{ l.aniversariantesDoMes }}</strong><small>ver</small></button>
+  </section>
+}
+
+<section class="filtros-clientes">
+  <input type="search" [ngModel]="textoBusca" (ngModelChange)="digitar($event)" placeholder="Nome, apelido, telefone, CPF ou e-mail…" aria-label="Buscar cliente" />
+  <div class="chips">
+    @for (f of filtros; track f.v) {
+      <button type="button" class="botao pequeno" [class.ligado]="filtro() === f.v" (click)="filtrar(f.v)">{{ f.t }}</button>
+    }
+  </div>
+</section>
+
+<section class="painel rolagem">
+  <table>
+    <thead><tr><th>Cliente</th><th>Telefone</th>@if (ramo().servicos) { <th>Raquete</th> }<th class="num">Compras</th><th class="num">Gastou</th><th>Última compra</th></tr></thead>
+    <tbody>
+      @for (c of lista.value()?.itens ?? []; track c.id) {
+        <tr class="linha-cliente" [class.inativo]="!c.ativo" [routerLink]="['/clientes', c.id]" tabindex="0">
+          <td><span class="nome">{{ c.nome }}@if (c.simulado) { <em> · teste</em> }</span>
+            <small>@if (c.apelido) { {{ c.apelido }} }@if (c.nascimento) { · aniversário {{ aniversario(c.nascimento) }} }</small></td>
+          <td>@if (whatsapp(c.telefone); as w) { <a [href]="w" target="_blank" rel="noopener" (click)="$event.stopPropagation()"><app-icone nome="message-circle" /> {{ c.telefone }}</a> } @else { — }</td>
+          @if (ramo().servicos) { <td>{{ c.raquete ?? '—' }}</td> }
+          <td class="num">{{ c.compras }}</td>
+          <td class="num">{{ c.totalGasto | currency: 'BRL' }}</td>
+          <td class="quando">{{ c.ultimaCompra ? (c.ultimaCompra | date: 'dd/MM/yyyy') : 'nunca' }}</td>
+        </tr>
+      } @empty {
+        @if (!lista.isLoading()) { <tr><td colspan="6" class="vazio">Nenhum cliente aqui.</td></tr> }
+      }
+    </tbody>
+  </table>
+</section>
+<app-paginacao [pagina]="pagina()" [paginas]="paginas()" (irPara)="pagina.set($event)" />
+
+<app-cliente-form (salvo)="aoSalvar($event)" />

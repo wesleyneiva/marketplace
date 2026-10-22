@@ -128,12 +128,20 @@ public static class PerfilEsporte
     public static readonly int[] TamanhosDeCesta = [1, 1, 1, 1, 1, 2, 2, 2, 3];
 
     // Ticket alto: muito crédito (parcelado na maquininha), Pix, débito e pouco dinheiro.
+    // Crédito: compra pequena à vista; raquete e tênis quase sempre parcelados (3x, 5x, 10x são os mais comuns).
+    private static int Parcelas(decimal total)
+    {
+        if (total < 150 || Random.Shared.NextDouble() < 0.25) return 1;
+        int[] opcoes = total >= 800 ? [3, 5, 6, 10, 10] : total >= 400 ? [2, 3, 3, 5] : [2, 2, 3];
+        return opcoes[Random.Shared.Next(opcoes.Length)];
+    }
+
     public static Contracts.PagamentoRequest Pagamento(decimal total)
     {
         var sorteio = Random.Shared.NextDouble();
-        if (total >= 300 && sorteio < 0.70) return new("Credito", total);
+        if (total >= 300 && sorteio < 0.70) return new("Credito", total, Parcelas: Parcelas(total));
         if (sorteio < 0.40) return new("Pix", total);
-        if (sorteio < 0.65) return new("Credito", total);
+        if (sorteio < 0.65) return new("Credito", total, Parcelas: Parcelas(total));
         if (sorteio < 0.90) return new("Debito", total);
         decimal[] notas = [10, 20, 50, 100, 200];
         var nota = notas.FirstOrDefault(n => n >= total);

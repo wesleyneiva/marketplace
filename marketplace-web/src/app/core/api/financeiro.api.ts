@@ -95,6 +95,8 @@ export interface Recebivel {
   conta: string;
   status: 'Previsto' | 'Recebido';
   recebidoEm: string | null;
+  parcela: number;  // crédito parcelado: parcela X de Y
+  parcelas: number;
 }
 
 export interface ResumoRecebiveis {

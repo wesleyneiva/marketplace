@@ -35,10 +35,10 @@ public class RecebiveisController(AppDbContext db, CaixaService caixa) : Control
         var lista = await q.Take(1000).Select(r => new
         {
             r.Id, r.SessaoCaixaId, r.SessaoCaixa!.NumeroCaixa, r.Forma, r.DataVenda, r.Previsao, r.ValorBruto, r.TaxaPercentual,
-            r.Taxa, r.ValorLiquido, Conta = r.ContaFinanceira!.Nome, r.Status, r.RecebidoEm,
+            r.Taxa, r.ValorLiquido, Conta = r.ContaFinanceira!.Nome, r.Status, r.RecebidoEm, r.Parcela, r.Parcelas,
         }).ToListAsync();
         return lista.Select(r => new RecebivelResponse(r.Id, r.SessaoCaixaId, r.NumeroCaixa, r.Forma.ToString(), r.DataVenda, r.Previsao,
-            r.ValorBruto, r.TaxaPercentual, r.Taxa, r.ValorLiquido, r.Conta, r.Status, r.RecebidoEm)).ToList();
+            r.ValorBruto, r.TaxaPercentual, r.Taxa, r.ValorLiquido, r.Conta, r.Status, r.RecebidoEm, r.Parcela, r.Parcelas)).ToList();
     }
 
     // GET /api/financeiro/recebiveis/resumo → números do topo da aba "A receber"

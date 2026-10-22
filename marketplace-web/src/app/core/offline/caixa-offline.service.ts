@@ -140,7 +140,7 @@ export class CaixaOffline {
     await this.colocar({
       idLocal, tipo: 'venda', usuarioId: this.usuarioId, empresaId: this.empresaId, criadoEm: dataHora, cupom,
       corpo: {
-        idLocal, dataHora, desconto: venda.desconto, pagamentos: venda.pagamentos,
+        idLocal, dataHora, desconto: venda.desconto, pagamentos: venda.pagamentos, vendedorId: venda.vendedorId ?? null, clienteId: venda.clienteId ?? null,
         itens: cupom.itens.map((i) => ({ produtoId: i.produtoId, quantidade: i.quantidade, precoUnitario: i.precoUnitario })),
       },
     });

@@ -43,7 +43,8 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
     public async Task<Venda> FinalizarOfflineAsync(string usuarioId, bool podeDescontoLivre, VendaOfflineRequest r)
     {
         if (await db.Vendas.FirstOrDefaultAsync(v => v.IdLocal == r.IdLocal) is { } jaEntrou) return jaEntrou;
-        var pedido = new NovaVendaRequest(r.Itens.Select(i => new ItemVendaRequest(i.ProdutoId, i.Quantidade)).ToList(), r.Desconto, r.Pagamentos);
+        var pedido = new NovaVendaRequest(r.Itens.Select(i => new ItemVendaRequest(i.ProdutoId, i.Quantidade)).ToList(), r.Desconto, r.Pagamentos,
+            ClienteId: r.ClienteId, VendedorId: r.VendedorId);
         var precos = r.Itens.GroupBy(i => i.ProdutoId).ToDictionary(g => g.Key, g => Dinheiro(g.First().PrecoUnitario));
         return await SemDuplicarAsync(r.IdLocal, () => ComRepeticaoAsync(() => TentarFinalizarAsync(usuarioId, podeDescontoLivre, pedido,
             OrigemVenda.Caixa, new VendaOffline(r.IdLocal, r.DataHora, precos))));
@@ -76,6 +77,10 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             .ToDictionaryAsync(p => p.Id);
 
         var venda = new Venda { SessaoCaixaId = sessao.Id, UsuarioId = usuarioId, Origem = origem, IdLocal = pedido.IdLocal };
+        // Vendedor desativado/apagado (offline: a lista do caixa estava velha) não trava a venda: fica sem vendedor.
+        if (pedido.VendedorId is int vendedorId && await db.Vendedores.AnyAsync(x => x.Id == vendedorId && (x.Ativo || offline != null)))
+            venda.VendedorId = vendedorId;
+        else if (pedido.VendedorId is not null && offline is null) throw new EstoqueException("Vendedor não encontrado ou desativado.");
         if (offline is not null)
         {
             // Hora da venda = a do caixa, mas dentro do turno (nem antes da abertura, nem no futuro).
@@ -132,7 +137,9 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         await VincularPixAutomaticoAsync(venda, pedido.Pagamentos, sessao.Id);
         await trocas.UsarValesAsync(venda);
 
-        // Fiado: vira dívida na caderneta do cliente (limite, bloqueio e atraso: acima disso só gerente libera).
+        // Cliente identificado (histórico). Fiado: vira dívida na caderneta (limite, bloqueio e atraso: acima disso só gerente libera).
+        if (pedido.ClienteId is int clienteId && !await db.Clientes.AnyAsync(c => c.Id == clienteId))
+            throw new EstoqueException("Cliente não encontrado.");
         venda.ClienteId = pedido.ClienteId;
         var valorFiado = venda.Pagamentos.Where(p => p.Forma == FormaPagamento.Fiado).Sum(p => p.Valor);
         if (valorFiado > 0)
@@ -151,9 +158,11 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
                 throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito, Credito, Fiado ou ValeTroca.");
             if (p.CobrancaPixId is not null && forma != FormaPagamento.Pix)
                 throw new EstoqueException("Cobrança Pix só vale para pagamento em Pix.");
+            if (p.Parcelas is < 1 or > 12 || (p.Parcelas > 1 && forma != FormaPagamento.Credito))
+                throw new EstoqueException("Parcelas: só no crédito, de 1 a 12.");
             venda.Pagamentos.Add(new PagamentoVenda
             {
-                Forma = forma, Valor = Dinheiro(p.Valor), CobrancaPixId = p.CobrancaPixId,
+                Forma = forma, Valor = Dinheiro(p.Valor), CobrancaPixId = p.CobrancaPixId, Parcelas = p.Parcelas,
                 ValeTrocaId = forma == FormaPagamento.ValeTroca ? p.ValeTrocaId : null,
             });
         }

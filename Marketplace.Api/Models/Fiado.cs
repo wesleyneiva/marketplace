@@ -24,6 +24,14 @@ public class Cliente : IDaEmpresa
     public bool Ativo { get; set; } = true;
     public string? Observacao { get; set; }
 
+    // Cadastro da loja (fase 4): aniversário e e-mail; na loja de esporte, o que o cliente usa (a oficina sugere).
+    public DateOnly? Nascimento { get; set; }
+    public string? Email { get; set; }
+    public string? Raquete { get; set; }          // "Babolat Pure Aero 2023"
+    public string? Corda { get; set; }            // "RPM Blast 1.25"
+    public string? Tensao { get; set; }           // "24/22 lb"
+    public bool Simulado { get; set; }            // cliente fixo do bot (loja em teste)
+
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
     public string? CriadoPorId { get; set; }
 }

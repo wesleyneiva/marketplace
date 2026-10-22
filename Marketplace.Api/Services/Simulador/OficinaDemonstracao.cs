@@ -10,14 +10,14 @@ namespace Marketplace.Api.Services.Simulador;
 // que ele mesmo criou (Automatica); as das pessoas ficam com elas.
 public static class OficinaDemonstracao
 {
-    private static readonly string[] Nomes =
+    internal static readonly string[] Nomes =
     [
         "Ana Paula", "Bruno", "Carla", "Diego", "Eduardo", "Fernanda", "Gabriel", "Helena", "Igor", "Juliana", "Leonardo",
         "Mariana", "Nicolas", "Patrícia", "Rafael", "Renata", "Rodrigo", "Sofia", "Thiago", "Vanessa", "Vinícius", "Luiza",
     ];
-    private static readonly string[] Sobrenomes =
+    internal static readonly string[] Sobrenomes =
         ["Silva", "Souza", "Oliveira", "Costa", "Pereira", "Rodrigues", "Almeida", "Machado", "Rocha", "Fagundes", "Becker", "Schmidt"];
-    private static readonly string[] RaquetesDoCliente =
+    internal static readonly string[] RaquetesDoCliente =
     [
         "Babolat Pure Aero", "Babolat Pure Drive", "Wilson Blade 98", "Wilson Pro Staff 97", "Wilson Clash 100",
         "Head Speed MP", "Head Gravity MP", "Head Radical MP", "Yonex EZONE 100", "Yonex VCORE 98", "Tecnifibre TF40",
@@ -34,27 +34,39 @@ public static class OficinaDemonstracao
         // Corda comprada junto (o cliente leva a corda nova); senão, a corda dele mesmo.
         var corda = itens.Select(i => porId[i.ProdutoId]).FirstOrDefault(p => p.Categoria?.Nome == "Cordas" || p.Nome.StartsWith("Corda "));
         var raqueteNova = itens.Select(i => porId[i.ProdutoId]).FirstOrDefault(p => p.Modelo?.Nome.StartsWith("Raquete") == true);
-        var nome = $"{Sortear(Nomes)} {Sortear(Sobrenomes)}";
-        var telefone = $"519{Random.Shared.Next(80000000, 99999999)}";
+        // O cliente da venda (fixo, do cadastro): nome, telefone, raquete e a tensão de sempre.
+        var cliente = venda.ClienteId is int cid ? await db.Clientes.FirstOrDefaultAsync(c => c.Id == cid) : null;
+        var nome = cliente?.Nome ?? $"{Sortear(Nomes)} {Sortear(Sobrenomes)}";
+        var telefone = cliente?.Telefone ?? $"519{Random.Shared.Next(80000000, 99999999)}";
         var agora = DateTimeOffset.UtcNow;
 
         foreach (var s in servicos)
         {
             var expresso = PerfilConsumo.SemAcento(s.Nome).Contains("expresso");
             var tensao = Random.Shared.Next(21, 27);
+            var encordoa = PerfilConsumo.SemAcento(s.Nome).Contains("encordoamento");
             var ordem = new OrdemServico
             {
-                Cliente = nome, Telefone = telefone,
-                Raquete = raqueteNova is not null ? $"{raqueteNova.Nome} (comprada agora)" : Sortear(RaquetesDoCliente),
+                Cliente = nome, Telefone = telefone, ClienteId = cliente?.Id,
+                Raquete = raqueteNova is not null ? $"{raqueteNova.Nome} (comprada agora)" : cliente?.Raquete ?? Sortear(RaquetesDoCliente),
                 Corda = PerfilConsumo.SemAcento(s.Nome).Contains("encordoamento")
                     ? corda?.Nome ?? "Corda do cliente" : null,
-                Tensao = PerfilConsumo.SemAcento(s.Nome).Contains("encordoamento") ? $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lb" : null,
+                Tensao = encordoa ? cliente?.Tensao ?? $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lb" : null,
                 Servico = s.Nome,
                 Valor = itens.Where(i => i.ProdutoId == s.Id || i.ProdutoId == corda?.Id).Sum(i => i.Quantidade * porId[i.ProdutoId].PrecoVenda),
                 Paga = true, VendaId = venda.Id, Status = StatusOrdem.Recebida, Automatica = true, CriadaPorId = usuarioId,
                 Prazo = expresso ? agora.AddHours(1) : agora.AddHours(Random.Shared.Next(4, 26)),
             };
             await OrdensServicoNumeracao.SalvarNovaAsync(db, ordem);
+            if (cliente is not null)
+            {
+                // O que ele usa fica no cadastro (raquete nova, corda que levou, tensão).
+                if (raqueteNova is not null) cliente.Raquete = raqueteNova.Nome;
+                else cliente.Raquete ??= ordem.Raquete;
+                if (encordoa && corda is not null) cliente.Corda = corda.Nome;
+                if (ordem.Tensao is not null) cliente.Tensao = ordem.Tensao;
+                await db.SaveChangesAsync();
+            }
         }
     }
 

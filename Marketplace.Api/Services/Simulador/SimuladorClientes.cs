@@ -257,6 +257,14 @@ public class SimuladorClientes(
             var pedido = noFiado is int clienteId
                 ? new NovaVendaRequest(itens, 0, [new PagamentoRequest("Fiado", total)], clienteId)
                 : new NovaVendaRequest(itens, 0, [esporte ? PerfilEsporte.Pagamento(total) : ComportamentoCliente.Pagamento(total)]);
+            if (esporte)
+            {
+                // Loja de esporte: clientes fixos que voltam (quem deixa raquete na oficina sempre se identifica) e o vendedor.
+                var temOficina = itens.Any(i => opcoes.First(o => o.Produto.Id == i.ProdutoId).Produto is { Servico: true } p && OficinaDemonstracao.EhDaOficina(p.Nome));
+                int? cliente = temOficina || Random.Shared.NextDouble() < ClientesSimulados.ChanceIdentificado
+                    ? (await ClientesSimulados.SortearAsync(db, usuarioId, ct)).Id : null;
+                pedido = pedido with { ClienteId = cliente, VendedorId = await ClientesSimulados.VendedorAsync(db, ct) };
+            }
             var venda = await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
             // Loja de tênis: o encordoamento vendido vira ordem de serviço (o bot faz e entrega depois).
             if (esporte) await OficinaDemonstracao.AbrirOrdensAsync(db, venda, itens, produtos, usuarioId);

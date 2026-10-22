@@ -166,6 +166,8 @@ public class Recebivel : IDaEmpresa
     public decimal TaxaPercentual { get; set; }
     public decimal Taxa { get; set; }                // em R$ (o que a maquininha fica)
     public decimal ValorLiquido { get; set; }        // bruto − taxa (o que cai na conta)
+    public int Parcela { get; set; } = 1;            // crédito parcelado: esta é a parcela "Parcela de Parcelas"
+    public int Parcelas { get; set; } = 1;
 
     public int ContaFinanceiraId { get; set; }       // onde vai cair
     public ContaFinanceira? ContaFinanceira { get; set; }
@@ -192,6 +194,7 @@ public static class ChavesFinanceiras
     public const string SobraCaixa = "sobra-caixa";
     public const string RecebimentoFiado = "recebimento-fiado";
     public const string Inadimplencia = "inadimplencia";
+    public const string Comissoes = "comissoes";
 
     public const string ContaDinheiro = "dinheiro";
     public const string ContaCofre = "cofre";

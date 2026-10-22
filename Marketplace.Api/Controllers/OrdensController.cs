@@ -13,7 +13,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/ordens")]
 [Authorize]
-public class OrdensController(AppDbContext db) : ControllerBase
+public class OrdensController(AppDbContext db, ClientesService clientes) : ControllerBase
 {
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -84,6 +84,8 @@ public class OrdensController(AppDbContext db) : ControllerBase
     {
         var ordem = new OrdemServico { CriadaPorId = UsuarioId };
         Preencher(ordem, r);
+        // Telefone de cliente: liga a OS ao cadastro (cria, se novo) e guarda raquete/corda/tensão para a próxima vez.
+        ordem.ClienteId = await clientes.VincularDaOficinaAsync(ordem.Cliente, ordem.Telefone, ordem.Raquete, ordem.Corda, ordem.Tensao, UsuarioId);
         await OrdensServicoNumeracao.SalvarNovaAsync(db, ordem);
         return CreatedAtAction(nameof(Obter), new { id = ordem.Id }, await Projetar(db.OrdensServico.Where(o => o.Id == ordem.Id)).FirstAsync());
     }
@@ -96,6 +98,7 @@ public class OrdensController(AppDbContext db) : ControllerBase
         if (ordem.Status is StatusOrdem.Entregue or StatusOrdem.Cancelada)
             return BadRequest(new { mensagem = "Ordem entregue ou cancelada não muda." });
         Preencher(ordem, r);
+        ordem.ClienteId = await clientes.VincularDaOficinaAsync(ordem.Cliente, ordem.Telefone, ordem.Raquete, ordem.Corda, ordem.Tensao, UsuarioId);
         await db.SaveChangesAsync();
         return await Projetar(db.OrdensServico.Where(o => o.Id == id)).FirstAsync();
     }
@@ -145,6 +148,6 @@ public class OrdensController(AppDbContext db) : ControllerBase
         return q.Select(o => new OrdemResponse(o.Id, o.Numero, o.Cliente, o.Telefone, o.Raquete, o.Corda, o.Tensao, o.Servico,
             o.Valor, o.Paga, o.VendaId, o.Observacao, o.Status, o.Prazo, o.CriadaEm, o.ProntaEm, o.EntregueEm,
             db.Users.Where(u => u.Id == o.CriadaPorId).Select(u => u.NomeCompleto).FirstOrDefault(),
-            (o.Status == StatusOrdem.Recebida || o.Status == StatusOrdem.EmAndamento) && o.Prazo < agora, o.Automatica));
+            (o.Status == StatusOrdem.Recebida || o.Status == StatusOrdem.EmAndamento) && o.Prazo < agora, o.Automatica, o.ClienteId));
     }
 }

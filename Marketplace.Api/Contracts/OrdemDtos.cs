@@ -7,7 +7,7 @@ namespace Marketplace.Api.Contracts;
 public record OrdemResponse(
     int Id, int Numero, string Cliente, string? Telefone, string Raquete, string? Corda, string? Tensao, string Servico,
     decimal Valor, bool Paga, int? VendaId, string? Observacao, string Status, DateTimeOffset Prazo, DateTimeOffset CriadaEm,
-    DateTimeOffset? ProntaEm, DateTimeOffset? EntregueEm, string? CriadaPor, bool Atrasada, bool Automatica);
+    DateTimeOffset? ProntaEm, DateTimeOffset? EntregueEm, string? CriadaPor, bool Atrasada, bool Automatica, int? ClienteId = null);
 
 public record OrdemRequest(
     [Required(ErrorMessage = "Informe o nome do cliente.")][StringLength(100, MinimumLength = 2)] string Cliente,

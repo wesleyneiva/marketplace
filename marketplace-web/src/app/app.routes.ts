@@ -70,6 +70,23 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/vendas/vendas').then((m) => m.Vendas),
       },
       {
+        // Clientes da loja: cadastro e histórico (o caixa identifica na venda, F8).
+        path: 'clientes',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/clientes/clientes').then((m) => m.Clientes),
+      },
+      {
+        path: 'clientes/:id',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/clientes/cliente-ficha').then((m) => m.ClienteFicha),
+      },
+      {
+        // Vendedores (quem atende) e a comissão do mês.
+        path: 'vendedores',
+        canActivate: [precisaModulo('vendas'), precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/vendedores/vendedores').then((m) => m.Vendedores),
+      },
+      {
         // Trocas e vales-troca: relatório (a troca é feita no caixa, F7).
         path: 'vendas/trocas',
         canActivate: [precisaModulo('vendas'), precisaPerfil('Administrador', 'Gerente')],

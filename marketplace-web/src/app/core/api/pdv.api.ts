@@ -55,7 +55,8 @@ export interface Cupom {
   troco: number;
   itens: { produtoId: number; descricao: string; unidade: string; quantidade: number; precoUnitario: number; total: number }[];
   // pixConfirmado: Pix automático (Mercado Pago). vale*: vale-troca usado (código, saldo que ficou e validade, para o cupom).
-  pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean; valeCodigo?: string | null; valeSaldo?: number | null; valeValidade?: string | null }[];
+  pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean; valeCodigo?: string | null; valeSaldo?: number | null; valeValidade?: string | null; parcelas?: number }[];
+  vendedor?: string | null; // quem atendeu
   motivoCancelamento: string | null;
   cancelamento?: { em: string | null; por: string | null; autorizadoPor: string | null } | null;
   offline?: boolean;       // feita sem internet (caixa offline)
@@ -102,8 +103,9 @@ export interface ResumoVendas {
 export interface NovaVenda {
   itens: { produtoId: number; quantidade: number }[];
   desconto: number;
-  pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number }[]; // Pix automático / vale-troca
-  clienteId?: number | null; // obrigatório com fiado
+  pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number; parcelas?: number }[]; // Pix automático / vale-troca / crédito em N vezes
+  clienteId?: number | null; // cliente identificado (obrigatório com fiado)
+  vendedorId?: number | null; // quem atendeu (comissão)
   idLocal?: string;          // criado no caixa: a mesma venda nunca entra duas vezes (ver caixa offline)
 }
 

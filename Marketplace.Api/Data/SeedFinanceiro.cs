@@ -26,6 +26,7 @@ public static class SeedFinanceiro
         (GrupoFinanceiro.Pessoal, S, "Encargos (INSS/FGTS)", null),
         (GrupoFinanceiro.Pessoal, S, "Benefícios (VT/VA)", null),
         (GrupoFinanceiro.Pessoal, S, "Pró-labore", null),
+        (GrupoFinanceiro.Pessoal, S, "Comissões de vendedores", Comissoes),
         (GrupoFinanceiro.Ocupacao, S, "Aluguel", null),
         (GrupoFinanceiro.Ocupacao, S, "Energia elétrica", null),
         (GrupoFinanceiro.Ocupacao, S, "Água e esgoto", null),

@@ -215,7 +215,7 @@ Em calçado e roupa, troca de número é rotina, e hoje só existe cancelamento/
 
 ---
 
-## Fase 4 — Cliente e vendedor
+## Fase 4 — Cliente e vendedor — FEITA em 22/10/2026 (clientes com histórico, vendedor e comissão, crédito parcelado)
 
 - **Cliente:** já existe a tabela `Cliente` (do fiado, hoje desligado).
   - Reaproveitar: CPF opcional na venda (já vai ser exigido na NFC-e acima de certo valor), telefone e aniversário.

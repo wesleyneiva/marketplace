@@ -34,6 +34,10 @@ public static class FinanceiroCaixa
         var porForma = await db.PagamentosVenda.AsNoTracking()
             .Where(p => p.Venda!.SessaoCaixaId == sessao.Id && p.Venda.Status == StatusVenda.Concluida)
             .GroupBy(p => p.Forma).Select(g => new { Forma = g.Key, Valor = g.Sum(p => p.Valor) }).ToListAsync();
+        // Crédito parcelado: quanto foi em cada número de parcelas (2x, 3x…). O à vista segue junto com o resto.
+        var parcelado = await db.PagamentosVenda.AsNoTracking()
+            .Where(p => p.Venda!.SessaoCaixaId == sessao.Id && p.Venda.Status == StatusVenda.Concluida && p.Forma == FormaPagamento.Credito && p.Parcelas > 1)
+            .GroupBy(p => p.Parcelas).Select(g => new { Parcelas = g.Key, Valor = g.Sum(p => p.Valor) }).ToListAsync();
         var troco = await db.Vendas.Where(v => v.SessaoCaixaId == sessao.Id && v.Status == StatusVenda.Concluida)
             .SumAsync(v => (decimal?)v.Troco) ?? 0;
 
@@ -77,7 +81,28 @@ public static class FinanceiroCaixa
 
             var cfg = configuracoes.GetValueOrDefault(f.Forma)
                 ?? throw new InvalidOperationException($"Falta a configuração de recebimento de {f.Forma}.");
-            var taxa = Dinheiro(f.Valor * cfg.TaxaPercentual / 100m);
+            // Parcelado: a maquininha deposita uma parcela por mês (1ª no prazo do crédito, as outras de 30 em 30 dias).
+            var valorAVista = f.Valor;
+            if (f.Forma == FormaPagamento.Credito)
+                foreach (var p in parcelado)
+                {
+                    valorAVista -= p.Valor;
+                    var parcela = Dinheiro(p.Valor / p.Parcelas);
+                    for (var n = 1; n <= p.Parcelas; n++)
+                    {
+                        var bruto = n == 1 ? p.Valor - parcela * (p.Parcelas - 1) : parcela; // os centavos que sobram vão na 1ª
+                        var taxaParcela = Dinheiro(bruto * cfg.TaxaPercentual / 100m);
+                        db.Recebiveis.Add(new Recebivel
+                        {
+                            SessaoCaixaId = sessao.Id, Forma = f.Forma, DataVenda = dia,
+                            Previsao = CalendarioBancario.Previsao(dia, cfg.PrazoDias + 30 * (n - 1), cfg.DiasUteis),
+                            ValorBruto = bruto, TaxaPercentual = cfg.TaxaPercentual, Taxa = taxaParcela, ValorLiquido = bruto - taxaParcela,
+                            ContaFinanceiraId = cfg.ContaFinanceiraId, Parcela = n, Parcelas = p.Parcelas,
+                        });
+                    }
+                }
+            if (valorAVista <= 0) continue;
+            var taxa = Dinheiro(valorAVista * cfg.TaxaPercentual / 100m);
             var previsao = CalendarioBancario.Previsao(dia, cfg.PrazoDias, cfg.DiasUteis);
 
             if (previsao == dia && cfg.PrazoDias == 0)
@@ -93,7 +118,7 @@ public static class FinanceiroCaixa
             db.Recebiveis.Add(new Recebivel
             {
                 SessaoCaixaId = sessao.Id, Forma = f.Forma, DataVenda = dia, Previsao = previsao,
-                ValorBruto = f.Valor, TaxaPercentual = cfg.TaxaPercentual, Taxa = taxa, ValorLiquido = f.Valor - taxa,
+                ValorBruto = valorAVista, TaxaPercentual = cfg.TaxaPercentual, Taxa = taxa, ValorLiquido = valorAVista - taxa,
                 ContaFinanceiraId = cfg.ContaFinanceiraId,
             });
         }

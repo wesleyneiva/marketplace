@@ -1,0 +1,111 @@
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="hand-coins" /> Vendedores</h1>
+    <p>Quem atende o cliente (escolhido no caixa) e a comissão de cada mês. Não precisa de login: o vendedor pode não ser quem está no caixa.</p>
+  </div>
+  <div class="botoes-topo">
+    <button type="button" class="botao primario" (click)="abrir()">+ Novo vendedor</button>
+  </div>
+</header>
+
+<section class="painel rolagem">
+  <table>
+    <thead><tr><th>Vendedor</th><th class="num">Comissão</th><th></th></tr></thead>
+    <tbody>
+      @for (v of vendedores.value() ?? []; track v.id) {
+        <tr [class.inativo]="!v.ativo">
+          <td><span class="nome">{{ v.nome }}</span>@if (!v.ativo) { <small>inativo</small> }</td>
+          <td class="num">{{ v.comissaoPercentual | number: '1.0-2' }}%</td>
+          <td class="acoes"><button type="button" class="botao pequeno" (click)="abrir(v)">Editar</button></td>
+        </tr>
+      } @empty {
+        @if (!vendedores.isLoading()) { <tr><td colspan="3" class="vazio">Nenhum vendedor ainda. Cadastre quem atende: o caixa escolhe na venda.</td></tr> }
+      }
+    </tbody>
+  </table>
+</section>
+
+<section class="comissao">
+  <div class="cabeca">
+    <h2>Comissão de <span class="mes">{{ nomeMes() }}</span></h2>
+    <div class="nav-mes">
+      <button type="button" class="botao pequeno" (click)="mudarMes(-1)" aria-label="Mês anterior"><app-icone nome="arrow-left" /></button>
+      <button type="button" class="botao pequeno" (click)="mudarMes(1)" aria-label="Próximo mês"><app-icone nome="chevron-right" /></button>
+    </div>
+  </div>
+  @if (comissao.value(); as c) {
+    <section class="painel rolagem">
+      <table>
+        <thead><tr><th>Vendedor</th><th class="num">Vendas</th><th class="num">Vendido</th><th class="num">Comissão</th><th class="num">Trocas</th><th class="num">A pagar</th><th></th></tr></thead>
+        <tbody>
+          @for (v of c.vendedores; track v.vendedorId) {
+            <tr>
+              <td><span class="nome">{{ v.nome }}</span><small>{{ v.percentual | number: '1.0-2' }}%</small></td>
+              <td class="num">{{ v.vendas }}</td>
+              <td class="num">{{ v.vendido | currency: 'BRL' }}</td>
+              <td class="num">{{ v.comissao | currency: 'BRL' }}</td>
+              <td class="num">{{ v.estornoTrocas ? '−' + (v.estornoTrocas | currency: 'BRL') : '—' }}</td>
+              <td class="num forte">{{ v.total | currency: 'BRL' }}</td>
+              <td>@if (v.lancada) { <a class="selo ok" routerLink="/contas">lançada</a> }</td>
+            </tr>
+          } @empty { <tr><td colspan="7" class="vazio">Sem vendedores.</td></tr> }
+        </tbody>
+        @if (c.vendedores.length) {
+          <tfoot><tr><td colspan="5">Total</td><td class="num forte">{{ c.total | currency: 'BRL' }}</td><td></td></tr></tfoot>
+        }
+      </table>
+    </section>
+    @if (c.vendasSemVendedor) {
+      <p class="dica">{{ c.vendasSemVendedor }} venda(s) sem vendedor no mês ({{ c.vendidoSemVendedor | currency: 'BRL' }}): não entram na comissão.</p>
+    }
+    <div class="acoes-mes">
+      @if (!c.mesFechado) {
+        <p class="dica">O mês ainda não terminou: os números vão mudando. Depois do último dia, lance em Contas a pagar.</p>
+      } @else if (pendentes(c) && ehAdmin()) {
+        <button type="button" class="botao primario" (click)="lancar()" [disabled]="ocupado()">Lançar em Contas a pagar</button>
+      } @else if (!pendentes(c) && c.total > 0) {
+        <p class="dica"><app-icone nome="check" /> Comissões deste mês já lançadas em Contas a pagar.</p>
+      }
+      @if (aviso(); as a) { <span class="dica" [class.erro-texto]="!a.ok" role="status">{{ a.texto }}</span> }
+    </div>
+  }
+</section>
+
+<section class="comissao">
+  <h2>Comissão por categoria</h2>
+  <p class="dica">Categoria com % próprio vale no lugar do % do vendedor (ex.: raquetes 2%, serviços da oficina 10%).</p>
+  @if (comPercentual().length) {
+    <ul class="categorias">
+      @for (cat of comPercentual(); track cat.id) {
+        <li><b>{{ cat.nome }}</b> {{ cat.comissaoPercentual | number: '1.0-2' }}%
+          <button type="button" class="botao pequeno" (click)="salvarCategoria(cat.id, null)">Tirar</button></li>
+      }
+    </ul>
+  }
+  <div class="nova-categoria">
+    <select [(ngModel)]="categoriaEscolhida" aria-label="Categoria">
+      <option [ngValue]="null" disabled>Escolha a categoria…</option>
+      @for (cat of categorias.value() ?? []; track cat.id) { <option [ngValue]="cat.id">{{ cat.nome }}</option> }
+    </select>
+    <input type="number" min="0" max="30" step="0.5" [(ngModel)]="percentualCategoria" placeholder="%" aria-label="Percentual" />
+    <button type="button" class="botao" (click)="salvarCategoria(categoriaEscolhida, percentualCategoria)" [disabled]="!categoriaEscolhida || percentualCategoria === null">Salvar</button>
+  </div>
+</section>
+
+<dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
+  <form (ngSubmit)="salvar()" #f="ngForm">
+    <header><h2>{{ form.id ? 'Editar vendedor' : 'Novo vendedor' }}</h2><button type="button" class="fechar" (click)="dlg.close()" aria-label="Fechar"><app-icone nome="x" /></button></header>
+    <div class="corpo">
+      <div class="dupla">
+        <label>Nome *<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="80" /></label>
+        <label>Comissão (%)<input name="comissao" type="number" min="0" max="30" step="0.5" [(ngModel)]="form.comissaoPercentual" /></label>
+      </div>
+      <label class="marcar"><input type="checkbox" name="ativo" [(ngModel)]="form.ativo" /> Ativo (aparece no caixa)</label>
+      @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+    </div>
+    <footer>
+      <button type="button" class="botao" (click)="dlg.close()">Cancelar</button>
+      <button type="submit" class="botao primario" [disabled]="f.invalid || ocupado()">Salvar</button>
+    </footer>
+  </form>
+</dialog>

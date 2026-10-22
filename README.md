@@ -21,7 +21,9 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   primeiro); histórico completo de "quem mexeu, quando e por quê"; alertas de validade e estoque baixo.
 - **Caixa (PDV)** — feito para teclado e leitor de código de barras; venda por peso (KG); desconto
   limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**;
-  **troca e vale-troca** (F7).
+  **troca e vale-troca** (F7); **cliente da venda** (F8), **vendedor** e **crédito parcelado**.
+- **Clientes** — cadastro e histórico (compras, o que mais leva, trocas, oficina), aniversariantes e "sumidos".
+- **Vendedores** — quem atendeu, comissão do mês (com % por categoria) lançada em Contas a pagar.
 - **Cancelamentos com autorização do gerente** — no caixa, tirar um item (ou parte dele), cancelar a compra inteira e
   cancelar uma venda **já paga com estorno** só com a senha de um gerente (o gerente escolhe o nome e digita a própria senha;
   senha errada conta para o bloqueio da conta). Gerente logado autoriza a si mesmo. Tudo fica em `AutorizacoesGerente`
@@ -244,6 +246,28 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (online, o servidor cobra o preço atual do cadastro).
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### 22/10/2026 (fim da tarde) — cliente, vendedor e parcelas (fase 4 do plano dos ramos)
+Migration `ClientesVendedoresParcelas` (backup antes em `~/backup/marketplace-antes-ClientesVendedoresParcelas-2026-10-22.dump`):
+`Clientes` ganha Nascimento, Email, Raquete, Corda, Tensao e Simulado; tabelas `Vendedores` e `ComissoesMes`;
+`Vendas.VendedorId`; `PagamentosVenda.Parcelas`; `Recebiveis.Parcela/Parcelas` (índice único agora por caixa+forma+parcela);
+`Categorias.ComissaoPercentual`; `OrdensServico.ClienteId`. Categoria financeira nova "Comissões de vendedores" (`comissoes`).
+- **Clientes** (menu, `/clientes` e a ficha `/clientes/:id`; `Services/ClientesService.cs`, `api/clientes`): o mesmo cadastro do
+  fiado, para todos os ramos. Lista com busca, filtros (aniversariantes do mês, sumidos 60+ dias, novos, inativos) e números; ficha
+  com compras, ticket, de quantos em quantos dias volta, há quantos dias não compra, o que mais leva, compras (com vendedor e
+  parcelas), trocas e (esporte) as OS e "o que usa" (raquete, corda, tensão). Botão WhatsApp.
+- **Caixa**: **Cliente (F8)** busca por nome/telefone/CPF ou cadastra na hora (telefone ou CPF já existente devolve o mesmo
+  cliente); **Vendedor** no painel do total (fica escolhido neste computador; um vendedor só já vem escolhido); **Crédito**
+  pede as parcelas (1 a 12). Cupom (tela e impresso) com vendedor, cliente e "em 3x de …". Caixa offline leva vendedor e cliente.
+- **Oficina**: OS com telefone liga ao cadastro (cria o cliente se não existe) e guarda raquete/corda/tensão.
+- **Vendedores** (`/vendedores`, `ComissaoService`): cadastro sem login, % de comissão, % próprio por categoria. Comissão do mês
+  = % sobre o que o cliente pagou por item (com o desconto) − estorno das trocas; venda cancelada não entra. Mês fechado →
+  "Lançar em Contas a pagar" (uma conta por vendedor, vence dia 5; não lança duas vezes).
+- **Parcelas**: no fechamento do caixa o crédito parcelado vira um recebível por parcela (1ª no prazo do crédito, as outras
+  de 30 em 30 dias, mesma taxa); Financeiro → A receber mostra "parcela 2/3".
+- **Bot da loja de esporte**: 60 clientes fixos (`Simulado`, os 20 primeiros voltam mais), 45% das vendas identificadas e toda
+  OS no nome de um deles (com a raquete/tensão dele), vendedor sorteado entre os ativos, crédito parcelado em compras maiores.
+- TopSpin: vendedor "Lucas" (2%) cadastrado na produção — o funcionário vendedor e encordoador do financeiro de exemplo.
 
 ### 22/10/2026 (tarde) — troca e vale-troca (fase 3 do plano dos ramos)
 Migration `TrocasEValeTroca` (tabelas `Trocas`, `ItensTroca`, `ValesTroca`; `PagamentosVenda.ValeTrocaId`;
@@ -471,8 +495,7 @@ Pendências:
   fase 2 (grade de tamanho/cor, cada variação = produto agrupado num Modelo) espera a conversa com a loja (fase 0) e as
   decisões em aberto no fim do plano.
 - (21/10) **Grade, o que ficou para depois**: NF-e "criar como variação do modelo", pedido de compra em matriz, relatórios
-  por modelo e curva de tamanhos, preço próprio marcado por variação, cliente/vendedor/comissão
-  (fase 4), demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
+  por modelo e curva de tamanhos, preço próprio marcado por variação, demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
   concluir" (marcar "Paga" na Oficina).
 - (22/10) Falso alarme "bot parado": de manhã a demo fica normalmente 20–35 min sem venda (ontem 08:23→08:49, 10:06→10:31).
   Antes de achar que travou, comparar com o mesmo horário do dia anterior e olhar a área do dono → simulador (última rodada).
@@ -487,7 +510,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada

@@ -1,0 +1,105 @@
+<a routerLink="/clientes" class="voltar"><app-icone nome="arrow-left" /> Clientes</a>
+@if (ficha.value(); as f) {
+  @let c = f.cliente;
+  <header class="titulo-pagina">
+    <div>
+      <h1><app-icone nome="users" /> {{ c.nome }}@if (!c.ativo) { <small class="selo">inativo</small> }</h1>
+      <p>
+        @if (c.apelido) { {{ c.apelido }} · }
+        @if (c.telefone) { {{ c.telefone }} · }
+        @if (c.email) { {{ c.email }} · }
+        @if (c.nascimento) { aniversário {{ diaBr(c.nascimento).slice(0, 5) }} ({{ idade(c.nascimento) }} anos) · }
+        cliente desde {{ c.criadoEm | date: 'dd/MM/yyyy' }}@if (c.simulado) { · cliente de teste (bot) }
+      </p>
+    </div>
+    <div class="botoes-topo">
+      @if (whatsapp(c.telefone, c.nome); as w) { <a class="botao" [href]="w" target="_blank" rel="noopener"><app-icone nome="message-circle" /> WhatsApp</a> }
+      <button type="button" class="botao" (click)="editar()"><app-icone nome="pencil" /> Editar</button>
+      <button type="button" class="botao" [class.perigo]="c.ativo" (click)="alternarAtivo()">{{ c.ativo ? 'Desativar' : 'Reativar' }}</button>
+    </div>
+  </header>
+
+  <section class="resumo-clientes">
+    <div class="cartao"><span>Compras</span><strong>{{ f.compras }}</strong>@if (f.primeiraCompra) { <small>desde {{ f.primeiraCompra | date: 'dd/MM/yyyy' }}</small> }</div>
+    <div class="cartao"><span>Gastou</span><strong>{{ f.totalGasto | currency: 'BRL' }}</strong><small>ticket médio {{ f.ticketMedio | currency: 'BRL' }}</small></div>
+    <div class="cartao"><span>Volta a cada</span><strong>{{ f.diasEntreCompras !== null ? f.diasEntreCompras + ' dias' : '—' }}</strong><small>em média</small></div>
+    <div class="cartao" [class.alerta]="(f.diasSemComprar ?? 0) >= 60"><span>Última compra</span>
+      <strong>{{ f.diasSemComprar === null ? 'nunca' : f.diasSemComprar === 0 ? 'hoje' : 'há ' + f.diasSemComprar + ' dias' }}</strong>
+      @if (f.ultimaCompra) { <small>{{ f.ultimaCompra | date: 'dd/MM/yyyy' }}</small> }</div>
+  </section>
+
+  @if (ramo().servicos && (c.raquete || c.corda || c.tensao)) {
+    <section class="painel usa">
+      <app-icone nome="wrench" />
+      <div><b>O que usa</b><span>{{ c.raquete ?? 'raquete não informada' }}@if (c.corda) { · corda {{ c.corda }} }@if (c.tensao) { · {{ c.tensao }} }</span></div>
+    </section>
+  }
+  @if (c.observacao) { <p class="obs"><app-icone nome="notebook-pen" /> {{ c.observacao }}</p> }
+
+  <div class="duas">
+    <section class="painel">
+      <h2>O que mais leva</h2>
+      <table>
+        <thead><tr><th>Produto</th><th class="num">Vezes</th><th>Última</th></tr></thead>
+        <tbody>
+          @for (p of f.maisComprados; track p.produto) {
+            <tr><td>{{ p.produto }}</td><td class="num">{{ p.vezes }}</td><td class="quando">{{ p.ultimaVez | date: 'dd/MM/yy' }}</td></tr>
+          } @empty { <tr><td colspan="3" class="vazio">Nenhuma compra ainda.</td></tr> }
+        </tbody>
+      </table>
+    </section>
+    @if (ramo().servicos) {
+      <section class="painel">
+        <h2>Oficina</h2>
+        <table>
+          <thead><tr><th>OS</th><th>Raquete</th><th>Corda · tensão</th><th>Situação</th></tr></thead>
+          <tbody>
+            @for (o of f.ordens; track o.id) {
+              <tr><td class="quando">nº {{ o.numero }}<small>{{ o.criadaEm | date: 'dd/MM/yy' }}</small></td><td>{{ o.raquete }}</td>
+                <td>{{ o.corda ?? '—' }}@if (o.tensao) { <small>{{ o.tensao }}</small> }</td><td>{{ rotuloStatusOs(o.status) }}</td></tr>
+            } @empty { <tr><td colspan="4" class="vazio">Nenhuma raquete na oficina.</td></tr> }
+          </tbody>
+        </table>
+      </section>
+    }
+  </div>
+
+  <section class="painel rolagem">
+    <h2>Compras</h2>
+    <table>
+      <thead><tr><th>Venda</th><th>Quando</th><th>Itens</th><th>Pagamento</th><th>Vendedor</th><th class="num">Total</th></tr></thead>
+      <tbody>
+        @for (v of f.ultimasCompras; track v.vendaId) {
+          <tr [class.inativo]="v.status === 'Cancelada'">
+            <td class="forte">#{{ v.vendaId }}@if (v.status === 'Cancelada') { <small>cancelada</small> }</td>
+            <td class="quando">{{ v.dataHora | date: 'dd/MM/yy HH:mm' }}</td>
+            <td>{{ v.itens }}</td>
+            <td>{{ formas(v.formas) }}</td>
+            <td>{{ v.vendedor ?? '—' }}</td>
+            <td class="num">{{ v.total | currency: 'BRL' }}</td>
+          </tr>
+        } @empty { <tr><td colspan="6" class="vazio">Nenhuma compra no nome dele ainda.</td></tr> }
+      </tbody>
+    </table>
+    @if (f.compras > 50) { <p class="dica">Mostrando as 50 mais recentes de {{ f.compras }}.</p> }
+  </section>
+
+  @if (f.trocas.length) {
+    <section class="painel rolagem">
+      <h2>Trocas</h2>
+      <table>
+        <thead><tr><th>Quando</th><th>Venda</th><th>Devolveu</th><th>Motivo</th><th class="num">Crédito</th><th>Vale</th></tr></thead>
+        <tbody>
+          @for (t of f.trocas; track t.id) {
+            <tr><td class="quando">{{ t.dataHora | date: 'dd/MM/yy' }}</td><td>#{{ t.vendaId }}</td><td>{{ t.itens }}</td><td>{{ rotuloMotivo(t.motivo) }}</td>
+              <td class="num">{{ t.valor | currency: 'BRL' }}</td>
+              <td><code>{{ t.valeCodigo }}</code>@if (t.valeSituacao === 'Disponivel') { <small>saldo {{ t.valeSaldo | currency: 'BRL' }}</small> } @else { <small>{{ t.valeSituacao === 'Usado' ? 'usado' : 'vencido' }}</small> }</td></tr>
+          }
+        </tbody>
+      </table>
+    </section>
+  }
+  <app-cliente-form (salvo)="ficha.reload()" />
+} @else if (ficha.error()) {
+  <p class="erro">Cliente não encontrado.</p>
+}

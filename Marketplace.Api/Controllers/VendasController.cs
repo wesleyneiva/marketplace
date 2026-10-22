@@ -216,14 +216,14 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
                 v.Itens.OrderBy(i => i.Id).Select(i => new ItemVendaResponse(i.ProdutoId, i.Descricao, i.Unidade, i.Quantidade, i.PrecoUnitario, i.Total)).ToList(),
                 v.Pagamentos.OrderBy(p => p.Id).Select(p => new PagamentoResponse(p.Forma.ToString(), p.Valor, p.CobrancaPixId != null,
                     p.ValeTroca != null ? p.ValeTroca.Codigo : null, p.ValeTroca != null ? p.ValeTroca.Saldo : null,
-                    p.ValeTroca != null ? p.ValeTroca.Validade : null)).ToList(),
+                    p.ValeTroca != null ? p.ValeTroca.Validade : null, p.Parcelas)).ToList(),
                 v.MotivoCancelamento, null,
                 v.Status == StatusVenda.Cancelada
                     ? new CancelamentoCupom(v.CanceladaEm, v.CanceladaPor!.NomeCompleto,
                         db.AutorizacoesGerente.Where(a => a.VendaId == v.Id && a.Acao == AcaoAutorizada.CancelarVenda)
                             .OrderByDescending(a => a.Id).Select(a => a.AutorizadoPor!.NomeCompleto).FirstOrDefault())
                     : null,
-                v.Offline, v.IdLocal))
+                v.Offline, v.IdLocal, v.Vendedor != null ? v.Vendedor.Nome : null))
             .FirstAsync();
 
         // Cliente identificado: no fiado, o saldo devedor de AGORA e o vencimento desta compra (para assinar no cupom).

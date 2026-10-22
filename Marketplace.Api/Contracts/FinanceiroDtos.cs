@@ -71,7 +71,7 @@ public record TransferenciaRequest(
 public record RecebivelResponse(
     int Id, int SessaoCaixaId, int NumeroCaixa, string Forma, DateOnly DataVenda, DateOnly Previsao,
     decimal ValorBruto, decimal TaxaPercentual, decimal Taxa, decimal ValorLiquido, string Conta,
-    StatusRecebivel Status, DateOnly? RecebidoEm);
+    StatusRecebivel Status, DateOnly? RecebidoEm, int Parcela = 1, int Parcelas = 1);
 
 // Valores LÍQUIDOS (o que cai na conta). Taxas e vendas do mês pela data da VENDA (quanto a maquininha custou neste mês).
 public record ResumoRecebiveisResponse(

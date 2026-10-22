@@ -26,7 +26,7 @@ interface ItemMenu {
 
 // Telas de cada módulo opcional (as mesmas do app.routes.ts com precisaModulo).
 const MODULO_DA_ROTA: Record<string, Modulo> = {
-  '/vendas': 'vendas', '/compras': 'compras', '/fornecedores': 'compras', '/financeiro': 'financeiro', '/contas': 'contas',
+  '/vendas': 'vendas', '/vendedores': 'vendas', '/compras': 'compras', '/fornecedores': 'compras', '/financeiro': 'financeiro', '/contas': 'contas',
   '/relatorios': 'relatorios', '/produtos/importar': 'importacao', '/produtos/etiquetas': 'etiquetas', '/fiado': 'fiado',
 };
 
@@ -63,6 +63,8 @@ export class Shell {
     { rotulo: 'Dashboard', icone: 'layout-dashboard', rota: '/dashboard', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
     { rotulo: 'Caixa (PDV)', icone: 'receipt', rota: '/pdv', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true },
     { rotulo: 'Vendas', icone: 'receipt-text', rota: '/vendas', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'vendas' },
+    { rotulo: 'Clientes', icone: 'users', rota: '/clientes', perfis: ['Administrador', 'Gerente'], pronto: true },
+    { rotulo: 'Vendedores', icone: 'hand-coins', rota: '/vendedores', perfis: ['Administrador', 'Gerente'], pronto: true, modulo: 'vendas' },
     { rotulo: 'Produtos', icone: 'package', rota: '/produtos', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Estoque', icone: 'tag', rota: '/estoque', perfis: ['Administrador', 'Gerente'], pronto: true },
     { rotulo: 'Oficina', icone: 'wrench', rota: '/oficina', perfis: ['Administrador', 'Gerente', 'Caixa'], pronto: true, soRamo: 'servicos' },

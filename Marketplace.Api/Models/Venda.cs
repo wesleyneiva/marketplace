@@ -19,9 +19,13 @@ public class Venda : IDaEmpresa
     public decimal ValorPago { get; set; } // soma dos pagamentos
     public decimal Troco { get; set; }     // valor pago − total (só existe com dinheiro)
 
-    // Cliente identificado (obrigatório quando tem pagamento no fiado).
+    // Cliente identificado (opcional; obrigatório quando tem pagamento no fiado). Vira o histórico do cliente.
     public int? ClienteId { get; set; }
     public Cliente? Cliente { get; set; }
+
+    // Quem atendeu (comissão). Opcional.
+    public int? VendedorId { get; set; }
+    public Vendedor? Vendedor { get; set; }
 
     // De onde veio a venda: PDV (pessoa), simulador ao vivo ou histórico gerado (este SEM movimentar estoque).
     public OrigemVenda Origem { get; set; } = OrigemVenda.Caixa;
@@ -77,6 +81,7 @@ public class PagamentoVenda : IDaEmpresa
     public FormaPagamento Forma { get; set; }
     public decimal Valor { get; set; }
     public int? CobrancaPixId { get; set; }   // Pix automático: a cobrança paga no Mercado Pago (conferida no servidor)
+    public int Parcelas { get; set; } = 1;    // crédito: em quantas vezes (a maquininha deposita uma parcela por mês)
     public int? ValeTrocaId { get; set; }     // vale-troca usado (o saldo dele baixa; volta se a venda for cancelada)
     public ValeTroca? ValeTroca { get; set; }
 }

@@ -764,3 +764,13 @@ dialog.pix-ok {
   span { flex: 1; min-width: 200px; }
 }
 .codigo-vale { text-transform: uppercase; letter-spacing: 1px; }
+
+// Cliente e vendedor da venda (painel do total)
+.totais .quem {
+  align-items: center; font-size: 14px;
+  select { max-width: 60%; padding: 4px 8px; }
+  .escolhido { display: inline-flex; align-items: center; gap: 4px; max-width: 65%; b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+  .tirar { border: 0; background: transparent; color: var(--cor-texto-suave); cursor: pointer; padding: 2px; }
+  .link { border: 0; background: transparent; color: var(--cor-primaria); cursor: pointer; font: inherit; padding: 0; text-decoration: underline; }
+}
+.valor .parcelas { width: auto; }
