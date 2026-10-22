@@ -532,16 +532,26 @@ Pendências:
 - (20/10) **Cofre de senhas**: acrescentar o token do R2 (Account ID, Access Key ID, Secret Access Key nova).
 - (19/10) **Compactar o banco do n8n** (VACUUM, n8n parado ~2 min) depois de ~26/10, quando a limpeza automática de 7 dias tiver passado.
 - (19/10) **Redundância fase 2** (2ª VM em outro provedor, réplica em tempo real, mesmo túnel Cloudflare): junto com o 1º cliente pagante.
-- (21/10) **Outros ramos (loja de tênis)**: plano em `docs/plano-ramo-e-grade.md`. **Fase 1 (ramo) feita e publicada**;
-  fase 2 (grade de tamanho/cor, cada variação = produto agrupado num Modelo) espera a conversa com a loja (fase 0) e as
-  decisões em aberto no fim do plano.
+- (22/10) **Outros ramos (loja de tênis)**: plano em `docs/plano-ramo-e-grade.md` — fases 1 (ramo), 2 (grade), 3 (troca e
+  vale-troca), 4 (cliente, vendedor, parcelas) e 5 (oficina, com garantia) **feitas e publicadas**. Falta a conversa com uma
+  loja de verdade (fase 0) e o que ficou da grade (abaixo).
 - (21/10) **Grade, o que ficou para depois**: NF-e "criar como variação do modelo", pedido de compra em matriz, relatórios
   por modelo e curva de tamanhos, preço próprio marcado por variação, demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
   concluir" (marcar "Paga" na Oficina).
-- (22/10) Falso alarme "bot parado": de manhã a demo fica normalmente 20–35 min sem venda (ontem 08:23→08:49, 10:06→10:31).
-  Antes de achar que travou, comparar com o mesmo horário do dia anterior e olhar a área do dono → simulador (última rodada).
-- (21/10) **TopSpin**: o usuário entra com `wesley@marcus.com` e a senha provisória do `acesso-topspin.txt` e cria a dele;
-  acompanhar o bot (volume, ticket, oficina) nos próximos dias. Plano Lojas tem 2 caixas incluídos (a TopSpin usa 1).
+- (22/10) **Bot "parado"**: a causa real (tempo esgotado do clima matava a rotina em silêncio) foi corrigida à noite. Se um
+  bot parecer parado: a demo fica normalmente 20–35 min sem venda de manhã e a TopSpin vende ~0,6 cliente/hora (horas sem
+  venda são normais); comparar com o mesmo horário do dia anterior e procurar "Erro na rodada"/"não conseguiu comprar" no
+  `journalctl -u marketplace`. Serviço travado: `dotnet-stack` (ver 22/10 noite).
+- (22/10) **Restos do teste do pedido ao fornecedor na TopSpin** (o usuário pediu para deixar por enquanto): fornecedor
+  **Asics Brasil** com o WhatsApp (21 96964-7393) e o e-mail do usuário; **meias Asics Quarter** com mínimo 10 (eram 2);
+  **regatas Asics P** (branca e rosa) com mínimo 3 (eram 0). Desfazer quando ele pedir.
+- (22/10) **Histórico da TopSpin** (01/08–20/10) gerado para análise; o usuário está olhando números e telas. Desfazer =
+  restaurar `~/backup/marketplace-antes-historico-topspin-2026-10-22.dump` (os outros backups manuais foram apagados em 22/10;
+  os automáticos diários e o da nuvem continuam). Saldo de abertura do Itaú em 01/08 = R$ 60 mil (decisão minha, ajustável).
+- (22/10) Ideias que ficaram: link da Oficina para a ficha do cliente; taxa própria do crédito parcelado (hoje usa a do
+  crédito à vista); aniversariantes saiu da tela de Clientes (o campo continua no banco).
+- (21/10) **TopSpin**: o usuário já usa a loja (fez pedidos de compra, cadastrou clientes); vendedor "Lucas" (2%); bot
+  SoVendas com 60 clientes fixos, OS e crédito parcelado. Plano Lojas tem 2 caixas incluídos (a TopSpin usa 1).
 - (19/10) Ideia combinada e não feita: aba "Despesas e resultado" na Visão geral do dono quando houver custos.
 - Envio AUTOMÁTICO do pedido ao fornecedor (sem clique: WhatsApp da loja pela API/Evolution ou e-mail próprio) — decidir quando
   houver fornecedores reais.
@@ -562,19 +572,22 @@ Pendências:
   (rodar fora do horário das lojas; o ambiente isolado foi desmontado e se recria em ~10 min).
 - **Clientes de teste na produção**: Mercadinho do Juvenal (#4, mercado, Rio, plano Básico R$ 2.149) e **TopSpin Store**
   (#5, ramo esporte, Porto Alegre, 1 caixa, seg–sex 9–18 e sáb 10–16, plano Lojas R$ 1.899, bot baixo/moderado ~6–7 vendas
-  por dia útil que também abre/faz/entrega as OS de encordoamento). Arquivos da TopSpin (catálogo, financeiro, acesso) em
+  por dia útil que também abre/faz/entrega as OS de encordoamento; **histórico desde 01/08** com clientes, OS e financeiro). Arquivos da TopSpin (catálogo, financeiro, acesso) em
   `~/projetos/marketplace-testes/topspin/`. Clientes novos de outro ramo: `nova-empresa.sh ... --ramo esporte` ou a área do dono.
 - **Ramos** (`Models/Empresa.cs` → `Ramos` e `core/ramos.ts`): toda diferença entre mercado e loja vai como campo do perfil
   do ramo (palavras, `balanca`, `validade`, `grade`, `servicos`, exemplos). Nunca escrever "mercado"/"arroz" fixo em tela nova.
 - **Publicar**: `./publicar.sh` (backup `pg_dump -Fc` da produção antes de migration nova; depois conferir migration, log, app e demo).
+  Histórico de loja de esporte: `./gerar-historico-loja.sh --empresa N --de AAAA-MM-DD --ate AAAA-MM-DD` (só dias sem venda);
+  da demonstração: `./gerar-historico.sh`.
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
   `mp-simulador` (5399, com devolução `/refund`). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
   usuários admin/gerente/caixa (e o dono de teste) em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
-- **Loja de tênis no dev**: "Loja Teste Tênis" (#13, ramo esporte, 2 caixas, catálogo da TopSpin, bot SoVendas); admin em
-  `usuarios-teste.txt`. As cordas e várias bolas estão zeradas lá de tanto teste do bot (repor pela entrada de estoque).
+- **Loja de tênis no dev**: "Loja Teste Tênis" (#13, ramo esporte, 2 caixas, catálogo da TopSpin, bot SoVendas, cidade Porto
+  Alegre, vendedor "Rafael" 3%, 60 clientes fixos, histórico 01/08–20/10, OS 50–52 de teste de garantia); admin em
+  `usuarios-teste.txt`. Várias cordas e bolas estão zeradas lá de tanto teste do bot (repor pela entrada de estoque).
   Para rodar comando da API no banco de dev: `ASPNETCORE_ENVIRONMENT=Development dotnet run --no-launch-profile -- <comando>`.
 - Testes de navegador: o painel às vezes não desenha (fica oculto); dirigir a página por script (input + keydown Enter) funciona.
   Logar por `fetch('/api/auth/login')` e depois recarregar a página. Para simular queda de internet no dev: parar o `api-dev`.
@@ -583,7 +596,10 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
+- **Onde paramos (22/10, noite)**: o usuário está analisando a TopSpin com o histórico (DRE, Relatórios, Clientes, Vendedores,
+  Oficina, Compras). Próximo passo provável: ajustes que ele achar nessa análise.
+- Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); envio automático do pedido ao fornecedor;
+  acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
 
 ## Stack (conferida em 20/10/2026)
