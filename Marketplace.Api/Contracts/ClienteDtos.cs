@@ -8,7 +8,7 @@ public record ClienteCadastroRequest(
     [Required(ErrorMessage = "Informe o nome.")][StringLength(120, MinimumLength = 2, ErrorMessage = "Nome: de 2 a 120 letras.")] string Nome,
     [StringLength(60)] string? Apelido,
     [StringLength(20)] string? Telefone,
-    [StringLength(14)] string? Cpf,
+    [Required(ErrorMessage = "Informe o CPF.")][StringLength(14)] string? Cpf,
     [StringLength(120)] string? Email,
     [StringLength(200)] string? Endereco,
     DateOnly? Nascimento,
@@ -21,7 +21,7 @@ public record ClienteCadastroRequest(
 public record ClienteRapidoRequest(
     [Required(ErrorMessage = "Informe o nome.")][StringLength(120, MinimumLength = 2, ErrorMessage = "Nome: de 2 a 120 letras.")] string Nome,
     [StringLength(20)] string? Telefone,
-    [StringLength(14)] string? Cpf);
+    [Required(ErrorMessage = "Informe o CPF.")][StringLength(14)] string? Cpf);
 
 public record ClienteResponse(int Id, string Nome, string? Apelido, string? Telefone, string? Cpf, string? Email, string? Endereco,
     DateOnly? Nascimento, string? Raquete, string? Corda, string? Tensao, string? Observacao, bool Ativo, bool Simulado,

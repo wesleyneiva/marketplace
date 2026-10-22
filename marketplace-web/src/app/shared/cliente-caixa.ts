@@ -18,9 +18,9 @@ import { Icone } from './icone';
       </header>
       <div class="corpo">
         @if (!cadastrando()) {
-          <label for="buscaCliente">Nome, telefone ou CPF</label>
+          <label for="buscaCliente">Nome ou CPF</label>
           <input #campoBusca id="buscaCliente" autocomplete="off" [ngModel]="termo" (ngModelChange)="digitar($event)"
-                 (keydown.enter)="$event.preventDefault(); achados()[0] && escolher(achados()[0])" placeholder="Ex.: ana, 99881, 123.456…" />
+                 (keydown.enter)="$event.preventDefault(); achados()[0] && escolher(achados()[0])" placeholder="Ex.: ana souza ou 123.456.789-00" />
           @if (procurando()) { <small class="dica">Procurando…</small> }
           @if (achados().length) {
             <ul class="achados">
@@ -40,8 +40,8 @@ import { Icone } from './icone';
         } @else {
           <form class="novo" (ngSubmit)="salvar()">
             <label>Nome <input #campoNome name="nome" [(ngModel)]="nome" maxlength="120" autocomplete="off" /></label>
-            <label>Telefone (WhatsApp) <input name="telefone" [(ngModel)]="telefone" inputmode="tel" maxlength="20" placeholder="51 99999-8888" /></label>
-            <label>CPF <small>opcional</small><input name="cpf" [(ngModel)]="cpf" inputmode="numeric" maxlength="14" /></label>
+            <label>CPF <input name="cpf" [(ngModel)]="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" /></label>
+            <label>Telefone (WhatsApp) <small>opcional</small><input name="telefone" [(ngModel)]="telefone" inputmode="tel" maxlength="20" placeholder="51 99999-8888" /></label>
             <div class="botoes">
               <button type="button" class="botao" (click)="cadastrando.set(false)">Voltar</button>
               <button type="submit" class="botao primario" [disabled]="ocupado()">{{ ocupado() ? 'Salvando…' : 'Cadastrar e usar' }}</button>
@@ -128,11 +128,11 @@ export class ClienteCaixa {
   }
 
   protected novo(): void {
-    // O que foi digitado na busca já vai para o campo certo (número → telefone; texto → nome).
+    // O que foi digitado na busca já vai para o campo certo (número → CPF; texto → nome).
     const digitos = this.termo.replace(/\D/g, '');
     this.nome = digitos.length >= 8 ? '' : this.termo.trim();
-    this.telefone = digitos.length >= 10 ? digitos : '';
-    this.cpf = '';
+    this.cpf = digitos.length === 11 ? digitos : '';
+    this.telefone = '';
     this.erro.set(null);
     this.cadastrando.set(true);
     setTimeout(() => this.campoNome()?.nativeElement.focus());
@@ -140,7 +140,7 @@ export class ClienteCaixa {
 
   protected async salvar(): Promise<void> {
     if (this.nome.trim().length < 2) { this.erro.set('Informe o nome.'); return; }
-    if (!this.telefone.trim() && !this.cpf.trim()) { this.erro.set('Informe o telefone ou o CPF (é como a gente acha o cliente da próxima vez).'); return; }
+    if (this.cpf.replace(/\D/g, '').length !== 11) { this.erro.set('Informe o CPF (11 números): é como a gente acha o cliente da próxima vez.'); return; }
     this.ocupado.set(true);
     this.erro.set(null);
     try {

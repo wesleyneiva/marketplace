@@ -15,8 +15,9 @@ public class ClientesService(AppDbContext db)
     public async Task<string?> PreencherAsync(Cliente c, ClienteCadastroRequest r)
     {
         var cpf = SoDigitos(r.Cpf);
-        if (cpf.Length > 0 && !FiadoController.CpfValido(cpf)) return "CPF inválido (confira os números ou deixe em branco).";
-        if (cpf.Length > 0 && await db.Clientes.AnyAsync(x => x.Cpf == cpf && x.Id != c.Id)) return "Já existe um cliente com este CPF.";
+        if (cpf.Length == 0) return "Informe o CPF.";
+        if (!FiadoController.CpfValido(cpf)) return "CPF inválido: confira os números.";
+        if (await db.Clientes.AnyAsync(x => x.Cpf == cpf && x.Id != c.Id)) return "Já existe um cliente com este CPF.";
         var telefone = SoDigitos(r.Telefone);
         if (telefone.Length is > 0 and (< 10 or > 13)) return "Telefone: com DDD (ex.: 51 99999-8888).";
         if (r.Nascimento is { } n && (n > Relogio.Hoje || n.Year < 1900)) return "Data de nascimento inválida.";
@@ -42,7 +43,8 @@ public class ClientesService(AppDbContext db)
         var telefone = SoDigitos(r.Telefone);
         var cpf = SoDigitos(r.Cpf);
         if (telefone.Length is > 0 and (< 10 or > 13)) return (null, "Telefone: com DDD (ex.: 51 99999-8888).");
-        if (cpf.Length > 0 && !FiadoController.CpfValido(cpf)) return (null, "CPF inválido (confira os números ou deixe em branco).");
+        if (cpf.Length == 0) return (null, "Informe o CPF.");
+        if (!FiadoController.CpfValido(cpf)) return (null, "CPF inválido: confira os números.");
         var existente = await db.Clientes.FirstOrDefaultAsync(c =>
             (telefone.Length > 0 && c.Telefone == telefone) || (cpf.Length > 0 && c.Cpf == cpf));
         if (existente is not null)

@@ -17,7 +17,7 @@
 }
 
 <section class="filtros-clientes">
-  <input type="search" [ngModel]="textoBusca" (ngModelChange)="digitar($event)" placeholder="Nome, apelido, telefone, CPF ou e-mail…" aria-label="Buscar cliente" />
+  <input type="search" [ngModel]="textoBusca" (ngModelChange)="digitar($event)" placeholder="Nome ou CPF…" aria-label="Buscar cliente" />
   <div class="chips">
     @for (f of filtros; track f.v) {
       <button type="button" class="botao pequeno" [class.ligado]="filtro() === f.v" (click)="filtrar(f.v)">{{ f.t }}</button>

@@ -55,7 +55,7 @@
       <header class="insights-topo">
         <div>
           <h2><app-icone nome="lightbulb" /> Insights da IA</h2>
-          <p>A IA (Gemini, pelo n8n) lê os números deste período e a previsão do tempo, e sugere ações.</p>
+          <p>A IA lê os números deste período e a previsão do tempo, e sugere ações.</p>
         </div>
         <button type="button" class="botao primario" (click)="gerarInsights()" [disabled]="gerando()">
           <app-icone [nome]="gerando() ? 'loader-circle' : insights() ? 'refresh-cw' : 'sparkles'" [attr.girando]="gerando() ? '' : null" /> {{ gerando() ? 'Analisando…' : insights() ? 'Gerar de novo' : 'Gerar insights' }}

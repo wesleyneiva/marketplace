@@ -4,14 +4,13 @@ import { FormsModule } from '@angular/forms';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Cliente, ClienteCadastro } from '../../core/api/clientes.api';
-import { CampoData } from '../../shared/campo-data';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 import { Icone } from '../../shared/icone';
 
 // Cadastro / edição do cliente (usado na lista e na ficha). Na loja de esporte, também o que ele usa.
 @Component({
   selector: 'app-cliente-form',
-  imports: [FormsModule, CampoData, FecharAoClicarFora, Icone],
+  imports: [FormsModule, FecharAoClicarFora, Icone],
   template: `
     <dialog #dlg fecharAoClicarFora class="janela" (close)="erro.set(null)">
       <form (ngSubmit)="salvar()" #f="ngForm">
@@ -19,17 +18,13 @@ import { Icone } from '../../shared/icone';
         <div class="corpo">
           <div class="dupla">
             <label>Nome *<input name="nome" [(ngModel)]="form.nome" required minlength="2" maxlength="120" /></label>
-            <label>Apelido <small>como a loja chama</small><input name="apelido" [(ngModel)]="form.apelido" maxlength="60" /></label>
+            <label>Apelido<input name="apelido" [(ngModel)]="form.apelido" maxlength="60" placeholder="como a loja chama" /></label>
           </div>
           <div class="dupla">
+            <label>CPF *<input name="cpf" [(ngModel)]="form.cpf" required minlength="11" maxlength="14" inputmode="numeric" placeholder="000.000.000-00" /></label>
             <label>WhatsApp / telefone<input name="telefone" [(ngModel)]="form.telefone" maxlength="20" inputmode="tel" placeholder="51 99999-8888" /></label>
-            <label>CPF <small>opcional</small><input name="cpf" [(ngModel)]="form.cpf" maxlength="14" inputmode="numeric" /></label>
           </div>
-          <div class="dupla">
-            <label>E-mail<input name="email" type="email" [(ngModel)]="form.email" maxlength="120" /></label>
-            <label>Aniversário<app-campo-data name="nascimento" [(ngModel)]="form.nascimento" /></label>
-          </div>
-          <label>Endereço<input name="endereco" [(ngModel)]="form.endereco" maxlength="200" /></label>
+          <label>E-mail<input name="email" type="email" [(ngModel)]="form.email" maxlength="120" /></label>
           @if (ramo().servicos) {
             <fieldset>
               <legend>O que usa <small>(a oficina já sugere na próxima ordem)</small></legend>
@@ -51,7 +46,11 @@ import { Icone } from '../../shared/icone';
     </dialog>`,
   styleUrl: '../usuarios/usuarios.scss',
   styles: `
+    .janela { width: min(640px, calc(100vw - 32px)); }
+    .corpo > label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
+    fieldset { min-width: 0; }
     .tres { display: grid; grid-template-columns: 1fr 1fr 110px; gap: 10px; }
+    .tres input { width: 100%; min-width: 0; box-sizing: border-box; }
     .tres label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; font-size: 14px; }
     legend small { font-weight: 400; color: var(--cor-texto-suave); }
     @media (max-width: 640px) { .tres { grid-template-columns: 1fr; } }

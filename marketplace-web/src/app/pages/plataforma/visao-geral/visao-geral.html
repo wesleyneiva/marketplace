@@ -1,7 +1,7 @@
 <header class="titulo-pagina">
   <div>
     <h1><app-icone nome="layout-dashboard" /> Visão geral</h1>
-    <p>Olá, {{ auth.usuario()?.nome?.split(' ')?.[0] }}. O sistema inteiro num olhar (só uso: as vendas de cada cliente são dele).</p>
+    <p>Olá, {{ auth.usuario()?.nome?.split(' ')?.[0] }}. O sistema inteiro num olhar.</p>
   </div>
   <a class="botao primario" routerLink="/plataforma/clientes"><app-icone nome="plus" /> Novo cliente</a>
 </header>

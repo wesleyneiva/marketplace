@@ -267,6 +267,9 @@ Migration `ClientesVendedoresParcelas` (backup antes em `~/backup/marketplace-an
   de 30 em 30 dias, mesma taxa); Financeiro → A receber mostra "parcela 2/3".
 - **Bot da loja de esporte**: 60 clientes fixos (`Simulado`, os 20 primeiros voltam mais), 45% das vendas identificadas e toda
   OS no nome de um deles (com a raquete/tensão dele), vendedor sorteado entre os ativos, crédito parcelado em compras maiores.
+- Ajustes do usuário (mesmo dia): cadastro do cliente com **CPF obrigatório** (tela, caixa e API; a OS da oficina e os clientes
+  do bot continuam sem CPF), busca "nome ou CPF", sem endereço e aniversário no formulário (os dados antigos ficam), janela
+  mais larga. Tirado "(Gemini, pelo n8n)" dos Relatórios e o parêntese da Visão geral do dono; botões dos pedidos alinhados.
 - TopSpin: vendedor "Lucas" (2%) cadastrado na produção — o funcionário vendedor e encordoador do financeiro de exemplo.
 
 ### 22/10/2026 (tarde) — troca e vale-troca (fase 3 do plano dos ramos)

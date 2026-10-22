@@ -92,3 +92,8 @@ input.falta { border-color: var(--cor-alerta-medio); }
   .campos-pag small { font-weight: 400; color: var(--cor-texto-suave); }
   .dica { margin: 10px 0 0; }
 }
+
+// Botões da linha do pedido (Receber, Reenviar, Cancelar): mesma altura e alinhados, com ou sem ícone.
+td.acoes { white-space: nowrap; text-align: right;
+  .botao { vertical-align: middle; height: 30px; }
+  .botao + .botao { margin-left: 6px; } }
