@@ -264,6 +264,9 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   que o rclone 1.60 faz logo depois (`HEAD ?versionId=…`, que o R2 não implementa), e a 2ª tentativa só pulava os
   arquivos. `no_head = true` no `r2:` (já no `configurar-r2.sh`): backup completo rodado em seguida sem nenhum erro,
   Oracle e R2 com 1290 arquivos / 1,802 GiB cada.
+- **Treino B (restaurar uma loja)**: `infra/treino-restaurar-loja.sh foto|estragar|conferir` no dev (loja #13 "Loja Teste
+  Tênis"); passo a passo em `docs/plano-de-desastre.md` → Treino B. Ensaiado em 22/10: estrago (estoque zerado, 7
+  clientes apagados) desfeito, "Igual à foto".
 
 ### 22/10/2026 (noite) — bot que morria em silêncio e histórico da TopSpin (ago–out)
 - **Causa do "bot parado"** (as paradas de hoje depois de publicar): os `catch` das rotinas em segundo plano deixavam passar

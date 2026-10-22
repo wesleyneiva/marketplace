@@ -138,6 +138,27 @@ cd ~/projetos/marketplace && sudo infra/recuperar-banco.sh --teste --nuvem --rem
 Tem que dizer "igual" em tudo, menos as vendas dos últimos minutos (ainda não subiram). Se falhar, os backups
 não servem: corrigir na hora.
 
+### Treino B — restaurar UMA loja (Situação A), uns 5 minutos
+
+Só no banco de **dev** (`marketplace_dev`), loja **#13 "Loja Teste Tênis"** (no lugar da TopSpin, que não existe no
+dev). A produção não é tocada. Sempre a partir de `cd ~/projetos/marketplace`.
+
+1. **Foto da loja antes** (guarda estoque, clientes, vendas): `infra/treino-restaurar-loja.sh foto`.
+   Anotar o horário que aparece (ex.: `2026-10-22 16:05:10`).
+2. **Esperar 1 minuto** (para o horário de "antes" ficar bem separado do acidente).
+3. **O acidente**: `infra/treino-restaurar-loja.sh estragar` — zera o estoque de tudo e apaga os clientes sem venda.
+   `infra/treino-restaurar-loja.sh conferir` mostra o estrago ("DIFERENTE").
+4. **Simular** (não muda nada), com o horário do passo 1:
+   `sudo infra/restaurar-loja.sh --banco marketplace_dev --empresa 13 --ate "2026-10-22 16:05:10"`.
+   Leva ~1 min. Na tabela: "Clientes 54 → 61 ← muda" e "Produtos ← conteúdo mudou" (o estoque zerado).
+5. **Aplicar**: `sudo infra/restaurar-loja.sh --banco marketplace_dev --empresa 13 --usar-recuperado --gravar`.
+   Tem que terminar em "✅ Loja #13 … restaurada".
+6. **Conferir**: `infra/treino-restaurar-loja.sh conferir` → "✅ Igual à foto".
+   (O `--gravar` já apaga o banco recuperado. Se parar na simulação: `sudo infra/recuperar-banco.sh --limpar-teste`.
+   Cada treino deixa um `~/backup/marketplace_dev-antes-restaurar-loja-13-….dump`; pode apagar.)
+
+Na vida real é o mesmo, sem os passos 1–3 e 6, com `--empresa 5` (TopSpin) e sem `--banco` (produção).
+
 ## Próximo passo (fase 2)
 
 Segunda VM em outro provedor com o banco copiado em tempo real e o mesmo túnel da Cloudflare: volta em 2 a 5
