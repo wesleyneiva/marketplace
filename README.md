@@ -263,6 +263,9 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
 ### 22/10/2026 (mais recente) — Pix automático direto no Banco do Brasil (pronto para o 1º cliente BB)
+Resumo do fim do dia 22/10 (este chat): (1) **R2 sem os "501"** na cópia diária (`no_head`); (2) **Treino B** de restaurar
+uma loja, feito pelo usuário com sucesso (as duas na seção "fim da noite" abaixo); (3) explicado o que o Marcus tem de
+pagamento/banco (Pix manual e automático, OFX; sem TEF e sem maquininha integrada); (4) **Pix direto no BB**, abaixo.
 - Pedido do usuário: um possível cliente tem o BB como conta PJ principal; deixar pronto "caso algum cliente precise", sem
   esperar o cliente. Montado pela **API Pix padrão do Banco Central** (vale para outros bancos depois) com o perfil do BB (ver
   Funcionalidades → "Pix automático direto no banco da loja"). Migration `PixPeloBanco` (colunas novas na Empresa e
@@ -661,12 +664,16 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- **Onde paramos (22/10, noite)**: o usuário está analisando a TopSpin com o histórico (DRE, Relatórios, Clientes, Vendedores,
-  Oficina, Compras). Próximo passo provável: ajustes que ele achar nessa análise.
+- **Onde paramos (fim de 22/10)**: Pix automático direto no Banco do Brasil pronto e publicado; testado no ambiente de testes
+  REAL do BB até gerar/consultar/cancelar (o pagamento simulado o BB bloqueia: fica para um Pix real de R$ 0,01 no 1º cliente
+  BB). Dev de volta ao normal (loja #1 no Mercado Pago de teste; `api-dev` com os simuladores). O usuário tem a aplicação
+  "Marcus - teste" no portal do BB (conta salário PF); as credenciais de teste passaram pelo chat → gerar novas antes de reusar.
+  Antes disso ele estava analisando a TopSpin com o histórico (DRE, Relatórios, Clientes, Vendedores, Oficina, Compras):
+  ajustes dessa análise continuam sendo um próximo passo provável.
 - Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); envio automático do pedido ao fornecedor;
   acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
-  (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago; Pix pelo BB no ambiente de testes do BB
-  (quando o usuário tiver a aplicação no portal); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
+  (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago; Pix pelo BB com o 1º cliente (R$ 0,01 real,
+  certificado A1, `gw-app-key`?); outros bancos no Pix automático (novo `Perfil` em `PixBancoCentral`); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
   NSU/bandeira/autorização — prepara a NFC-e).
 
 ## Stack (conferida em 20/10/2026)
