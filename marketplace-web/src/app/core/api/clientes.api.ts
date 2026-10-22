@@ -21,7 +21,7 @@ export interface ClienteListaItem {
 
 export interface ClientesPagina {
   itens: ClienteListaItem[]; total: number; pagina: number; tamanho: number;
-  ativos: number; aniversariantesDoMes: number; comprouNosUltimos30Dias: number;
+  ativos: number; sumidos: number; comprouNosUltimos30Dias: number;
 }
 
 export interface ClienteDetalhe {

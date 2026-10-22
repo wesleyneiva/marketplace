@@ -134,7 +134,7 @@ public class OrdensController(AppDbContext db, ClientesService clientes) : Contr
         o.Telefone = Limpo(new string((r.Telefone ?? "").Where(char.IsDigit).ToArray()));
         o.Raquete = r.Raquete.Trim();
         o.Corda = Limpo(r.Corda);
-        o.Tensao = Limpo(r.Tensao);
+        o.Tensao = ClientesService.Tensao(r.Tensao);
         o.Servico = r.Servico.Trim();
         o.Valor = Math.Round(r.Valor, 2);
         o.Paga = r.Paga;

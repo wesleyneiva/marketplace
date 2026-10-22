@@ -9,7 +9,7 @@ import { Icone } from '../../shared/icone';
 import { Paginacao } from '../../shared/paginacao';
 import { ClienteForm } from './cliente-form';
 
-// Clientes da loja: quem compra, quanto e quando. Aniversariantes do mês e "sumidos" (60 dias sem comprar) para chamar
+// Clientes da loja: quem compra, quanto e quando. Os que mais gastam e os "sumidos" (60 dias sem comprar) para chamar
 // de volta pelo WhatsApp. A ficha (clique) mostra o histórico. O cliente também é identificado no caixa (F8).
 @Component({
   selector: 'app-clientes',
@@ -23,7 +23,7 @@ export class Clientes {
   private readonly form = viewChild.required(ClienteForm);
 
   protected readonly filtros = [
-    { v: 'todos', t: 'Todos' }, { v: 'aniversariantes', t: 'Aniversariantes do mês' }, { v: 'sumidos', t: 'Sumidos (60+ dias)' },
+    { v: 'todos', t: 'Todos' }, { v: 'melhores', t: 'Quem mais gasta' }, { v: 'sumidos', t: 'Sumidos (60+ dias)' },
     { v: 'novos', t: 'Novos (30 dias)' }, { v: 'inativos', t: 'Inativos' },
   ];
   protected readonly filtro = signal('todos');

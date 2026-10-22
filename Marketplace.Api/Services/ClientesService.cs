@@ -32,7 +32,7 @@ public class ClientesService(AppDbContext db)
         c.Nascimento = r.Nascimento;
         c.Raquete = Limpo(r.Raquete);
         c.Corda = Limpo(r.Corda);
-        c.Tensao = Limpo(r.Tensao);
+        c.Tensao = Tensao(r.Tensao);
         c.Observacao = Limpo(r.Observacao);
         return null;
     }
@@ -77,7 +77,7 @@ public class ClientesService(AppDbContext db)
         }
         if (!string.IsNullOrWhiteSpace(raquete)) cliente.Raquete = raquete.Trim();
         if (!string.IsNullOrWhiteSpace(corda) && !corda.Contains("do cliente", StringComparison.OrdinalIgnoreCase)) cliente.Corda = corda.Trim();
-        if (!string.IsNullOrWhiteSpace(tensao)) cliente.Tensao = tensao.Trim();
+        if (!string.IsNullOrWhiteSpace(tensao)) cliente.Tensao = Tensao(tensao);
         await db.SaveChangesAsync();
         return cliente.Id;
     }
@@ -96,7 +96,7 @@ public class ClientesService(AppDbContext db)
                             || (digitos.Length >= 3 && ((c.Telefone != null && c.Telefone.Contains(digitos)) || (c.Cpf != null && c.Cpf.Contains(digitos)))));
     }
 
-    // filtro: todos | aniversariantes (do mês) | sumidos (compraram, mas não há 60+ dias) | novos (30 dias) | inativos
+    // filtro: todos | melhores (quem mais gastou) | sumidos (compraram, mas não há 60+ dias) | novos (30 dias) | inativos
     public async Task<ClientesPagina> ListarAsync(string? busca, string filtro, int pagina, int tamanho)
     {
         var hoje = Relogio.Hoje;
@@ -107,7 +107,7 @@ public class ClientesService(AppDbContext db)
         var concluidas = db.Vendas.Where(v => v.Status == StatusVenda.Concluida);
         q = filtro switch
         {
-            "aniversariantes" => q.Where(c => c.Nascimento != null && c.Nascimento.Value.Month == hoje.Month),
+            "melhores" => q.Where(c => concluidas.Any(v => v.ClienteId == c.Id)),
             "sumidos" => q.Where(c => concluidas.Any(v => v.ClienteId == c.Id) && !concluidas.Any(v => v.ClienteId == c.Id && v.DataHora >= corte60)),
             "novos" => q.Where(c => c.CriadoEm >= corte30),
             _ => q,
@@ -122,7 +122,7 @@ public class ClientesService(AppDbContext db)
         });
         linhas = filtro switch
         {
-            "aniversariantes" => linhas.OrderBy(c => c.Nascimento!.Value.Day),
+            "melhores" => linhas.OrderByDescending(c => c.Gasto),
             "sumidos" => linhas.OrderByDescending(c => c.Gasto),
             _ => linhas.OrderBy(c => c.Ultima == null).ThenByDescending(c => c.Ultima).ThenBy(c => c.Nome), // quem comprou por último primeiro
         };
@@ -132,7 +132,7 @@ public class ClientesService(AppDbContext db)
         return new ClientesPagina(
             itens.Select(c => new ClienteListaItem(c.Id, c.Nome, c.Apelido, c.Telefone, c.Nascimento, c.Raquete, c.Compras, c.Gasto, c.Ultima, c.Ativo, c.Simulado)).ToList(),
             total, pagina, tamanho, await ativos.CountAsync(),
-            await ativos.CountAsync(c => c.Nascimento != null && c.Nascimento.Value.Month == hoje.Month),
+            await ativos.CountAsync(c => concluidas.Any(v => v.ClienteId == c.Id) && !concluidas.Any(v => v.ClienteId == c.Id && v.DataHora >= corte60)),
             await ativos.CountAsync(c => concluidas.Any(v => v.ClienteId == c.Id && v.DataHora >= corte30)));
     }
 
@@ -203,6 +203,14 @@ public class ClientesService(AppDbContext db)
 
     public static ClienteResponse Resposta(Cliente c) => new(c.Id, c.Nome, c.Apelido, c.Telefone, c.Cpf, c.Email, c.Endereco, c.Nascimento,
         c.Raquete, c.Corda, c.Tensao, c.Observacao, c.Ativo, c.Simulado, c.CriadoEm);
+
+    // Tensão sempre com a unidade: "55" → "55 lbs", "24/22" → "24/22 lbs", "24/22 lb" → "24/22 lbs".
+    public static string? Tensao(string? t)
+    {
+        var resto = System.Text.RegularExpressions.Regex.Replace((t ?? "").Trim(), @"\s*(lbs?|libras?)\.?$", "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase).Trim();
+        return resto.Length == 0 ? null : $"{resto} lbs";
+    }
 
     public static string SoDigitos(string? t) => new((t ?? "").Where(char.IsDigit).ToArray());
     private static string? Limpo(string? t) => string.IsNullOrWhiteSpace(t) ? null : t.Trim();

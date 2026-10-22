@@ -30,7 +30,7 @@ public record ClienteResponse(int Id, string Nome, string? Apelido, string? Tele
 public record ClienteListaItem(int Id, string Nome, string? Apelido, string? Telefone, DateOnly? Nascimento, string? Raquete,
     int Compras, decimal TotalGasto, DateTimeOffset? UltimaCompra, bool Ativo, bool Simulado);
 
-public record ClientesPagina(List<ClienteListaItem> Itens, int Total, int Pagina, int Tamanho, int Ativos, int AniversariantesDoMes,
+public record ClientesPagina(List<ClienteListaItem> Itens, int Total, int Pagina, int Tamanho, int Ativos, int Sumidos,
     int ComprouNosUltimos30Dias);
 
 // No caixa: a busca devolve o que ajuda o atendimento (última compra, o que usa).

@@ -31,7 +31,7 @@ import { Icone } from '../../shared/icone';
               <div class="tres">
                 <label>Raquete<input name="raquete" [(ngModel)]="form.raquete" maxlength="120" placeholder="Babolat Pure Aero" /></label>
                 <label>Corda<input name="corda" [(ngModel)]="form.corda" maxlength="120" placeholder="RPM Blast 1.25" /></label>
-                <label>Tensão<input name="tensao" [(ngModel)]="form.tensao" maxlength="20" placeholder="24/22 lb" /></label>
+                <label>Tensão<input name="tensao" [(ngModel)]="form.tensao" maxlength="20" placeholder="24/22 lbs" /></label>
               </div>
             </fieldset>
           }

@@ -39,7 +39,7 @@ public static class ClientesSimulados
                 if (cliente.Raquete is not null)
                 {
                     cliente.Corda = Sortear(Cordas);
-                    cliente.Tensao = $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lb";
+                    cliente.Tensao = $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lbs";
                 }
                 db.Clientes.Add(cliente);
                 turma.Add(cliente);

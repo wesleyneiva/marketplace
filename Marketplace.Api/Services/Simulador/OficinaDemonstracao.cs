@@ -51,7 +51,7 @@ public static class OficinaDemonstracao
                 Raquete = raqueteNova is not null ? $"{raqueteNova.Nome} (comprada agora)" : cliente?.Raquete ?? Sortear(RaquetesDoCliente),
                 Corda = PerfilConsumo.SemAcento(s.Nome).Contains("encordoamento")
                     ? corda?.Nome ?? "Corda do cliente" : null,
-                Tensao = encordoa ? cliente?.Tensao ?? $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lb" : null,
+                Tensao = encordoa ? cliente?.Tensao ?? $"{tensao}/{tensao - Random.Shared.Next(0, 3)} lbs" : null,
                 Servico = s.Nome,
                 Valor = itens.Where(i => i.ProdutoId == s.Id || i.ProdutoId == corda?.Id).Sum(i => i.Quantidade * porId[i.ProdutoId].PrecoVenda),
                 Paga = true, VendaId = venda.Id, Status = StatusOrdem.Recebida, Automatica = true, CriadaPorId = usuarioId,
