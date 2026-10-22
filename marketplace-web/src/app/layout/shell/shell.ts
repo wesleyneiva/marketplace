@@ -94,6 +94,7 @@ export class Shell {
   // Número ao lado de "Compras" (core/compras-resumo.ts): refaz a cada troca de tela e de minuto em minuto.
   private readonly resumoCompras = inject(ComprasResumo);
   protected readonly paraComprar = this.resumoCompras.paraComprar;
+  protected readonly estoqueAtencao = this.resumoCompras.estoqueAtencao;
 
   // Mensalidade do sistema: aviso para o ADMINISTRADOR do mercado (vence em breve / em atraso), com a chave PIX.
   protected readonly assinatura = httpResource<{ nivel: string | null; mensagem: string | null; chavePix: string | null; nomeRecebedor: string | null; contato: string | null }>(

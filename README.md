@@ -270,6 +270,10 @@ Migration `ClientesVendedoresParcelas` (backup antes em `~/backup/marketplace-an
 - Ajustes do usuário (mesmo dia): cadastro do cliente com **CPF obrigatório** (tela, caixa e API; a OS da oficina e os clientes
   do bot continuam sem CPF), busca "nome ou CPF", sem endereço e aniversário no formulário (os dados antigos ficam), janela
   mais larga. Tirado "(Gemini, pelo n8n)" dos Relatórios e o parêntese da Visão geral do dono; botões dos pedidos alinhados.
+- Mais ajustes: Clientes com os 3 cards clicáveis (ativos / compraram em 30 dias / sumidos) e filtro "Quem mais gasta"; tensão
+  sempre salva com "lbs" (`ClientesService.Tensao`). **Sugestão de compra**: produto ZERADO que vendeu nos últimos 60 dias entra
+  (pelo menos 1 ou o mínimo; motivo "sem estoque") — antes um número de tênis com mínimo 0 que acabou não aparecia.
+  **Número no menu "Estoque"** (`GET /api/estoque/atencao`): sem estoque ou abaixo do mínimo, como o de Compras.
 - TopSpin: vendedor "Lucas" (2%) cadastrado na produção — o funcionário vendedor e encordoador do financeiro de exemplo.
 
 ### 22/10/2026 (tarde) — troca e vale-troca (fase 3 do plano dos ramos)

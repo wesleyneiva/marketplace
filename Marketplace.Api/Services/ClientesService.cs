@@ -96,7 +96,8 @@ public class ClientesService(AppDbContext db)
                             || (digitos.Length >= 3 && ((c.Telefone != null && c.Telefone.Contains(digitos)) || (c.Cpf != null && c.Cpf.Contains(digitos)))));
     }
 
-    // filtro: todos | melhores (quem mais gastou) | sumidos (compraram, mas não há 60+ dias) | novos (30 dias) | inativos
+    // filtro: todos | recentes (compraram nos últimos 30 dias) | melhores (quem mais gastou) | sumidos (compraram, mas não há
+    // 60+ dias) | novos (cadastrados em 30 dias) | inativos
     public async Task<ClientesPagina> ListarAsync(string? busca, string filtro, int pagina, int tamanho)
     {
         var hoje = Relogio.Hoje;
@@ -108,6 +109,7 @@ public class ClientesService(AppDbContext db)
         q = filtro switch
         {
             "melhores" => q.Where(c => concluidas.Any(v => v.ClienteId == c.Id)),
+            "recentes" => q.Where(c => concluidas.Any(v => v.ClienteId == c.Id && v.DataHora >= corte30)),
             "sumidos" => q.Where(c => concluidas.Any(v => v.ClienteId == c.Id) && !concluidas.Any(v => v.ClienteId == c.Id && v.DataHora >= corte60)),
             "novos" => q.Where(c => c.CriadoEm >= corte30),
             _ => q,

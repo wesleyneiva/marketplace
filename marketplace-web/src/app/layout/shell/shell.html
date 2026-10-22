@@ -19,6 +19,9 @@
             @if (item.rota === '/compras' && paraComprar() > 0) {
               <span class="contador" [attr.title]="paraComprar() + ' produtos para comprar (sugestão de compra)'">{{ paraComprar() }}</span>
             }
+            @if (item.rota === '/estoque' && estoqueAtencao() > 0) {
+              <span class="contador" [attr.title]="estoqueAtencao() + ' produtos sem estoque ou abaixo do mínimo'">{{ estoqueAtencao() }}</span>
+            }
           </a>
         } @else {
           <span class="item-futuro" title="Em breve">

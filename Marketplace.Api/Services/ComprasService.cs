@@ -29,6 +29,12 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
             .GroupBy(i => i.ProdutoId).Select(g => new { g.Key, Qtd = g.Sum(i => i.Quantidade) })
             .ToDictionaryAsync(x => x.Key, x => x.Qtd, ct);
 
+        // Zerado que vendeu nos últimos 60 dias (ex.: um número de tênis com mínimo 0 que acabou): repõe pelo menos 1.
+        var inicio60 = Relogio.InicioDoDiaUtc(hoje.AddDays(-60));
+        var vendeu60 = (await db.ItensVenda.AsNoTracking()
+            .Where(i => i.Venda!.Status == StatusVenda.Concluida && i.Venda.DataHora >= inicio60)
+            .Select(i => i.ProdutoId).Distinct().ToListAsync(ct)).ToHashSet();
+
         var aCaminho = await db.ItensPedidoCompra.AsNoTracking()
             .Where(i => i.PedidoCompra!.Status == StatusPedido.Enviado)
             .GroupBy(i => i.ProdutoId).Select(g => new { g.Key, Qtd = g.Sum(i => i.Quantidade) })
@@ -47,17 +53,20 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
 
             // Ponto de pedido: o que vai vender até o pedido chegar (+1 dia de folga) + o estoque mínimo.
             var pontoDePedido = consumo * (prazo + 1) + p.EstoqueMinimo;
-            if (p.EstoqueAtual + pedido > pontoDePedido) continue;
+            var acabou = p.EstoqueAtual + pedido <= 0 && vendeu60.Contains(p.Id);
+            if (p.EstoqueAtual + pedido > pontoDePedido && !acabou) continue;
 
             var necessario = consumo * (prazo + DiasDeCobertura) + p.EstoqueMinimo - p.EstoqueAtual - pedido;
             // No mínimo (ou abaixo) e sem venda recente, a conta acima dá zero: repõe até o dobro do mínimo.
             if (p.EstoqueAtual + pedido <= p.EstoqueMinimo)
                 necessario = Math.Max(necessario, 2 * p.EstoqueMinimo - p.EstoqueAtual - pedido);
+            if (acabou) necessario = Math.Max(necessario, Math.Max(p.EstoqueMinimo, 1) - p.EstoqueAtual - pedido);
             var sugerido = Arredondar(p, necessario);
             if (sugerido <= 0) continue;
 
             decimal? dias = consumo > 0 ? Math.Round(p.EstoqueAtual / consumo, 1) : null;
-            var motivo = p.EstoqueAtual <= p.EstoqueMinimo
+            var motivo = p.EstoqueAtual <= 0 ? "sem estoque"
+                : p.EstoqueAtual <= p.EstoqueMinimo
                 ? "abaixo do mínimo"
                 : dias is not null ? $"acaba em ~{dias:0.#} dia(s); entrega em {prazo}" : "perto do mínimo";
 

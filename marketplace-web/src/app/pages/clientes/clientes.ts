@@ -23,7 +23,7 @@ export class Clientes {
   private readonly form = viewChild.required(ClienteForm);
 
   protected readonly filtros = [
-    { v: 'todos', t: 'Todos' }, { v: 'melhores', t: 'Quem mais gasta' }, { v: 'sumidos', t: 'Sumidos (60+ dias)' },
+    { v: 'todos', t: 'Todos' }, { v: 'recentes', t: 'Compraram em 30 dias' }, { v: 'melhores', t: 'Quem mais gasta' }, { v: 'sumidos', t: 'Sumidos (60+ dias)' },
     { v: 'novos', t: 'Novos (30 dias)' }, { v: 'inativos', t: 'Inativos' },
   ];
   protected readonly filtro = signal('todos');

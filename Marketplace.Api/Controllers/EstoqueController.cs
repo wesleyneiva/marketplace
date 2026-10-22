@@ -70,6 +70,13 @@ public class EstoqueController(AppDbContext db, EstoqueService estoque) : Contro
     }
 
     // GET /api/estoque/posicao?busca=arroz&categoriaId=3&situacao=zerado&ordem=valor&pagina=1&tamanho=50
+    // GET /api/estoque/atencao → número no menu "Estoque": produtos sem estoque ou abaixo do mínimo (serviço não conta).
+    [HttpGet("atencao")]
+    public async Task<object> Atencao() => new
+    {
+        Produtos = await db.Produtos.AsNoTracking().CountAsync(p => p.Ativo && !p.Servico && (p.EstoqueAtual <= 0 || p.EstoqueAtual <= p.EstoqueMinimo)),
+    };
+
     // Posição do estoque: os totais (valor a custo e a venda, zerados, negativos, abaixo do mínimo) e a parte de cada
     // categoria são sempre da loja inteira (só produtos ativos); a lista segue os filtros.
     // situacao: comSaldo | semEstoque (zerado ou negativo) | zerado | negativo | baixo (baixo = como no painel: atual <= mínimo). ordem: nome | valor | quantidade.

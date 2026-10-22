@@ -10,9 +10,9 @@
 
 @if (lista.value(); as l) {
   <section class="resumo-clientes">
-    <div class="cartao"><span>Clientes ativos</span><strong>{{ l.ativos }}</strong></div>
-    <div class="cartao"><span>Compraram nos últimos 30 dias</span><strong>{{ l.comprouNosUltimos30Dias }}</strong></div>
-    <button type="button" class="cartao" (click)="filtrar('sumidos')"><span>Sumidos (60+ dias sem comprar)</span><strong>{{ l.sumidos }}</strong></button>
+    <button type="button" class="cartao" [class.ligado]="filtro() === 'todos'" (click)="filtrar('todos')"><span>Clientes ativos</span><strong>{{ l.ativos }}</strong></button>
+    <button type="button" class="cartao" [class.ligado]="filtro() === 'recentes'" (click)="filtrar('recentes')"><span>Compraram nos últimos 30 dias</span><strong>{{ l.comprouNosUltimos30Dias }}</strong></button>
+    <button type="button" class="cartao" [class.ligado]="filtro() === 'sumidos'" (click)="filtrar('sumidos')"><span>Sumidos (60+ dias sem comprar)</span><strong>{{ l.sumidos }}</strong></button>
   </section>
 }
 
