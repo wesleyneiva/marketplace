@@ -271,6 +271,7 @@ public class IntegracaoController(AppDbContext db, RelatoriosService relatorios,
     {
         FormaPagamento.Debito => "Débito",
         FormaPagamento.Credito => "Crédito",
+        FormaPagamento.ValeTroca => "Vale-troca",
         _ => f.ToString(),
     };
 }

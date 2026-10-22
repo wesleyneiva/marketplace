@@ -31,6 +31,8 @@ interface Configuracao {
   horaLocal: string;
   horario: Horario;
   horarioResumo: string;
+  prazoTrocaDias: number;
+  validadeValeDias: number;
   pixTipoChave: TipoChavePix | null;
   pixChave: string | null;
   pixNomeRecebedor: string | null;
@@ -222,6 +224,33 @@ export class Configuracoes {
   private carregadoHorario = false;
 
   // Preenche o formulário quando a configuração chega (uma vez).
+  // ----- Trocas: prazo para trocar e validade do vale-troca -----
+  protected prazoTroca = 30;
+  protected validadeVale = 90;
+  private carregadoTrocas = false;
+  protected readonly avisoTrocas = signal<{ ok: boolean; texto: string } | null>(null);
+
+  protected formTrocas(c: Configuracao): boolean {
+    if (!this.carregadoTrocas) {
+      this.prazoTroca = c.prazoTrocaDias;
+      this.validadeVale = c.validadeValeDias;
+      this.carregadoTrocas = true;
+    }
+    return true;
+  }
+
+  async salvarTrocas(): Promise<void> {
+    this.avisoTrocas.set(null);
+    try {
+      this.config.set(await firstValueFrom(this.http.put<Configuracao>('/api/empresa/configuracao/trocas',
+        { prazoTrocaDias: Number(this.prazoTroca), validadeValeDias: Number(this.validadeVale) })));
+      this.avisoTrocas.set({ ok: true, texto: 'Salvo. Vale para as próximas trocas (os vales já emitidos mantêm a validade deles).' });
+    } catch (e) {
+      const erro = e instanceof HttpErrorResponse ? e.error?.mensagem ?? Object.values<string[]>(e.error?.errors ?? {}).flat()[0] : null;
+      this.avisoTrocas.set({ ok: false, texto: erro ?? 'Não foi possível salvar.' });
+    }
+  }
+
   protected formulario(c: Configuracao): boolean {
     if (!this.carregado) {
       this.digitos = c.balancaDigitosCodigo;

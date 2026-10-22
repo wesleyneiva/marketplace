@@ -38,6 +38,7 @@
       @if (comFiado) {
       <button type="button" class="botao pequeno" (click)="abrirReceber()" title="Cliente veio pagar o fiado (F6)"><app-icone nome="notebook-pen" /> Receber fiado <kbd>F6</kbd></button>
       }
+      <button type="button" class="botao pequeno" (click)="abrirTroca()" title="Cliente veio trocar um produto (F7)"><app-icone nome="repeat" /> Troca <kbd>F7</kbd></button>
       <button type="button" class="botao pequeno" (click)="abrirMovimento('sangria')"><app-icone nome="arrow-up-from-line" /> Sangria</button>
       <button type="button" class="botao pequeno" (click)="abrirMovimento('suprimento')"><app-icone nome="arrow-down-to-line" /> Suprimento</button>
       <button type="button" class="botao pequeno perigo" (click)="abrirFechamento()">Fechar caixa</button>
@@ -69,6 +70,13 @@
     }
     @if (aviso()) { <div class="aviso" role="status"><app-icone nome="circle-check" /> {{ aviso() }}</div> }
     @if (erro() && !produtoPeso()) { <div class="erro" role="alert"><app-icone nome="triangle-alert" /> {{ erro() }}</div> }
+    @if (creditoTroca(); as ct) {
+      <div class="credito-troca" role="status">
+        <app-icone nome="repeat" />
+        <span><b>Troca: crédito de {{ ct.saldo | currency: 'BRL' }}</b> (vale {{ ct.codigo }}). Bipe o produto novo: o crédito entra no pagamento.</span>
+        <button type="button" class="botao pequeno" (click)="tirarCreditoTroca()">Usar depois</button>
+      </div>
+    }
 
     <div class="colunas">
       <!-- ----- Esquerda: busca + itens ----- -->
@@ -213,7 +221,7 @@
         <div class="formas">
           @for (f of formas; track f.valor) {
             <button type="button" class="botao" [class.ligado]="formaAtual() === f.valor" (click)="escolherForma(f.valor)">
-              <app-icone [nome]="f.icone" /> {{ f.rotulo }} <kbd>Alt+{{ f.tecla }}</kbd>
+              <app-icone [nome]="f.icone" /> {{ f.rotulo }} <kbd>Alt+{{ $index + 1 }}</kbd>
             </button>
           }
         </div>
@@ -255,12 +263,20 @@
           </div>
           }
         }
+        @if (formaAtual() === 'ValeTroca') {
+        <form class="valor" (ngSubmit)="usarVale()">
+          <label for="vale">Código do vale-troca</label>
+          <input #campoVale id="vale" name="vale" [(ngModel)]="textoVale" autocomplete="off" placeholder="VT-…" class="codigo-vale" />
+          <button type="submit" class="botao primario" [disabled]="buscandoVale()">{{ buscandoVale() ? 'Conferindo…' : 'Usar vale' }}</button>
+        </form>
+        } @else {
         <form class="valor" (ngSubmit)="confirmarValor()">
           <label for="valor">Valor em {{ rotuloForma(formaAtual()) }}</label>
           <input #campoValor id="valor" name="valor" [(ngModel)]="textoValor" inputmode="decimal"
                  [disabled]="formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())" />
           <button type="submit" class="botao primario" [disabled]="(formaAtual() === 'Fiado' && (!clienteFiado() || !!fiadoTravado())) || (formaAtual() === 'Pix' && !!pixAutomatico())">Adicionar</button>
         </form>
+        }
         @if (pixSoltos().length) {
           <div class="pix-soltos" role="status">
             @for (c of pixSoltos(); track c.id) {
@@ -309,7 +325,7 @@
         }
         <ul class="lista-pagamentos">
           @for (p of pagamentos(); track $index) {
-            <li><span>{{ rotuloForma(p.forma) }}@if (p.forma === 'Fiado' && clienteFiado()) { · {{ clienteFiado()!.nome }} }@if (p.cobrancaPixId) { <small class="selo-confirmado"><app-icone nome="check" /> confirmado</small> }</span><b>{{ p.valor | currency: 'BRL' }}</b>
+            <li><span>{{ rotuloForma(p.forma) }}@if (p.forma === 'Fiado' && clienteFiado()) { · {{ clienteFiado()!.nome }} }@if (p.valeCodigo) { · {{ p.valeCodigo }} }@if (p.cobrancaPixId) { <small class="selo-confirmado"><app-icone nome="check" /> confirmado</small> }</span><b>{{ p.valor | currency: 'BRL' }}</b>
               <button type="button" class="remover" (click)="removerPagamento($index)" aria-label="Remover pagamento"><app-icone nome="x" /></button></li>
           }
         </ul>
@@ -366,7 +382,12 @@
           <div><span>Subtotal</span><span>{{ c.subtotal | currency: 'BRL' }}</span></div>
           @if (c.desconto > 0) { <div><span>Desconto</span><span>−{{ c.desconto | currency: 'BRL' }}</span></div> }
           <div class="grande"><span>TOTAL</span><span>{{ c.total | currency: 'BRL' }}</span></div>
-          @for (p of c.pagamentos; track $index) { <div><span>{{ rotuloForma(p.forma) }}</span><span>{{ p.valor | currency: 'BRL' }}</span></div> }
+          @for (p of c.pagamentos; track $index) {
+            <div><span>{{ rotuloForma(p.forma) }}@if (p.valeCodigo) { {{ p.valeCodigo }} }</span><span>{{ p.valor | currency: 'BRL' }}</span></div>
+            @if (p.valeCodigo && p.valeSaldo) {
+              <div class="forte"><span>Saldo no vale (até {{ p.valeValidade?.split('-')?.reverse()?.join('/') }})</span><span>{{ p.valeSaldo | currency: 'BRL' }}</span></div>
+            }
+          }
           @if (c.troco > 0) { <div class="troco-cupom"><span>TROCO</span><span>{{ c.troco | currency: 'BRL' }}</span></div> }
         </div>
         @if (c.cliente; as cli) {
@@ -550,6 +571,9 @@
       </footer>
     }
   </dialog>
+
+  <!-- ======================= TROCA (F7) ======================= -->
+  <app-troca-caixa [ehGerencia]="ehGerencia()" [loja]="nomeLoja()" (usarAgora)="aoUsarTroca($event)" (fechada)="focarBusca()" />
 
   <!-- ======================= RECEBER FIADO (F6) ======================= -->
   <dialog #dlgReceber class="janela" (close)="aoFecharReceber()">

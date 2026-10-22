@@ -1,0 +1,93 @@
+<a routerLink="/vendas" class="voltar"><app-icone nome="arrow-left" /> Vendas</a>
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="repeat" /> Trocas e vales</h1>
+    <p>O que os clientes trocaram, por quê, e o crédito em vale-troca que ainda está com eles. A troca é feita no caixa (<kbd>F7</kbd>).</p>
+  </div>
+</header>
+
+<section class="filtros-vendas">
+  <label>De <app-campo-data name="de" [ngModel]="de()" (ngModelChange)="de.set($event)" /></label>
+  <label>Até <app-campo-data name="ate" [ngModel]="ate()" (ngModelChange)="ate.set($event)" /></label>
+</section>
+
+@if (relatorio.value(); as r) {
+  <section class="resumo">
+    <div class="cartao"><span>Trocas</span><strong>{{ r.quantidade }}</strong><small>no período</small></div>
+    <div class="cartao"><span>Crédito gerado</span><strong>{{ r.valor | currency: 'BRL' }}</strong><small>devolvido em vale-troca</small></div>
+    <div class="cartao"><span>Vales em aberto</span><strong>{{ r.saldoEmAberto | currency: 'BRL' }}</strong><small>{{ r.valesEmAberto }} vale(s) · crédito dos clientes hoje</small></div>
+    <div class="cartao"><span>Vencidos sem uso</span><strong>{{ r.vencidosNoPeriodo | currency: 'BRL' }}</strong><small>no período · voltam como receita</small></div>
+  </section>
+
+  @if (r.quantidade) {
+    <div class="duas">
+      <section class="painel">
+        <h2>Por motivo</h2>
+        <table>
+          <thead><tr><th>Motivo</th><th class="num">Trocas</th><th class="num">Crédito</th></tr></thead>
+          <tbody>
+            @for (m of r.porMotivo; track m.motivo) {
+              <tr><td>{{ rotuloMotivo(m.motivo) }}</td><td class="num">{{ m.quantidade }}</td><td class="num">{{ m.valor | currency: 'BRL' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </section>
+      <section class="painel">
+        <h2>Produtos mais trocados</h2>
+        <table>
+          <thead><tr><th>Produto</th><th class="num">Trocas</th><th class="num">Crédito</th></tr></thead>
+          <tbody>
+            @for (p of r.produtos; track p.produto) {
+              <tr><td>{{ p.produto }}</td><td class="num">{{ p.trocas }}</td><td class="num">{{ p.valor | currency: 'BRL' }}</td></tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    </div>
+  }
+
+  <section class="painel tabela-rolagem">
+    <h2>Trocas do período</h2>
+    <table>
+      <thead><tr><th>Quando</th><th>Venda</th><th>Itens devolvidos</th><th>Motivo</th><th class="num">Crédito</th><th>Vale</th><th></th></tr></thead>
+      <tbody>
+        @for (t of r.trocas; track t.id) {
+          <tr>
+            <td>{{ t.dataHora | date: 'dd/MM HH:mm' }}<small class="detalhe">Caixa {{ t.numeroCaixa }} · {{ t.operador }}</small></td>
+            <td class="forte">#{{ t.vendaId }}</td>
+            <td>@for (i of t.itens; track $index) { <div>{{ i.quantidade | number: '1.0-3' }} × {{ i.descricao }}</div> }</td>
+            <td>{{ rotuloMotivo(t.motivo) }}
+              @if (t.foraDoPrazo) { <small class="selo alerta">fora do prazo</small> }
+              @if (t.observacao) { <small class="detalhe">{{ t.observacao }}</small> }</td>
+            <td class="num forte">{{ t.valor | currency: 'BRL' }}</td>
+            <td><code>{{ t.vale.codigo }}</code><small class="detalhe">{{ situacao(t.vale.situacao) }}@if (t.vale.situacao === 'Disponivel') { · saldo {{ t.vale.saldo | currency: 'BRL' }} }</small></td>
+            <td><button type="button" class="botao pequeno" (click)="imprimirVale(t)" title="Imprimir o vale de novo"><app-icone nome="printer" /></button></td>
+          </tr>
+        } @empty {
+          <tr><td colspan="7" class="vazio">Nenhuma troca neste período.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+
+  <section class="painel tabela-rolagem">
+    <h2>Vales-troca em aberto</h2>
+    <table>
+      <thead><tr><th>Código</th><th>Cliente</th><th>Emitido</th><th>Vale até</th><th class="num">Valor</th><th class="num">Saldo</th></tr></thead>
+      <tbody>
+        @for (v of r.vales; track v.id) {
+          <tr>
+            <td><code>{{ v.codigo }}</code>@if (v.vendaId) { <small class="detalhe">troca da venda #{{ v.vendaId }}</small> }</td>
+            <td>{{ v.cliente ?? '—' }}</td>
+            <td>{{ v.criadoEm | date: 'dd/MM/yyyy' }}</td>
+            <td>{{ diaBr(v.validade) }}</td>
+            <td class="num">{{ v.valor | currency: 'BRL' }}</td>
+            <td class="num forte">{{ v.saldo | currency: 'BRL' }}</td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="vazio">Nenhum vale-troca em aberto.</td></tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}

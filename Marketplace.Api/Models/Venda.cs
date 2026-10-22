@@ -77,6 +77,9 @@ public class PagamentoVenda : IDaEmpresa
     public FormaPagamento Forma { get; set; }
     public decimal Valor { get; set; }
     public int? CobrancaPixId { get; set; }   // Pix automático: a cobrança paga no Mercado Pago (conferida no servidor)
+    public int? ValeTrocaId { get; set; }     // vale-troca usado (o saldo dele baixa; volta se a venda for cancelada)
+    public ValeTroca? ValeTroca { get; set; }
 }
 
-public enum FormaPagamento { Dinheiro, Pix, Debito, Credito, Fiado } // Fiado: não é dinheiro; vira dívida na caderneta
+// Fiado: não é dinheiro; vira dívida na caderneta. ValeTroca: crédito de uma troca; também não é dinheiro novo.
+public enum FormaPagamento { Dinheiro, Pix, Debito, Credito, Fiado, ValeTroca }

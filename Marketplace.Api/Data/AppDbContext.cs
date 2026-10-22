@@ -36,6 +36,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
     public DbSet<Venda> Vendas => Set<Venda>();
     public DbSet<ItemVenda> ItensVenda => Set<ItemVenda>();
     public DbSet<PagamentoVenda> PagamentosVenda => Set<PagamentoVenda>();
+    public DbSet<Troca> Trocas => Set<Troca>();
+    public DbSet<ItemTroca> ItensTroca => Set<ItemTroca>();
+    public DbSet<ValeTroca> ValesTroca => Set<ValeTroca>();
     public DbSet<ClimaRegistro> Clima => Set<ClimaRegistro>();
     public DbSet<Fornecedor> Fornecedores => Set<Fornecedor>();
     public DbSet<PedidoCompra> PedidosCompra => Set<PedidoCompra>();
@@ -92,6 +95,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.AliquotaSimples).HasPrecision(6, 4).HasDefaultValue(0m);
             e.Property(x => x.VendasAutomaticas).HasMaxLength(12).HasDefaultValue(ModosVendasAutomaticas.Desligado);
             e.Property(x => x.Ramo).HasMaxLength(20).HasDefaultValue(Ramos.Mercado);
+            e.Property(x => x.PrazoTrocaDias).HasDefaultValue(30);
+            e.Property(x => x.ValidadeValeDias).HasDefaultValue(90);
             e.HasIndex(x => x.Plataforma).IsUnique().HasFilter("\"Plataforma\""); // no máximo uma empresa da plataforma
             e.Property(x => x.RazaoSocial).HasMaxLength(150);
             e.Property(x => x.Documento).HasMaxLength(14);
@@ -584,6 +589,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(p => p.Valor).HasPrecision(12, 2);
             e.HasOne(p => p.Venda).WithMany(v => v.Pagamentos).HasForeignKey(p => p.VendaId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(p => p.VendaId).IncludeProperties(p => new { p.Forma, p.Valor }); // "formas de pagamento" (4x mais rápido)
+            e.HasOne(p => p.ValeTroca).WithMany().HasForeignKey(p => p.ValeTrocaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<Troca>(e =>
+        {
+            e.Property(t => t.Motivo).HasMaxLength(20);
+            e.Property(t => t.Observacao).HasMaxLength(200);
+            e.Property(t => t.Valor).HasPrecision(12, 2);
+            e.HasIndex(t => new { t.EmpresaId, t.DataHora });
+            e.HasOne(t => t.Venda).WithMany().HasForeignKey(t => t.VendaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.SessaoCaixa).WithMany().HasForeignKey(t => t.SessaoCaixaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.Usuario).WithMany().HasForeignKey(t => t.UsuarioId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(t => t.ValeTroca).WithMany().HasForeignKey(t => t.ValeTrocaId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ItemTroca>(e =>
+        {
+            e.Property(i => i.Descricao).HasMaxLength(150);
+            e.Property(i => i.Quantidade).HasPrecision(12, 3);
+            e.Property(i => i.Valor).HasPrecision(12, 2);
+            e.Property(i => i.CustoUnitario).HasPrecision(10, 2);
+            e.HasOne(i => i.Troca).WithMany(t => t.Itens).HasForeignKey(i => i.TrocaId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(i => i.ItemVenda).WithMany().HasForeignKey(i => i.ItemVendaId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(i => i.Produto).WithMany().HasForeignKey(i => i.ProdutoId).OnDelete(DeleteBehavior.Restrict);
+            e.HasIndex(i => i.ItemVendaId);
+        });
+
+        builder.Entity<ValeTroca>(e =>
+        {
+            e.Property(v => v.Codigo).HasMaxLength(12);
+            e.Property(v => v.Valor).HasPrecision(12, 2);
+            e.Property(v => v.Saldo).HasPrecision(12, 2);
+            e.Property(v => v.Cliente).HasMaxLength(100);
+            e.HasIndex(v => new { v.EmpresaId, v.Codigo }).IsUnique();
+            e.HasIndex(v => new { v.EmpresaId, v.Validade });
         });
 
         // ----- Multi-tenant: para TODA tabela com a etiqueta IDaEmpresa -----

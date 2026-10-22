@@ -100,7 +100,7 @@ public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidad
 // Configuração da empresa usada pelas telas: etiqueta da balança, cidade e horário de funcionamento.
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
     string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
-    List<ProximoFeriado> ProximosFeriados,
+    List<ProximoFeriado> ProximosFeriados, int PrazoTrocaDias, int ValidadeValeDias,
     string? PixTipoChave, string? PixChave, string? PixNomeRecebedor,
     string? PixAutomatico, string? MercadoPagoConta, string? MercadoPagoTokenFinal, bool MercadoPagoTeste, string? PixAvisoUrl);
 

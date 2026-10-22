@@ -42,3 +42,4 @@ tfoot td { background: var(--cor-fundo); font-weight: 600; }
 }
 .selo.offline { margin-left: 6px; background: var(--cor-info-fundo); color: var(--cor-info); }
 td .selo.alerta { margin-left: 6px; }
+.botoes-topo { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -214,7 +214,9 @@ public class VendasController(VendaService vendas, CaixaService caixa, AppDbCont
                 v.Id, v.DataHora, v.SessaoCaixa!.NumeroCaixa, v.Usuario!.NomeCompleto, v.Status.ToString(),
                 v.Subtotal, v.Desconto, v.Total, v.ValorPago, v.Troco,
                 v.Itens.OrderBy(i => i.Id).Select(i => new ItemVendaResponse(i.ProdutoId, i.Descricao, i.Unidade, i.Quantidade, i.PrecoUnitario, i.Total)).ToList(),
-                v.Pagamentos.OrderBy(p => p.Id).Select(p => new PagamentoResponse(p.Forma.ToString(), p.Valor, p.CobrancaPixId != null)).ToList(),
+                v.Pagamentos.OrderBy(p => p.Id).Select(p => new PagamentoResponse(p.Forma.ToString(), p.Valor, p.CobrancaPixId != null,
+                    p.ValeTroca != null ? p.ValeTroca.Codigo : null, p.ValeTroca != null ? p.ValeTroca.Saldo : null,
+                    p.ValeTroca != null ? p.ValeTroca.Validade : null)).ToList(),
                 v.MotivoCancelamento, null,
                 v.Status == StatusVenda.Cancelada
                     ? new CancelamentoCupom(v.CanceladaEm, v.CanceladaPor!.NomeCompleto,

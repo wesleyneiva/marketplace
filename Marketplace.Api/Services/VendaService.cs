@@ -10,7 +10,7 @@ namespace Marketplace.Api.Services;
 // Finalizar e cancelar vendas. Uma venda grava, NUMA ÚNICA TRANSAÇÃO:
 // o cupom (itens + pagamentos) e a baixa de estoque de cada produto (pelo EstoqueService).
 public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService caixa, FiadoService fiado,
-    PixAutomaticoService pixAutomatico, AutorizacaoService autorizacoes)
+    PixAutomaticoService pixAutomatico, AutorizacaoService autorizacoes, TrocaService trocas)
 {
     // Até quanto de desconto o perfil Caixa pode dar sozinho (acima disso, só Gerente/Administrador).
     public const decimal DescontoMaximoCaixa = 0.10m;
@@ -127,9 +127,10 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             await estoque.PrepararVendaAsync(produtos[item.ProdutoId], item.Quantidade, venda, usuarioId, permitirFaltar: offline is not null);
 
         PrepararPagamentos(venda, pedido.Pagamentos);
-        if (offline is not null && venda.Pagamentos.Any(p => p.CobrancaPixId is not null || p.Forma == FormaPagamento.Fiado))
-            throw new EstoqueException("Sem internet não há Pix automático nem fiado.");
+        if (offline is not null && venda.Pagamentos.Any(p => p.CobrancaPixId is not null || p.Forma is FormaPagamento.Fiado or FormaPagamento.ValeTroca))
+            throw new EstoqueException("Sem internet não há Pix automático, fiado nem vale-troca.");
         await VincularPixAutomaticoAsync(venda, pedido.Pagamentos, sessao.Id);
+        await trocas.UsarValesAsync(venda);
 
         // Fiado: vira dívida na caderneta do cliente (limite, bloqueio e atraso: acima disso só gerente libera).
         venda.ClienteId = pedido.ClienteId;
@@ -147,10 +148,14 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         foreach (var p in pagamentos)
         {
             if (!Enum.TryParse<FormaPagamento>(p.Forma, ignoreCase: true, out var forma))
-                throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito, Credito ou Fiado.");
+                throw new EstoqueException($"Forma de pagamento inválida: {p.Forma}. Use Dinheiro, Pix, Debito, Credito, Fiado ou ValeTroca.");
             if (p.CobrancaPixId is not null && forma != FormaPagamento.Pix)
                 throw new EstoqueException("Cobrança Pix só vale para pagamento em Pix.");
-            venda.Pagamentos.Add(new PagamentoVenda { Forma = forma, Valor = Dinheiro(p.Valor), CobrancaPixId = p.CobrancaPixId });
+            venda.Pagamentos.Add(new PagamentoVenda
+            {
+                Forma = forma, Valor = Dinheiro(p.Valor), CobrancaPixId = p.CobrancaPixId,
+                ValeTrocaId = forma == FormaPagamento.ValeTroca ? p.ValeTrocaId : null,
+            });
         }
 
         venda.ValorPago = venda.Pagamentos.Sum(p => p.Valor);
@@ -160,7 +165,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         // Troco só sai da gaveta: cartão e Pix não podem passar do valor da compra.
         var naoDinheiro = venda.Pagamentos.Where(p => p.Forma != FormaPagamento.Dinheiro).Sum(p => p.Valor);
         if (naoDinheiro > venda.Total)
-            throw new EstoqueException("Cartão, PIX e fiado não podem passar do total (troco só em dinheiro).");
+            throw new EstoqueException("Cartão, PIX, fiado e vale-troca não podem passar do total (troco só em dinheiro).");
 
         venda.Troco = venda.ValorPago - venda.Total;
     }
@@ -213,6 +218,8 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         string? bloqueio = null;
         if (venda.Status == StatusVenda.Cancelada) bloqueio = "Esta venda já foi cancelada.";
         else if (venda.Origem == OrigemVenda.Historico) bloqueio = "Venda do histórico gerado: não pode ser cancelada (não movimentou estoque).";
+        else if (await db.Trocas.AnyAsync(t => t.VendaId == venda.Id))
+            bloqueio = "Esta venda já teve troca: o que foi devolvido virou vale-troca. Não dá mais para cancelar.";
         else if (!ehGerencia && (sessao.UsuarioId != usuarioId || !aberto))
             bloqueio = "No caixa só dá para cancelar as vendas do seu caixa aberto. As outras, o gerente cancela em Vendas.";
 
@@ -262,6 +269,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
                 },
                 FormaPagamento.Pix => "Devolva ao cliente pelo app do banco da loja",
                 FormaPagamento.Fiado => $"Sai da caderneta{(venda.Cliente is null ? "" : " de " + venda.Cliente.Nome)}",
+                FormaPagamento.ValeTroca => "Volta para o saldo do vale-troca",
                 _ => $"Estorne no {FinanceiroCaixa.NomeForma(p.Forma)} pela maquininha do cartão",
             };
             linhas.Add(new LinhaEstorno(p.Forma, p.Valor, como, cobranca));
@@ -310,6 +318,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
 
         await estoque.PrepararCancelamentoAsync(venda, usuarioId, motivo);
         await fiado.EstornarCompraAsync(venda, usuarioId, motivo);
+        await trocas.DevolverAoValeAsync(venda);
 
         var descricao = $"Estorno da venda #{venda.Id} (Caixa {venda.SessaoCaixa!.NumeroCaixa}, {Relogio.DiaLocal(venda.DataHora):dd/MM})";
         var dinheiro = plano.Linhas.FirstOrDefault(l => l.Forma == FormaPagamento.Dinheiro)?.Valor ?? 0;
@@ -337,7 +346,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         var contas = await db.ConfiguracoesRecebimento.AsNoTracking().ToDictionaryAsync(c => c.Forma, c => c.ContaFinanceiraId);
         foreach (var l in plano.Linhas)
         {
-            if (l.Forma == FormaPagamento.Fiado) continue;               // fiado não é dinheiro: sai da caderneta
+            if (l.Forma is FormaPagamento.Fiado or FormaPagamento.ValeTroca) continue; // não é dinheiro: caderneta / saldo do vale
             int conta;
             if (l.Forma == FormaPagamento.Dinheiro)
             {

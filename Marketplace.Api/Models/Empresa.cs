@@ -65,6 +65,10 @@ public class Empresa
     // · Completo (a demonstração: o bot também compra, recebe entregas, paga contas e usa o fiado).
     public string VendasAutomaticas { get; set; } = ModosVendasAutomaticas.Desligado;
 
+    // Trocas: até quantos dias depois da compra o cliente troca sem precisar do gerente, e quanto tempo vale o vale-troca.
+    public int PrazoTrocaDias { get; set; } = 30;
+    public int ValidadeValeDias { get; set; } = 90;
+
     // Ramo do comércio (ver Ramos): decide as categorias iniciais, as palavras das telas ("mercado" / "loja"), o que
     // aparece (balança, validade) e o que a IA leva em conta. Só o dono da plataforma muda.
     public string Ramo { get; set; } = Ramos.Mercado;

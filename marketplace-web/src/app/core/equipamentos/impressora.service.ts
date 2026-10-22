@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import { Cupom, FORMAS_PAGAMENTO, ResumoCaixa } from '../api/pdv.api';
+import { Troca, rotuloMotivo } from '../api/trocas.api';
 
 // Impressora TÉRMICA de cupom (Elgin i9, Epson TM-T20, Bematech MP-4200, Daruma…), instalada no Windows como
 // impressora comum. O sistema monta o cupom no tamanho da bobina e manda imprimir por um quadro escondido.
@@ -45,7 +46,9 @@ export class ImpressoraService {
     const itens = c.itens.map((i, n) => `
       <div class="item"><span>${String(n + 1).padStart(3, '0')} ${esc(i.descricao)}</span></div>
       <div class="linha"><span>${qtd(i.quantidade, i.unidade)} ${esc(i.unidade)} x ${dinheiro(i.precoUnitario)}</span><span>${dinheiro(i.total)}</span></div>`).join('');
-    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}</span><span>${dinheiro(p.valor)}</span></div>`).join('');
+    const pagamentos = c.pagamentos.map((p) => `<div class="linha"><span>${esc(rotuloForma(p.forma))}${p.valeCodigo ? ' ' + esc(p.valeCodigo) : ''}</span><span>${dinheiro(p.valor)}</span></div>`
+      // Vale-troca com saldo: o que ficou e até quando vale (o cliente guarda este cupom junto com o vale).
+      + (p.valeCodigo && p.valeSaldo ? `<div class="linha"><span>Saldo no vale${p.valeValidade ? ' (até ' + diaBr(p.valeValidade) + ')' : ''}</span><span>${dinheiro(p.valeSaldo)}</span></div>` : '')).join('');
     // Fiado: quem comprou, quanto deve agora, quando vence e a ASSINATURA (a "nota" da caderneta).
     const fiado = c.pagamentos.find((p) => p.forma === 'Fiado');
     const cli = c.cliente;
@@ -166,6 +169,37 @@ export class ImpressoraService {
         <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
       </section>`;
     return this.envelope(`Recibo de fiado`, corpo);
+  }
+
+  // Vale-troca: o cliente leva e usa como pagamento numa próxima compra (o caixa digita o código).
+  // Duas partes: o vale do cliente e o comprovante da troca (itens que voltaram), com a assinatura.
+  htmlValeTroca(t: Troca, loja: string): string {
+    const v = t.vale;
+    const itens = t.itens.map((i) => `<div class="item"><span>${i.quantidade} × ${esc(i.descricao)}</span></div>
+      <div class="linha"><span></span><span>${dinheiro(i.valor)}</span></div>`).join('');
+    const corpo = `
+      <section class="via">
+        <div class="centro forte grande">${esc(loja)}</div>
+        <div class="centro forte">VALE-TROCA</div>
+        <div class="tracos"></div>
+        <div class="centro forte grande">R$ ${dinheiro(v.saldo)}</div>
+        <div class="centro forte grande">${esc(v.codigo)}</div>
+        <div class="centro">Válido até ${diaBr(v.validade)}</div>
+        ${v.cliente ? `<div class="centro">Cliente: ${esc(v.cliente)}</div>` : ''}
+        <div class="tracos"></div>
+        <div class="centro pequeno">Apresente este vale no caixa. Vale como pagamento em qualquer produto da loja; o que sobrar
+          fica no vale até a validade. Não é trocado por dinheiro.</div>
+        <div class="tracos"></div>
+        <div class="forte">Troca da venda nº ${t.vendaId}</div>
+        <div class="linha"><span>Data</span><span>${dataHora(t.dataHora)}</span></div>
+        <div class="linha"><span>Caixa ${t.numeroCaixa}</span><span>${esc(t.operador)}</span></div>
+        <div class="linha"><span>Motivo</span><span>${esc(rotuloMotivo(t.motivo))}</span></div>
+        ${itens}
+        <div class="linha forte"><span>CRÉDITO</span><span>${dinheiro(t.valor)}</span></div>
+        <div class="assinatura">Cliente</div>
+        <div class="centro pequeno">NÃO É DOCUMENTO FISCAL</div>
+      </section>`;
+    return this.envelope(`Vale-troca ${v.codigo}`, corpo);
   }
 
   // Comprovante de sangria (dinheiro que sai da gaveta para o cofre) ou suprimento (troco que entra).

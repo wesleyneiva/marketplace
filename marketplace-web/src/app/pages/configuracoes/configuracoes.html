@@ -150,6 +150,28 @@
   }
 </section>
 
+<section class="painel secao">
+  <h2><app-icone nome="repeat" /> Trocas e vale-troca</h2>
+  <p class="explica">No caixa, <b>Troca (F7)</b>: o cliente devolve o produto, ele volta ao estoque e o valor vira um <b>vale-troca</b>
+    (usa na hora no produto novo ou leva o vale impresso). Depois do prazo, a troca só sai com a senha de um gerente.</p>
+  @if (config.value(); as c) {
+    @if (formTrocas(c)) {
+      <div class="grade">
+        <label>Prazo para trocar <small>dias depois da compra</small>
+          <input type="number" min="1" max="365" [(ngModel)]="prazoTroca" [disabled]="!ehAdmin()" /></label>
+        <label>Validade do vale-troca <small>dias depois da troca</small>
+          <input type="number" min="7" max="730" [(ngModel)]="validadeVale" [disabled]="!ehAdmin()" /></label>
+      </div>
+      @if (ehAdmin()) {
+        <div class="botoes">
+          <button type="button" class="botao primario" (click)="salvarTrocas()">Salvar</button>
+          @if (avisoTrocas(); as a) { <span class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</span> }
+        </div>
+      }
+    }
+  }
+</section>
+
 @if (ramo().balanca) {
 <section class="painel secao">
   <h2><app-icone nome="tag" /> Etiqueta da balança (açougue, hortifrúti, padaria)</h2>

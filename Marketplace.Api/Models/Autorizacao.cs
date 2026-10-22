@@ -39,4 +39,5 @@ public enum AcaoAutorizada
     CancelarItem,   // item tirado da compra em andamento (antes de pagar)
     CancelarCompra, // compra em andamento abandonada inteira
     CancelarVenda,  // venda já paga cancelada, com estorno do dinheiro
+    TrocaForaPrazo, // troca depois do prazo da loja
 }

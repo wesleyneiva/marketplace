@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 // Formatos iguais aos DTOs da API (Contracts/PdvDtos.cs).
-export type FormaPagamento = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito' | 'Fiado';
+export type FormaPagamento = 'Dinheiro' | 'Pix' | 'Debito' | 'Credito' | 'Fiado' | 'ValeTroca';
 
 export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; icone: string; tecla: string }[] = [
   { valor: 'Dinheiro', rotulo: 'Dinheiro', icone: 'banknote', tecla: '1' },
@@ -11,10 +11,11 @@ export const FORMAS_PAGAMENTO: { valor: FormaPagamento; rotulo: string; icone: s
   { valor: 'Debito', rotulo: 'Débito', icone: 'credit-card', tecla: '3' },
   { valor: 'Credito', rotulo: 'Crédito', icone: 'credit-card', tecla: '4' },
   { valor: 'Fiado', rotulo: 'Fiado', icone: 'notebook-pen', tecla: '5' },
+  { valor: 'ValeTroca', rotulo: 'Vale-troca', icone: 'ticket', tecla: '6' },
 ];
 
-// Formas para RECEBER um fiado (o cliente paga a dívida): fiado não paga fiado.
-export const FORMAS_RECEBER = FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado');
+// Formas para RECEBER um fiado (o cliente paga a dívida): fiado não paga fiado, nem vale-troca.
+export const FORMAS_RECEBER = FORMAS_PAGAMENTO.filter((f) => f.valor !== 'Fiado' && f.valor !== 'ValeTroca');
 
 export interface ResumoCaixa {
   sessaoId: number;
@@ -53,7 +54,8 @@ export interface Cupom {
   valorPago: number;
   troco: number;
   itens: { produtoId: number; descricao: string; unidade: string; quantidade: number; precoUnitario: number; total: number }[];
-  pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean }[]; // pixConfirmado: Pix automático (Mercado Pago)
+  // pixConfirmado: Pix automático (Mercado Pago). vale*: vale-troca usado (código, saldo que ficou e validade, para o cupom).
+  pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean; valeCodigo?: string | null; valeSaldo?: number | null; valeValidade?: string | null }[];
   motivoCancelamento: string | null;
   cancelamento?: { em: string | null; por: string | null; autorizadoPor: string | null } | null;
   offline?: boolean;       // feita sem internet (caixa offline)
@@ -100,7 +102,7 @@ export interface ResumoVendas {
 export interface NovaVenda {
   itens: { produtoId: number; quantidade: number }[];
   desconto: number;
-  pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number }[]; // cobrancaPixId: Pix automático (Mercado Pago)
+  pagamentos: { forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number }[]; // Pix automático / vale-troca
   clienteId?: number | null; // obrigatório com fiado
   idLocal?: string;          // criado no caixa: a mesma venda nunca entra duas vezes (ver caixa offline)
 }
@@ -153,7 +155,7 @@ export interface Autorizacao { gerenteId: string; senha: string; }
 export interface CancelamentoRegistro {
   id: number;
   dataHora: string;
-  acao: 'CancelarItem' | 'CancelarCompra' | 'CancelarVenda';
+  acao: 'CancelarItem' | 'CancelarCompra' | 'CancelarVenda' | 'TrocaForaPrazo';
   numeroCaixa: number | null;
   operador: string;
   autorizadoPor: string;

@@ -20,7 +20,8 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 - **Estoque** — entradas, perdas e ajustes; **lotes de validade com FEFO** (sai primeiro o que vence
   primeiro); histórico completo de "quem mexeu, quando e por quê"; alertas de validade e estoque baixo.
 - **Caixa (PDV)** — feito para teclado e leitor de código de barras; venda por peso (KG); desconto
-  limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**.
+  limitado por perfil; pagamento dividido com troco; cupom; sangria/suprimento; **fechamento cego**;
+  **troca e vale-troca** (F7).
 - **Cancelamentos com autorização do gerente** — no caixa, tirar um item (ou parte dele), cancelar a compra inteira e
   cancelar uma venda **já paga com estorno** só com a senha de um gerente (o gerente escolhe o nome e digita a própria senha;
   senha errada conta para o bloqueio da conta). Gerente logado autoriza a si mesmo. Tudo fica em `AutorizacoesGerente`
@@ -244,6 +245,27 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 22/10/2026 (tarde) — troca e vale-troca (fase 3 do plano dos ramos)
+Migration `TrocasEValeTroca` (tabelas `Trocas`, `ItensTroca`, `ValesTroca`; `PagamentosVenda.ValeTrocaId`;
+`Empresas.PrazoTrocaDias` 30 e `ValidadeValeDias` 90). Serviço `Services/TrocaService.cs`, API `api/trocas`.
+- **No caixa: Troca (F7)** (`shared/troca-caixa.ts`): acha a venda pelo número do cupom ou, sem cupom, bipando o produto
+  devolvido (vendas recentes com ele); marca itens/quantidade e o motivo (Tamanho, Defeito, Não gostou, Outro). Os itens
+  voltam ao estoque (movimentação `Troca`, perecível volta ao lote de onde saiu) e o valor pago (com a parte do desconto
+  da venda) vira um **vale-troca** `VT-XXXXXX`. "Escolher o produto novo": o crédito entra sozinho no pagamento (mais caro →
+  paga a diferença; mais barato → o resto fica no vale). Ou imprime o vale (`htmlValeTroca`). Fora do prazo: senha do gerente
+  (`AcaoAutorizada.TrocaForaPrazo`, aparece em Vendas → Cancelamentos e autorizações). Precisa de internet.
+- **Vale-troca como forma de pagamento** (`FormaPagamento.ValeTroca`): digita o código no pagamento; não passa do saldo
+  nem da validade (FOR UPDATE: dois caixas não usam o mesmo saldo). Não é dinheiro: fora do fechamento e do Financeiro, como o
+  fiado. Venda paga com vale cancelada → o valor volta ao vale. Venda que já teve troca não pode mais ser cancelada.
+  Cupom (tela e impresso) mostra o código e o saldo que ficou. Sem internet não aceita vale.
+- **DRE**: linha "(−) Devoluções (trocas)" (crédito das trocas pela data da troca; saldo de vale vencido volta como receita
+  no mês em que venceu); o custo dos itens devolvidos sai do CMV; imposto calculado já sem as devoluções.
+- **Vendas → Trocas e vales** (`/vendas/trocas`): trocas do período, por motivo, produtos mais trocados, vales em aberto
+  (saldo que os clientes têm na loja) e vencidos; reimprimir o vale. **Configurações → Trocas e vale-troca**: prazo e validade.
+- Relatórios de vendas, ranking e Insights continuam pela venda original (a troca não "desvende" o item lá); só a DRE desconta.
+- Testado no dev (Loja Teste Tênis): troca 36→37 pagando a diferença, uso parcial do vale (saldo no cupom), cancelamento
+  devolvendo ao vale, troca fora do prazo com gerente, bloqueios (trocar 2×, cancelar venda trocada, passar do saldo).
+
 ### 22/10/2026 — compras: pedido só sai da Sugestão, Pedidos só recebe
 Pedido do usuário: rascunho em "Pedidos" confundia (parece pedido já feito, e o botão Enviar tinha a cara do Receber).
 - **Saiu a rotina de compras automáticas** (rascunhos montados ao abrir a loja), a opção em Configurações e o aviso
@@ -449,7 +471,7 @@ Pendências:
   fase 2 (grade de tamanho/cor, cada variação = produto agrupado num Modelo) espera a conversa com a loja (fase 0) e as
   decisões em aberto no fim do plano.
 - (21/10) **Grade, o que ficou para depois**: NF-e "criar como variação do modelo", pedido de compra em matriz, relatórios
-  por modelo e curva de tamanhos, preço próprio marcado por variação, troca/vale-troca (fase 3), cliente/vendedor/comissão
+  por modelo e curva de tamanhos, preço próprio marcado por variação, cliente/vendedor/comissão
   (fase 4), demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
   concluir" (marcar "Paga" na Oficina).
 - (21/10) **TopSpin**: o usuário entra com `wesley@marcus.com` e a senha provisória do `acesso-topspin.txt` e cria a dele;
@@ -463,7 +485,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada

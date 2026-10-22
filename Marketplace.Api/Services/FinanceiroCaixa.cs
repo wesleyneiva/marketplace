@@ -59,7 +59,8 @@ public static class FinanceiroCaixa
         // Cartões: somam com as vendas no MESMO recebível do caixa (a maquininha deposita tudo junto).
         var cartoesFiado = fiadoRecebido.Where(f => f.Forma is FormaPagamento.Debito or FormaPagamento.Credito)
             .ToDictionary(f => f.Forma, f => f.Valor);
-        var vendasPorForma = porForma.Where(f => f.Forma != FormaPagamento.Fiado) // fiado não é dinheiro: vira dívida na caderneta
+        // Fiado e vale-troca não são dinheiro: um vira dívida na caderneta, o outro é crédito de uma troca.
+        var vendasPorForma = porForma.Where(f => f.Forma is not (FormaPagamento.Fiado or FormaPagamento.ValeTroca))
             .Select(f => new { f.Forma, Valor = f.Valor + cartoesFiado.GetValueOrDefault(f.Forma) })
             .Concat(cartoesFiado.Where(c => porForma.All(p => p.Forma != c.Key)).Select(c => new { Forma = c.Key, Valor = c.Value }))
             .ToList();
@@ -192,6 +193,7 @@ public static class FinanceiroCaixa
         FormaPagamento.Debito => "débito",
         FormaPagamento.Credito => "crédito",
         FormaPagamento.Fiado => "fiado",
+        FormaPagamento.ValeTroca => "vale-troca",
         _ => "dinheiro",
     };
 

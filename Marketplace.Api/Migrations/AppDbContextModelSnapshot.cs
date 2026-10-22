@@ -736,6 +736,11 @@ namespace Marketplace.Api.Migrations
                     b.Property<bool>("Plataforma")
                         .HasColumnType("boolean");
 
+                    b.Property<int>("PrazoTrocaDias")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(30);
+
                     b.Property<decimal?>("PrecoCombinado")
                         .HasPrecision(10, 2)
                         .HasColumnType("numeric(10,2)");
@@ -779,6 +784,11 @@ namespace Marketplace.Api.Migrations
                     b.Property<string>("Uf")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)");
+
+                    b.Property<int>("ValidadeValeDias")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(90);
 
                     b.Property<string>("VendasAutomaticas")
                         .IsRequired()
@@ -1024,6 +1034,56 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("ProdutoId");
 
                     b.ToTable("ItensPedidoCompra");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.ItemTroca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("CustoUnitario")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ItemVendaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ProdutoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantidade")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<int>("TrocaId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId");
+
+                    b.HasIndex("ItemVendaId");
+
+                    b.HasIndex("ProdutoId");
+
+                    b.HasIndex("TrocaId");
+
+                    b.ToTable("ItensTroca");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.ItemVenda", b =>
@@ -1706,6 +1766,9 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<int?>("ValeTrocaId")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("Valor")
                         .HasPrecision(12, 2)
                         .HasColumnType("numeric(12,2)");
@@ -1716,6 +1779,8 @@ namespace Marketplace.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("EmpresaId");
+
+                    b.HasIndex("ValeTrocaId");
 
                     b.HasIndex("VendaId");
 
@@ -2096,6 +2161,64 @@ namespace Marketplace.Api.Migrations
                     b.ToTable("SessoesCaixa");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Troca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset>("DataHora")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ForaDoPrazo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Motivo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Observacao")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SessaoCaixaId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UsuarioId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("ValeTrocaId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<int>("VendaId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SessaoCaixaId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ValeTrocaId");
+
+                    b.HasIndex("VendaId");
+
+                    b.HasIndex("EmpresaId", "DataHora");
+
+                    b.ToTable("Trocas");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.Usuario", b =>
                 {
                     b.Property<string>("Id")
@@ -2183,6 +2306,50 @@ namespace Marketplace.Api.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.ValeTroca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Cliente")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<DateTimeOffset>("CriadoEm")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EmpresaId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Saldo")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.Property<DateOnly>("Validade")
+                        .HasColumnType("date");
+
+                    b.Property<decimal>("Valor")
+                        .HasPrecision(12, 2)
+                        .HasColumnType("numeric(12,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EmpresaId", "Codigo")
+                        .IsUnique();
+
+                    b.HasIndex("EmpresaId", "Validade");
+
+                    b.ToTable("ValesTroca");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.Venda", b =>
@@ -2707,6 +2874,39 @@ namespace Marketplace.Api.Migrations
                     b.Navigation("Produto");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.ItemTroca", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.ItemVenda", "ItemVenda")
+                        .WithMany()
+                        .HasForeignKey("ItemVendaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Produto", "Produto")
+                        .WithMany()
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Troca", "Troca")
+                        .WithMany("Itens")
+                        .HasForeignKey("TrocaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ItemVenda");
+
+                    b.Navigation("Produto");
+
+                    b.Navigation("Troca");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.ItemVenda", b =>
                 {
                     b.HasOne("Marketplace.Api.Models.Empresa", null)
@@ -2998,11 +3198,18 @@ namespace Marketplace.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Marketplace.Api.Models.ValeTroca", "ValeTroca")
+                        .WithMany()
+                        .HasForeignKey("ValeTrocaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("Marketplace.Api.Models.Venda", "Venda")
                         .WithMany("Pagamentos")
                         .HasForeignKey("VendaId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ValeTroca");
 
                     b.Navigation("Venda");
                 });
@@ -3112,7 +3319,57 @@ namespace Marketplace.Api.Migrations
                     b.Navigation("Usuario");
                 });
 
+            modelBuilder.Entity("Marketplace.Api.Models.Troca", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.SessaoCaixa", "SessaoCaixa")
+                        .WithMany()
+                        .HasForeignKey("SessaoCaixaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.ValeTroca", "ValeTroca")
+                        .WithMany()
+                        .HasForeignKey("ValeTrocaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Venda", "Venda")
+                        .WithMany()
+                        .HasForeignKey("VendaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SessaoCaixa");
+
+                    b.Navigation("Usuario");
+
+                    b.Navigation("ValeTroca");
+
+                    b.Navigation("Venda");
+                });
+
             modelBuilder.Entity("Marketplace.Api.Models.Usuario", b =>
+                {
+                    b.HasOne("Marketplace.Api.Models.Empresa", null)
+                        .WithMany()
+                        .HasForeignKey("EmpresaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.ValeTroca", b =>
                 {
                     b.HasOne("Marketplace.Api.Models.Empresa", null)
                         .WithMany()
@@ -3266,6 +3523,11 @@ namespace Marketplace.Api.Migrations
                     b.Navigation("Movimentos");
 
                     b.Navigation("Vendas");
+                });
+
+            modelBuilder.Entity("Marketplace.Api.Models.Troca", b =>
+                {
+                    b.Navigation("Itens");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.Venda", b =>

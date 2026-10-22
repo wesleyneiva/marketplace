@@ -196,7 +196,7 @@ importação (1–2), relatórios (1).
 
 ---
 
-## Fase 3 — Troca e vale-troca
+## Fase 3 — Troca e vale-troca — FEITA em 22/10/2026 (troca no caixa F7, vale-troca como pagamento, DRE; sem NFC-e de devolução)
 
 Em calçado e roupa, troca de número é rotina, e hoje só existe cancelamento/estorno da venda.
 

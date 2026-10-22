@@ -26,6 +26,8 @@ import { EstornoVenda } from '../../shared/estorno-venda';
 import { CupomDetalhe } from '../../shared/cupom-detalhe';
 import { Conexao } from '../../core/offline/conexao';
 import { CaixaOffline, novoIdLocal } from '../../core/offline/caixa-offline.service';
+import { Troca, TrocasApi } from '../../core/api/trocas.api';
+import { TrocaCaixa } from '../../shared/troca-caixa';
 
 interface ItemCarrinho {
   produto: Produto;
@@ -35,14 +37,14 @@ interface ItemCarrinho {
 // Tela do caixa (PDV). Feita para TECLADO: o campo de busca fica sempre focado.
 //   • Bipa o código de barras (ou digita parte do nome) e Enter.
 //   • "3*arroz" ou "3*789..." → 3 unidades.  Produto por KG pede o peso.
-//   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).
+//   • F2 → pagamento.  Esc → fecha listas/janelas.  F6 → receber fiado (cliente pagando a caderneta).  F7 → troca.
 //   • Tirar item, cancelar a compra e cancelar uma venda já paga (estorno): só com a senha de um gerente.
 //   • SEM INTERNET (caixa offline): continua vendendo com o catálogo guardado neste computador; as vendas ficam numa
 //     fila e são enviadas sozinhas quando a internet volta (ver core/offline). Abrir/fechar caixa, sangria e estorno esperam.
 @Component({
   selector: 'app-pdv',
   imports: [Icone, FormsModule, CurrencyPipe, DatePipe, QuantidadePipe, Logo, PixQrCodeComponent, PixAutomatico, AutorizacaoGerente,
-    EstornoVenda, CupomDetalhe],
+    EstornoVenda, CupomDetalhe, TrocaCaixa],
   templateUrl: './pdv.html',
   styleUrl: './pdv.scss',
   host: { '(document:keydown)': 'teclaGlobal($event)' },
@@ -113,7 +115,13 @@ export class Pdv {
   protected readonly lendoBalanca = signal(false);
 
   // ----- Pagamento -----
-  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number; cobrancaPixId?: number }[]>([]);
+  protected readonly pagamentos = signal<{ forma: FormaPagamento; valor: number; cobrancaPixId?: number; valeTrocaId?: number; valeCodigo?: string }[]>([]);
+  // Troca (F7) com "escolher o produto novo": o crédito do vale entra sozinho no pagamento desta compra.
+  protected readonly creditoTroca = signal<{ valeId: number; codigo: string; saldo: number } | null>(null);
+  private readonly trocasApi = inject(TrocasApi);
+  private readonly janelaTroca = viewChild.required(TrocaCaixa);
+  protected textoVale = '';
+  protected readonly buscandoVale = signal(false);
   protected readonly formaAtual = signal<FormaPagamento>('Dinheiro');
   // O valor digitado no pagamento (sinal: o QR Code do Pix acompanha o valor enquanto o caixa digita).
   private readonly valorDigitado = signal('');
@@ -204,6 +212,7 @@ export class Pdv {
   private readonly dlgVendas = viewChild<ElementRef<HTMLDialogElement>>('dlgVendas');
   private readonly autorizacaoPdv = viewChild<AutorizacaoGerente>('autorizacaoPdv');
   private readonly campoCliente = viewChild<ElementRef<HTMLInputElement>>('campoCliente');
+  private readonly campoVale = viewChild<ElementRef<HTMLInputElement>>('campoVale');
   private readonly campoReceber = viewChild<ElementRef<HTMLInputElement>>('campoReceber');
 
   constructor() {
@@ -725,9 +734,55 @@ export class Pdv {
     this.erro.set(null);
     this.pagamentos.set([]);
     this.limparCliente();
+    const credito = this.creditoTroca();
+    if (credito && credito.saldo > 0)
+      this.pagamentos.set([{ forma: 'ValeTroca', valor: Math.min(credito.saldo, this.total()), valeTrocaId: credito.valeId, valeCodigo: credito.codigo }]);
     this.escolherForma('Dinheiro');
     this.dlgPagamento()?.nativeElement.showModal();
+    if (this.falta() === 0) setTimeout(() => this.btnConfirmar()?.nativeElement.focus());
     void this.carregarPix();
+  }
+
+  // ================================================================ troca (F7)
+
+  protected abrirTroca(): void {
+    if (this.precisaInternet('fazer troca')) return;
+    this.erro.set(null);
+    this.janelaTroca().abrir();
+  }
+
+  protected aoUsarTroca(t: Troca): void {
+    this.creditoTroca.set({ valeId: t.vale.id, codigo: t.vale.codigo, saldo: t.vale.saldo });
+    this.mostrarAviso(`Troca registrada: crédito de ${dinheiroBr(t.vale.saldo)}. Bipe o produto novo; o crédito entra no pagamento.`);
+  }
+
+  protected tirarCreditoTroca(): void {
+    const c = this.creditoTroca();
+    this.creditoTroca.set(null);
+    if (c) this.mostrarAviso(`O crédito continua no vale ${c.codigo}: o cliente usa depois com o código.`);
+    this.focarBusca();
+  }
+
+  // Vale-troca no pagamento: digita o código, o sistema confere saldo e validade e usa até o que falta.
+  protected async usarVale(): Promise<void> {
+    const codigo = this.textoVale.trim();
+    if (!codigo) { this.erro.set('Digite o código do vale-troca (VT-…).'); return; }
+    this.buscandoVale.set(true);
+    this.erro.set(null);
+    try {
+      const v = await this.trocasApi.vale(codigo);
+      if (v.situacao === 'Usado') throw new Error(`O vale ${v.codigo} já foi todo usado.`);
+      if (v.situacao === 'Vencido') throw new Error(`O vale ${v.codigo} venceu em ${v.validade.split('-').reverse().join('/')}.`);
+      if (this.pagamentos().some((p) => p.valeTrocaId === v.id)) throw new Error(`O vale ${v.codigo} já está nesta compra.`);
+      this.pagamentos.update((p) => [...p, { forma: 'ValeTroca', valor: Math.min(v.saldo, this.falta()), valeTrocaId: v.id, valeCodigo: v.codigo }]);
+      this.textoVale = '';
+      if (this.falta() > 0) this.escolherForma('Dinheiro');
+      else setTimeout(() => this.btnConfirmar()?.nativeElement.focus());
+    } catch (e) {
+      this.erro.set(e instanceof Error && !(e instanceof HttpErrorResponse) ? e.message : this.mensagem(e));
+    } finally {
+      this.buscandoVale.set(false);
+    }
   }
 
   // Lê (a cada pagamento) se o Pix automático está ligado e se há Pix pagos sem venda neste caixa.
@@ -800,8 +855,9 @@ export class Pdv {
   protected escolherForma(forma: FormaPagamento): void {
     this.formaAtual.set(forma);
     this.textoValor = this.falta().toFixed(2).replace('.', ',');
-    // Fiado sem cliente escolhido: o cursor vai para a busca do cliente; com cliente, para o valor.
+    // Fiado sem cliente escolhido: o cursor vai para a busca do cliente; com cliente, para o valor. Vale: o código.
     if (forma === 'Fiado' && !this.clienteFiado()) setTimeout(() => this.campoCliente()?.nativeElement.focus());
+    else if (forma === 'ValeTroca') setTimeout(() => this.campoVale()?.nativeElement.focus());
     else setTimeout(() => this.campoValor()?.nativeElement.select());
   }
 
@@ -847,6 +903,7 @@ export class Pdv {
       await this.finalizar();
       return;
     }
+    if (this.formaAtual() === 'ValeTroca') { await this.usarVale(); return; }
     const valor = arredondar(lerNumero(this.textoValor));
     if (Number.isNaN(valor) || valor <= 0) {
       this.erro.set('Valor inválido.');
@@ -904,7 +961,7 @@ export class Pdv {
       clienteId: this.pagamentos().some((p) => p.forma === 'Fiado') ? this.clienteFiado()?.id ?? null : null,
       idLocal: novoIdLocal(), // se a internet cair na resposta e a venda for guardada, o servidor não grava duas vezes
     };
-    const podeOffline = !pedido.pagamentos.some((p) => p.cobrancaPixId || p.forma === 'Fiado');
+    const podeOffline = !pedido.pagamentos.some((p) => p.cobrancaPixId || p.forma === 'Fiado' || p.forma === 'ValeTroca');
     try {
       let cupom: Cupom;
       try {
@@ -1116,6 +1173,9 @@ export class Pdv {
     } else if (e.key === 'F6' && this.comFiado && !algumaJanelaAberta && !this.produtoPeso()) {
       e.preventDefault();
       this.abrirReceber();
+    } else if (e.key === 'F7' && !algumaJanelaAberta && !this.produtoPeso()) {
+      e.preventDefault();
+      this.abrirTroca();
     } else if (e.key === 'Escape' && !algumaJanelaAberta) {
       clearTimeout(this.esperaDigitacao);
       this.resultados.set([]);
@@ -1124,7 +1184,7 @@ export class Pdv {
       this.erro.set(null);
       this.focarBusca();
     } else if (this.dlgPagamento()?.nativeElement.open && e.altKey && /^[1-9]$/.test(e.key) && Number(e.key) <= this.formas.length) {
-      // Alt+1..5 troca a forma de pagamento sem tirar a mão do teclado (5 = fiado).
+      // Alt+1..6 troca a forma de pagamento sem tirar a mão do teclado (na ordem dos botões).
       e.preventDefault();
       this.escolherForma(this.formas[Number(e.key) - 1].valor);
     }
@@ -1242,6 +1302,7 @@ export class Pdv {
 
   private limparVenda(focar = true): void {
     this.carrinho.set([]);
+    this.creditoTroca.set(null);
     this.desconto.set(0);
     this.textoDesconto = '';
     this.pagamentos.set([]);
@@ -1251,7 +1312,7 @@ export class Pdv {
     if (focar) this.focarBusca();
   }
 
-  private focarBusca(): void {
+  protected focarBusca(): void {
     setTimeout(() => this.campoBusca()?.nativeElement.focus());
   }
 

@@ -1,0 +1,9 @@
+@use '../vendas/vendas.scss';
+
+.voltar { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 8px; color: var(--cor-texto-suave); text-decoration: none; }
+.painel h2 { margin: 0 0 10px; font-size: 16px; }
+.painel + .painel, .duas + .painel { margin-top: 14px; }
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.duas .painel + .painel { margin-top: 0; }
+code { font-weight: 700; letter-spacing: 1px; }
+@media (max-width: 760px) { .duas { grid-template-columns: 1fr; } }

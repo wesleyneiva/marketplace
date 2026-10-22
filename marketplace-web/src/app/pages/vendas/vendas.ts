@@ -1,6 +1,7 @@
 import { Component, ElementRef, computed, effect, inject, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../../core/auth/auth.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
@@ -19,13 +20,14 @@ const ACOES: Record<CancelamentoRegistro['acao'], string> = {
   CancelarItem: 'Item tirado da compra',
   CancelarCompra: 'Compra cancelada (antes de pagar)',
   CancelarVenda: 'Venda paga cancelada (estorno)',
+  TrocaForaPrazo: 'Troca fora do prazo',
 };
 
 // Vendas: a lista do dia (filtros por caixa, forma e situação), o cupom completo de cada uma com Reimprimir e
 // Cancelar venda (estorno), e a aba Cancelamentos — tudo o que saiu do caixa com autorização do gerente.
 @Component({
   selector: 'app-vendas',
-  imports: [FecharAoClicarFora, Icone, Paginacao, FormsModule, CurrencyPipe, DatePipe, CampoData, CupomDetalhe, EstornoVenda],
+  imports: [FecharAoClicarFora, RouterLink, Icone, Paginacao, FormsModule, CurrencyPipe, DatePipe, CampoData, CupomDetalhe, EstornoVenda],
   templateUrl: './vendas.html',
   styleUrl: './vendas.scss',
 })

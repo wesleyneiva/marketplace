@@ -70,6 +70,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/vendas/vendas').then((m) => m.Vendas),
       },
       {
+        // Trocas e vales-troca: relatório (a troca é feita no caixa, F7).
+        path: 'vendas/trocas',
+        canActivate: [precisaModulo('vendas'), precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/trocas/trocas').then((m) => m.Trocas),
+      },
+      {
         path: 'relatorios',
         canActivate: [precisaModulo('relatorios'), precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/relatorios/relatorios').then((m) => m.Relatorios),

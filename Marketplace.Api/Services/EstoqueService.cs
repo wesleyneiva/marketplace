@@ -186,6 +186,28 @@ public class EstoqueService(AppDbContext db)
         }
     }
 
+    // Troca: parte (ou tudo) de um item vendido volta ao estoque. Perecível: volta para os mesmos lotes de onde saiu
+    // (sem passar do que saiu de cada um, contando trocas anteriores da mesma venda).
+    public async Task PrepararTrocaAsync(Venda venda, Produto produto, decimal quantidade, string usuarioId, string observacao)
+    {
+        var movs = await db.Movimentacoes.Include(m => m.Lote)
+            .Where(m => m.VendaId == venda.Id && m.ProdutoId == produto.Id && (m.Tipo == TipoMovimentacao.Venda || m.Tipo == TipoMovimentacao.Troca))
+            .OrderBy(m => m.Id).ToListAsync();
+        var restante = quantidade;
+        foreach (var saida in movs.Where(m => m.Tipo == TipoMovimentacao.Venda && m.Lote is not null))
+        {
+            var jaVoltou = movs.Where(m => m.Tipo == TipoMovimentacao.Troca && m.LoteId == saida.LoteId).Sum(m => m.Quantidade);
+            var cabe = Math.Min(restante, -saida.Quantidade - jaVoltou);
+            if (cabe <= 0) continue;
+            saida.Lote!.QuantidadeAtual += cabe;
+            Movimentar(produto, TipoMovimentacao.Troca, cabe, usuarioId, saida.Lote, observacao: observacao, venda: venda);
+            restante -= cabe;
+            if (restante <= 0) return;
+        }
+        if (restante > 0)
+            Movimentar(produto, TipoMovimentacao.Troca, restante, usuarioId, null, observacao: observacao, venda: venda);
+    }
+
     // ---------------------------------------------------------------- regras internas
 
     // Saída de estoque. Perecível: FEFO ("First Expired, First Out" — sai primeiro o que vence primeiro),

@@ -46,6 +46,7 @@ public enum TipoMovimentacao
     Entrada,      // chegou mercadoria do fornecedor
     Venda,        // saiu pelo caixa (PDV)
     Cancelamento, // venda cancelada: a mercadoria volta para o estoque
+    Troca,        // cliente devolveu na troca: volta para o estoque (o valor vira vale-troca)
     Perda,        // venceu, quebrou, sumiu...
     Ajuste,       // contagem de inventário: o sistema dizia X, a prateleira tem Y
     Inventario,   // estoque inicial (quando o sistema começou a ser usado)

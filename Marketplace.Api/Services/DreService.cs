@@ -8,6 +8,8 @@ namespace Marketplace.Api.Services;
 
 // DRE gerencial em REGIME DE COMPETÊNCIA: cada coisa conta no mês a que pertence, não no mês em que o dinheiro se mexeu.
 //  • Receita = vendas concluídas no mês (o crédito que cai daqui a 30 dias é receita HOJE).
+//  • Devoluções = trocas do mês (o crédito do vale-troca sai da receita e o custo dos itens volta ao CMV); o saldo de
+//    vale-troca que venceu sem uso volta como receita no mês em que venceu.
 //  • Impostos = receita × alíquota efetiva do Simples (o DAS de setembro, pago em outubro, é imposto de setembro).
 //  • CMV = custo de cada item VENDIDO (comprar mercadoria não é despesa: vira estoque).
 //  • Perdas = vencidos, avarias e ajustes de inventário, pelo custo.
@@ -48,14 +50,19 @@ public class DreService(AppDbContext db)
             var vendas = db.Vendas.AsNoTracking().Where(x => x.Status == StatusVenda.Concluida && x.DataHora >= ini && x.DataHora < fimUtc);
             var subtotal = await vendas.SumAsync(x => (decimal?)x.Subtotal) ?? 0;
             var desconto = await vendas.SumAsync(x => (decimal?)x.Desconto) ?? 0;
-            var receita = subtotal - desconto;
+            var devolvido = await db.Trocas.AsNoTracking().Where(t => t.DataHora >= ini && t.DataHora < fimUtc).SumAsync(t => (decimal?)t.Valor) ?? 0;
+            var valesVencidos = await ValesVencidosAsync(inicio, fim, hoje);
             v["receita-bruta"] = subtotal;
             v["descontos"] = -desconto;
+            v["devolucoes"] = -devolvido + valesVencidos;
+            var receita = subtotal - desconto + v["devolucoes"];
 
-            // CMV e perdas
+            // CMV (sem o custo do que voltou nas trocas) e perdas
             v["cmv"] = -(await db.ItensVenda.AsNoTracking()
                 .Where(i => i.Venda!.Status == StatusVenda.Concluida && i.Venda.DataHora >= ini && i.Venda.DataHora < fimUtc)
-                .SumAsync(i => (decimal?)(i.CustoUnitario * i.Quantidade)) ?? 0);
+                .SumAsync(i => (decimal?)(i.CustoUnitario * i.Quantidade)) ?? 0)
+                + (await db.ItensTroca.AsNoTracking().Where(i => i.Troca!.DataHora >= ini && i.Troca.DataHora < fimUtc)
+                    .SumAsync(i => (decimal?)(i.CustoUnitario * i.Quantidade)) ?? 0);
             v["perdas"] = await db.Movimentacoes.AsNoTracking()
                 .Where(m => (m.Tipo == TipoMovimentacao.Perda || m.Tipo == TipoMovimentacao.Ajuste) && m.DataHora >= ini && m.DataHora < fimUtc)
                 .SumAsync(m => (decimal?)(m.Quantidade * (m.CustoUnitario ?? m.Produto!.PrecoCusto))) ?? 0;
@@ -102,6 +109,7 @@ public class DreService(AppDbContext db)
 
         Linha("receita-bruta", "Receita bruta de vendas", 0, "receita");
         Linha("descontos", "(−) Descontos concedidos", 1, "deducao", false, sempre: false);
+        Linha("devolucoes", "(−) Devoluções (trocas)", 1, "deducao", sempre: false);
         Linha("impostos", aliquota > 0 ? $"(−) Impostos sobre vendas (Simples {aliquota.ToString("0.##", PtBr)}%)" : "(−) Impostos sobre vendas (DAS lançados)", 1, "deducao");
         Linha("receita-liquida", "= Receita líquida", 0, "subtotal", false);
         Linha("cmv", "(−) Custo das mercadorias vendidas (CMV)", 1, "deducao");
@@ -119,6 +127,11 @@ public class DreService(AppDbContext db)
 
         return new DreResponse(mesesDre, linhas, fora, aliquota, aliquota > 0);
     }
+
+    // Saldo de vale-troca que venceu no mês sem ser usado (a loja fica com ele). Só conta depois de vencido de fato.
+    private async Task<decimal> ValesVencidosAsync(DateOnly inicio, DateOnly fim, DateOnly hoje) =>
+        await db.ValesTroca.AsNoTracking().Where(v => v.Saldo > 0 && v.Validade >= inicio && v.Validade <= fim && v.Validade < hoje)
+            .SumAsync(v => (decimal?)v.Saldo) ?? 0;
 
     // Valor de cada categoria no mês, por competência (com sinal: entrada +, saída −).
     private async Task<Dictionary<int, decimal>> PorCategoriaAsync(DateOnly inicio, DateOnly fim)
@@ -182,12 +195,27 @@ public class DreService(AppDbContext db)
                     .ToList();
                 return new($"Receita bruta · {rotulo}", "Vendas concluídas, por dia (canceladas não entram).", dias);
             }
+            case "devolucoes":
+            {
+                var itens = (await db.Trocas.AsNoTracking().Where(t => t.DataHora >= ini && t.DataHora < fimUtc).OrderBy(t => t.DataHora)
+                        .Select(t => new { t.DataHora, t.VendaId, t.Motivo, t.Valor, Itens = t.Itens.Select(i => i.Descricao).ToList() }).ToListAsync())
+                    .Select(t => new ItemDetalheDre(Relogio.DiaLocal(t.DataHora), $"Troca da venda #{t.VendaId}: {string.Join(", ", t.Itens)}",
+                        $"motivo: {t.Motivo.ToLowerInvariant()} · virou vale-troca", -t.Valor)).ToList();
+                itens.AddRange(await db.ValesTroca.AsNoTracking()
+                    .Where(v => v.Saldo > 0 && v.Validade >= inicio && v.Validade <= fim && v.Validade < Relogio.Hoje)
+                    .Select(v => new ItemDetalheDre(v.Validade, $"Vale-troca {v.Codigo} venceu sem uso", "a loja fica com o saldo", v.Saldo)).ToListAsync());
+                return new($"Devoluções (trocas) · {rotulo}",
+                    "O crédito de cada troca sai da receita (o custo dos itens volta ao CMV). Vale-troca vencido com saldo volta como receita.",
+                    itens.OrderBy(i => i.Data).ToList());
+            }
             case "impostos":
             {
                 var aliquota = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.AliquotaSimples).FirstAsync();
                 var receita = await db.Vendas.Where(v => v.Status == StatusVenda.Concluida && v.DataHora >= ini && v.DataHora < fimUtc)
                     .SumAsync(v => (decimal?)v.Total) ?? 0;
-                var impostos = await db.CategoriasFinanceiras.Where(c => c.Grupo == GrupoFinanceiro.ImpostosVendas).Select(c => c.Id).ToListAsync();
+                receita += -(await db.Trocas.Where(t => t.DataHora >= ini && t.DataHora < fimUtc).SumAsync(t => (decimal?)t.Valor) ?? 0)
+                           + await ValesVencidosAsync(inicio, fim, Relogio.Hoje);
+                var impostos =await db.CategoriasFinanceiras.Where(c => c.Grupo == GrupoFinanceiro.ImpostosVendas).Select(c => c.Id).ToListAsync();
                 var das = await db.ContasPagar.AsNoTracking()
                     .Where(c => c.CategoriaFinanceiraId != null && impostos.Contains(c.CategoriaFinanceiraId.Value)
                                 && c.Vencimento >= inicio.AddMonths(-1) && c.Vencimento <= fim.AddMonths(1))

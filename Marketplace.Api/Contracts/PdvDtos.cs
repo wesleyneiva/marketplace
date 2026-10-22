@@ -53,7 +53,8 @@ public record ItemVendaRequest(
 public record PagamentoRequest(
     [Required] string Forma,
     [Range(0.01, 1000000, ErrorMessage = "Valor de pagamento inválido.")] decimal Valor,
-    int? CobrancaPixId = null);   // Pix automático: a cobrança paga no Mercado Pago
+    int? CobrancaPixId = null,    // Pix automático: a cobrança paga no Mercado Pago
+    int? ValeTrocaId = null);     // vale-troca (achado pelo código antes de pagar)
 
 public record NovaVendaRequest(
     [MinLength(1, ErrorMessage = "A venda precisa de pelo menos um item.")] List<ItemVendaRequest> Itens,
@@ -131,7 +132,9 @@ public record AutorizacaoResponse(
 
 public record ItemVendaResponse(int ProdutoId, string Descricao, string Unidade, decimal Quantidade, decimal PrecoUnitario, decimal Total);
 
-public record PagamentoResponse(string Forma, decimal Valor, bool PixConfirmado = false);
+// Vale-troca: o código, o saldo que ficou e até quando vale (impresso no cupom).
+public record PagamentoResponse(string Forma, decimal Valor, bool PixConfirmado = false,
+    string? ValeCodigo = null, decimal? ValeSaldo = null, DateOnly? ValeValidade = null);
 
 public record VendaResponse(
     int Id,
