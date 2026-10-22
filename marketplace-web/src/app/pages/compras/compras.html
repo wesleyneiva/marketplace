@@ -94,7 +94,7 @@
               @else if (p.status === 'Recebido' && p.contasPagar === 0 && p.pagamento !== 'Nota') { <span class="selo" title="Recebido sem conta a pagar (pedido antigo ou nada chegou)">sem conta a pagar</span> }
             </td>
             <td class="quando">{{ p.criadoEm | date: 'dd/MM HH:mm' }}</td>
-            <td class="quando">@if (p.status === 'Recebido') { <app-icone nome="check" /> {{ p.recebidoEm | date: 'dd/MM HH:mm' }} } @else { {{ p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }} }</td>
+            <td class="quando" [title]="p.status === 'Enviado' ? 'Abra o pedido para mudar a data que o fornecedor confirmar' : ''">@if (p.status === 'Recebido') { <app-icone nome="check" /> {{ p.recebidoEm | date: 'dd/MM HH:mm' }} } @else { {{ p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }} }</td>
             <td class="num forte">{{ p.total | currency: 'BRL' }}</td>
             <td class="acoes" (click)="$event.stopPropagation()">
               @if (p.status === 'Enviado') {
@@ -123,6 +123,14 @@
                     }
                   </tbody>
                 </table>
+                @if (p.status === 'Enviado') {
+                  <div class="previsao">
+                    <span>O fornecedor confirmou outra data? Entrega prevista para</span>
+                    <app-campo-data [ngModel]="novaPrevisao[p.id] ?? p.previsaoEntrega" (ngModelChange)="novaPrevisao[p.id] = $event" />
+                    <button type="button" class="botao pequeno" (click)="salvarPrevisao(p)" [disabled]="ocupado() || !novaPrevisao[p.id] || novaPrevisao[p.id] === p.previsaoEntrega">Salvar data</button>
+                    @if (avisoPrevisao()?.id === p.id) { <small class="ok" role="status"><app-icone nome="check" /> {{ avisoPrevisao()!.texto }}</small> }
+                  </div>
+                }
               </td>
             </tr>
           }

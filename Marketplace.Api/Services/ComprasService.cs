@@ -140,6 +140,16 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         await db.SaveChangesAsync();
     }
 
+    // O fornecedor respondeu com a data dele: a previsão (que marca "atrasado") passa a ser essa.
+    public async Task MudarPrevisaoAsync(int id, DateOnly previsao)
+    {
+        var pedido = await CarregarAsync(id);
+        if (pedido.Status != StatusPedido.Enviado) throw new EstoqueException("Só dá para mudar a previsão de um pedido a caminho.");
+        if (previsao < Relogio.Hoje.AddDays(-30) || previsao > Relogio.Hoje.AddDays(365)) throw new EstoqueException("Data de entrega inválida.");
+        pedido.PrevisaoEntrega = previsao;
+        await db.SaveChangesAsync();
+    }
+
     public async Task CancelarAsync(int id)
     {
         var pedido = await CarregarAsync(id);

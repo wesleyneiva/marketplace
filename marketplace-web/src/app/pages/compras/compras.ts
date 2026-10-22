@@ -96,6 +96,22 @@ export class Compras {
   });
   protected readonly aberto = signal<number | null>(null);
 
+  // O fornecedor respondeu com a data dele: muda a previsão (é ela que marca o pedido como atrasado).
+  protected novaPrevisao: Record<number, string> = {};
+  protected readonly avisoPrevisao = signal<{ id: number; texto: string } | null>(null);
+
+  async salvarPrevisao(p: Pedido): Promise<void> {
+    const previsao = this.novaPrevisao[p.id];
+    if (!previsao) return;
+    await this.executar(async () => {
+      await firstValueFrom(this.http.put(`/api/compras/pedidos/${p.id}/previsao`, { previsao }));
+      delete this.novaPrevisao[p.id];
+      this.avisoPrevisao.set({ id: p.id, texto: `Entrega prevista para ${this.dia(previsao)}.` });
+      setTimeout(() => this.avisoPrevisao.set(null), 5000);
+      this.pedidos.reload();
+    });
+  }
+
   // Reenviar (já enviado): abre a janela com a mensagem pronta e os canais do fornecedor.
   reenviar(p: Pedido): void {
     void this.envio().abrir(p);

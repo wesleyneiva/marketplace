@@ -175,17 +175,14 @@ export class EnviarPedido {
   private montarMensagem(p: Pedido, f: Fornecedor | null): string {
     const nome = (f?.contato ?? '').split(' ')[0];
     const linhas = p.itens.map((i) => `• ${this.qtd(i.quantidade, i.unidade)} ${i.unidade} — ${i.produto}`);
-    const prazo = f?.prazoEntregaDias;
-    const entrega = p.previsaoEntrega ? this.dia(p.previsaoEntrega)
-      : prazo != null ? this.dia(new Date(Date.now() + prazo * 86_400_000).toLocaleDateString('sv-SE')) : null;
+    // Sem data de entrega na mensagem: quem diz o prazo é o fornecedor (a loja ajusta a previsão no pedido depois).
     return [
       `Olá${nome ? `, ${nome}` : ''}! Segue o pedido de compra nº ${p.id} do ${this.loja()}:`,
       '',
       ...linhas,
       ...(p.observacao ? ['', `Observação: ${p.observacao}`] : []),
       '',
-      ...(entrega ? [`Entrega: até ${entrega}.`] : []),
-      'Por favor, confirme o pedido e os valores. Obrigado!',
+      'Por favor, confirme o pedido, os valores e a data de entrega. Obrigado!',
     ].join('\n');
   }
 

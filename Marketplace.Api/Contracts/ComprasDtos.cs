@@ -55,3 +55,5 @@ public record PedidoResponse(
 // Os pedidos de compra que o sistema montou sozinho ao abrir a loja (para o aviso do painel).
 // Aviso do painel e número no menu: quantos produtos a sugestão manda comprar, de quantos fornecedores.
 public record ResumoSugestaoResponse(int Itens, int Fornecedores, decimal Total);
+
+public record PrevisaoEntregaRequest(DateOnly Previsao);

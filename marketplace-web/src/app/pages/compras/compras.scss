@@ -97,3 +97,7 @@ input.falta { border-color: var(--cor-alerta-medio); }
 td.acoes { white-space: nowrap; text-align: right;
   .botao { vertical-align: middle; height: 30px; }
   .botao + .botao { margin-left: 6px; } }
+
+// Mudar a data de entrega que o fornecedor confirmou (pedido aberto)
+.previsao { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--cor-texto-suave);
+  .ok { color: var(--cor-primaria-escura); font-weight: 600; display: inline-flex; align-items: center; gap: 4px; } }

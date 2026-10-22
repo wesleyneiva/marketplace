@@ -274,6 +274,10 @@ Migration `ClientesVendedoresParcelas` (backup antes em `~/backup/marketplace-an
   sempre salva com "lbs" (`ClientesService.Tensao`). **Sugestão de compra**: produto ZERADO que vendeu nos últimos 60 dias entra
   (pelo menos 1 ou o mínimo; motivo "sem estoque") — antes um número de tênis com mínimo 0 que acabou não aparecia.
   **Número no menu "Estoque"** (`GET /api/estoque/atencao`): sem estoque ou abaixo do mínimo, como o de Compras.
+- **Pedido ao fornecedor** (teste do usuário pelo WhatsApp: chegou certo): a mensagem não traz mais "Entrega: até …" e pede
+  para o fornecedor confirmar pedido, valores e **data de entrega**; no pedido aberto (A caminho) dá para mudar a previsão
+  (`PUT /api/compras/pedidos/{id}/previsao`), que é a que marca "atrasado". Para o teste, o fornecedor Asics Brasil da TopSpin
+  está com o WhatsApp/e-mail do usuário e as meias Asics com mínimo 10 (eram 2): desfazer quando ele terminar.
 - TopSpin: vendedor "Lucas" (2%) cadastrado na produção — o funcionário vendedor e encordoador do financeiro de exemplo.
 
 ### 22/10/2026 (tarde) — troca e vale-troca (fase 3 do plano dos ramos)

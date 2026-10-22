@@ -57,6 +57,11 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
         catch (EstoqueException e) { return BadRequest(new { mensagem = e.Message }); }
     }
 
+    // PUT /api/compras/pedidos/5/previsao { "previsao": "2026-10-30" } → o fornecedor confirmou outra data de entrega
+    [HttpPut("pedidos/{id:int}/previsao")]
+    public Task<IActionResult> Previsao(int id, PrevisaoEntregaRequest r) =>
+        Executar(async () => { await compras.MudarPrevisaoAsync(id, r.Previsao); return id; });
+
     [HttpPost("pedidos/{id:int}/cancelar")]
     public Task<IActionResult> Cancelar(int id) => Executar(async () => { await compras.CancelarAsync(id); return id; });
 
