@@ -22,9 +22,18 @@ export interface Ordem {
   criadaPor: string | null;
   atrasada: boolean;
   automatica: boolean;
+  clienteId?: number | null;
+  garantiaDeNumero?: number | null; // esta OS é garantia (retrabalho) da OS nº…
+  motivoGarantia?: string | null;
+  garantias?: number;               // quantas vezes esta OS voltou para garantia
 }
 
-export interface ResumoOrdens { recebidas: number; emAndamento: number; prontas: number; atrasadas: number; entreguesHoje: number }
+export const MOTIVOS_GARANTIA = ['Corda estourou', 'Tensão errada', 'Encordoamento malfeito', 'Cliente não gostou', 'Outro'];
+
+export interface ResumoOrdens {
+  recebidas: number; emAndamento: number; prontas: number; atrasadas: number; entreguesHoje: number;
+  retrabalhosMes: number; custoRetrabalhoMes: number; entreguesMes: number; // garantia: quantas voltaram no mês e o custo em corda
+}
 export interface HistoricoCliente { cliente: string; raquete: string | null; corda: string | null; tensao: string | null; em: string }
 
 export const NOME_STATUS: Record<StatusOrdem, string> = {

@@ -13,6 +13,8 @@
     <button type="button" class="cartao" [class.perigo]="r.atrasadas" (click)="mudarAba('abertas')"><span>Atrasadas</span><strong>{{ r.atrasadas }}</strong><small>passaram do prazo</small></button>
     <button type="button" class="cartao" [class.alerta]="r.prontas" (click)="mudarAba('prontas')"><span>Prontas</span><strong>{{ r.prontas }}</strong><small>esperando o cliente</small></button>
     <button type="button" class="cartao" (click)="mudarAba('entregues')"><span>Entregues hoje</span><strong>{{ r.entreguesHoje }}</strong><small>ver entregues</small></button>
+    <div class="cartao" [class.alerta]="r.retrabalhosMes"><span>Retrabalho no mês</span><strong>{{ r.retrabalhosMes }}</strong>
+      <small>@if (r.retrabalhosMes) { {{ r.custoRetrabalhoMes | currency: 'BRL' }} em corda@if (r.entreguesMes) { · {{ (r.retrabalhosMes / r.entreguesMes * 100).toFixed(0) }}% das entregues } } @else { nenhuma voltou }</small></div>
   </section>
 }
 
@@ -38,7 +40,7 @@
         <tr>
           <td class="data"><strong>{{ o.numero }}</strong><small>{{ o.criadaEm | date: 'dd/MM HH:mm' }}</small></td>
           <td>
-            <span class="descricao">{{ o.cliente }}</span>
+            <span class="descricao">{{ o.cliente }}@if (o.garantiaDeNumero) { <span class="selo garantia" [title]="o.motivoGarantia ?? ''">garantia da OS {{ o.garantiaDeNumero }}</span> }@if (o.garantias) { <span class="selo voltou">voltou {{ o.garantias }}x</span> }</span>
             <small class="detalhe">{{ telefone(o.telefone) }}{{ o.telefone ? ' · ' : '' }}{{ o.raquete }}</small>
           </td>
           <td>
@@ -68,7 +70,10 @@
               <button type="button" class="botao pequeno" (click)="abrirEdicao(o)" aria-label="Editar"><app-icone nome="pencil" /></button>
               <button type="button" class="botao pequeno perigo" (click)="mudar(o, 'Cancelada')" aria-label="Cancelar"><app-icone nome="x" /></button>
             }
-            @if (o.status === 'Entregue') { <button type="button" class="botao pequeno" (click)="mudar(o, 'Pronta')" title="Clicou errado? Volta para pronta">Desfazer</button> }
+            @if (o.status === 'Entregue') {
+              <button type="button" class="botao pequeno" (click)="abrirGarantia(o)" title="O serviço ficou ruim e a raquete voltou: refaz sem cobrar"><app-icone nome="repeat" /> Refazer</button>
+              <button type="button" class="botao pequeno" (click)="mudar(o, 'Pronta')" title="Clicou errado? Volta para pronta">Desfazer</button>
+            }
           </td>
         </tr>
       } @empty {
@@ -131,4 +136,39 @@
       <button type="submit" class="botao primario" [disabled]="f.invalid || salvando()">{{ salvando() ? 'Salvando…' : editando() ? 'Salvar' : 'Abrir ordem' }}</button>
     </footer>
   </form>
+</dialog>
+
+<!-- Refazer (garantia) -->
+<dialog #dlgGarantia fecharAoClicarFora class="janela" (close)="erro.set(null)">
+  @if (garantiaDe(); as o) {
+    <form (ngSubmit)="salvarGarantia()">
+      <header><h2><app-icone nome="repeat" /> Refazer a OS {{ o.numero }} (garantia)</h2><button type="button" class="fechar" (click)="dlgGarantia.close()"><app-icone nome="x" /></button></header>
+      <div class="corpo">
+        <p class="dica-garantia">{{ o.cliente }} · {{ o.raquete }}{{ o.corda ? ' · ' + o.corda : '' }}{{ o.tensao ? ' · ' + o.tensao : '' }}.
+          Abre uma ordem nova <b>sem cobrança</b>, ligada a esta; a corda nova sai do estoque como <b>garantia</b> (pelo custo, entra nas perdas).</p>
+        <fieldset class="motivos-garantia">
+          <legend>O que aconteceu?</legend>
+          @for (m of motivosGarantia; track m) {
+            <button type="button" class="botao pequeno" [class.ligado]="garantia.motivo === m" (click)="garantia.motivo = m">{{ m }}</button>
+          }
+        </fieldset>
+        <label>Corda nova (da loja)
+          <select name="cordaGarantia" [(ngModel)]="garantia.cordaId">
+            <option [ngValue]="null">Nenhuma (só reajuste, sem trocar a corda)</option>
+            @for (c of opcoesCorda(); track c.id) { <option [ngValue]="c.id" [disabled]="c.estoqueAtual < 1">{{ c.nome }} ({{ c.estoqueAtual }} em estoque)</option> }
+          </select>
+        </label>
+        <div class="duas">
+          <label>Prazo<input name="prazoGarantia" type="datetime-local" [(ngModel)]="garantia.prazo" required /></label>
+          <label>Custo para a loja<input [value]="(custoCorda() | currency: 'BRL') ?? ''" readonly tabindex="-1" /></label>
+        </div>
+        <label>Observação<input name="obsGarantia" [(ngModel)]="garantia.observacao" maxlength="300" placeholder="Ex.: corda estourou no 2º dia" /></label>
+        @if (erro()) { <div class="erro" role="alert">{{ erro() }}</div> }
+      </div>
+      <footer>
+        <button type="button" class="botao" (click)="dlgGarantia.close()">Voltar</button>
+        <button type="submit" class="botao primario" [disabled]="salvando() || !garantia.motivo">{{ salvando() ? 'Abrindo…' : 'Abrir ordem de garantia' }}</button>
+      </footer>
+    </form>
+  }
 </dialog>

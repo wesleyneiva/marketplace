@@ -13,7 +13,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/ordens")]
 [Authorize]
-public class OrdensController(AppDbContext db, ClientesService clientes) : ControllerBase
+public class OrdensController(AppDbContext db, ClientesService clientes, EstoqueService estoque) : ControllerBase
 {
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -62,10 +62,17 @@ public class OrdensController(AppDbContext db, ClientesService clientes) : Contr
             .Where(o => o.Status == StatusOrdem.Recebida || o.Status == StatusOrdem.EmAndamento || o.Status == StatusOrdem.Pronta)
             .Select(o => new { o.Status, o.Prazo }).ToListAsync();
         var entreguesHoje = await db.OrdensServico.CountAsync(o => o.Status == StatusOrdem.Entregue && o.EntregueEm >= inicioDoDia);
+        // Retrabalho do mês: quantas voltaram (garantia), quanto custou em corda e quantas foram entregues (para a proporção).
+        var inicioMes = Relogio.InicioDoDiaUtc(new DateOnly(Relogio.Hoje.Year, Relogio.Hoje.Month, 1));
+        var garantias = await db.OrdensServico.AsNoTracking()
+            .Where(o => o.GarantiaDeId != null && o.Status != StatusOrdem.Cancelada && o.CriadaEm >= inicioMes)
+            .Select(o => o.CustoGarantia).ToListAsync();
+        var entreguesMes = await db.OrdensServico.CountAsync(o => o.Status == StatusOrdem.Entregue && o.GarantiaDeId == null && o.EntregueEm >= inicioMes);
         return new ResumoOrdensResponse(
             abertas.Count(o => o.Status == StatusOrdem.Recebida), abertas.Count(o => o.Status == StatusOrdem.EmAndamento),
             abertas.Count(o => o.Status == StatusOrdem.Pronta),
-            abertas.Count(o => StatusOrdem.EmAberto(o.Status) && o.Prazo < agora), entreguesHoje);
+            abertas.Count(o => StatusOrdem.EmAberto(o.Status) && o.Prazo < agora), entreguesHoje,
+            garantias.Count, garantias.Sum(), entreguesMes);
     }
 
     // GET /api/ordens/historico?telefone=21999998888 → as últimas raquetes/cordas/tensões do cliente.
@@ -115,6 +122,46 @@ public class OrdensController(AppDbContext db, ClientesService clientes) : Contr
         return await Projetar(db.OrdensServico.Where(o => o.Id == id)).FirstAsync();
     }
 
+    // POST /api/ordens/5/garantia → a raquete voltou (serviço ruim): OS nova ligada à original, sem cobrança; a corda nova
+    // (se houver) sai do estoque como perda "Garantia da oficina", pelo custo.
+    [HttpPost("{id:int}/garantia")]
+    public async Task<ActionResult<OrdemResponse>> Garantia(int id, GarantiaRequest r)
+    {
+        var original = await db.OrdensServico.AsNoTracking().FirstOrDefaultAsync(o => o.Id == id);
+        if (original is null) return NotFound();
+        if (original.Status != StatusOrdem.Entregue) return BadRequest(new { mensagem = "Só uma ordem já entregue volta para garantia." });
+        if (!MotivosGarantia.Todos.Contains(r.Motivo)) return BadRequest(new { mensagem = "Escolha o motivo do retrabalho." });
+        Produto? corda = null;
+        if (r.CordaProdutoId is int cordaId)
+        {
+            corda = await db.Produtos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == cordaId && p.Ativo && !p.Servico);
+            if (corda is null) return BadRequest(new { mensagem = "Corda não encontrada." });
+            if (corda.EstoqueAtual < 1) return BadRequest(new { mensagem = $"Sem {corda.Nome} em estoque: escolha outra corda." });
+        }
+
+        var ordem = new OrdemServico
+        {
+            Cliente = original.Cliente, Telefone = original.Telefone, ClienteId = original.ClienteId, Raquete = original.Raquete,
+            Corda = corda?.Nome ?? original.Corda, Tensao = original.Tensao, Servico = $"Garantia: {original.Servico}",
+            Valor = 0, Paga = true, Prazo = r.Prazo, CriadaPorId = UsuarioId,
+            Observacao = string.IsNullOrWhiteSpace(r.Observacao) ? null : r.Observacao.Trim(),
+            GarantiaDeId = original.Id, MotivoGarantia = r.Motivo, CordaGarantiaId = corda?.Id, CustoGarantia = corda?.PrecoCusto ?? 0,
+        };
+        await using var transacao = await db.Database.BeginTransactionAsync();
+        await OrdensServicoNumeracao.SalvarNovaAsync(db, ordem);
+        if (corda is not null)
+        {
+            try
+            {
+                await estoque.RegistrarPerdaAsync(corda.Id, 1, "Garantia da oficina", null,
+                    $"Garantia da OS nº {original.Numero} ({r.Motivo.ToLowerInvariant()}) — OS nº {ordem.Numero}", UsuarioId);
+            }
+            catch (EstoqueException e) { return BadRequest(new { mensagem = e.Message }); }
+        }
+        await transacao.CommitAsync();
+        return CreatedAtAction(nameof(Obter), new { id = ordem.Id }, await Projetar(db.OrdensServico.Where(o => o.Id == ordem.Id)).FirstAsync());
+    }
+
     // POST /api/ordens/5/paga { } → marca como paga (cobrada no caixa).
     [HttpPost("{id:int}/paga")]
     public async Task<ActionResult<OrdemResponse>> MarcarPaga(int id, [FromQuery] int? vendaId = null)
@@ -148,6 +195,8 @@ public class OrdensController(AppDbContext db, ClientesService clientes) : Contr
         return q.Select(o => new OrdemResponse(o.Id, o.Numero, o.Cliente, o.Telefone, o.Raquete, o.Corda, o.Tensao, o.Servico,
             o.Valor, o.Paga, o.VendaId, o.Observacao, o.Status, o.Prazo, o.CriadaEm, o.ProntaEm, o.EntregueEm,
             db.Users.Where(u => u.Id == o.CriadaPorId).Select(u => u.NomeCompleto).FirstOrDefault(),
-            (o.Status == StatusOrdem.Recebida || o.Status == StatusOrdem.EmAndamento) && o.Prazo < agora, o.Automatica, o.ClienteId));
+            (o.Status == StatusOrdem.Recebida || o.Status == StatusOrdem.EmAndamento) && o.Prazo < agora, o.Automatica, o.ClienteId,
+            o.GarantiaDe != null ? o.GarantiaDe.Numero : null, o.MotivoGarantia,
+            db.OrdensServico.Count(g => g.GarantiaDeId == o.Id && g.Status != StatusOrdem.Cancelada)));
     }
 }

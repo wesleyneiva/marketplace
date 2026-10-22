@@ -1747,17 +1747,31 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<int?>("CordaGarantiaId")
+                        .HasColumnType("integer");
+
                     b.Property<DateTimeOffset>("CriadaEm")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("CriadaPorId")
                         .HasColumnType("text");
 
+                    b.Property<decimal>("CustoGarantia")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
                     b.Property<DateTimeOffset?>("EntregueEm")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("GarantiaDeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("MotivoGarantia")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
 
                     b.Property<int>("Numero")
                         .HasColumnType("integer");
@@ -1808,6 +1822,8 @@ namespace Marketplace.Api.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClienteId");
+
+                    b.HasIndex("GarantiaDeId");
 
                     b.HasIndex("EmpresaId", "ClienteId");
 
@@ -3350,7 +3366,14 @@ namespace Marketplace.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Marketplace.Api.Models.OrdemServico", "GarantiaDe")
+                        .WithMany()
+                        .HasForeignKey("GarantiaDeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("ClienteCadastro");
+
+                    b.Navigation("GarantiaDe");
                 });
 
             modelBuilder.Entity("Marketplace.Api.Models.PagamentoVenda", b =>

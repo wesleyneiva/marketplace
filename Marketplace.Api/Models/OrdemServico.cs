@@ -29,6 +29,19 @@ public class OrdemServico : IDaEmpresa
     public DateTimeOffset? EntregueEm { get; set; }
     public string? CriadaPorId { get; set; }
     public bool Automatica { get; set; }            // criada pelo bot (loja em teste)
+
+    // GARANTIA (retrabalho): a raquete voltou porque o serviço ficou ruim. A OS nova aponta para a original, não cobra
+    // nada e a corda nova sai do estoque como perda ("Garantia da oficina"), pelo custo — é o que a loja perdeu.
+    public int? GarantiaDeId { get; set; }
+    public OrdemServico? GarantiaDe { get; set; }
+    public string? MotivoGarantia { get; set; }     // MotivosGarantia
+    public int? CordaGarantiaId { get; set; }       // a corda que saiu do estoque (null = só reajuste, sem corda nova)
+    public decimal CustoGarantia { get; set; }      // custo dessa corda
+}
+
+public static class MotivosGarantia
+{
+    public static readonly string[] Todos = ["Corda estourou", "Tensão errada", "Encordoamento malfeito", "Cliente não gostou", "Outro"];
 }
 
 public static class StatusOrdem

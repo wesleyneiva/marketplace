@@ -7,7 +7,8 @@ namespace Marketplace.Api.Contracts;
 public record OrdemResponse(
     int Id, int Numero, string Cliente, string? Telefone, string Raquete, string? Corda, string? Tensao, string Servico,
     decimal Valor, bool Paga, int? VendaId, string? Observacao, string Status, DateTimeOffset Prazo, DateTimeOffset CriadaEm,
-    DateTimeOffset? ProntaEm, DateTimeOffset? EntregueEm, string? CriadaPor, bool Atrasada, bool Automatica, int? ClienteId = null);
+    DateTimeOffset? ProntaEm, DateTimeOffset? EntregueEm, string? CriadaPor, bool Atrasada, bool Automatica, int? ClienteId = null,
+    int? GarantiaDeNumero = null, string? MotivoGarantia = null, int Garantias = 0); // Garantias: quantas vezes esta OS voltou
 
 public record OrdemRequest(
     [Required(ErrorMessage = "Informe o nome do cliente.")][StringLength(100, MinimumLength = 2)] string Cliente,
@@ -23,7 +24,11 @@ public record OrdemRequest(
 
 public record StatusOrdemRequest([Required] string Status);
 
-public record ResumoOrdensResponse(int Recebidas, int EmAndamento, int Prontas, int Atrasadas, int EntreguesHoje);
+public record ResumoOrdensResponse(int Recebidas, int EmAndamento, int Prontas, int Atrasadas, int EntreguesHoje,
+    int RetrabalhosMes = 0, decimal CustoRetrabalhoMes = 0, int EntreguesMes = 0);
+
+// Refazer (garantia): por quê, qual corda sai do estoque (nenhuma = só reajuste) e o prazo.
+public record GarantiaRequest([Required] string Motivo, int? CordaProdutoId, DateTimeOffset Prazo, [StringLength(300)] string? Observacao);
 
 // "Da última vez": o que este cliente (pelo telefone) usou nas últimas ordens.
 public record HistoricoClienteResponse(string Cliente, string? Raquete, string? Corda, string? Tensao, DateTimeOffset Em);

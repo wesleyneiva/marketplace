@@ -19,7 +19,7 @@ public class ConflitoEstoqueException(string mensagem) : EstoqueException(mensag
 //    produtos + o cupom + os pagamentos e salva tudo de uma vez, numa única transação).
 public class EstoqueService(AppDbContext db)
 {
-    public static readonly string[] MotivosPerda = ["Vencido", "Avariado", "Furto/Extravio", "Consumo interno", "Outro"];
+    public static readonly string[] MotivosPerda = ["Vencido", "Avariado", "Furto/Extravio", "Consumo interno", "Garantia da oficina", "Outro"];
 
     // ---------------------------------------------------------------- operações das telas
 

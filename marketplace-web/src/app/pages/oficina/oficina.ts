@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
 import { Pagina, Produto } from '../../core/api/produtos.api';
-import { HistoricoCliente, NOME_STATUS, Ordem, ResumoOrdens, StatusOrdem, URL_ORDENS } from '../../core/api/ordens.api';
+import { HistoricoCliente, MOTIVOS_GARANTIA, NOME_STATUS, Ordem, ResumoOrdens, StatusOrdem, URL_ORDENS } from '../../core/api/ordens.api';
 import { Icone } from '../../shared/icone';
 import { Paginacao } from '../../shared/paginacao';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
@@ -178,6 +178,48 @@ export class Oficina {
       this.recarregar();
     } catch (e) {
       this.erro.set(mensagem(e));
+    }
+  }
+
+  // ----- Refazer (garantia): a raquete voltou porque o serviço ficou ruim -----
+  private readonly dlgGarantia = viewChild<ElementRef<HTMLDialogElement>>('dlgGarantia');
+  protected readonly motivosGarantia = MOTIVOS_GARANTIA;
+  protected readonly garantiaDe = signal<Ordem | null>(null);
+  protected garantia = { motivo: '', cordaId: null as number | null, prazo: '', observacao: '' };
+
+  protected abrirGarantia(o: Ordem): void {
+    this.garantiaDe.set(o);
+    // A mesma corda da primeira vez, se a loja tem em estoque; o encordoador troca se quiser.
+    const mesma = this.opcoesCorda().find((c) => o.corda && c.nome.toLowerCase().includes(o.corda.toLowerCase().replace(/\s*\(.*\)$/, '')) && c.estoqueAtual > 0);
+    this.garantia = { motivo: '', cordaId: mesma?.id ?? null, prazo: paraCampo(new Date(Date.now() + 3 * 3600_000)), observacao: '' };
+    this.erro.set(null);
+    this.dlgGarantia()?.nativeElement.showModal();
+  }
+
+  protected custoCorda(): number {
+    return this.opcoesCorda().find((c) => c.id === this.garantia.cordaId)?.precoCusto ?? 0;
+  }
+
+  protected async salvarGarantia(): Promise<void> {
+    const o = this.garantiaDe();
+    if (!o) return;
+    if (!this.garantia.motivo) { this.erro.set('Escolha o motivo do retrabalho.'); return; }
+    this.salvando.set(true);
+    this.erro.set(null);
+    try {
+      const nova = await firstValueFrom(this.http.post<Ordem>(`${URL_ORDENS}/${o.id}/garantia`, {
+        motivo: this.garantia.motivo, cordaProdutoId: this.garantia.cordaId,
+        prazo: new Date(this.garantia.prazo).toISOString(), observacao: this.garantia.observacao || null,
+      }));
+      this.dlgGarantia()?.nativeElement.close();
+      this.aviso.set(`OS ${nova.numero} aberta (garantia da OS ${o.numero}), sem cobrança` + (this.garantia.cordaId ? '; a corda saiu do estoque como garantia.' : '.'));
+      this.mudarAba('abertas');
+      this.recarregar();
+      this.cordas.reload();
+    } catch (e) {
+      this.erro.set(mensagem(e));
+    } finally {
+      this.salvando.set(false);
     }
   }
 

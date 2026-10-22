@@ -258,6 +258,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.ToTable("OrdensServico");
             e.Property(o => o.Cliente).HasMaxLength(100);
             e.HasOne(o => o.ClienteCadastro).WithMany().HasForeignKey(o => o.ClienteId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne(o => o.GarantiaDe).WithMany().HasForeignKey(o => o.GarantiaDeId).OnDelete(DeleteBehavior.Restrict);
+            e.Property(o => o.MotivoGarantia).HasMaxLength(40);
+            e.Property(o => o.CustoGarantia).HasPrecision(10, 2);
             e.HasIndex(o => new { o.EmpresaId, o.ClienteId });
             e.Property(o => o.Telefone).HasMaxLength(20);
             e.Property(o => o.Raquete).HasMaxLength(120);
