@@ -276,8 +276,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   OAuth + chave do desenvolvedor ok; ligar ok; criar cobrança ok (chave de teste `hmtestes2@bb.com.br` aceita, QR
   `qrcodepix-h.bb.com.br/...`); consulta ok (ATIVA); cancelar ok (REMOVIDA_PELO_USUARIO_RECEBEDOR). Achado: o BB responde
   **404 "Nenhum resultado encontrado"** ao listar `/cob` sem cobranças no período (corrigido: conta como acesso ok). Falta:
-  simular o pagamento (endpoint de testes do BB `/testes-portal-desenvolvedor/v1/boletos-pix/pagar`, formato só na
-  documentação logada) para ver o CONCLUIDA com a lista "pix" e a devolução.
+  simular o pagamento: o endpoint de testes do BB (`/testes-portal-desenvolvedor/v1/boletos-pix/pagar`) responde 403
+  "Application key is not allowed to call this resource method" para a aplicação Pix do usuário, e o portal não mostra
+  API de testes para acrescentar. O caminho que sobra: no 1º cliente BB, em produção, um Pix real de R$ 0,01 pago pelo
+  app do banco e devolvido pelo Marcus (confere o CONCLUIDA com a lista "pix" e a devolução). Script de tentativa:
+  `~/projetos/marketplace-testes/pix-automatico/bb-pagar-teste.sh <nº da cobrança>`.
+  As credenciais de teste do BB passaram pelo chat em 22/10: gerar novas no portal antes de usar de novo.
 - Ajuste visual: a caixinha "São credenciais de teste" (e a do BB) ficava em cima do texto no formulário do Pix.
 
 ### 22/10/2026 (fim da noite) — restaurar uma loja só e as duas nuvens na área do dono
@@ -576,7 +580,7 @@ Detalhes técnicos em Funcionalidades.
 Pendências:
 - (22/10) **Pix pelo BB, o que falta conferir**: (1) ~~aplicação no portal e ambiente de testes~~ feito em 22/10 (login,
   escopos, criar, consultar e cancelar ok no BB real); (2) **simular o pagamento** no ambiente de testes (ver o CONCLUIDA e a
-  devolução) e confirmar se a produção usa `gw-dev-app-key` ou `gw-app-key` (dá para trocar sem código:
+  devolução) — não dá no ambiente de testes (403), fica para o Pix de R$ 0,01 do 1º cliente — e confirmar se a produção usa `gw-dev-app-key` ou `gw-app-key` (dá para trocar sem código:
   `PixBanco:BancoDoBrasil:ParamChaveProducao`); (3) na
   produção, com o cliente: aplicação dele no portal, API Pix liberada pelo gerente, certificado A1 cadastrado no portal e
   tarifa do Pix recebido no pacote PJ dele. Credenciais nunca no chat: ele cola na tela (Configurações → Pix da loja).
