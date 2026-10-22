@@ -70,6 +70,7 @@ builder.Services.AddHostedService(sp => sp.GetRequiredService<Marketplace.Api.Se
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorEstado>();
 builder.Services.AddSingleton<Marketplace.Api.Services.Simulador.SimuladorClientes>();
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistorico>();
+builder.Services.AddScoped<Marketplace.Api.Services.Simulador.GeradorHistoricoEsporte>(); // passado de uma loja de esporte em teste
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.FinanceiroDemonstracao>();
 builder.Services.AddScoped<Marketplace.Api.Services.Simulador.FiadoDemonstracao>();
 builder.Services.AddScoped<Marketplace.Api.Services.FluxoCaixaService>();
@@ -223,6 +224,18 @@ if (args.FirstOrDefault() == "gerar-historico")
     var r = await escopo.ServiceProvider.GetRequiredService<Marketplace.Api.Services.Simulador.GeradorHistorico>()
         .GerarAsync(app.Configuration.GetValue("dias", 60), app.Configuration.GetValue("substituir", false), CancellationToken.None);
     Console.WriteLine($"✅ Histórico {r.De:dd/MM/yyyy} a {r.Ate:dd/MM/yyyy}: {r.Vendas} vendas, {r.Faturamento:C}. Financeiro: {r.Financeiro}.");
+    Environment.Exit(0);
+}
+
+// Linha de comando: "gerar-historico-loja --empresa 5 --de 2026-08-01 --ate 2026-10-20" — o passado de uma LOJA DE ESPORTE
+// em teste (vendas, clientes, OS e financeiro). Ver gerar-historico-loja.sh e Services/Simulador/GeradorHistoricoEsporte.cs.
+if (args.FirstOrDefault() == "gerar-historico-loja")
+{
+    var empresaLoja = app.Configuration.GetValue("empresa", 0);
+    using var escopo = app.Services.CriarEscopo(empresaLoja);
+    var r = await escopo.ServiceProvider.GetRequiredService<Marketplace.Api.Services.Simulador.GeradorHistoricoEsporte>()
+        .GerarAsync(DateOnly.Parse(app.Configuration["de"]!), DateOnly.Parse(app.Configuration["ate"]!), CancellationToken.None);
+    Console.WriteLine($"✅ Histórico da loja {empresaLoja}: {r.De:dd/MM/yyyy} a {r.Ate:dd/MM/yyyy}: {r.Vendas} vendas, {r.Faturamento:C}. {r.Financeiro}.");
     Environment.Exit(0);
 }
 

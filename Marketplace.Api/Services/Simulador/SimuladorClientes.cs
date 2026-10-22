@@ -273,7 +273,7 @@ public class SimuladorClientes(
         catch (EstoqueException e)
         {
             // Ex.: outro caixa levou o último item segundos antes. O cliente "desiste" e vai embora.
-            log.LogDebug("Cliente simulado não conseguiu comprar: {Motivo}", e.Message);
+            log.LogInformation("Cliente simulado (empresa {Empresa}) não conseguiu comprar: {Motivo}", empresaId, e.Message);
             return false;
         }
     }
