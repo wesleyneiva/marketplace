@@ -286,6 +286,9 @@ pagamento/banco (Pix manual e automático, OFX; sem TEF e sem maquininha integra
   `~/projetos/marketplace-testes/pix-automatico/bb-pagar-teste.sh <nº da cobrança>`.
   As credenciais de teste do BB passaram pelo chat em 22/10: gerar novas no portal antes de usar de novo.
 - Ajuste visual: a caixinha "São credenciais de teste" (e a do BB) ficava em cima do texto no formulário do Pix.
+- **Área do dono → Sistema → "Disco livre" corrigido**: mostrava "177,9 GB de 207 GB" num volume de 200 GB (dividia por
+  1.000.000.000 e usava o tamanho do sistema de arquivos). Agora na unidade da Oracle (1024³) e o total é o tamanho do volume
+  (lido de `/sys/class/block/<disco>/size`): "165,7 GB de 200 GB", igual ao `df -h`.
 
 ### 22/10/2026 (fim da noite) — restaurar uma loja só e as duas nuvens na área do dono
 - **Restaurar UMA loja** (`infra/restaurar-loja.sh`; `docs/plano-de-desastre.md` → Situação A): o backup continua sendo do

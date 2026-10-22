@@ -55,7 +55,7 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
         return new SistemaResponse(
             new DateTimeOffset(processo.StartTime), typeof(Program).Assembly.GetName().Version?.ToString() ?? "?",
             processo.WorkingSet64 / 1048576, conexao.Database, bancoMb,
-            Math.Round(disco.AvailableFreeSpace / 1e9, 1), Math.Round(disco.TotalSize / 1e9, 1),
+            Math.Round(disco.AvailableFreeSpace / Gib, 1), Math.Round((TamanhoDoVolume() ?? disco.TotalSize) / Gib),
             enderecos.ToList(), Backups(),
             linhas.Select(l => new UsoCliente(l.Id, l.Nome, l.Registros, Math.Round(100.0 * l.Registros / total, 1))).ToList(),
             [
@@ -64,6 +64,29 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
                 new("Cobranças (mensalidades e bloqueio)", CobrancasTrabalhador.UltimaRodada is { } c
                     ? $"última rodada {TimeZoneInfo.ConvertTime(c, Relogio.Fuso):dd/MM HH:mm}" : "ainda não rodou desde que ligou"),
             ]);
+    }
+
+    // Disco na MESMA unidade da Oracle (GB da Oracle = 1024³ bytes, o "GiB"): o volume de 200 GB tem 214.748.364.800 bytes.
+    // Antes dividia por 1.000.000.000 e usava o tamanho do sistema de arquivos (um pouco menor que o volume): a tela
+    // mostrava "177,9 GB de 207 GB" num volume de 200 GB (22/10/2026).
+    private const double Gib = 1024d * 1024 * 1024;
+
+    // Tamanho do volume inteiro onde está o "/" (ex.: /dev/sda1 → /sys/class/block/sda/size, em setores de 512 bytes).
+    // Fora do Linux ou sem acesso: null (a tela usa o tamanho do sistema de arquivos).
+    private static long? TamanhoDoVolume()
+    {
+        try
+        {
+            var dispositivo = System.IO.File.ReadLines("/proc/mounts").Select(l => l.Split(' '))
+                .FirstOrDefault(c => c.Length > 1 && c[1] == "/")?[0];
+            if (dispositivo is null || !dispositivo.StartsWith("/dev/")) return null;
+            var particao = new DirectoryInfo("/sys/class/block/" + Path.GetFileName(dispositivo));
+            var real = particao.ResolveLinkTarget(returnFinalTarget: true) as DirectoryInfo ?? particao;
+            // Partição: o disco é a pasta de cima (…/block/sda/sda1 → …/block/sda). Disco inteiro: a própria pasta.
+            var pasta = System.IO.File.Exists(Path.Combine(real.FullName, "partition")) ? real.Parent! : real;
+            return long.Parse(System.IO.File.ReadAllText(Path.Combine(pasta.FullName, "size")).Trim()) * 512;
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or FormatException) { return null; }
     }
 
     private async Task<EnderecoNoAr> TestarAsync(string url, CancellationToken ct)
