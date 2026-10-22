@@ -46,7 +46,7 @@ import { Icone } from './icone';
       <div class="grande"><span>Total</span><span>{{ c.total | currency: 'BRL' }}</span></div>
       @for (p of c.pagamentos; track $index) {
         <div>
-          <span>{{ rotulo(p.forma) }}@if (p.valeCodigo) { {{ p.valeCodigo }} }@if (p.parcelas && p.parcelas > 1) { em {{ p.parcelas }}x }@if (p.pixConfirmado) { <small class="selo pix"><app-icone nome="circle-check" /> confirmado pelo Mercado Pago</small> }</span>
+          <span>{{ rotulo(p.forma) }}@if (p.valeCodigo) { {{ p.valeCodigo }} }@if (p.parcelas && p.parcelas > 1) { em {{ p.parcelas }}x }@if (p.pixConfirmado) { <small class="selo pix"><app-icone nome="circle-check" /> confirmado automaticamente</small> }</span>
           <span>{{ p.valor | currency: 'BRL' }}</span>
         </div>
         @if (p.valeCodigo && p.valeSaldo) {

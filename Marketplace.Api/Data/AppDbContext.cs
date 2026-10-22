@@ -82,6 +82,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.MercadoPagoTokenFinal).HasMaxLength(8);
             e.Property(x => x.MercadoPagoConta).HasMaxLength(120);
             e.Property(x => x.PixAvisoToken).HasMaxLength(40);
+            e.Property(x => x.PixBancoClientId).HasMaxLength(200);
+            e.Property(x => x.PixBancoSegredos).HasMaxLength(2000);
+            e.Property(x => x.PixBancoCertificado).HasMaxLength(40000);
+            e.Property(x => x.PixBancoCertificadoInfo).HasMaxLength(200);
             e.HasIndex(x => x.PixAvisoToken).IsUnique().HasFilter("\"PixAvisoToken\" IS NOT NULL");
             e.Property(x => x.Nome).HasMaxLength(120);
             e.Property(x => x.Subdominio).HasMaxLength(40);
@@ -419,12 +423,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(x => x.Venda).WithMany().HasForeignKey(x => x.VendaId).OnDelete(DeleteBehavior.Restrict);
         });
 
-        // ----- Pix automático (Mercado Pago) -----
+        // ----- Pix automático (Mercado Pago ou o banco da loja) -----
         builder.Entity<CobrancaPix>(e =>
         {
             e.ToTable("CobrancasPix");
             e.Property(x => x.Provedor).HasMaxLength(20);
             e.Property(x => x.IdExterno).HasMaxLength(40);
+            e.Property(x => x.EndToEndId).HasMaxLength(40);
             e.Property(x => x.Valor).HasPrecision(14, 2);
             e.Property(x => x.Status).HasConversion<string>().HasMaxLength(10);
             e.Property(x => x.StatusExterno).HasMaxLength(30);

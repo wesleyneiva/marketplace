@@ -64,7 +64,7 @@
               <td>Caixa {{ v.numeroCaixa }}<small class="detalhe">{{ v.operador }}</small></td>
               <td class="num">{{ v.quantidadeItens }}</td>
               <td>{{ rotuloFormas(v.formas) }}
-                @if (v.pixConfirmado) { <small class="selo pix"><app-icone nome="circle-check" /> Pix confirmado pelo Mercado Pago</small> }
+                @if (v.pixConfirmado) { <small class="selo pix"><app-icone nome="circle-check" /> Pix confirmado automaticamente</small> }
                 @if (v.offline) { <small class="selo offline" title="Feita sem internet e enviada quando ela voltou"><app-icone nome="plug" /> sem internet</small> }
                 @if (v.precoDivergente) { <small class="selo alerta" title="Vendida sem internet com o preço guardado no caixa, diferente do cadastro">preço diferente do cadastro</small> }
               </td>

@@ -20,7 +20,7 @@ import { BalancaService } from '../../core/equipamentos/balanca.service';
 import { ImpressoraService } from '../../core/equipamentos/impressora.service';
 import { Icone } from '../../shared/icone';
 import { PixQrCodeComponent } from '../../shared/pix-qrcode';
-import { CobrancaPix, PixAutomatico } from '../../shared/pix-automatico';
+import { CobrancaPix, PixAutomatico, nomeProvedorPix } from '../../shared/pix-automatico';
 import { AutorizacaoGerente } from '../../shared/autorizacao-gerente';
 import { EstornoVenda } from '../../shared/estorno-venda';
 import { CupomDetalhe } from '../../shared/cupom-detalhe';
@@ -141,10 +141,13 @@ export class Pdv {
   protected get textoValor(): string { return this.valorDigitado(); }
   protected set textoValor(v: string) { this.valorDigitado.set(v ?? ''); }
   protected readonly valorPix = computed(() => (this.formaAtual() === 'Pix' ? arredondar(lerNumero(this.valorDigitado())) : 0));
-  // Pix automático (Mercado Pago) ligado nas Configurações? E os Pix já pagos que ainda não entraram em venda.
+  // Pix automático (Mercado Pago ou banco) ligado nas Configurações? E os Pix já pagos que ainda não entraram em venda.
   protected readonly pixAutomatico = signal<string | null>(null);
+  // Guarda o último provedor ligado (o "Confirmar manualmente" zera pixAutomatico por um instante).
+  private readonly ultimoProvedorPix = signal<string | null>(null);
+  protected readonly nomePix = computed(() => nomeProvedorPix(this.pixAutomatico() ?? this.ultimoProvedorPix()));
   protected readonly pixSoltos = signal<CobrancaPix[]>([]);
-  // Pix que entraram nesta venda pelo aviso do Mercado Pago (a janela mostra a confirmação em destaque).
+  // Pix que entraram nesta venda pelo aviso do provedor (a janela mostra a confirmação em destaque).
   protected readonly pixConfirmados = computed(() => {
     const ids = new Set(this.pagamentos().filter((p) => p.cobrancaPixId).map((p) => p.cobrancaPixId));
     return this.pixRecebidos().filter((c) => ids.has(c.id));
@@ -846,6 +849,7 @@ export class Pdv {
     try {
       const cfg = await firstValueFrom(this.http.get<{ pixAutomatico: string | null }>('/api/empresa/configuracao'));
       this.pixAutomatico.set(cfg.pixAutomatico);
+      if (cfg.pixAutomatico) this.ultimoProvedorPix.set(cfg.pixAutomatico);
       const sessao = this.caixa()?.sessaoId;
       this.pixSoltos.set(cfg.pixAutomatico && sessao
         ? await firstValueFrom(this.http.get<CobrancaPix[]>('/api/pix/cobrancas/soltas', { params: { sessaoCaixaId: sessao } }))
@@ -855,19 +859,19 @@ export class Pdv {
     }
   }
 
-  // Sem o aviso (internet caiu, Mercado Pago fora do ar): o caixa confere no celular e confirma por conta dele.
+  // Sem o aviso (internet caiu, provedor fora do ar): o caixa confere no celular e confirma por conta dele.
   protected pixManual(): void {
-    if (!confirm(`Confirmar o Pix de ${dinheiroBr(this.valorPix())} SEM o aviso do Mercado Pago?\n\nSó confirme se você viu o Pix cair no celular da loja.`)) return;
+    if (!confirm(`Confirmar o Pix de ${dinheiroBr(this.valorPix())} SEM o aviso do ${this.nomePix()}?\n\nSó confirme se você viu o Pix cair no celular da loja.`)) return;
     const automatico = this.pixAutomatico();
     this.pixAutomatico.set(null); // deixa o "Adicionar" registrar este Pix como manual
     void this.confirmarValor().finally(() => this.pixAutomatico.set(automatico));
   }
 
-  // O Mercado Pago confirmou: o Pix entra sozinho na venda (o servidor confere de novo ao registrar).
+  // O provedor confirmou: o Pix entra sozinho na venda (o servidor confere de novo ao registrar).
   protected pixPago(c: CobrancaPix): void {
     if (this.pagamentos().some((p) => p.cobrancaPixId === c.id)) return;
     if (c.valor > this.falta() + 0.001) {
-      this.erro.set(`O Pix recebido (${dinheiroBr(c.valor)}) passa do que falta (${dinheiroBr(this.falta())}). Use-o em outra venda ou devolva pelo Mercado Pago.`);
+      this.erro.set(`O Pix recebido (${dinheiroBr(c.valor)}) passa do que falta (${dinheiroBr(this.falta())}). Use-o em outra venda ou devolva pelo ${this.nomePix()}.`);
       return;
     }
     this.erro.set(null);
@@ -965,7 +969,7 @@ export class Pdv {
       return;
     }
     if (this.formaAtual() === 'Pix' && this.pixAutomatico()) {
-      this.erro.set('Com o Pix automático, gere o QR e espere o aviso do Mercado Pago (ou use "Confirmar o Pix manualmente").');
+      this.erro.set(`Com o Pix automático, gere o QR e espere o aviso do ${this.nomePix()} (ou use "Confirmar o Pix manualmente").`);
       return;
     }
     if (this.formaAtual() !== 'Dinheiro' && valor > this.falta()) {

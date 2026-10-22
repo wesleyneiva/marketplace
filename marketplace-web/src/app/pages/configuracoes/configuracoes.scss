@@ -150,10 +150,19 @@ kbd { font-size: 12px; padding: 1px 5px; border: 1px solid var(--cor-borda); bor
   label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 600; color: var(--cor-texto-suave); }
   label small { font-weight: 400; }
   label.largo { flex: 1 1 240px; }
+  label.marcar-linha { flex-direction: row; width: 100%; font-size: 13px; color: var(--cor-texto); }
   .acoes-pix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; width: 100%; }
 }
 .pix-atual { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 8px 0 0; app-icone { color: var(--cor-primaria); } }
 .pix-auto { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--cor-borda); h3 { margin: 0 0 6px; font-size: 15px; display: flex; align-items: center; gap: 6px; } }
+.provedores { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;
+  label { flex: 1 1 240px; display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--cor-borda);
+    border-radius: 10px; cursor: pointer; background: var(--cor-superficie); }
+  label.marcado { border-color: var(--cor-primaria); background: var(--cor-verde-fundo); }
+  input { margin-top: 3px; }
+  span { display: flex; flex-direction: column; gap: 2px; }
+  small { color: var(--cor-texto-suave); font-size: 12.5px; }
+}
 .selo-teste { padding: 2px 8px; border-radius: 10px; background: var(--cor-alerta-fundo-forte); color: var(--cor-alerta); font-size: 12px; font-weight: 600; }
 .aviso-url { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 8px; font-size: 13px;
   code { padding: 4px 8px; border-radius: 6px; background: var(--cor-fundo); border: 1px solid var(--cor-borda); overflow-wrap: anywhere; }

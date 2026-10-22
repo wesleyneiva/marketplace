@@ -46,12 +46,20 @@ public class Empresa
     public string? PixNomeRecebedor { get; set; }   // como aparece para o cliente no app do banco (até 25 letras)
 
     // Pix AUTOMÁTICO: o provedor avisa o Marcus que o Pix caiu (ver Models/PixAutomatico.cs). Vazio = Pix manual (QR da chave acima).
-    public string? PixAutomatico { get; set; }               // "MercadoPago"
+    public string? PixAutomatico { get; set; }               // "MercadoPago" ou "BancoDoBrasil" (ProvedoresPix)
     public string? MercadoPagoToken { get; set; }            // Access Token CRIPTOGRAFADO (DataProtection); nunca volta para a tela
     public string? MercadoPagoTokenFinal { get; set; }       // só os 4 últimos caracteres, para a tela mostrar "••••1234"
     public string? MercadoPagoConta { get; set; }            // apelido/e-mail da conta, conferido ao salvar
     public bool MercadoPagoTeste { get; set; }               // credenciais de teste: o Pix de teste é aprovado sozinho
     public string? PixAvisoToken { get; set; }               // segredo do endereço do aviso (webhook) desta loja
+
+    // Pix automático pelo BANCO da loja (API Pix do Banco Central; hoje o Banco do Brasil). O dinheiro cai direto na conta
+    // da loja, na chave Pix cadastrada acima (que precisa ser dessa conta). Ver Services/Pix/PixBancoCentral.cs.
+    public string? PixBancoClientId { get; set; }            // client_id da aplicação no portal do banco
+    public string? PixBancoSegredos { get; set; }            // client_secret + chave do desenvolvedor, CRIPTOGRAFADOS (DataProtection)
+    public string? PixBancoCertificado { get; set; }         // certificado digital .pfx + senha, CRIPTOGRAFADOS (produção do BB exige)
+    public string? PixBancoCertificadoInfo { get; set; }     // para a tela: "EMPRESA LTDA:12345678000190 · vence 10/2027"
+    public bool PixBancoTeste { get; set; }                  // ambiente de testes (homologação) do banco: sem dinheiro de verdade
 
     // DRE: alíquota EFETIVA do Simples Nacional (% do faturamento), informada pelo contador. 0 = ainda não informada
     // (a DRE usa os DAS lançados no mês e avisa). Ex.: 7,3 = 7,3% das vendas do mês.

@@ -54,7 +54,7 @@ export interface Cupom {
   valorPago: number;
   troco: number;
   itens: { produtoId: number; descricao: string; unidade: string; quantidade: number; precoUnitario: number; total: number }[];
-  // pixConfirmado: Pix automático (Mercado Pago). vale*: vale-troca usado (código, saldo que ficou e validade, para o cupom).
+  // pixConfirmado: Pix automático (Mercado Pago ou banco). vale*: vale-troca usado (código, saldo que ficou e validade, para o cupom).
   pagamentos: { forma: FormaPagamento; valor: number; pixConfirmado?: boolean; valeCodigo?: string | null; valeSaldo?: number | null; valeValidade?: string | null; parcelas?: number }[];
   vendedor?: string | null; // quem atendeu
   motivoCancelamento: string | null;
@@ -119,7 +119,7 @@ export interface VendaLista {
   quantidadeItens: number;
   total: number;
   formas: string;            // "Dinheiro + Pix"
-  pixConfirmado: boolean;    // tem Pix confirmado pelo Mercado Pago
+  pixConfirmado: boolean;    // tem Pix confirmado automaticamente (Mercado Pago ou banco)
   origem: 'Caixa' | 'Simulador' | 'Historico';
   offline: boolean;          // feita sem internet e enviada depois
   precoDivergente: boolean;  // offline com preço diferente do cadastro na hora em que chegou
@@ -143,7 +143,7 @@ export interface EstornoPrevia {
   bloqueio: string | null;
   caixaAberto: boolean;
   precisaAutorizacao: boolean;
-  formas: { forma: FormaPagamento; valor: number; como: string; pixAutomatico: boolean }[];
+  formas: { forma: FormaPagamento; valor: number; como: string; pixAutomatico: boolean; pixPor: string | null }[];
   aviso: string | null;
 }
 

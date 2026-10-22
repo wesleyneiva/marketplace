@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text.Json;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 using Marketplace.Api.Seguranca;
@@ -7,15 +9,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services.Pix;
 
-// Pix automático pelo Mercado Pago: cria a cobrança (QR único com o valor), acompanha até ser paga e recebe o aviso.
-// REGRA DE SEGURANÇA: o Marcus só considera um Pix pago depois de PERGUNTAR ao Mercado Pago, com o token da loja,
+// Pix automático: cria a cobrança (QR único com o valor), acompanha até ser paga e recebe o aviso. O provedor é o
+// Mercado Pago ou o BANCO da loja (API Pix do Banco Central, ver PixBancoCentral) — o resto (caixa, venda, devolução)
+// é igual para os dois. Cada cobrança guarda o seu provedor: trocar de provedor não atrapalha um Pix já gerado.
+// REGRA DE SEGURANÇA: o Marcus só considera um Pix pago depois de PERGUNTAR ao provedor, com as credenciais da loja,
 // e conferir valor e referência. O aviso (webhook) só diz "olhe o pagamento X" — nunca é tomado como prova.
-public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, MercadoPago mp, IDataProtectionProvider protecao,
-    IConfiguration config, ILogger<PixAutomaticoService> log)
+public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, MercadoPago mp, PixBancoCentral banco,
+    IDataProtectionProvider protecao, IConfiguration config, ILogger<PixAutomaticoService> log)
 {
     public static readonly TimeSpan Validade = TimeSpan.FromMinutes(30); // mínimo do Mercado Pago (API de Orders)
     private static readonly TimeSpan IntervaloConsulta = TimeSpan.FromSeconds(3);
     private IDataProtector Cofre => protecao.CreateProtector("Marcus.PixAutomatico.MercadoPago.v1");
+    private IDataProtector CofreBanco => protecao.CreateProtector("Marcus.PixAutomatico.Banco.v1");
 
     // ================================================================ configuração (Configurações → Pix da loja)
 
@@ -25,6 +30,7 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         if (token.Length < 20 || token.Contains(' ')) throw new PixException("Cole o Access Token inteiro (começa com APP_USR- ou TEST-).");
         var conta = await mp.ContaAsync(token); // confere o token antes de guardar
         var e = await db.Empresas.FirstAsync(x => x.Id == contexto.EmpresaId);
+        LimparBanco(e);
         e.PixAutomatico = ProvedoresPix.MercadoPago;
         e.MercadoPagoToken = Cofre.Protect(token);
         e.MercadoPagoTokenFinal = token[^4..];
@@ -35,13 +41,58 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         return e;
     }
 
-    public async Task<Empresa> DesligarAsync()
+    // Banco da loja (hoje o Banco do Brasil): confere o login e uma consulta no banco antes de guardar. O QR sai na chave
+    // Pix já cadastrada da loja, que precisa ser DESSA conta. Certificado (.pfx): a produção do BB exige.
+    public async Task<Empresa> LigarBancoAsync(string codigoBanco, string clientId, string clientSecret, string? chaveApp, bool teste,
+        byte[]? pfx, string? senhaPfx)
     {
+        var perfil = PixBancoCentral.PerfilDe(codigoBanco) ?? throw new PixException("Banco não atendido pelo Pix automático.");
+        (clientId, clientSecret, chaveApp) = (clientId.Trim(), clientSecret.Trim(), string.IsNullOrWhiteSpace(chaveApp) ? null : chaveApp.Trim());
+        if (clientId.Length < 8 || clientSecret.Length < 8 || clientId.Contains(' ') || clientSecret.Contains(' '))
+            throw new PixException("Cole o client_id e o client_secret inteiros (do portal do banco, sem espaços).");
         var e = await db.Empresas.FirstAsync(x => x.Id == contexto.EmpresaId);
-        (e.PixAutomatico, e.MercadoPagoToken, e.MercadoPagoTokenFinal, e.MercadoPagoConta, e.MercadoPagoTeste) = (null, null, null, null, false);
+        if (string.IsNullOrEmpty(e.PixChave))
+            throw new PixException($"Cadastre antes a chave Pix da loja (acima). Ela precisa ser da conta no {perfil.Nome}: é nela que o dinheiro cai.");
+
+        string? info = null;
+        if (pfx is { Length: > 20_000 }) throw new PixException("Esse arquivo é grande demais para um certificado .pfx (o A1 tem poucos KB).");
+        if (pfx is not null)
+        {
+            using var cert = PixBancoCentral.AbrirCertificado(pfx, senhaPfx);
+            if (cert.NotAfter < DateTime.Now) throw new PixException($"Este certificado venceu em {cert.NotAfter:dd/MM/yyyy}.");
+            info = Cortar($"{cert.GetNameInfo(X509NameType.SimpleName, false)} · vence {cert.NotAfter:dd/MM/yyyy}", 200);
+        }
+        var cred = new PixBancoCentral.Credenciais(clientId, clientSecret, chaveApp, teste, pfx, senhaPfx);
+        await banco.TestarAsync(perfil, cred);
+
+        LimparMercadoPago(e);
+        e.PixAutomatico = perfil.Codigo;
+        e.PixBancoClientId = clientId;
+        e.PixBancoSegredos = CofreBanco.Protect(JsonSerializer.Serialize(new SegredosBanco(clientSecret, chaveApp)));
+        e.PixBancoCertificado = pfx is null ? null : CofreBanco.Protect(JsonSerializer.Serialize(new CertificadoBanco(Convert.ToBase64String(pfx), senhaPfx)));
+        e.PixBancoCertificadoInfo = info;
+        e.PixBancoTeste = teste;
         await db.SaveChangesAsync();
         return e;
     }
+
+    private sealed record SegredosBanco(string ClientSecret, string? ChaveApp);
+    private sealed record CertificadoBanco(string Pfx, string? Senha);
+
+    public async Task<Empresa> DesligarAsync()
+    {
+        var e = await db.Empresas.FirstAsync(x => x.Id == contexto.EmpresaId);
+        e.PixAutomatico = null;
+        LimparMercadoPago(e);
+        LimparBanco(e);
+        await db.SaveChangesAsync();
+        return e;
+    }
+
+    private static void LimparMercadoPago(Empresa e) =>
+        (e.MercadoPagoToken, e.MercadoPagoTokenFinal, e.MercadoPagoConta, e.MercadoPagoTeste) = (null, null, null, false);
+    private static void LimparBanco(Empresa e) =>
+        (e.PixBancoClientId, e.PixBancoSegredos, e.PixBancoCertificado, e.PixBancoCertificadoInfo, e.PixBancoTeste) = (null, null, null, null, false);
 
     // ================================================================ cobrança no caixa
 
@@ -50,13 +101,22 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         valor = Math.Round(valor, 2);
         if (valor < 0.01m || valor > 999_999.99m) throw new PixException("Valor do Pix inválido.");
         var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == contexto.EmpresaId);
-        var token = Token(e);
+        if (e.PixAutomatico is null) throw new PixException("O Pix automático não está ligado: o administrador liga em Configurações → Pix da loja.");
         if (sessaoCaixaId is int s && !await db.SessoesCaixa.AnyAsync(x => x.Id == s)) throw new PixException("Caixa não encontrado.");
 
-        var c = new CobrancaPix { Valor = valor, ExpiraEm = DateTimeOffset.UtcNow + Validade, SessaoCaixaId = sessaoCaixaId, CriadaPorId = usuarioId };
-        var pg = await mp.CriarPixAsync(token, valor, Cortar($"{e.Nome} · compra no caixa", 120), c.Referencia, Validade,
-            e.EmailContato is { Length: > 3 } em && em.Contains('@') ? em : "cliente.pix@wnlabs.com.br", e.MercadoPagoTeste);
-        if (string.IsNullOrEmpty(pg.CopiaECola)) throw new PixException("O Mercado Pago não devolveu o QR Code. Confira se a conta tem uma chave Pix cadastrada.");
+        var c = new CobrancaPix { Provedor = e.PixAutomatico, Valor = valor, ExpiraEm = DateTimeOffset.UtcNow + Validade, SessaoCaixaId = sessaoCaixaId, CriadaPorId = usuarioId };
+        var descricao = Cortar($"{e.Nome} · compra no caixa", 120);
+        PagamentoPix pg;
+        if (PixBancoCentral.PerfilDe(e.PixAutomatico) is { } perfil)
+        {
+            if (string.IsNullOrEmpty(e.PixChave)) throw new PixException("A loja está sem chave Pix: cadastre em Configurações → Pix da loja.");
+            pg = await banco.CriarAsync(perfil, CredenciaisBanco(e), e.PixChave, valor, descricao, c.Referencia, Validade);
+        }
+        else
+            pg = await mp.CriarPixAsync(Token(e), valor, descricao, c.Referencia, Validade,
+                e.EmailContato is { Length: > 3 } em && em.Contains('@') ? em : "cliente.pix@wnlabs.com.br", e.MercadoPagoTeste);
+        if (string.IsNullOrEmpty(pg.CopiaECola))
+            throw new PixException($"O {ProvedoresPix.Nome(c.Provedor)} não devolveu o QR Code. Confira se a conta tem uma chave Pix cadastrada.");
         c.IdExterno = pg.Id;
         c.CopiaECola = pg.CopiaECola;
         c.StatusExterno = pg.Status;
@@ -85,9 +145,11 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
             try
             {
                 var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == contexto.EmpresaId);
-                Aplicar(c, await mp.CancelarAsync(Token(e), c.IdExterno));
+                Aplicar(c, PixBancoCentral.PerfilDe(c.Provedor) is { } perfil
+                    ? await banco.CancelarAsync(perfil, CredenciaisBanco(e), c.IdExterno)
+                    : await mp.CancelarAsync(Token(e), c.IdExterno));
             }
-            catch (MercadoPagoException ex) { log.LogWarning("Cancelar Pix {Id}: {Erro}", c.Id, ex.Message); }
+            catch (Exception ex) when (ex is ProvedorPixException or PixException) { log.LogWarning("Cancelar Pix {Id}: {Erro}", c.Id, ex.Message); }
             if (c.Status == StatusCobrancaPix.Pendente) c.Status = StatusCobrancaPix.Cancelada; // o QR expira sozinho de qualquer jeito
         }
         await db.SaveChangesAsync();
@@ -105,16 +167,24 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
             .OrderBy(c => c.PagaEm).ToListAsync();
     }
 
-    // Estorno: o Mercado Pago devolve o Pix inteiro ao cliente (o dinheiro sai da conta da loja). Quem chama grava.
+    // Estorno: o provedor devolve o Pix inteiro ao cliente (o dinheiro sai da conta da loja). Quem chama grava.
+    // A chave da devolução é fixa por cobrança: se a rede cair e tentar de novo, não devolve duas vezes.
     public async Task DevolverAsync(CobrancaPix c)
     {
         if (c.Status == StatusCobrancaPix.Devolvida) return;
         if (c.Status != StatusCobrancaPix.Paga || c.IdExterno is null) throw new PixException("Este Pix não está pago: não há o que devolver.");
         var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == c.EmpresaId);
-        MercadoPago.Pagamento pg;
-        try { pg = await mp.DevolverAsync(Token(e), c.IdExterno, $"estorno-{c.Referencia}"); }
-        catch (MercadoPagoException ex) { throw new PixException($"O Mercado Pago não devolveu o Pix: {ex.Message}"); }
-        c.StatusExterno = Cortar(pg.Status, 30);
+        try
+        {
+            if (PixBancoCentral.PerfilDe(c.Provedor) is { } perfil)
+            {
+                if (c.EndToEndId is null) throw new PixException("Falta o número do Pix recebido (E2E) para devolver: devolva pelo app do banco.");
+                await banco.DevolverAsync(perfil, CredenciaisBanco(e), c.EndToEndId, "D" + PixBancoCentral.Txid(c.Referencia), c.Valor);
+                c.StatusExterno = "refunded";
+            }
+            else c.StatusExterno = Cortar((await mp.DevolverAsync(Token(e), c.IdExterno, $"estorno-{c.Referencia}")).Status, 30);
+        }
+        catch (ProvedorPixException ex) { throw new PixException($"O {ProvedoresPix.Nome(c.Provedor)} não devolveu o Pix: {ex.Message}"); }
         c.Status = StatusCobrancaPix.Devolvida;
         c.DevolvidaEm = DateTimeOffset.UtcNow;
     }
@@ -144,9 +214,11 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         try
         {
             var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == c.EmpresaId);
-            Aplicar(c, await mp.ConsultarAsync(Token(e), c.IdExterno));
+            Aplicar(c, PixBancoCentral.PerfilDe(c.Provedor) is { } perfil
+                ? await banco.ConsultarAsync(perfil, CredenciaisBanco(e), c.IdExterno)
+                : await mp.ConsultarAsync(Token(e), c.IdExterno));
         }
-        catch (Exception ex) when (ex is MercadoPagoException or PixException)
+        catch (Exception ex) when (ex is ProvedorPixException or PixException)
         {
             log.LogWarning("Consultar Pix {Id}: {Erro}", c.Id, ex.Message); // tenta de novo na próxima consulta
         }
@@ -154,8 +226,8 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         await db.SaveChangesAsync();
     }
 
-    // O que o Mercado Pago disse → situação da cobrança. "Aprovado" só vale com o MESMO valor e a MESMA referência.
-    private void Aplicar(CobrancaPix c, MercadoPago.Pagamento pg)
+    // O que o provedor disse → situação da cobrança. "Aprovado" só vale com o MESMO valor e a MESMA referência.
+    private void Aplicar(CobrancaPix c, PagamentoPix pg)
     {
         c.StatusExterno = Cortar(pg.Status, 30);
         switch (pg.Status)
@@ -163,10 +235,11 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
             case "approved":
                 if (pg.Referencia != c.Referencia.ToString() || Math.Abs(pg.Valor - c.Valor) >= 0.005m)
                 {
-                    log.LogError("Pix {Id}: Mercado Pago aprovou com dados diferentes (ref {Ref}, valor {Valor}).", c.Id, pg.Referencia, pg.Valor);
+                    log.LogError("Pix {Id}: {Provedor} aprovou com dados diferentes (ref {Ref}, valor {Valor}).", c.Id, c.Provedor, pg.Referencia, pg.Valor);
                     return;
                 }
                 c.Status = StatusCobrancaPix.Paga;
+                c.EndToEndId ??= pg.EndToEndId;
                 c.PagaEm = (pg.AprovadoEm ?? DateTimeOffset.UtcNow).ToUniversalTime(); // o banco guarda em UTC (o Mercado Pago manda -03:00/-04:00)
                 break;
             case "refunded":
@@ -185,15 +258,29 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
     private string Token(Empresa e)
     {
         if (e.PixAutomatico != ProvedoresPix.MercadoPago || string.IsNullOrEmpty(e.MercadoPagoToken))
-            throw new PixException("O Pix automático não está ligado: o administrador liga em Configurações → Pix da loja.");
+            throw new PixException("O Pix automático pelo Mercado Pago não está ligado: o administrador liga em Configurações → Pix da loja.");
         try { return Cofre.Unprotect(e.MercadoPagoToken); }
         catch (CryptographicException) { throw new PixException("Não foi possível ler o token do Mercado Pago: cole-o de novo em Configurações → Pix da loja."); }
+    }
+
+    private PixBancoCentral.Credenciais CredenciaisBanco(Empresa e)
+    {
+        if (!ProvedoresPix.EhBanco(e.PixAutomatico) || e.PixBancoClientId is null || e.PixBancoSegredos is null)
+            throw new PixException("O Pix automático pelo banco não está ligado: o administrador liga em Configurações → Pix da loja.");
+        try
+        {
+            var s = JsonSerializer.Deserialize<SegredosBanco>(CofreBanco.Unprotect(e.PixBancoSegredos))!;
+            var cert = e.PixBancoCertificado is null ? null : JsonSerializer.Deserialize<CertificadoBanco>(CofreBanco.Unprotect(e.PixBancoCertificado));
+            return new PixBancoCentral.Credenciais(e.PixBancoClientId, s.ClientSecret, s.ChaveApp, e.PixBancoTeste,
+                cert is null ? null : Convert.FromBase64String(cert.Pfx), cert?.Senha);
+        }
+        catch (CryptographicException) { throw new PixException("Não foi possível ler as credenciais do banco: cadastre-as de novo em Configurações → Pix da loja."); }
     }
 
     // Endereço do aviso desta loja: o administrador cola no painel do Mercado Pago (Webhooks, evento "Order").
     // Sem ele funciona do mesmo jeito (o caixa pergunta a cada poucos segundos); com ele, o aviso chega na hora.
     public string? AvisoUrl(Empresa e) =>
-        e.PixAvisoToken is null ? null : $"https://{config["Publico:HostClientes"] ?? "app.wnlabs.com.br"}/api/pix/mercadopago/aviso/{e.PixAvisoToken}";
+        e.PixAvisoToken is null || e.PixAutomatico != ProvedoresPix.MercadoPago ? null : $"https://{config["Publico:HostClientes"] ?? "app.wnlabs.com.br"}/api/pix/mercadopago/aviso/{e.PixAvisoToken}";
 
     private static string Cortar(string v, int max) => v.Length <= max ? v : v[..max];
 }

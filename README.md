@@ -96,7 +96,7 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   padrão BR Code do Banco Central (`Services/Pix/PixQrCode.cs`: EMV + CRC16, conferido com o exemplo do manual) e é montado no
   servidor a partir da chave cadastrada (`GET /api/empresa/configuracao/pix/qrcode?valor=`; desenho pelo QRCoder). O dinheiro cai
   direto na conta da loja; o caixa confere no celular antes de confirmar e a conferência fica pelo extrato OFX. Confirmação
-  automática: ver Pix automático (Mercado Pago).
+  automática: ver Pix automático (Mercado Pago ou direto no banco).
 - **Pix automático (Mercado Pago)** (Configurações → Pix da loja → Confirmação automática) — o administrador cola o Access
   Token da aplicação do Mercado Pago (conferido em `/users/me` e guardado CRIPTOGRAFADO com DataProtection; a tela só mostra o
   final). No caixa, ao escolher Pix: "Gerar QR do Pix" cria uma `CobrancaPix` no Mercado Pago pela API de Orders (`POST /v1/orders`, pix,
@@ -110,6 +110,21 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   cancelada) aparece no caixa como "já recebido e sem venda" para usar. Sem aviso (internet), o caixa pode confirmar manualmente.
   Teste local sem conta: `~/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py` (launch "mp-simulador") com o
   segredo de desenvolvimento `MercadoPago:Url=http://127.0.0.1:5399`.
+- **Pix automático direto no banco da loja (Banco do Brasil)** (Configurações → Pix da loja → Confirmação automática →
+  "Direto no Banco do Brasil") — o mesmo Pix automático, mas o dinheiro cai **na conta PJ da loja**, sem o Mercado Pago no meio.
+  `Services/Pix/PixBancoCentral.cs` fala a **API Pix padrão do Banco Central** (`PUT/GET/PATCH /cob/{txid}`,
+  `PUT /pix/{e2eid}/devolucao/{id}`, `GET /cob?inicio&fim` para conferir ao ligar), com o que muda por banco num `Perfil`
+  (BB: `oauth.hm.bb.com.br`/`api.hm.bb.com.br/pix/v2` nos testes, `oauth.bb.com.br`/`api-pix.bb.com.br/pix/v2` na produção, login
+  Basic client_credentials, chave do desenvolvedor na URL `?gw-dev-app-key=`, QR em `pixCopiaECola` ou `textoImagemQRcode`).
+  Outro banco (Sicredi, Itaú, Inter…) = outro `Perfil`. txid = a `Referencia` da cobrança (32 letras); a devolução usa o E2E
+  guardado (`CobrancaPix.EndToEndId`) e o id fixo `D<txid>` (não devolve duas vezes). A loja cadastra client_id, client_secret,
+  chave do desenvolvedor, "ambiente de testes" e, na produção, o **certificado digital A1 (.pfx) + senha** (mTLS; abre e mostra
+  "nome · vence dd/mm/aaaa" antes de ligar); tudo CRIPTOGRAFADO (DataProtection). O QR sai na **chave Pix da loja** (tem que ser
+  dessa conta). **Sem aviso (webhook)**: o padrão exige mTLS do nosso lado, que o túnel da Cloudflare não repassa; o caixa
+  pergunta a cada 3 s (token do banco guardado até 1 min antes de vencer). Cada cobrança guarda o seu provedor (`Provedor`):
+  trocar de provedor não atrapalha Pix já gerado. Caixa, aviso "Pix recebido!", estorno ("Devolver ao cliente pelo Banco do
+  Brasil agora") e cupom mostram o provedor certo. Teste local sem conta: `~/projetos/marketplace-testes/pix-automatico/simulador-bb.py`
+  (launch "bb-simulador", porta 5398; client_id começando com "SIMULADOR"; valor terminado em ,13 nunca é pago).
 - **Conciliação bancária (extrato OFX)** (Financeiro → Extrato do banco) — o cliente baixa o extrato no internet banking
   (formato OFX, que todo banco gera: Bradesco, Caixa, BB, Itaú, Sicredi…) e envia. `Services/Conciliacao/LeitorOfx.cs` lê
   OFX 1.x (SGML, tags sem fechar) e 2.x (XML), Latin-1 ou UTF-8, valor com ponto ou vírgula; a conta é achada pelo número
@@ -246,6 +261,19 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (online, o servidor cobra o preço atual do cadastro).
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### 22/10/2026 (mais recente) — Pix automático direto no Banco do Brasil (pronto para o 1º cliente BB)
+- Pedido do usuário: um possível cliente tem o BB como conta PJ principal; deixar pronto "caso algum cliente precise", sem
+  esperar o cliente. Montado pela **API Pix padrão do Banco Central** (vale para outros bancos depois) com o perfil do BB (ver
+  Funcionalidades → "Pix automático direto no banco da loja"). Migration `PixPeloBanco` (colunas novas na Empresa e
+  `EndToEndId` na cobrança; nada muda para quem usa o Mercado Pago). Rotas: `PUT /api/pix/banco`, `DELETE /api/pix/automatico`
+  (o antigo `/mercado-pago` continua).
+- **Testado no dev com o simulador do BB**: credencial errada e falta da chave do desenvolvedor recusadas com mensagem clara;
+  ligar pela tela; no caixa "Gerar QR" → "Pix recebido! Confirmado pelo Banco do Brasil" → venda registrada sozinha; cancelar a
+  venda → "Devolver ao cliente pelo Banco do Brasil agora" → devolvido; cancelar Pix não pago; modo produção com certificado
+  .pfx de teste (senha errada recusada; "nome · vence"); desligar. Mercado Pago testado de novo depois (continua igual).
+- **Não testado com o BB de verdade** (falta conta/aplicação no portal): ver Pendências → "Pix pelo BB".
+- Ajuste visual: a caixinha "São credenciais de teste" (e a do BB) ficava em cima do texto no formulário do Pix.
 
 ### 22/10/2026 (fim da noite) — restaurar uma loja só e as duas nuvens na área do dono
 - **Restaurar UMA loja** (`infra/restaurar-loja.sh`; `docs/plano-de-desastre.md` → Situação A): o backup continua sendo do
@@ -541,6 +569,13 @@ Detalhes técnicos em Funcionalidades.
   iguais à produção). Ver Rodando → Backup.
 
 Pendências:
+- (22/10) **Pix pelo BB, conferir com o BB de verdade** antes do 1º cliente (montado pelo padrão + notas de integradores, porque
+  a documentação do portal developers.bb.com.br só abre logado): (1) criar uma aplicação no portal (o usuário tem conta salário
+  no BB e ia tentar o cadastro em 22/10) e testar no **ambiente de testes** com "Ambiente de testes do BB" marcado; (2) conferir
+  os escopos (`cob.write cob.read pix.write pix.read`), se o QR vem em `pixCopiaECola` ou `textoImagemQRcode`, e se a produção
+  usa `gw-dev-app-key` ou `gw-app-key` (dá para trocar sem código: `PixBanco:BancoDoBrasil:ParamChaveProducao`); (3) na
+  produção, com o cliente: aplicação dele no portal, API Pix liberada pelo gerente, certificado A1 cadastrado no portal e
+  tarifa do Pix recebido no pacote PJ dele. Credenciais nunca no chat: ele cola na tela (Configurações → Pix da loja).
 - **Vídeo** (`~/projetos/marketplace-video`): tirar o Telegram — só quando o usuário pedir.
 - Backup da nuvem cobre só Marcus + n8n: **decidido em 20/10 não incluir** o assistente do Telegram e os outros serviços da VM
   (se a VM sumir, eles se reinstalam do zero).
@@ -582,7 +617,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (mais recente), 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -601,8 +636,8 @@ Pendências:
   Histórico de loja de esporte: `./gerar-historico-loja.sh --empresa N --de AAAA-MM-DD --ate AAAA-MM-DD` (só dias sem venda);
   da demonstração: `./gerar-historico.sh`.
   O usuário autorizou commit, push e publicar sem perguntar.
-- **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` do simulador), `web-dev` (4200),
-  `mp-simulador` (5399, com devolução `/refund`). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
+- **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` e `PixBanco__BancoDoBrasil__*` dos
+  simuladores), `web-dev` (4200), `mp-simulador` (5399, com devolução `/refund`), `bb-simulador` (5398, API Pix do BB). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
   usuários admin/gerente/caixa (e o dono de teste) em `~/projetos/marketplace-testes/vendas/usuarios-teste.txt`.
@@ -621,7 +656,9 @@ Pendências:
   Oficina, Compras). Próximo passo provável: ajustes que ele achar nessa análise.
 - Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); envio automático do pedido ao fornecedor;
   acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
-  (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago.
+  (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago; Pix pelo BB no ambiente de testes do BB
+  (quando o usuário tiver a aplicação no portal); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
+  NSU/bandeira/autorização — prepara a NFC-e).
 
 ## Stack (conferida em 20/10/2026)
 Resumo: **Angular + ASP.NET Core (.NET 10) + PostgreSQL 18**, num Ubuntu ARM na Oracle, publicado pelo **Cloudflare Tunnel**,

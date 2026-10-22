@@ -110,11 +110,11 @@
     }
 
     <div class="pix-auto">
-      <h3><app-icone nome="refresh-cw" /> Confirmação automática (Mercado Pago)</h3>
+      <h3><app-icone nome="refresh-cw" /> Confirmação automática do Pix</h3>
       @if (c.pixAutomatico === 'MercadoPago') {
-        <p class="pix-atual"><app-icone nome="circle-check" /> <b>Ligada</b> na conta {{ c.mercadoPagoConta }} · token ••••{{ c.mercadoPagoTokenFinal }}
+        <p class="pix-atual"><app-icone nome="circle-check" /> <b>Ligada pelo Mercado Pago</b> na conta {{ c.mercadoPagoConta }} · token ••••{{ c.mercadoPagoTokenFinal }}
           @if (c.mercadoPagoTeste) { <span class="selo-teste">modo teste</span> }
-          @if (ehAdmin()) { <button type="button" class="botao pequeno" (click)="desligarMercadoPago()">Desligar</button> }
+          @if (ehAdmin()) { <button type="button" class="botao pequeno" (click)="desligarAutomatico(c.pixAutomaticoNome)">Desligar</button> }
         </p>
         <p class="dica">No caixa, ao escolher Pix, o Marcus gera no Mercado Pago um QR único com o valor. Quando o cliente paga,
           o Mercado Pago avisa e o caixa mostra <b>"Pix recebido"</b> sozinho — ninguém precisa olhar o celular.
@@ -129,23 +129,75 @@
               e marque o evento <b>Order</b>. Sem isso também funciona: o caixa pergunta ao Mercado Pago a cada poucos segundos.</small>
           </div>
         }
+      } @else if (c.pixAutomatico) {
+        <p class="pix-atual"><app-icone nome="circle-check" /> <b>Ligada direto no {{ c.pixAutomaticoNome }}</b> · aplicação ••••{{ c.pixBancoClientIdFinal }}
+          @if (c.pixBancoTeste) { <span class="selo-teste">ambiente de testes</span> }
+          @if (ehAdmin()) { <button type="button" class="botao pequeno" (click)="desligarAutomatico(c.pixAutomaticoNome)">Desligar</button> }
+        </p>
+        <p class="dica">No caixa, ao escolher Pix, o Marcus gera no {{ c.pixAutomaticoNome }} um QR único com o valor, na chave Pix da loja
+          (acima). O dinheiro cai <b>direto na conta</b>, sem intermediário; o caixa pergunta ao banco a cada poucos segundos e
+          mostra <b>"Pix recebido"</b> sozinho. Cancelar a venda devolve o Pix ao cliente pelo próprio banco.
+          <br />Certificado digital: {{ c.pixBancoCertificado ?? 'nenhum (o ambiente de testes não pede; a produção do banco exige)' }}.
+          @if (c.pixBancoTeste) { <br />Ambiente de testes do banco: nenhum dinheiro de verdade. Para receber de verdade, ligue de novo com as credenciais de produção e o certificado. }
+        </p>
       } @else {
-        <p class="dica">Com o Mercado Pago, o caixa é avisado sozinho quando o Pix cai (sem conferir no celular). Cole aqui o
-          <b>Access Token</b> da aplicação do Mercado Pago (Suas integrações → a aplicação → Credenciais). Ele fica guardado
-          criptografado e não aparece de novo.</p>
-        @if (ehAdmin()) {
-          <form class="pix-form" (ngSubmit)="ligarMercadoPago()">
-            <label class="largo">Access Token do Mercado Pago
-              <input name="mpToken" type="password" [(ngModel)]="mpToken" autocomplete="off" placeholder="APP_USR-…" required />
-            </label>
-            <label class="marcar-linha"><input type="checkbox" name="mpTeste" [(ngModel)]="mpTeste" /> São credenciais de teste</label>
-            <div class="acoes-pix">
-              <button type="submit" class="botao primario" [disabled]="salvandoMp() || mpToken.trim().length < 20">{{ salvandoMp() ? 'Conferindo no Mercado Pago…' : 'Ligar Pix automático' }}</button>
-            </div>
-          </form>
+        <p class="dica">Com a confirmação automática, o caixa é avisado sozinho quando o Pix cai (sem conferir no celular). Escolha por onde:</p>
+        <div class="provedores" role="radiogroup" aria-label="Por onde confirmar o Pix">
+          <label [class.marcado]="provedorPix() === 'MercadoPago'"><input type="radio" name="provedorPix" [checked]="provedorPix() === 'MercadoPago'" (change)="provedorPix.set('MercadoPago'); avisoMp.set(null)" />
+            <span><b>Mercado Pago</b><small>O dinheiro cai na conta do Mercado Pago (que cobra a taxa dele).</small></span></label>
+          <label [class.marcado]="provedorPix() === 'BancoDoBrasil'"><input type="radio" name="provedorPix" [checked]="provedorPix() === 'BancoDoBrasil'" (change)="provedorPix.set('BancoDoBrasil'); avisoMp.set(null)" />
+            <span><b>Direto no Banco do Brasil</b><small>O dinheiro cai na conta PJ da loja no BB, sem intermediário.</small></span></label>
+        </div>
+        @if (provedorPix() === 'MercadoPago') {
+          <p class="dica">Cole aqui o <b>Access Token</b> da aplicação do Mercado Pago (Suas integrações → a aplicação → Credenciais). Ele fica guardado
+            criptografado e não aparece de novo.</p>
+          @if (ehAdmin()) {
+            <form class="pix-form" (ngSubmit)="ligarMercadoPago()">
+              <label class="largo">Access Token do Mercado Pago
+                <input name="mpToken" type="password" [(ngModel)]="mpToken" autocomplete="off" placeholder="APP_USR-…" required />
+              </label>
+              <label class="marcar-linha"><input type="checkbox" name="mpTeste" [(ngModel)]="mpTeste" /> São credenciais de teste</label>
+              <div class="acoes-pix">
+                <button type="submit" class="botao primario" [disabled]="salvandoMp() || mpToken.trim().length < 20">{{ salvandoMp() ? 'Conferindo no Mercado Pago…' : 'Ligar Pix automático' }}</button>
+                @if (avisoMp(); as a) { <span class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</span> }
+              </div>
+            </form>
+          }
+        } @else {
+          <p class="dica">O que a loja precisa: <b>conta PJ no Banco do Brasil</b> e uma <b>aplicação no portal developers.bb.com.br</b> com a
+            <b>API Pix</b> liberada (o gerente da conta ajuda). A <b>chave Pix da loja</b>, cadastrada acima, precisa ser dessa conta.
+            Os dados abaixo saem da aplicação no portal e ficam guardados criptografados.</p>
+          @if (!c.pixChave) { <p class="dica txt-erro">Cadastre antes a chave Pix da loja (acima): é nela que o dinheiro cai.</p> }
+          @if (ehAdmin()) {
+            <form class="pix-form" (ngSubmit)="ligarBanco()">
+              <label class="largo">Client ID
+                <input name="bbClientId" [(ngModel)]="bbClientId" autocomplete="off" spellcheck="false" required />
+              </label>
+              <label class="largo">Client Secret
+                <input name="bbClientSecret" type="password" [(ngModel)]="bbClientSecret" autocomplete="off" required />
+              </label>
+              <label class="largo">Chave do desenvolvedor <small>developer_application_key</small>
+                <input name="bbChaveApp" type="password" [(ngModel)]="bbChaveApp" autocomplete="off" required />
+              </label>
+              <label class="marcar-linha"><input type="checkbox" name="bbTeste" [(ngModel)]="bbTeste" /> Ambiente de testes do BB (homologação, sem dinheiro de verdade)</label>
+              @if (!bbTeste) {
+                <label class="largo">Certificado digital da empresa <small>e-CNPJ A1, arquivo .pfx — a produção do BB exige</small>
+                  <input name="bbPfx" type="file" accept=".pfx,.p12,application/x-pkcs12" (change)="escolherCertificado($event)" />
+                </label>
+                <label class="largo">Senha do certificado
+                  <input name="bbPfxSenha" type="password" [(ngModel)]="bbPfxSenha" autocomplete="off" />
+                </label>
+              }
+              <div class="acoes-pix">
+                <button type="submit" class="botao primario" [disabled]="salvandoMp() || !c.pixChave || bbClientId.trim().length < 8 || bbClientSecret.trim().length < 8 || !bbChaveApp.trim()">
+                  {{ salvandoMp() ? 'Conferindo no Banco do Brasil…' : 'Ligar Pix pelo Banco do Brasil' }}</button>
+                @if (avisoMp(); as a) { <span class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</span> }
+              </div>
+            </form>
+          }
         }
       }
-      @if (avisoMp(); as a) { <p class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</p> }
+      @if (c.pixAutomatico && avisoMp(); as a) { <p class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</p> }
     </div>
   }
 </section>

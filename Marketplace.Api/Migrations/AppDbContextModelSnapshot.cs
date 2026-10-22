@@ -340,6 +340,10 @@ namespace Marketplace.Api.Migrations
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("EndToEndId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<DateTimeOffset>("ExpiraEm")
                         .HasColumnType("timestamp with time zone");
 
@@ -784,6 +788,25 @@ namespace Marketplace.Api.Migrations
                     b.Property<string>("PixAvisoToken")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
+
+                    b.Property<string>("PixBancoCertificado")
+                        .HasMaxLength(40000)
+                        .HasColumnType("character varying(40000)");
+
+                    b.Property<string>("PixBancoCertificadoInfo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PixBancoClientId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("PixBancoSegredos")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<bool>("PixBancoTeste")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("PixChave")
                         .HasMaxLength(77)

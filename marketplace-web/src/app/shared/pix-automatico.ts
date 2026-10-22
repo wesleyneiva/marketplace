@@ -17,8 +17,13 @@ export interface CobrancaPix {
   pagaEm: string | null;
 }
 
-// Pix AUTOMÁTICO (Mercado Pago): gera um QR único com o valor, espera o pagamento e avisa quem usa (o caixa)
-// quando o Mercado Pago confirmar. Quem decide se está pago é o servidor (pergunta ao Mercado Pago).
+// Nome do provedor do Pix automático para o caixa ("MercadoPago" → "Mercado Pago"); igual a ProvedoresPix.Nome.
+export function nomeProvedorPix(codigo: string | null | undefined): string {
+  return codigo === 'MercadoPago' ? 'Mercado Pago' : codigo === 'BancoDoBrasil' ? 'Banco do Brasil' : 'banco';
+}
+
+// Pix AUTOMÁTICO (Mercado Pago ou o banco da loja): gera um QR único com o valor, espera o pagamento e avisa quem usa
+// (o caixa) quando o provedor confirmar. Quem decide se está pago é o servidor (pergunta ao provedor).
 @Component({
   selector: 'app-pix-automatico',
   imports: [Icone, CurrencyPipe],
@@ -28,7 +33,7 @@ export interface CobrancaPix {
         <button type="button" class="botao primario" (click)="gerar()" [disabled]="gerando() || !(valor() > 0)">
           @if (gerando()) { <app-icone nome="loader-circle" girando /> Gerando… } @else { <app-icone nome="qr-code" /> Gerar QR do Pix de {{ valor() | currency: 'BRL' }} }
         </button>
-        <small>O Mercado Pago avisa o caixa quando o cliente pagar.</small>
+        <small>O caixa é avisado sozinho quando o cliente pagar ({{ nome() }}).</small>
       </div>
       @if (erro()) { <p class="erro-pix" role="alert">{{ erro() }}</p> }
     } @else if (cobranca(); as c) {
@@ -49,7 +54,7 @@ export interface CobrancaPix {
                 <button type="button" class="botao pequeno" (click)="cancelar()">Cancelar este Pix</button>
               </div>
             }
-            @case ('Paga') { <span class="recebido">Pix recebido</span><small>Confirmado pelo Mercado Pago.</small> }
+            @case ('Paga') { <span class="recebido">Pix recebido</span><small>Confirmado pelo {{ nome() }}.</small> }
             @case ('Expirada') { <span class="ruim">O QR expirou sem pagamento.</span><button type="button" class="botao pequeno" (click)="recomecar()">Gerar outro</button> }
             @case ('Cancelada') { <span class="ruim">Pix cancelado.</span><button type="button" class="botao pequeno" (click)="recomecar()">Gerar outro</button> }
           }
@@ -81,6 +86,8 @@ export class PixAutomatico {
 
   readonly valor = input.required<number>();
   readonly sessaoCaixaId = input<number | null>(null);
+  readonly provedor = input<string | null>(null); // "MercadoPago" ou "BancoDoBrasil"
+  protected readonly nome = computed(() => nomeProvedorPix(this.provedor()));
   readonly pago = output<CobrancaPix>();
 
   protected readonly cobranca = signal<CobrancaPix | null>(null);
@@ -108,20 +115,20 @@ export class PixAutomatico {
     this.gerando.set(true);
     try {
       const c = await firstValueFrom(this.http.post<CobrancaPix>('/api/pix/cobrancas', { valor: this.valor(), sessaoCaixaId: this.sessaoCaixaId() }));
-      // O SVG vem do próprio servidor (QRCoder a partir do código do Mercado Pago): só quadradinhos.
+      // O SVG vem do próprio servidor (QRCoder a partir do código do provedor): só quadradinhos.
       this.svg.set(this.sanitizer.bypassSecurityTrustHtml(c.svg));
       this.cobranca.set(c);
       this.copiado.set(false);
       this.relogio = setInterval(() => this.agora.set(Date.now()), 1000);
       this.agendar();
     } catch (e) {
-      this.erro.set(mensagem(e, 'Não foi possível gerar o Pix no Mercado Pago.'));
+      this.erro.set(mensagem(e, `Não foi possível gerar o Pix no ${this.nome()}.`));
     } finally {
       this.gerando.set(false);
     }
   }
 
-  // Pergunta a cada 2,5 s (o servidor só vai ao Mercado Pago a cada 3 s, e o aviso do Mercado Pago adianta).
+  // Pergunta a cada 2,5 s (o servidor só vai ao provedor a cada 3 s; o aviso do Mercado Pago adianta).
   private agendar(): void {
     clearTimeout(this.consulta);
     this.consulta = setTimeout(() => void this.consultar(), 2500);

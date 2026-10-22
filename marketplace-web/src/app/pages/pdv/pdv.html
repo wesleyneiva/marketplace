@@ -324,7 +324,7 @@
             }
           </div>
         } @else if (formaAtual() === 'Pix' && pixAutomatico()) {
-          <app-pix-automatico [valor]="valorPix()" [sessaoCaixaId]="caixa()?.sessaoId ?? null" (pago)="pixPago($event)" />
+          <app-pix-automatico [valor]="valorPix()" [sessaoCaixaId]="caixa()?.sessaoId ?? null" [provedor]="pixAutomatico()" (pago)="pixPago($event)" />
           <button type="button" class="link-manual" (click)="pixManual()">O aviso não chegou? Confirmar o Pix manualmente</button>
         } @else if (valorPix() > 0) {
           <app-pix-qrcode [valor]="valorPix()">
@@ -345,7 +345,7 @@
         @for (c of pixConfirmados(); track c.id) {
           <div class="pix-confirmado" role="status">
             <app-icone nome="circle-check" />
-            <span><b>Pix de {{ c.valor | currency: 'BRL' }} recebido</b> · confirmado pelo Mercado Pago{{ c.pagaEm ? ' às ' + (c.pagaEm | date: 'HH:mm') : '' }}</span>
+            <span><b>Pix de {{ c.valor | currency: 'BRL' }} recebido</b> · confirmado pelo {{ nomePix() }}{{ c.pagaEm ? ' às ' + (c.pagaEm | date: 'HH:mm') : '' }}</span>
           </div>
         }
         <ul class="lista-pagamentos">
@@ -367,7 +367,7 @@
   </dialog>
 
   <!-- ======================= CUPOM ======================= -->
-  <!-- Pix confirmado pelo Mercado Pago: aviso grande, fecha sozinho (ou com Enter / clique) -->
+  <!-- Pix confirmado pelo provedor (Mercado Pago ou banco): aviso grande, fecha sozinho (ou com Enter / clique) -->
   <dialog #dlgPixOk class="pix-ok" (click)="fecharAvisoPix()" (keydown.enter)="$event.preventDefault(); $event.stopPropagation(); fecharAvisoPix()"
           (cancel)="$event.preventDefault(); fecharAvisoPix()">
     @if (pixOk(); as a) {
@@ -375,7 +375,7 @@
         <span class="marca"><app-icone nome="check" /></span>
         <h2>Pix recebido!</h2>
         <strong class="valor">{{ a.cobranca.valor | currency: 'BRL' }}</strong>
-        <p>Confirmado pelo Mercado Pago{{ a.cobranca.pagaEm ? ' às ' + (a.cobranca.pagaEm | date: 'HH:mm') : '' }}</p>
+        <p>Confirmado pelo {{ nomePix() }}{{ a.cobranca.pagaEm ? ' às ' + (a.cobranca.pagaEm | date: 'HH:mm') : '' }}</p>
         @switch (a.situacao) {
           @case ('registrando') { <p class="situacao"><app-icone nome="loader-circle" girando /> Registrando a venda…</p> }
           @case ('registrada') { <p class="situacao ok"><app-icone nome="circle-check" /> Venda registrada</p> }

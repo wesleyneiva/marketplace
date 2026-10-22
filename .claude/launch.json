@@ -15,7 +15,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 dotnet run --launch-profile http"
+        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 PixBanco__BancoDoBrasil__UrlApi=http://127.0.0.1:5398/pix/v2 PixBanco__BancoDoBrasil__UrlToken=http://127.0.0.1:5398/oauth/token dotnet run --launch-profile http"
       ],
       "port": 5200,
       "url": "http://localhost:5200"
@@ -30,6 +30,17 @@
         "8"
       ],
       "port": 5399
+    },
+    {
+      "name": "bb-simulador",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-I",
+        "/home/ubuntu/projetos/marketplace-testes/pix-automatico/simulador-bb.py",
+        "5398",
+        "8"
+      ],
+      "port": 5398
     }
   ]
 }

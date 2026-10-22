@@ -659,7 +659,7 @@ kbd {
 }
 .link-manual { display: block; margin: 0 0 6px; padding: 0; border: 0; background: none; color: var(--cor-texto-suave); font-size: 12px; text-decoration: underline; cursor: pointer; }
 
-// Pix confirmado pelo Mercado Pago: aviso em destaque (o bloco do QR some quando não falta mais nada).
+// Pix confirmado pelo provedor: aviso em destaque (o bloco do QR some quando não falta mais nada).
 .pix-confirmado {
   display: flex; align-items: center; gap: 10px; padding: 12px 14px; margin: 10px 0;
   border: 1px solid var(--cor-primaria); border-radius: 10px; background: var(--cor-verde-fundo); color: var(--cor-primaria-escura); font-size: 15px;

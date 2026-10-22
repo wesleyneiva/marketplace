@@ -44,6 +44,7 @@ builder.Services.AddScoped<Marketplace.Api.Services.AutorizacaoService>(); // "c
 builder.Services.AddScoped<Marketplace.Api.Services.ComprasService>();
 builder.Services.AddScoped<Marketplace.Api.Services.Conciliacao.ConciliacaoService>();
 builder.Services.AddScoped<Marketplace.Api.Services.Pix.MercadoPago>();
+builder.Services.AddScoped<Marketplace.Api.Services.Pix.PixBancoCentral>();
 builder.Services.AddScoped<Marketplace.Api.Services.Pix.PixAutomaticoService>();
 builder.Services.AddScoped<Marketplace.Api.Services.RelatoriosService>();
 builder.Services.AddMemoryCache();

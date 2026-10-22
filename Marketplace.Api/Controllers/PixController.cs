@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Marketplace.Api.Controllers;
 
-// Pix automático (Mercado Pago): o caixa gera a cobrança, acompanha até ser paga; o Mercado Pago avisa no webhook.
+// Pix automático (Mercado Pago ou o banco da loja): o caixa gera a cobrança e acompanha até ser paga; o Mercado Pago
+// também avisa no webhook (o banco não: o caixa pergunta).
 [ApiController]
 [Route("api/pix")]
 [Authorize]
@@ -18,6 +19,10 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
     public record CobrancaPixResponse(int Id, decimal Valor, StatusCobrancaPix Status, string CopiaECola, string Svg,
         DateTimeOffset ExpiraEm, DateTimeOffset? PagaEm);
     public record LigarMercadoPagoRequest([Required, StringLength(300)] string Token, bool Teste);
+    // Certificado: o .pfx em base64 (até ~30 KB) e a senha dele; só a produção do banco exige.
+    public record LigarBancoRequest([Required, StringLength(30)] string Banco, [Required, StringLength(200)] string ClientId,
+        [Required, StringLength(500)] string ClientSecret, [StringLength(200)] string? ChaveApp, bool Teste,
+        [StringLength(40000)] string? CertificadoBase64, [StringLength(200)] string? CertificadoSenha);
 
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -49,10 +54,31 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
             var e = await pix.LigarMercadoPagoAsync(r.Token, r.Teste);
             return Ok(new { conta = e.MercadoPagoConta, final = e.MercadoPagoTokenFinal, teste = e.MercadoPagoTeste });
         }
-        catch (Exception e) when (e is PixException or MercadoPagoException) { return BadRequest(new { mensagem = e.Message }); }
+        catch (Exception e) when (e is PixException or ProvedorPixException) { return BadRequest(new { mensagem = e.Message }); }
     }
 
-    // DELETE /api/pix/mercado-pago → volta ao Pix manual (o token é apagado)
+    // PUT /api/pix/banco  { banco: "BancoDoBrasil", clientId, clientSecret, chaveApp, teste, certificadoBase64?, certificadoSenha? }
+    // → liga o Pix automático pelo banco da loja (confere o login e uma consulta no banco antes de guardar)
+    [HttpPut("banco")]
+    [Authorize(Roles = Perfis.Administrador)]
+    public async Task<IActionResult> LigarBanco(LigarBancoRequest r)
+    {
+        byte[]? pfx = null;
+        if (!string.IsNullOrWhiteSpace(r.CertificadoBase64))
+        {
+            try { pfx = Convert.FromBase64String(r.CertificadoBase64); }
+            catch (FormatException) { return BadRequest(new { mensagem = "Arquivo do certificado inválido." }); }
+        }
+        try
+        {
+            var e = await pix.LigarBancoAsync(r.Banco, r.ClientId, r.ClientSecret, r.ChaveApp, r.Teste, pfx, r.CertificadoSenha);
+            return Ok(new { banco = ProvedoresPix.Nome(e.PixAutomatico), teste = e.PixBancoTeste, certificado = e.PixBancoCertificadoInfo });
+        }
+        catch (Exception e) when (e is PixException or ProvedorPixException) { return BadRequest(new { mensagem = e.Message }); }
+    }
+
+    // DELETE /api/pix/automatico (ou /mercado-pago, o nome antigo) → volta ao Pix manual (token e credenciais apagados)
+    [HttpDelete("automatico")]
     [HttpDelete("mercado-pago")]
     [Authorize(Roles = Perfis.Administrador)]
     public async Task<IActionResult> Desligar()
@@ -80,7 +106,7 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
         }
         if (id is not null && (id.Length > 40 || !id.All(char.IsAsciiLetterOrDigit))) return BadRequest();
         try { return await pix.AvisoAsync(segredo, id) ? Ok() : NotFound(); }
-        catch (Exception e) when (e is PixException or MercadoPagoException)
+        catch (Exception e) when (e is PixException or ProvedorPixException)
         {
             log.LogWarning("Aviso do Mercado Pago: {Erro}", e.Message);
             return Ok(); // o caixa também consulta sozinho; não precisa o Mercado Pago repetir
@@ -93,6 +119,6 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
     private static async Task<ActionResult<T>> Tentar<T>(Func<Task<T>> acao)
     {
         try { return await acao(); }
-        catch (Exception e) when (e is PixException or MercadoPagoException) { return new BadRequestObjectResult(new { mensagem = e.Message }); }
+        catch (Exception e) when (e is PixException or ProvedorPixException) { return new BadRequestObjectResult(new { mensagem = e.Message }); }
     }
 }

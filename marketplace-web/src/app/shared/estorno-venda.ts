@@ -6,7 +6,7 @@ import { AutorizacaoGerente } from './autorizacao-gerente';
 import { Icone } from './icone';
 
 // Cancelar uma venda JÁ PAGA e devolver o dinheiro ao cliente (estorno). Mostra, antes de confirmar, por onde volta
-// cada forma de pagamento (gaveta, Mercado Pago, maquininha, app do banco, cofre) — a mesma conta que o servidor faz.
+// cada forma de pagamento (gaveta, Mercado Pago ou banco do Pix automático, maquininha, app do banco, cofre) — a mesma conta que o servidor faz.
 // Usado no caixa (com a senha do gerente) e na tela Vendas (o gerente cancela direto).
 @Component({
   selector: 'app-estorno-venda',
@@ -26,8 +26,8 @@ import { Icone } from './icone';
         </ul>
         @if (temPixAutomatico()) {
           <fieldset class="opcoes-pix">
-            <legend>Pix confirmado pelo Mercado Pago</legend>
-            <label><input type="radio" name="pix" [checked]="pix() === 'Devolver'" (change)="pix.set('Devolver')" /> Devolver ao cliente pelo Mercado Pago agora</label>
+            <legend>Pix confirmado pelo {{ pixPor() }}</legend>
+            <label><input type="radio" name="pix" [checked]="pix() === 'Devolver'" (change)="pix.set('Devolver')" /> Devolver ao cliente pelo {{ pixPor() }} agora</label>
             @if (p.caixaAberto) {
               <label><input type="radio" name="pix" [checked]="pix() === 'Manter'" (change)="pix.set('Manter')" /> Não devolver: usar o Pix numa nova compra (troca de produto)</label>
             }
@@ -96,7 +96,8 @@ export class EstornoVenda {
   protected readonly enviando = signal(false);
   protected readonly pix = signal<OpcaoPixEstorno>('Devolver');
   protected readonly motivo = signal('');
-  protected readonly temPixAutomatico = computed(() => !!this.previa()?.formas.some((f) => f.pixAutomatico && f.como !== 'Já devolvido pelo Mercado Pago'));
+  protected readonly temPixAutomatico = computed(() => !!this.previa()?.formas.some((f) => f.pixAutomatico && !f.como.startsWith('Já devolvido')));
+  protected readonly pixPor = computed(() => this.previa()?.formas.find((f) => f.pixAutomatico)?.pixPor ?? 'banco');
   private readonly autorizacao = viewChild<AutorizacaoGerente>('autorizacao');
 
   constructor() {
@@ -146,7 +147,7 @@ export class EstornoVenda {
 
   // O texto do Pix automático acompanha a opção escolhida (o servidor manda o da opção padrão: devolver).
   protected comoPix(padrao: string): string {
-    if (padrao === 'Já devolvido pelo Mercado Pago') return padrao;
+    if (padrao.startsWith('Já devolvido')) return padrao;
     return this.pix() === 'Manter' ? 'Fica como "Pix recebido sem venda" para usar numa nova compra'
       : this.pix() === 'PorFora' ? 'A loja devolve ao cliente por conta própria'
       : padrao;

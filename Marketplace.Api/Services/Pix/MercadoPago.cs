@@ -13,7 +13,6 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
     // Endereço da API (MercadoPago:Url só muda nos testes, com o simulador local).
     private string Base => (config["MercadoPago:Url"] ?? "https://api.mercadopago.com").TrimEnd('/');
 
-    public sealed record Pagamento(string Id, string Status, string? Detalhe, decimal Valor, string? Referencia, DateTimeOffset? AprovadoEm, string? CopiaECola);
     public sealed record Conta(string Nome, string? Email, bool Teste);
 
     // GET /users/me → confere o token e diz de quem é a conta.
@@ -26,7 +25,7 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
     }
 
     // POST /v1/orders com um pagamento Pix (API de Orders, a atual do Mercado Pago; é a que aceita as credenciais de teste).
-    public async Task<Pagamento> CriarPixAsync(string token, decimal valor, string descricao, Guid referencia, TimeSpan validade,
+    public async Task<PagamentoPix> CriarPixAsync(string token, decimal valor, string descricao, Guid referencia, TimeSpan validade,
         string emailPagador, bool teste, CancellationToken ct = default)
     {
         var total = valor.ToString("0.00", CultureInfo.InvariantCulture);
@@ -53,19 +52,19 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
         return Ler(await EnviarAsync(HttpMethod.Post, "/v1/orders", token, corpo, referencia.ToString(), ct));
     }
 
-    public async Task<Pagamento> ConsultarAsync(string token, string id, CancellationToken ct = default) =>
+    public async Task<PagamentoPix> ConsultarAsync(string token, string id, CancellationToken ct = default) =>
         Ler(await EnviarAsync(HttpMethod.Get, $"/v1/orders/{Uri.EscapeDataString(id)}", token, null, null, ct));
 
-    public async Task<Pagamento> CancelarAsync(string token, string id, CancellationToken ct = default) =>
+    public async Task<PagamentoPix> CancelarAsync(string token, string id, CancellationToken ct = default) =>
         Ler(await EnviarAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(id)}/cancel", token, null, Guid.NewGuid().ToString(), ct));
 
     // POST /v1/orders/{id}/refund sem corpo = devolução TOTAL ao cliente (estorno de venda cancelada).
     // A chave de idempotência é fixa por cobrança: se a rede cair e o Marcus tentar de novo, o Mercado Pago não devolve duas vezes.
-    public async Task<Pagamento> DevolverAsync(string token, string id, string idempotencia, CancellationToken ct = default) =>
+    public async Task<PagamentoPix> DevolverAsync(string token, string id, string idempotencia, CancellationToken ct = default) =>
         Ler(await EnviarAsync(HttpMethod.Post, $"/v1/orders/{Uri.EscapeDataString(id)}/refund", token, null, idempotencia, ct));
 
     // Status da order → o "idioma" de sempre: processed/accredited = pago (approved); expired; refunded = devolvido; canceled/failed = cancelado.
-    private static Pagamento Ler(JsonNode j)
+    private static PagamentoPix Ler(JsonNode j)
     {
         var status = j["status"]?.GetValue<string>() ?? "";
         var detalhe = j["status_detail"]?.GetValue<string>();
@@ -78,7 +77,7 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
             "canceled" or "failed" or "charged_back" => "cancelled",
             _ => "pending",
         };
-        return new Pagamento(
+        return new PagamentoPix(
             j["id"]?.ToString() ?? throw new MercadoPagoException("O Mercado Pago não devolveu o número do pedido."),
             normal, detalhe,
             decimal.TryParse(j["total_amount"]?.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var v) ? v : 0,
@@ -122,4 +121,4 @@ public class MercadoPago(IHttpClientFactory fabrica, IConfiguration config, ILog
     }
 }
 
-public class MercadoPagoException(string mensagem) : Exception(mensagem);
+public class MercadoPagoException(string mensagem) : ProvedorPixException(mensagem);

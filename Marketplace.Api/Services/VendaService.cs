@@ -179,7 +179,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         venda.Troco = venda.ValorPago - venda.Total;
     }
 
-    // Pix automático: o pagamento só entra se a cobrança estiver PAGA no Mercado Pago (conferido pelo servidor),
+    // Pix automático: o pagamento só entra se a cobrança estiver PAGA no provedor (conferido pelo servidor),
     // com o mesmo valor e sem ter entrado em outra venda. FOR UPDATE: dois caixas não usam o mesmo Pix ao mesmo tempo.
     private async Task VincularPixAutomaticoAsync(Venda venda, List<PagamentoRequest> pagamentos, int sessaoId)
     {
@@ -192,7 +192,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         foreach (var p in venda.Pagamentos.Where(p => p.CobrancaPixId is not null))
         {
             if (!cobrancas.TryGetValue(p.CobrancaPixId!.Value, out var c)) throw new EstoqueException("Cobrança Pix não encontrada.");
-            if (c.Status != StatusCobrancaPix.Paga) throw new EstoqueException("Este Pix ainda não foi pago no Mercado Pago.");
+            if (c.Status != StatusCobrancaPix.Paga) throw new EstoqueException($"Este Pix ainda não foi confirmado pelo {ProvedoresPix.Nome(c.Provedor)}.");
             if (c.VendaId is not null) throw new EstoqueException("Este Pix já foi usado em outra venda.");
             if (Math.Abs(c.Valor - p.Valor) >= 0.005m) throw new EstoqueException($"O Pix recebido foi de {c.Valor:C}, não de {p.Valor:C}.");
             if (c.SessaoCaixaId is int s && s != sessaoId) throw new EstoqueException("Este Pix foi gerado em outro caixa.");
@@ -215,7 +215,8 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
     {
         var p = await PlanejarEstornoAsync(vendaId, usuarioId, ehGerencia, null);
         return new EstornoPreviaResponse(p.Bloqueio is null, p.Bloqueio, p.CaixaAberto, !ehGerencia,
-            p.Linhas.Select(l => new EstornoForma(l.Forma.ToString(), l.Valor, l.Como, l.Cobranca is not null)).ToList(), p.Aviso);
+            p.Linhas.Select(l => new EstornoForma(l.Forma.ToString(), l.Valor, l.Como, l.Cobranca is not null,
+                l.Cobranca is null ? null : ProvedoresPix.Nome(l.Cobranca.Provedor))).ToList(), p.Aviso);
     }
 
     private async Task<PlanoEstorno> PlanejarEstornoAsync(int vendaId, string usuarioId, bool ehGerencia, string? pix)
@@ -236,7 +237,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         if (pix is not (PixDevolver or PixManter or PixPorFora)) throw new EstoqueException("Opção do Pix inválida.");
         var cobrancas = await db.CobrancasPix.Where(c => c.VendaId == venda.Id).ToDictionaryAsync(c => c.Id);
         if (pix == PixManter && !aberto && cobrancas.Count > 0)
-            bloqueio ??= "Com o caixa já fechado, o Pix não pode ficar para outra venda: devolva pelo Mercado Pago ou por fora.";
+            bloqueio ??= $"Com o caixa já fechado, o Pix não pode ficar para outra venda: devolva pelo {ProvedoresPix.Nome(cobrancas.Values.First().Provedor)} ou por fora.";
 
         // Dinheiro: o que o cliente deu menos o troco que já levou.
         var linhas = new List<LinhaEstorno>();
@@ -269,12 +270,12 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
             var cobranca = p.CobrancaPixId is int id ? cobrancas.GetValueOrDefault(id) : null;
             var como = p.Forma switch
             {
-                FormaPagamento.Pix when cobranca?.Status == StatusCobrancaPix.Devolvida => "Já devolvido pelo Mercado Pago",
+                FormaPagamento.Pix when cobranca?.Status == StatusCobrancaPix.Devolvida => $"Já devolvido pelo {ProvedoresPix.Nome(cobranca.Provedor)}",
                 FormaPagamento.Pix when cobranca is not null => pix switch
                 {
                     PixManter => "Fica como \"Pix recebido sem venda\" para usar numa nova compra",
                     PixPorFora => "A loja devolve ao cliente por conta própria",
-                    _ => "Devolvido ao cliente pelo Mercado Pago, na hora",
+                    _ => $"Devolvido ao cliente pelo {ProvedoresPix.Nome(cobranca.Provedor)}, na hora",
                 },
                 FormaPagamento.Pix => "Devolva ao cliente pelo app do banco da loja",
                 FormaPagamento.Fiado => $"Sai da caderneta{(venda.Cliente is null ? "" : " de " + venda.Cliente.Nome)}",
@@ -307,8 +308,8 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
         pix ??= PixDevolver;
         motivo = motivo.Trim();
 
-        // Primeiro o que é de FORA (o Mercado Pago devolve o Pix): se falhar, nada foi mexido aqui.
-        // (Se o resto falhar depois, a nova tentativa usa a mesma chave de idempotência: o Mercado Pago não devolve duas vezes.)
+        // Primeiro o que é de FORA (o provedor devolve o Pix): se falhar, nada foi mexido aqui.
+        // (Se o resto falhar depois, a nova tentativa usa a mesma chave de idempotência: o provedor não devolve duas vezes.)
         foreach (var l in plano.Linhas.Where(l => l.Cobranca is not null))
         {
             if (pix == PixDevolver)

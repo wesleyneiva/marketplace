@@ -41,6 +41,10 @@ interface Configuracao {
   mercadoPagoTokenFinal: string | null;
   mercadoPagoTeste: boolean;
   pixAvisoUrl: string | null;
+  pixAutomaticoNome: string;
+  pixBancoClientIdFinal: string | null;
+  pixBancoTeste: boolean;
+  pixBancoCertificado: string | null;
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
 
@@ -160,7 +164,8 @@ export class Configuracoes {
     }
   }
 
-  // ----- Pix automático (Mercado Pago avisa o caixa) -----
+  // ----- Pix automático (Mercado Pago ou o banco da loja avisa o caixa) -----
+  protected readonly provedorPix = signal<'MercadoPago' | 'BancoDoBrasil'>('MercadoPago');
   protected mpToken = '';
   protected mpTeste = true;
   protected readonly salvandoMp = signal(false);
@@ -184,11 +189,49 @@ export class Configuracoes {
   protected readonly avisoCopiado = signal(false);
   async copiarAviso(url: string): Promise<void> { this.avisoCopiado.set(await copiarTexto(url)); }
 
-  async desligarMercadoPago(): Promise<void> {
-    if (!confirm('Desligar o Pix automático? O caixa volta ao Pix manual (QR da chave da loja) e o token do Mercado Pago é apagado.')) return;
+  // Banco do Brasil: client_id/secret e chave do desenvolvedor do portal do banco; certificado (.pfx) só na produção.
+  protected bbClientId = '';
+  protected bbClientSecret = '';
+  protected bbChaveApp = '';
+  protected bbTeste = true;
+  protected bbPfxSenha = '';
+  private bbPfx: string | null = null; // o arquivo em base64
+
+  async escolherCertificado(ev: Event): Promise<void> {
+    const arquivo = (ev.target as HTMLInputElement).files?.[0];
+    this.bbPfx = null;
+    if (!arquivo) return;
+    if (arquivo.size > 20_000) { this.avisoMp.set({ ok: false, texto: 'Esse arquivo é grande demais para um certificado .pfx.' }); return; }
+    const bytes = new Uint8Array(await arquivo.arrayBuffer());
+    let bin = '';
+    bytes.forEach((b) => (bin += String.fromCharCode(b)));
+    this.bbPfx = btoa(bin);
+  }
+
+  async ligarBanco(): Promise<void> {
+    this.avisoMp.set(null);
+    this.salvandoMp.set(true);
+    try {
+      const r = await firstValueFrom(this.http.put<{ banco: string; teste: boolean; certificado: string | null }>('/api/pix/banco', {
+        banco: 'BancoDoBrasil', clientId: this.bbClientId, clientSecret: this.bbClientSecret, chaveApp: this.bbChaveApp, teste: this.bbTeste,
+        certificadoBase64: this.bbTeste ? null : this.bbPfx, certificadoSenha: this.bbTeste ? null : this.bbPfxSenha || null,
+      }));
+      this.bbClientSecret = this.bbChaveApp = this.bbPfxSenha = '';
+      this.bbPfx = null;
+      this.config.reload();
+      this.avisoMp.set({ ok: true, texto: `Ligado direto no ${r.banco}${r.teste ? ' (ambiente de testes: sem dinheiro de verdade)' : ''}. No caixa, o Pix agora gera o QR no banco.` });
+    } catch (e) {
+      this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível ligar o Pix pelo banco.' });
+    } finally {
+      this.salvandoMp.set(false);
+    }
+  }
+
+  async desligarAutomatico(nome: string): Promise<void> {
+    if (!confirm(`Desligar o Pix automático pelo ${nome}? O caixa volta ao Pix manual (QR da chave da loja) e as credenciais são apagadas.`)) return;
     this.avisoMp.set(null);
     try {
-      await firstValueFrom(this.http.delete('/api/pix/mercado-pago'));
+      await firstValueFrom(this.http.delete('/api/pix/automatico'));
       this.config.reload();
       this.avisoMp.set({ ok: true, texto: 'Pix automático desligado.' });
     } catch (e) {

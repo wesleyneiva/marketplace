@@ -53,7 +53,7 @@ public record ItemVendaRequest(
 public record PagamentoRequest(
     [Required] string Forma,
     [Range(0.01, 1000000, ErrorMessage = "Valor de pagamento inválido.")] decimal Valor,
-    int? CobrancaPixId = null,    // Pix automático: a cobrança paga no Mercado Pago
+    int? CobrancaPixId = null,    // Pix automático: a cobrança paga (Mercado Pago ou banco)
     int? ValeTrocaId = null,      // vale-troca (achado pelo código antes de pagar)
     int Parcelas = 1);            // crédito: em quantas vezes (1 a 12)
 
@@ -110,7 +110,7 @@ public record CancelamentoPdvRequest(
 
 public record CancelamentoPdvResponse(string AutorizadoPor, decimal Valor);
 
-// Pix automático no estorno: Devolver (o Mercado Pago devolve ao cliente), Manter (fica como "Pix recebido sem venda",
+// Pix automático no estorno: Devolver (o provedor — Mercado Pago ou banco — devolve ao cliente), Manter (fica como "Pix recebido sem venda",
 // para usar numa nova venda; só com o caixa aberto) ou PorFora (a loja devolve por conta própria).
 public record CancelarVendaRequest(
     [Required(ErrorMessage = "Informe o motivo.")]
@@ -119,7 +119,7 @@ public record CancelarVendaRequest(
     string? Pix = null);
 
 // O que acontece com o dinheiro de cada forma se a venda for cancelada (a tela mostra antes de confirmar).
-public record EstornoForma(string Forma, decimal Valor, string Como, bool PixAutomatico = false);
+public record EstornoForma(string Forma, decimal Valor, string Como, bool PixAutomatico = false, string? PixPor = null); // PixPor: "Mercado Pago", "Banco do Brasil"
 
 public record EstornoPreviaResponse(
     bool Pode,

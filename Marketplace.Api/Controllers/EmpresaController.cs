@@ -219,5 +219,6 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
         e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.PrazoTrocaDias, e.ValidadeValeDias,
         e.PixTipoChave, e.PixChave, e.PixNomeRecebedor, e.PixAutomatico, e.MercadoPagoConta, e.MercadoPagoTokenFinal, e.MercadoPagoTeste,
-        e.PixAutomatico is null ? null : pixAutomatico.AvisoUrl(e));
+        e.PixAutomatico is null ? null : pixAutomatico.AvisoUrl(e),
+        ProvedoresPix.Nome(e.PixAutomatico), e.PixBancoClientId is { Length: > 4 } id ? id[^4..] : null, e.PixBancoTeste, e.PixBancoCertificadoInfo);
 }
