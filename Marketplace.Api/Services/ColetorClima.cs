@@ -22,7 +22,7 @@ public class ColetorClima(IServiceScopeFactory escopos, ClimaService clima, ILog
         while (!ct.IsCancellationRequested)
         {
             try { await ColetarAsync(ct); }
-            catch (Exception e) when (e is not OperationCanceledException) { log.LogWarning("Coletor de clima: {Erro}", e.Message); }
+            catch (Exception e) when (!ct.IsCancellationRequested) { log.LogWarning("Coletor de clima: {Erro}", e.Message); }
             await _acordar.WaitAsync(TimeSpan.FromMinutes(30), ct); // 30 min, ou antes se alguém chamar Acordar()
         }
     }

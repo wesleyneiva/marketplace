@@ -15,7 +15,7 @@ public class LiquidadorRecebiveis(IServiceScopeFactory escopos, ILogger<Liquidad
         while (!ct.IsCancellationRequested)
         {
             try { await RodadaAsync(ct); }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e) when (!ct.IsCancellationRequested)
             {
                 log.LogWarning("Financeiro (rodada de hora em hora): {Erro}; tento na próxima hora.", e.Message);
             }
@@ -41,7 +41,7 @@ public class LiquidadorRecebiveis(IServiceScopeFactory escopos, ILogger<Liquidad
                 if (caixas + recebiveis > 0)
                     log.LogInformation("Financeiro da empresa {Empresa}: {Caixas} caixa(s) lançado(s), {Recebiveis} recebível(is) recebido(s).", id, caixas, recebiveis);
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e) when (!ct.IsCancellationRequested)
             {
                 log.LogWarning("Financeiro da empresa {Empresa}: {Erro}", id, e.Message); // uma empresa com problema não para as outras
             }

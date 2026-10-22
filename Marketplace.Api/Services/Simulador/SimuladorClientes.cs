@@ -74,7 +74,7 @@ public class SimuladorClientes(
                     .Select(e => new { e.Id, e.VendasAutomaticas, e.LimiteCaixas }).ToListAsync(parar))
                     .Select(e => (e.Id, e.VendasAutomaticas, e.LimiteCaixas)).ToList();
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e) when (!parar.IsCancellationRequested)
             {
                 // Banco indisponível por um instante: tenta no próximo minuto (antes, isto derrubava a API inteira).
                 log.LogWarning("Simulador: não consegui ler as lojas ({Erro}); tento de novo no próximo minuto.", e.Message);
@@ -89,7 +89,7 @@ public class SimuladorClientes(
                     await RodadaAsync(empresaId, modo == ModosVendasAutomaticas.Completo, caixas, parar);
                     loja.UltimoErro = null;
                 }
-                catch (Exception e) when (e is not OperationCanceledException)
+                catch (Exception e) when (!parar.IsCancellationRequested)
                 {
                     loja.UltimoErro = e.Message;
                     log.LogError(e, "Erro na rodada do simulador (empresa {Empresa})", empresaId);

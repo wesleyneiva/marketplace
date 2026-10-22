@@ -143,7 +143,7 @@ public class CobrancasTrabalhador(IServiceScopeFactory escopos, ILogger<Cobranca
                 await cobrancas.BloquearAtrasadosAsync(Relogio.Hoje);
                 UltimaRodada = DateTimeOffset.UtcNow;
             }
-            catch (Exception e) when (e is not OperationCanceledException)
+            catch (Exception e) when (!parar.IsCancellationRequested)
             {
                 log.LogError(e, "Erro na rotina de cobranças");
             }

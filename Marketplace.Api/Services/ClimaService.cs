@@ -37,7 +37,11 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
         try
         {
             var url = $"https://api.open-meteo.com/v1/forecast?{Lugar(local)}&current=temperature_2m,precipitation,weather_code";
-            using var resposta = await http.CreateClient().GetAsync(url, ct);
+            // Tempo esgotado chega como "cancelamento" (TaskCanceledException): por isso os catch das rotinas olham o token
+            // de parada, e não o tipo do erro. Antes, um Open-Meteo lento matava o bot em silêncio até o próximo reinício.
+            var cliente = http.CreateClient();
+            cliente.Timeout = TimeSpan.FromSeconds(20);
+            using var resposta = await cliente.GetAsync(url, ct);
             resposta.EnsureSuccessStatusCode();
             using var json = await JsonDocument.ParseAsync(await resposta.Content.ReadAsStreamAsync(ct), cancellationToken: ct);
             var atual = json.RootElement.GetProperty("current");
@@ -50,7 +54,7 @@ public class ClimaService(IHttpClientFactory http, IServiceScopeFactory escopos,
             await RegistrarHoraAsync(local, clima, ct);
             return clima;
         }
-        catch (Exception e) when (e is not OperationCanceledException)
+        catch (Exception e) when (!ct.IsCancellationRequested)
         {
             log.LogWarning("Não foi possível obter o clima de {Cidade}: {Erro}", local.Nome, e.Message);
             var anterior = c?.Clima ?? ClimaAgora.Neutro;
