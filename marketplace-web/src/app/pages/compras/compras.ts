@@ -13,6 +13,7 @@ import { CampoData } from '../../shared/campo-data';
 import { ProdutoBusca } from '../../shared/produto-busca';
 import { Produto } from '../../core/api/produtos.api';
 import { EnviarPedido } from './enviar-pedido';
+import { ComprasResumo } from '../../core/compras-resumo';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
@@ -28,6 +29,7 @@ interface Conferencia { itemId: number; produto: string; unidade: string; pereci
 })
 export class Compras {
   private readonly http = inject(HttpClient);
+  private readonly resumo = inject(ComprasResumo); // número no menu
   private readonly envio = viewChild.required(EnviarPedido); // janela "Enviar pedido ao fornecedor" (WhatsApp, e-mail, copiar)
 
   // ?aba=pedidos (vindo do aviso do painel) abre direto nos pedidos.
@@ -38,25 +40,6 @@ export class Compras {
     if (this.abaInicial() === 'pedidos') this.aba.set('pedidos');
   }
 
-  // ----- Rascunho: mudar quantidades antes de enviar -----
-  protected readonly editando = signal<number | null>(null);
-  protected quantidades: Record<number, number> = {};
-
-  editarRascunho(p: Pedido): void {
-    this.quantidades = Object.fromEntries(p.itens.map((i) => [i.produtoId, i.quantidade]));
-    this.editando.set(p.id);
-    this.aberto.set(p.id);
-  }
-
-  async salvarRascunho(p: Pedido): Promise<void> {
-    const itens = p.itens.map((i) => ({ produtoId: i.produtoId, quantidade: Number(this.quantidades[i.produtoId]) || 0, custoUnitario: i.custoUnitario }));
-    await this.executar(async () => {
-      await firstValueFrom(this.http.put<Pedido>(`/api/compras/pedidos/${p.id}/itens`, itens));
-      this.editando.set(null);
-      this.mostrarAviso(`Pedido #${p.id} atualizado. Confira e envie ao fornecedor.`);
-      this.pedidos.reload();
-    });
-  }
   protected readonly aviso = signal<string | null>(null);
   protected readonly ocupado = signal(false);
 
@@ -85,19 +68,17 @@ export class Compras {
     return s.itens.filter((i) => this.escolha(i).marcado && this.escolha(i).quantidade > 0).length;
   }
 
-  async criarPedido(s: SugestaoFornecedor, enviar: boolean): Promise<void> {
+  // Os pedidos saem SÓ daqui (ou do "Novo pedido"): o pedido nasce na hora de abrir a janela de envio (para ter o
+  // número na mensagem) e só aparece em Pedidos depois de mandado. Fechou sem mandar? Ele é apagado (desistiuDoEnvio).
+  async enviarSugestao(s: SugestaoFornecedor): Promise<void> {
     const itens = s.itens
       .filter((i) => this.escolha(i).marcado && this.escolha(i).quantidade > 0)
       .map((i) => ({ produtoId: i.produtoId, quantidade: this.escolha(i).quantidade, custoUnitario: this.escolha(i).custo }));
     if (!itens.length) return alert('Marque pelo menos um item.');
 
     await this.executar(async () => {
-      // "Criar e enviar": cria em rascunho e abre a janela de envio; vira "Enviado" quando sair pelo WhatsApp/e-mail.
       const p = await firstValueFrom(this.http.post<Pedido>('/api/compras/pedidos', { fornecedorId: s.fornecedorId, itens, enviar: false }));
-      s.itens.forEach((i) => this.escolhas.delete(i.produtoId));
-      this.mostrarAviso(`Pedido #${p.id} criado` + (enviar ? ': escolha como mandar ao fornecedor.' : ' como rascunho.'));
-      this.sugestao.reload();
-      if (enviar) void this.envio().abrir(p);
+      void this.envio().abrir(p);
     });
   }
 
@@ -111,18 +92,27 @@ export class Compras {
   });
   protected readonly pedidosVisiveis = computed(() => {
     const lista = this.pedidos.value() ?? [];
-    return this.filtro() === 'abertos' ? lista.filter((p) => p.status === 'Rascunho' || p.status === 'Enviado') : lista;
+    return this.filtro() === 'abertos' ? lista.filter((p) => p.status === 'Enviado') : lista;
   });
   protected readonly aberto = signal<number | null>(null);
 
-  // Enviar (rascunho) ou Reenviar (já enviado): abre a janela com a mensagem pronta e os canais do fornecedor.
-  enviar(p: Pedido): void {
+  // Reenviar (já enviado): abre a janela com a mensagem pronta e os canais do fornecedor.
+  reenviar(p: Pedido): void {
     void this.envio().abrir(p);
   }
 
   aoEnviar(r: Pedido): void {
-    this.mostrarAviso(`Pedido #${r.id} enviado` + (r.previsaoEntrega ? `: entrega prevista em ${this.dia(r.previsaoEntrega)}.` : '.'));
+    r.itens.forEach((i) => this.escolhas.delete(i.produtoId));
+    this.mostrarAviso(`Pedido #${r.id} enviado` + (r.previsaoEntrega ? `: entrega prevista em ${this.dia(r.previsaoEntrega)}` : '') +
+      '. Ele está em Pedidos, esperando a entrega para você conferir.');
+    this.sugestao.reload();
     this.pedidos.reload();
+    this.resumo.recarregar();
+  }
+
+  // Fechou a janela sem mandar: o pedido montado some (nada fica parado como se tivesse sido pedido).
+  async desistiuDoEnvio(p: Pedido): Promise<void> {
+    try { await firstValueFrom(this.http.delete(`/api/compras/pedidos/${p.id}`)); } catch { /* sobra de outro dia é apagada no próximo pedido */ }
   }
 
   async cancelar(p: Pedido): Promise<void> {
@@ -174,7 +164,7 @@ export class Compras {
     return this.novosItens().reduce((t, i) => t + (Number(i.quantidade) || 0) * (Number(i.custo) || 0), 0);
   }
 
-  async salvarNovo(enviar: boolean): Promise<void> {
+  async enviarNovo(): Promise<void> {
     if (this.novoFornecedorId === null) return this.erroNovo.set('Escolha o fornecedor.');
     const itens = this.novosItens().filter((i) => Number(i.quantidade) > 0)
       .map((i) => ({ produtoId: i.produtoId, quantidade: Number(i.quantidade), custoUnitario: Number(i.custo) || null }));
@@ -185,11 +175,7 @@ export class Compras {
       const p = await firstValueFrom(this.http.post<Pedido>('/api/compras/pedidos',
         { fornecedorId: this.novoFornecedorId, itens, enviar: false, observacao: this.novaObservacao }));
       this.dlgNovo()?.nativeElement.close();
-      this.mostrarAviso(`Pedido #${p.id} criado` + (enviar ? ': escolha como mandar ao fornecedor.' : ' como rascunho.'));
-      if (enviar) void this.envio().abrir(p);
-      this.aba.set('pedidos');
-      this.filtro.set('abertos');
-      this.pedidos.reload();
+      void this.envio().abrir(p);
     } catch (e) {
       this.erroNovo.set(this.mensagem(e));
     } finally {

@@ -148,7 +148,7 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   traz `empresa.modulos`; menu, rotas (`precisaModulo`), botões e cartões do painel seguem a lista, e a casca pergunta
   `/api/auth/eu` a cada minuto e ao voltar para a aba (muda sem sair e entrar; tela de módulo tirado volta ao início). O servidor
   barra a API (`Seguranca/ModulosLiberados.cs`: compras, contas, relatórios, importação, fiado, financeiro — menos as listas de
-  contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela. Compras automáticas só com Compras.
+  contas/categorias que Contas a pagar usa); Vendas, Etiquetas e Fornecedores só somem da tela.
 - **Posição do estoque** (Estoque → primeira aba, a que abre por padrão) — quanto a loja tem de cada produto e quanto vale:
   mercadoria a custo, valor se vender tudo (e o lucro bruto possível), produtos com estoque, sem estoque (zerados/negativos) e
   abaixo do mínimo; "Valor por categoria" (barra e % a custo, clicar filtra); lista com busca, categoria, situação e ordem (nome,
@@ -243,6 +243,20 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (online, o servidor cobra o preço atual do cadastro).
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### 22/10/2026 — compras: pedido só sai da Sugestão, Pedidos só recebe
+Pedido do usuário: rascunho em "Pedidos" confundia (parece pedido já feito, e o botão Enviar tinha a cara do Receber).
+- **Saiu a rotina de compras automáticas** (rascunhos montados ao abrir a loja), a opção em Configurações e o aviso
+  "pedidos prontos" do painel. Migration `SemComprasAutomaticas`: tira `Empresa.ComprasAutomaticas` e
+  `PedidoCompra.SugestaoAutomatica` e apaga os rascunhos e os automáticos cancelados (sem backup antes, a pedido do usuário;
+  o backup contínuo cobre).
+- **Sugestão de compra** é o único lugar de onde saem os pedidos (além do "Novo pedido"): um botão só, **Enviar pedido ao
+  fornecedor**. O pedido nasce em rascunho só para a janela de envio ter o número; fechou sem mandar → apagado
+  (`DELETE /api/compras/pedidos/{id}`; sobras de outro dia são apagadas no próximo pedido). Rascunho não aparece em Pedidos
+  nem conta como "a caminho" (só `Enviado` conta).
+- **Pedidos**: só enviados/recebidos/cancelados; filtro "A caminho"; botões Receber (destaque), Reenviar e Cancelar.
+- **Número no menu "Compras"** e aviso no painel: produtos que a sugestão manda comprar (`GET /api/compras/sugestao/resumo`,
+  `core/compras-resumo.ts`; atualiza ao trocar de tela, a cada minuto e ao enviar um pedido).
 
 ### 21/10/2026 (noite) — grade de tamanho e cor, serviços, oficina e a TopSpin Store
 Resumo do dia 21/10: o Marcus deixou de ser só de mercado. **Ramo da empresa** (mercado / loja de esporte), **grade de
@@ -354,8 +368,7 @@ importação; VM e bibliotecas atualizadas; **clima mantido, mas só afirma o qu
   diferença confiável" (`RelatorioClima.EfeitoChuvaPct`/`AvisoChuva`); (3) Insights IA: saiu a regra FIXA "chuva reduz
   o movimento" (verdade só no simulador); a IA só fala do efeito do clima como está nos dados daquele mercado.
   Demo conferida: 7 dias → "juntando dados"; 30 dias → -25% na chuva; 90 dias → -22%, com produtos sensíveis.
-- Compras automáticas (dúvida do usuário): os rascunhos que aparecem sozinhos em Pedidos são de propósito
-  (Configurações → Compras automáticas); itens já em rascunho saem da sugestão por contarem como "a caminho".
+- Compras automáticas: substituídas em 22/10 (ver 22/10/2026: os pedidos saem só da Sugestão).
 
 ### 19/10/2026 (tarde) — teste de estresse, robustez, disco e redundância fase 1
 - **Teste de estresse** (`estresse/`, README próprio): ambiente isolado com 100 mercados de teste. Resultado oficial
@@ -450,7 +463,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -497,7 +510,7 @@ com backup contínuo criptografado em **duas nuvens**. Versão em PDF: `docs/sta
 | Servidor / API | **ASP.NET Core** em C#, **.NET 10**; entrega as telas e a API na porta 5100 (serviço `marketplace` do systemd); atende app.wnlabs.com.br e demo.wnlabs.com.br |
 | Dados | **PostgreSQL 18** (Docker, `postgres:18-alpine`, só 127.0.0.1); Entity Framework Core 10 + Npgsql |
 | Bibliotecas | ASP.NET Identity (login, perfis, bloqueio), ClosedXML (planilha de produtos), QRCoder (QR do Pix) |
-| Rotinas no servidor | compras automáticas, clima por cidade, cobranças, liquidação da maquininha, simulador da demonstração |
+| Rotinas no servidor | clima por cidade, cobranças, liquidação da maquininha, simulador da demonstração |
 | Integrações | Mercado Pago (API de Orders, Pix automático), n8n + Google Gemini (Insights IA), serviço de clima |
 | Backup | WAL contínuo (pedaço a cada 2 min) + cópia completa às 03:45; rclone criptografado → Oracle Object Storage e Cloudflare R2; `infra/recuperar-banco.sh` |
 | Máquina | VM Oracle Cloud Ampere (ARM `aarch64`), 4 núcleos, 23 GB RAM, disco 200 GB; Ubuntu 26.04 LTS; Docker |

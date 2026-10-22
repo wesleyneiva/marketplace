@@ -45,9 +45,9 @@ export class Dashboard {
   protected readonly vendasDia = httpResource<ResumoVendas>(() => (this.veEstoque() ? '/api/vendas/resumo' : undefined));
   protected readonly contas = httpResource<{ vencidas: number; valorVencidas: number; vencemHoje: number; valorHoje: number; proximos7Dias: number; valorProximos7Dias: number }>(
     () => (this.veEstoque() && this.auth.liberado('contas') ? '/api/contas/resumo' : undefined));
-  // Pedidos de compra que o sistema montou sozinho ao abrir a loja (rascunhos para conferir e enviar).
-  protected readonly comprasDoDia = httpResource<{ pedidos: number; itens: number; total: number; geradaEm: string | null; ligada: boolean }>(
-    () => (this.veEstoque() && this.auth.liberado('compras') ? '/api/compras/sugestao-do-dia' : undefined));
+  // Quantos produtos a sugestão de compra manda comprar agora (os pedidos saem de lá).
+  protected readonly paraComprar = httpResource<{ itens: number; fornecedores: number; total: number }>(
+    () => (this.veEstoque() && this.auth.liberado('compras') ? '/api/compras/sugestao/resumo' : undefined));
   protected readonly meuCaixa = httpResource<ResumoCaixa | null>(() => (this.veEstoque() ? undefined : '/api/caixa/atual'));
 
   protected readonly vendas = computed(() => {

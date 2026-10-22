@@ -92,7 +92,6 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.AliquotaSimples).HasPrecision(6, 4).HasDefaultValue(0m);
             e.Property(x => x.VendasAutomaticas).HasMaxLength(12).HasDefaultValue(ModosVendasAutomaticas.Desligado);
             e.Property(x => x.Ramo).HasMaxLength(20).HasDefaultValue(Ramos.Mercado);
-            e.Property(x => x.ComprasAutomaticas).HasDefaultValue(true);
             e.HasIndex(x => x.Plataforma).IsUnique().HasFilter("\"Plataforma\""); // no máximo uma empresa da plataforma
             e.Property(x => x.RazaoSocial).HasMaxLength(150);
             e.Property(x => x.Documento).HasMaxLength(14);

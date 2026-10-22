@@ -100,7 +100,7 @@ public record EtiquetaBalancaResponse(ProdutoResponse Produto, decimal Quantidad
 // Configuração da empresa usada pelas telas: etiqueta da balança, cidade e horário de funcionamento.
 public record ConfiguracaoEmpresaResponse(int BalancaDigitosCodigo, string BalancaEtiqueta, string ExemploEtiqueta,
     string? Cidade, string? Uf, string Fuso, string HoraLocal, HorarioFuncionamento Horario, string HorarioResumo,
-    List<ProximoFeriado> ProximosFeriados, bool ComprasAutomaticas,
+    List<ProximoFeriado> ProximosFeriados,
     string? PixTipoChave, string? PixChave, string? PixNomeRecebedor,
     string? PixAutomatico, string? MercadoPagoConta, string? MercadoPagoTokenFinal, bool MercadoPagoTeste, string? PixAvisoUrl);
 
@@ -111,7 +111,6 @@ public record PixLojaRequest(string? Tipo, [System.ComponentModel.DataAnnotation
 // O QR Code do Pix com o valor (caixa e teste nas Configurações).
 public record PixQrCodeResponse(decimal Valor, string Payload, string Svg, string Recebedor, string Chave, string TipoChave);
 
-public record LigarRequest(bool Ligada);
 
 // Os próximos feriados (nacionais + da cidade) e se a loja abre neles, pela regra escolhida.
 public record ProximoFeriado(DateOnly Data, string Nome, string Situacao);

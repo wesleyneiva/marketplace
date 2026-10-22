@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services;
 
-// Compras: sugestão inteligente, pedido (rascunho → enviado → recebido) e a entrada no estoque.
+// Compras: sugestão inteligente, pedido (enviado → recebido) e a entrada no estoque.
 // Erros de regra viram EstoqueException (o controller responde 400 com a mensagem).
 public class ComprasService(AppDbContext db, EstoqueService estoque)
 {
@@ -30,7 +30,7 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
             .ToDictionaryAsync(x => x.Key, x => x.Qtd, ct);
 
         var aCaminho = await db.ItensPedidoCompra.AsNoTracking()
-            .Where(i => i.PedidoCompra!.Status == StatusPedido.Rascunho || i.PedidoCompra.Status == StatusPedido.Enviado)
+            .Where(i => i.PedidoCompra!.Status == StatusPedido.Enviado)
             .GroupBy(i => i.ProdutoId).Select(g => new { g.Key, Qtd = g.Sum(i => i.Quantidade) })
             .ToDictionaryAsync(x => x.Key, x => x.Qtd, ct);
 
@@ -76,8 +76,12 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
 
     // ---------------------------------------------------------------- pedido
 
+    // Sem Enviar, nasce em rascunho só para a janela de envio ter o número do pedido; se ninguém enviar, é apagado
+    // (DescartarRascunhoAsync, ou aqui, no próximo pedido, os que sobraram de outro dia: aba fechada no meio).
     public async Task<PedidoCompra> CriarAsync(NovoPedidoRequest r, string usuarioId, bool automatico = false)
     {
+        await db.PedidosCompra.Where(p => p.Status == StatusPedido.Rascunho && p.CriadoEm < Relogio.InicioDoDiaUtc(Relogio.Hoje))
+            .ExecuteDeleteAsync();
         var fornecedor = await db.Fornecedores.FirstOrDefaultAsync(f => f.Id == r.FornecedorId && f.Ativo)
             ?? throw new EstoqueException("Fornecedor não encontrado ou desativado.");
 
@@ -109,23 +113,12 @@ public class ComprasService(AppDbContext db, EstoqueService estoque)
         return pedido;
     }
 
-    // Rascunho: muda quantidades/custos (quantidade 0 tira o item). Um rascunho automático editado vira da pessoa
-    // (não é mais trocado pelo do dia seguinte).
-    public async Task EditarRascunhoAsync(int id, List<ItemPedidoRequest> itens)
+    // A pessoa fechou a janela de envio sem mandar: o rascunho some (nunca apareceu em Pedidos).
+    public async Task DescartarRascunhoAsync(int id)
     {
         var pedido = await CarregarAsync(id);
-        if (pedido.Status != StatusPedido.Rascunho) throw new EstoqueException("Só dá para mudar pedido em rascunho.");
-        var novos = itens.Where(i => i.Quantidade > 0).GroupBy(i => i.ProdutoId).ToDictionary(g => g.Key, g => g.Last());
-        if (novos.Count == 0) throw new EstoqueException("O pedido precisa de pelo menos um item (ou cancele o pedido).");
-        foreach (var item in pedido.Itens.ToList())
-        {
-            if (!novos.TryGetValue(item.ProdutoId, out var novo)) { pedido.Itens.Remove(item); db.ItensPedidoCompra.Remove(item); continue; }
-            if (item.Produto!.Unidade is not (Unidades.Quilo or Unidades.Litro) && novo.Quantidade % 1 != 0)
-                throw new EstoqueException($"\"{item.Produto.Nome}\" é comprado por {item.Produto.Unidade}: use número inteiro.");
-            item.Quantidade = novo.Quantidade;
-            if (novo.CustoUnitario is > 0) item.CustoUnitario = novo.CustoUnitario.Value;
-        }
-        pedido.SugestaoAutomatica = false;
+        if (pedido.Status != StatusPedido.Rascunho) return; // já foi enviado: fica
+        db.PedidosCompra.Remove(pedido);
         await db.SaveChangesAsync();
     }
 

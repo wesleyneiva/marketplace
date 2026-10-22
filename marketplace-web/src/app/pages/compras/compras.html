@@ -59,8 +59,7 @@
         </table>
       </div>
       <footer>
-        <button type="button" class="botao" (click)="criarPedido(s, false)" [disabled]="ocupado() || !selecionados(s)">Salvar rascunho</button>
-        <button type="button" class="botao primario" (click)="criarPedido(s, true)" [disabled]="ocupado() || !selecionados(s)"><app-icone nome="send" /> Criar e enviar ao fornecedor</button>
+        <button type="button" class="botao primario" (click)="enviarSugestao(s)" [disabled]="ocupado() || !selecionados(s)"><app-icone nome="send" /> Enviar pedido ao fornecedor</button>
       </footer>
     </section>
   } @empty {
@@ -72,8 +71,10 @@
 
 <!-- ======================= PEDIDOS ======================= -->
 @if (aba() === 'pedidos') {
+  <p class="explica">Aqui ficam só os pedidos <b>já enviados</b> ao fornecedor. Quando a mercadoria chegar, use <b>Receber</b> para
+    conferir e dar entrada no estoque. Para fazer um pedido novo, vá em <b>Sugestão de compra</b> ou em <b>Novo pedido</b>.</p>
   <div class="filtros">
-    @for (f of [{ v: 'abertos', t: 'Em aberto' }, { v: 'Recebido', t: 'Recebidos' }, { v: 'Cancelado', t: 'Cancelados' }, { v: 'todos', t: 'Todos' }]; track f.v) {
+    @for (f of [{ v: 'abertos', t: 'A caminho' }, { v: 'Recebido', t: 'Recebidos' }, { v: 'Cancelado', t: 'Cancelados' }, { v: 'todos', t: 'Todos' }]; track f.v) {
       <button type="button" class="botao" [class.ligado]="filtro() === f.v" (click)="filtro.set($any(f.v))">{{ f.t }}</button>
     }
   </div>
@@ -85,7 +86,7 @@
         @for (p of pedidosVisiveis(); track p.id) {
           <tr class="linha-pedido" (click)="aberto.set(aberto() === p.id ? null : p.id)">
             <td class="pos">{{ p.id }}</td>
-            <td><span class="nome">{{ p.fornecedor }}</span><small>{{ p.itens.length }} itens · @if (p.automatico) { <app-icone nome="bot" /> automático } @else if (p.sugestaoAutomatica) { <app-icone nome="sparkles" /> sugestão automática } @else { {{ p.criadoPor }} }</small></td>
+            <td><span class="nome">{{ p.fornecedor }}</span><small>{{ p.itens.length }} itens · @if (p.automatico) { <app-icone nome="bot" /> automático } @else { {{ p.criadoPor }} }</small></td>
             <td>
               <span class="status" [class]="'status s-' + p.status">{{ p.status }}</span>
               @if (p.atrasado) { <span class="selo alerta">atrasado</span> }
@@ -96,15 +97,11 @@
             <td class="quando">@if (p.status === 'Recebido') { <app-icone nome="check" /> {{ p.recebidoEm | date: 'dd/MM HH:mm' }} } @else { {{ p.previsaoEntrega ? (p.previsaoEntrega | dia) : '—' }} }</td>
             <td class="num forte">{{ p.total | currency: 'BRL' }}</td>
             <td class="acoes" (click)="$event.stopPropagation()">
-              @if (p.status === 'Rascunho') {
-                <button type="button" class="botao pequeno" (click)="editarRascunho(p)" [disabled]="ocupado()"><app-icone nome="pencil" /> Ajustar</button>
-                <button type="button" class="botao pequeno primario" (click)="enviar(p)" [disabled]="ocupado()"><app-icone nome="send" /> Enviar</button>
-              }
               @if (p.status === 'Enviado') {
-                <button type="button" class="botao pequeno" (click)="enviar(p)" title="Mandar de novo ao fornecedor (WhatsApp, e-mail)"><app-icone nome="send" /> Reenviar</button>
                 <button type="button" class="botao pequeno primario" (click)="abrirRecebimento(p)"><app-icone nome="package" /> Receber</button>
+                <button type="button" class="botao pequeno" (click)="reenviar(p)" title="Mandar de novo ao fornecedor (WhatsApp, e-mail)">Reenviar</button>
+                <button type="button" class="botao pequeno perigo" (click)="cancelar(p)" [disabled]="ocupado()">Cancelar</button>
               }
-              @if (p.status === 'Rascunho' || p.status === 'Enviado') { <button type="button" class="botao pequeno perigo" (click)="cancelar(p)" [disabled]="ocupado()">Cancelar</button> }
             </td>
           </tr>
           @if (aberto() === p.id) {
@@ -117,11 +114,7 @@
                     @for (i of p.itens; track i.id) {
                       <tr>
                         <td>{{ i.produto }}</td>
-                        <td class="num">
-                          @if (editando() === p.id) {
-                            <input class="qtd" type="number" min="0" [step]="i.unidade === 'KG' || i.unidade === 'L' ? 0.5 : 1" [(ngModel)]="quantidades[i.produtoId]" [attr.aria-label]="'Quantidade de ' + i.produto" />
-                          } @else { {{ i.quantidade | quantidade: i.unidade }} }
-                        </td>
+                        <td class="num">{{ i.quantidade | quantidade: i.unidade }}</td>
                         <td class="num" [class.urgente]="i.quantidadeRecebida !== null && i.quantidadeRecebida < i.quantidade">{{ i.quantidadeRecebida === null ? '—' : (i.quantidadeRecebida | quantidade: i.unidade) }}</td>
                         <td>{{ i.validade ? (i.validade | dia) : '—' }}</td>
                         <td class="num">{{ i.custoUnitario | currency: 'BRL' }}</td>
@@ -130,16 +123,6 @@
                     }
                   </tbody>
                 </table>
-                @if (editando() === p.id) {
-                  <div class="editar-rascunho">
-                    <span>Quantidade 0 tira o item do pedido.</span>
-                    <button type="button" class="botao" (click)="editando.set(null)">Desistir</button>
-                    <button type="button" class="botao primario" (click)="salvarRascunho(p)" [disabled]="ocupado()">Salvar quantidades</button>
-                  </div>
-                } @else if (p.sugestaoAutomatica && p.status === 'Rascunho') {
-                  <p class="dica-rascunho"><app-icone nome="sparkles" /> Montado sozinho ao abrir a loja, pela sugestão de compra. Se não for enviado hoje,
-                    amanhã ele é refeito com as contas novas (a não ser que você ajuste as quantidades: aí ele passa a ser seu).</p>
-                }
               </td>
             </tr>
           }
@@ -258,9 +241,8 @@
   </div>
   <footer>
     @if (erroNovo()) { <div class="erro" role="alert">{{ erroNovo() }}</div> }
-    <button type="button" class="botao" (click)="salvarNovo(false)" [disabled]="ocupado()">Salvar rascunho</button>
-    <button type="button" class="botao primario" (click)="salvarNovo(true)" [disabled]="ocupado()"><app-icone nome="send" /> Criar e enviar ao fornecedor</button>
+    <button type="button" class="botao primario" (click)="enviarNovo()" [disabled]="ocupado()"><app-icone nome="send" /> Enviar pedido ao fornecedor</button>
   </footer>
 </dialog>
 
-<app-enviar-pedido (enviado)="aoEnviar($event)" />
+<app-enviar-pedido (enviado)="aoEnviar($event)" (desistiu)="desistiuDoEnvio($event)" />

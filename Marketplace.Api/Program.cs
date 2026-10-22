@@ -52,7 +52,7 @@ builder.Services.AddScoped<Marketplace.Api.Services.CobrancasService>(); // mens
 // atendendo. O padrão do .NET era DERRUBAR a API inteira (aconteceu no teste de estresse de 19/10/2026).
 builder.Services.Configure<HostOptions>(o => o.BackgroundServiceExceptionBehavior = BackgroundServiceExceptionBehavior.Ignore);
 builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>();
-builder.Services.AddHostedService<Marketplace.Api.Services.ComprasAutomaticas>(); // rascunhos de compra ao abrir a loja // gera mensalidades e bloqueia atraso, de hora em hora
+// gera mensalidades e bloqueia atraso, de hora em hora
 builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoProdutosService>();
 builder.Services.AddScoped<Marketplace.Api.Services.NotaFiscal.EntradaNotaService>();
 

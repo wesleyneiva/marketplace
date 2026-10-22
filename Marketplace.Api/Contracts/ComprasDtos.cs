@@ -45,7 +45,7 @@ public record ItemPedidoResponse(
     decimal? QuantidadeRecebida, DateOnly? Validade, decimal Total);
 
 public record PedidoResponse(
-    int Id, int FornecedorId, string Fornecedor, string Status, bool Automatico, bool SugestaoAutomatica, string? Observacao,
+    int Id, int FornecedorId, string Fornecedor, string Status, bool Automatico, string? Observacao,
     DateTimeOffset CriadoEm, string CriadoPor, DateTimeOffset? EnviadoEm, DateOnly? PrevisaoEntrega,
     DateTimeOffset? RecebidoEm, string? RecebidoPor, decimal Total, bool Atrasado, IReadOnlyList<ItemPedidoResponse> Itens,
     string? Pagamento,          // Boleto / NaEntrega / Nota (null = antigo)
@@ -53,4 +53,5 @@ public record PedidoResponse(
     bool AguardandoNota);       // recebido com "a conta vem com a NF-e" e a nota ainda não entrou
 
 // Os pedidos de compra que o sistema montou sozinho ao abrir a loja (para o aviso do painel).
-public record SugestaoDoDiaResponse(int Pedidos, int Itens, decimal Total, DateTimeOffset? GeradaEm, bool Ligada);
+// Aviso do painel e número no menu: quantos produtos a sugestão manda comprar, de quantos fornecedores.
+public record ResumoSugestaoResponse(int Itens, int Fornecedores, decimal Total);

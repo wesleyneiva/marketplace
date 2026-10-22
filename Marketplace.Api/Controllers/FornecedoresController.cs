@@ -20,7 +20,7 @@ public class FornecedoresController(AppDbContext db) : ControllerBase
             .OrderBy(f => f.Nome)
             .Select(f => new FornecedorResponse(f.Id, f.Nome, f.Cnpj, f.Contato, f.Telefone, f.Email, f.PrazoEntregaDias,
                 f.Observacao, f.Ativo, f.Produtos.Count(p => p.Ativo),
-                db.PedidosCompra.Count(p => p.FornecedorId == f.Id && (p.Status == StatusPedido.Rascunho || p.Status == StatusPedido.Enviado))))
+                db.PedidosCompra.Count(p => p.FornecedorId == f.Id && p.Status == StatusPedido.Enviado)))
             .ToListAsync();
 
     [HttpPost]

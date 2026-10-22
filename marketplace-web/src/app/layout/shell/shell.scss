@@ -57,6 +57,21 @@ nav {
     color: #fff;
   }
 
+  a { position: relative; }
+
+  // Quantos produtos a sugestão manda comprar (item Compras).
+  .contador {
+    margin-left: auto;
+    min-width: 22px;
+    padding: 1px 7px;
+    border-radius: 99px;
+    background: #d97706; // laranja fixo: o menu é escuro nos dois temas
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    text-align: center;
+  }
+
   .item-futuro {
     opacity: 0.5;
     cursor: default;
@@ -137,6 +152,7 @@ nav {
   .rotulo { display: none; }
   .empresa { justify-content: center; margin: -4px 0 12px; padding: 8px 0; }
   nav a, nav .item-futuro, .recolher { justify-content: center; padding: 10px 0; }
+  nav .contador { position: absolute; top: 2px; right: 4px; min-width: 18px; padding: 0 5px; font-size: 10px; }
 }
 
 .botao-menu {
@@ -263,6 +279,7 @@ nav {
     .rotulo { display: revert; }
     .empresa { justify-content: flex-start; margin: -4px 16px 12px; padding: 6px 10px; }
     nav a, nav .item-futuro { justify-content: flex-start; padding: 10px 12px; }
+    nav .contador { position: static; min-width: 22px; padding: 1px 7px; font-size: 12px; }
   }
 
   .usuario .dados {

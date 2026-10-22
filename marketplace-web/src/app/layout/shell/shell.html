@@ -16,6 +16,9 @@
         @if (item.pronto) {
           <a [routerLink]="item.rota" [attr.title]="recolhido() ? item.rotulo : null" routerLinkActive="ativo" [routerLinkActiveOptions]="{ exact: item.rota === '/plataforma' }" (click)="menuAberto.set(false)">
             <app-icone class="icone" [nome]="item.icone" /><span class="rotulo">{{ item.rotulo }}</span>
+            @if (item.rota === '/compras' && paraComprar() > 0) {
+              <span class="contador" [attr.title]="paraComprar() + ' produtos para comprar (sugestão de compra)'">{{ paraComprar() }}</span>
+            }
           </a>
         } @else {
           <span class="item-futuro" title="Em breve">

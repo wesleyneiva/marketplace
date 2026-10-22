@@ -17,7 +17,7 @@ import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
   selector: 'app-enviar-pedido',
   imports: [Icone, FormsModule, RouterLink, FecharAoClicarFora],
   template: `
-    <dialog #dlg fecharAoClicarFora class="dialogo-enviar">
+    <dialog #dlg fecharAoClicarFora class="dialogo-enviar" (close)="aoFechar()">
       @if (pedido(); as p) {
         <header>
           <h2><app-icone nome="send" /> Enviar pedido #{{ p.id }} ao fornecedor</h2>
@@ -85,6 +85,7 @@ export class EnviarPedido {
   private readonly dlg = viewChild.required<ElementRef<HTMLDialogElement>>('dlg');
 
   readonly enviado = output<Pedido>(); // o pedido passou a "Enviado" (a tela recarrega a lista)
+  readonly desistiu = output<Pedido>(); // fechou sem mandar um pedido novo (a tela apaga o rascunho)
 
   protected readonly pedido = signal<Pedido | null>(null);
   protected readonly fornecedor = signal<Fornecedor | null>(null);
@@ -114,6 +115,11 @@ export class EnviarPedido {
 
   fechar(): void {
     this.dlg().nativeElement.close();
+  }
+
+  protected aoFechar(): void {
+    const p = this.pedido();
+    if (p && !this.jaEnviado()) this.desistiu.emit(p);
   }
 
   // Número para o wa.me: só dígitos, com o 55 do Brasil na frente.

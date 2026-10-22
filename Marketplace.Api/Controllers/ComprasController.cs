@@ -20,11 +20,19 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
     [HttpGet("sugestao")]
     public Task<List<SugestaoFornecedor>> Sugestao() => compras.SugestaoAsync(HttpContext.RequestAborted);
 
-    // GET /api/compras/pedidos?status=Enviado
+    // GET /api/compras/sugestao/resumo → aviso do painel e número no menu
+    [HttpGet("sugestao/resumo")]
+    public async Task<ResumoSugestaoResponse> ResumoSugestao()
+    {
+        var s = await compras.SugestaoAsync(HttpContext.RequestAborted);
+        return new(s.Sum(f => f.Itens.Count), s.Count, s.Sum(f => f.Total));
+    }
+
+    // GET /api/compras/pedidos?status=Enviado (rascunho nunca: é só o pedido no meio do envio)
     [HttpGet("pedidos")]
     public async Task<List<PedidoResponse>> Pedidos(StatusPedido? status, int quantidade = 50)
     {
-        var consulta = db.PedidosCompra.AsNoTracking();
+        var consulta = db.PedidosCompra.AsNoTracking().Where(p => p.Status != StatusPedido.Rascunho);
         if (status is not null) consulta = consulta.Where(p => p.Status == status);
         var ids = await consulta.OrderByDescending(p => p.Id).Take(Math.Clamp(quantidade, 1, 200)).Select(p => p.Id).ToListAsync();
         return await MontarAsync(ids);
@@ -38,33 +46,16 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
     public Task<IActionResult> Criar(NovoPedidoRequest r) =>
         Executar(async () => (await compras.CriarAsync(r, UsuarioId)).Id);
 
-    [HttpPut("pedidos/{id:int}/itens")]
-    public Task<IActionResult> EditarRascunho(int id, List<ItemPedidoRequest> itens) =>
-        Executar(async () => { await compras.EditarRascunhoAsync(id, itens); return id; });
-
-    // GET /api/compras/sugestao-do-dia → rascunhos montados sozinhos ao abrir a loja (aviso do painel)
-    [HttpGet("sugestao-do-dia")]
-    public async Task<SugestaoDoDiaResponse> SugestaoDoDia()
-    {
-        var ligada = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => e.ComprasAutomaticas).FirstAsync();
-        var rascunhos = await db.PedidosCompra.AsNoTracking()
-            .Where(p => p.SugestaoAutomatica && p.Status == StatusPedido.Rascunho)
-            .Select(p => new { p.CriadoEm, Itens = p.Itens.Count, Total = p.Itens.Sum(i => i.Quantidade * i.CustoUnitario) })
-            .ToListAsync();
-        return new(rascunhos.Count, rascunhos.Sum(r => r.Itens), Math.Round(rascunhos.Sum(r => r.Total), 2),
-            rascunhos.Count == 0 ? null : rascunhos.Max(r => r.CriadoEm), ligada);
-    }
-
-    // POST /api/compras/sugestao-do-dia/refazer → monta os rascunhos agora (troca os automáticos não enviados)
-    [HttpPost("sugestao-do-dia/refazer")]
-    public async Task<SugestaoDoDiaResponse> RefazerSugestaoDoDia([FromServices] IServiceProvider servicos)
-    {
-        await Services.ComprasAutomaticas.GerarAsync(servicos, Services.Relogio.Hoje, HttpContext.RequestAborted);
-        return await SugestaoDoDia();
-    }
-
     [HttpPost("pedidos/{id:int}/enviar")]
     public Task<IActionResult> Enviar(int id) => Executar(async () => { await compras.EnviarAsync(id); return id; });
+
+    // DELETE /api/compras/pedidos/5 → desistiu do envio (só rascunho)
+    [HttpDelete("pedidos/{id:int}")]
+    public async Task<IActionResult> Descartar(int id)
+    {
+        try { await compras.DescartarRascunhoAsync(id); return NoContent(); }
+        catch (EstoqueException e) { return BadRequest(new { mensagem = e.Message }); }
+    }
 
     [HttpPost("pedidos/{id:int}/cancelar")]
     public Task<IActionResult> Cancelar(int id) => Executar(async () => { await compras.CancelarAsync(id); return id; });
@@ -91,7 +82,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
             .Where(p => ids.Contains(p.Id))
             .Select(p => new
             {
-                p.Id, p.FornecedorId, Fornecedor = p.Fornecedor!.Nome, p.Status, p.Automatico, p.SugestaoAutomatica, p.Observacao,
+                p.Id, p.FornecedorId, Fornecedor = p.Fornecedor!.Nome, p.Status, p.Automatico, p.Observacao,
                 p.CriadoEm, CriadoPor = p.CriadoPor!.NomeCompleto, p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm,
                 RecebidoPor = p.RecebidoPor != null ? p.RecebidoPor.NomeCompleto : null,
                 p.Pagamento,
@@ -105,7 +96,7 @@ public class ComprasController(AppDbContext db, ComprasService compras) : Contro
             .ToListAsync();
 
         return pedidos.OrderByDescending(p => p.Id).Select(p => new PedidoResponse(
-            p.Id, p.FornecedorId, p.Fornecedor, p.Status.ToString(), p.Automatico, p.SugestaoAutomatica, p.Observacao, p.CriadoEm, p.CriadoPor,
+            p.Id, p.FornecedorId, p.Fornecedor, p.Status.ToString(), p.Automatico, p.Observacao, p.CriadoEm, p.CriadoPor,
             p.EnviadoEm, p.PrevisaoEntrega, p.RecebidoEm, p.RecebidoPor, p.Itens.Sum(i => i.Total),
             p.Status == StatusPedido.Enviado && p.PrevisaoEntrega < hoje, p.Itens,
             p.Pagamento, p.Contas, p.Status == StatusPedido.Recebido && p.Pagamento == PagamentosPedido.Nota && !p.TemNota)).ToList();

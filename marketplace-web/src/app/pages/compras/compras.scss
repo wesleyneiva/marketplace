@@ -74,9 +74,6 @@ tr.desmarcado td { opacity: 0.45; }
 input.falta { border-color: var(--cor-alerta-medio); }
 
 .qtd { width: 90px; text-align: right; padding: 4px 6px; }
-.editar-rascunho { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; color: var(--cor-texto-suave); }
-.editar-rascunho span { margin-right: auto; }
-.dica-rascunho { margin: 10px 0 0; font-size: 13px; color: var(--cor-texto-suave); }
 
 .janela footer .erro { margin-right: auto; padding: 6px 10px; }
 

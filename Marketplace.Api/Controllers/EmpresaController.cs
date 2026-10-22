@@ -67,17 +67,6 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
         return Resposta(empresa);
     }
 
-    // PUT /api/empresa/configuracao/compras-automaticas  { "ligada": true }
-    [HttpPut("compras-automaticas")]
-    [Authorize(Roles = Perfis.Administrador)]
-    public async Task<ActionResult<ConfiguracaoEmpresaResponse>> ComprasAutomaticas(LigarRequest r)
-    {
-        var empresa = await CarregarAsync();
-        empresa.ComprasAutomaticas = r.Ligada;
-        await db.SaveChangesAsync();
-        return Resposta(empresa);
-    }
-
     // PUT /api/empresa/configuracao/pix  { tipo, chave, nomeRecebedor } → chave Pix da loja (QR Code com o valor no caixa)
     [HttpPut("pix")]
     [Authorize(Roles = Perfis.Administrador)]
@@ -216,7 +205,7 @@ public class EmpresaController(AppDbContext db, ContextoEmpresa contexto, Locais
     // Exemplo para a tela mostrar como fica a etiqueta: produto 42, R$ 15,99 (ou 1,235 kg).
     private ConfiguracaoEmpresaResponse Resposta(Empresa e) => new(e.BalancaDigitosCodigo, e.BalancaEtiqueta,
         EtiquetaBalanca.Montar(42, e.BalancaEtiqueta == EtiquetaBalancaTipos.Peso ? 1235 : 1599, e.BalancaDigitosCodigo),
-        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(), e.ComprasAutomaticas,
+        e.Cidade, e.Uf, e.Fuso, Relogio.Agora.ToString("dd/MM/yyyy HH:mm"), e.Horario, Expediente.Descricao(), ProximosFeriados(),
         e.PixTipoChave, e.PixChave, e.PixNomeRecebedor, e.PixAutomatico, e.MercadoPagoConta, e.MercadoPagoTokenFinal, e.MercadoPagoTeste,
         e.PixAutomatico is null ? null : pixAutomatico.AvisoUrl(e));
 }

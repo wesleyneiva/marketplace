@@ -2,8 +2,11 @@ import { Component, DestroyRef, computed, effect, inject, signal } from '@angula
 import { httpResource } from '@angular/common/http';
 import { copiarTexto } from '../../shared/copiar';
 import { TemaService } from '../../core/tema.service';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { ComprasResumo } from '../../core/compras-resumo';
 import { Modulo } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
 import { Logo } from '../../shared/logo';
@@ -86,6 +89,10 @@ export class Shell {
 
   protected readonly areaDoDono = computed(() => !!this.usuario()?.soPlataforma);
 
+  // Número ao lado de "Compras" (core/compras-resumo.ts): refaz a cada troca de tela e de minuto em minuto.
+  private readonly resumoCompras = inject(ComprasResumo);
+  protected readonly paraComprar = this.resumoCompras.paraComprar;
+
   // Mensalidade do sistema: aviso para o ADMINISTRADOR do mercado (vence em breve / em atraso), com a chave PIX.
   protected readonly assinatura = httpResource<{ nivel: string | null; mensagem: string | null; chavePix: string | null; nomeRecebedor: string | null; contato: string | null }>(
     () => {
@@ -118,7 +125,8 @@ export class Shell {
   // Módulos liberados pelo dono da plataforma: confere a cada minuto e ao voltar para a aba. Se o módulo da tela aberta
   // deixou de valer, volta para o início (o menu já se refaz sozinho pelo signal do usuário).
   constructor() {
-    const atualizar = () => void this.auth.atualizar();
+    const atualizar = () => { void this.auth.atualizar(); this.resumoCompras.recarregar(); };
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => this.resumoCompras.recarregar());
     const id = setInterval(atualizar, 60_000);
     const aoVoltar = () => { if (document.visibilityState === 'visible') atualizar(); };
     document.addEventListener('visibilitychange', aoVoltar);

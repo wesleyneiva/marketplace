@@ -28,15 +28,15 @@
   </section>
 } }
 
-@if (comprasDoDia.value(); as cd) {
-  @if (cd.pedidos > 0) {
-    <a class="aviso-compras" routerLink="/compras" [queryParams]="{ aba: 'pedidos' }">
+@if (paraComprar.value(); as pc) {
+  @if (pc.itens > 0) {
+    <a class="aviso-compras" routerLink="/compras">
       <span class="icone-aviso"><app-icone nome="shopping-bag" /></span>
       <span class="texto">
-        <strong>{{ cd.pedidos }} {{ cd.pedidos === 1 ? 'pedido de compra pronto' : 'pedidos de compra prontos' }} para conferir</strong>
-        <small>{{ cd.itens }} itens · {{ cd.total | currency: 'BRL' }} · montados pela sugestão de compra ao abrir a loja. Ajuste se quiser e envie aos fornecedores.</small>
+        <strong>{{ pc.itens }} {{ pc.itens === 1 ? 'produto precisa ser comprado' : 'produtos precisam ser comprados' }}</strong>
+        <small>{{ pc.fornecedores }} {{ pc.fornecedores === 1 ? 'fornecedor' : 'fornecedores' }} · {{ pc.total | currency: 'BRL' }} · pela sugestão de compra. Confira as quantidades e envie os pedidos.</small>
       </span>
-      <span class="ir">Conferir <app-icone nome="chevron-right" /></span>
+      <span class="ir">Ver sugestão <app-icone nome="chevron-right" /></span>
     </a>
   }
 }

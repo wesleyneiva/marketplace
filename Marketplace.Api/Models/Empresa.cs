@@ -65,10 +65,6 @@ public class Empresa
     // · Completo (a demonstração: o bot também compra, recebe entregas, paga contas e usa o fiado).
     public string VendasAutomaticas { get; set; } = ModosVendasAutomaticas.Desligado;
 
-    // Compras automáticas: todo dia, ao abrir a loja, o sistema monta os pedidos de compra em RASCUNHO pela sugestão
-    // (um por fornecedor). A pessoa confere, ajusta e envia. Nada é enviado sozinho.
-    public bool ComprasAutomaticas { get; set; } = true;
-
     // Ramo do comércio (ver Ramos): decide as categorias iniciais, as palavras das telas ("mercado" / "loja"), o que
     // aparece (balança, validade) e o que a IA leva em conta. Só o dono da plataforma muda.
     public string Ramo { get; set; } = Ramos.Mercado;

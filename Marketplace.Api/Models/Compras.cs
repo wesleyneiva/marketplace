@@ -18,7 +18,9 @@ public class Fornecedor : IDaEmpresa
     public List<Produto> Produtos { get; set; } = [];
 }
 
-// Pedido de compra: Rascunho → Enviado (ao fornecedor) → Recebido (entra no estoque). Ou Cancelado.
+// Pedido de compra: Enviado (ao fornecedor) → Recebido (entra no estoque). Ou Cancelado.
+// Rascunho é só o instante entre montar a mensagem e mandá-la: não aparece em Pedidos nem conta como "a caminho";
+// se a pessoa desiste do envio, ele é apagado.
 public class PedidoCompra : IDaEmpresa
 {
     public int Id { get; set; }
@@ -29,7 +31,6 @@ public class PedidoCompra : IDaEmpresa
 
     public StatusPedido Status { get; set; } = StatusPedido.Rascunho;
     public bool Automatico { get; set; } // feito pelo simulador ("gerente automático")
-    public bool SugestaoAutomatica { get; set; } // rascunho montado sozinho ao abrir a loja (a pessoa confere e envia)
     public string? Observacao { get; set; }
 
     public DateTimeOffset CriadoEm { get; set; } = DateTimeOffset.UtcNow;
