@@ -42,6 +42,20 @@ o que o servidor confirmou. Essas vendas têm o cupom impresso e podem ser relan
 
 ## Situação A — alguém apagou ou estragou dados (a VM está bem)
 
+**Foi numa loja só** (o caso normal: o dono de uma loja fez besteira) → restaura SÓ ela; as outras não são tocadas:
+
+```bash
+cd ~/projetos/marketplace
+sudo infra/restaurar-loja.sh --empresa 4 --ate "2026-10-22 14:00"            # simulação: o que volta, tabela por tabela
+sudo infra/restaurar-loja.sh --empresa 4 --usar-recuperado --gravar           # aplica (backup do banco antes, ~1 min fora)
+```
+
+O horário é o de ANTES do problema; o que a loja fez depois dele se perde. Não voltam no tempo: o cadastro da empresa
+(plano, horário, configurações), os logins (`--com-usuarios` volta também) e o que é da plataforma. Testado em 22/10 no
+dev: loja de tênis com preços, produtos e contas estragados voltou em 19 s; a outra loja do mesmo banco ficou intacta.
+
+**Foi no banco todo** (ou para olhar o passado à mão):
+
 ```bash
 cd ~/projetos/marketplace
 sudo infra/recuperar-banco.sh --teste --ate "2026-10-19 15:30" --manter-teste   # banco de antes do erro, à parte

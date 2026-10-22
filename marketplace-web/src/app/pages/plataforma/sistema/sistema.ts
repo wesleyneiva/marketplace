@@ -8,7 +8,8 @@ import { API } from '../comum';
 interface Sistema {
   ligadoDesde: string; versao: string; memoriaMb: number; banco: string; bancoMb: number; discoLivreGb: number; discoTotalGb: number;
   enderecos: { endereco: string; noAr: boolean; ms: number | null; erro: string | null }[];
-  backup: { ultimoLocal: string | null; ultimoLocalKb: number | null; copiasLocais: number; nuvem: string | null; nuvemOk: boolean; continuo: string | null; continuoOk: boolean };
+  backup: { ultimoLocal: string | null; ultimoLocalKb: number | null; copiasLocais: number; nuvem: string | null; nuvemOk: boolean; continuo: string | null; continuoOk: boolean;
+    nuvens: { nome: string; empresa: string; continuoOk: boolean; continuoErro: string | null; diarioOk: boolean; guardado: string | null; arquivos: string | null }[] };
   usoPorCliente: { id: number; nome: string; registros: number; percentual: number }[];
   rotinas: { nome: string; situacao: string }[];
 }

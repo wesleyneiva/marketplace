@@ -39,13 +39,13 @@ enviar() {
   mv "$nova" "$marca"
 }
 
-if ! enviar nuvem; then
-  { echo "$(date '+%F %T') FALHOU ao enviar:"; cat /tmp/enviar-wal-nuvem.erro; } > "$LOG"
-  exit 1
-fi
+# Cada nuvem por conta própria: a Oracle fora do ar (ou a conta suspensa) não pode impedir o envio para o R2 — é
+# justamente para esse caso que o R2 existe. Antes (até 22/10) uma falha na Oracle parava o script antes do R2.
+falhou=0
+if enviar nuvem; then oracle="Oracle ok"; else oracle="Oracle FALHOU: $(tail -1 /tmp/enviar-wal-nuvem.erro)"; falhou=1; fi
 r2="sem R2"
 if rclone listremotes | grep -qx 'nuvem2:'; then
-  if enviar nuvem2; then r2="R2 ok"; else r2="R2 FALHOU: $(tail -1 /tmp/enviar-wal-nuvem2.erro)"; fi
+  if enviar nuvem2; then r2="R2 ok"; else r2="R2 FALHOU: $(tail -1 /tmp/enviar-wal-nuvem2.erro)"; falhou=1; fi
 fi
 
 # Limpeza: na VM, o que tem mais de 8 dias; na nuvem, uma vez por dia (madrugada), o que tem mais de 31.
@@ -55,5 +55,7 @@ if [ "$(date +%H%M)" \< "0505" ] && [ "$(date +%H)" = "05" ]; then
   if rclone listremotes | grep -qx 'nuvem2:'; then rclone delete nuvem2:marketplace-wal --min-age 31d || true; fi
 fi
 
-echo "$(date '+%F %T') ok · $(find "$ARQUIVO" -name '*.gz' | wc -l) pedaços na VM ($(du -sh "$ARQUIVO" | cut -f1)) · último: $(ls -1 "$ARQUIVO" | grep '\.gz$' | tail -1) · $r2" > "$LOG"
+situacao=$([ "$falhou" = 0 ] && echo ok || echo FALHOU)
+echo "$(date '+%F %T') $situacao · $(find "$ARQUIVO" -name '*.gz' | wc -l) pedaços na VM ($(du -sh "$ARQUIVO" | cut -f1)) · último: $(ls -1 "$ARQUIVO" | grep '\.gz$' | tail -1) · $oracle · $r2" > "$LOG"
+exit $falhou
 chown ubuntu:ubuntu "$LOG"

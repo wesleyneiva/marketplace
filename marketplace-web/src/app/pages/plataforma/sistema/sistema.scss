@@ -8,3 +8,14 @@
 .linha { align-items: center; }
 .barra { flex: 1; height: 8px; border-radius: 99px; background: var(--cor-fundo); overflow: hidden; margin: 0 8px; min-width: 60px; }
 .barra span { display: block; height: 100%; background: var(--cor-primaria); border-radius: 99px; }
+
+// Backup nas nuvens: uma linha por nuvem (Oracle e Cloudflare R2)
+.nuvens { margin-bottom: 14px;
+  .nuvem { display: grid; grid-template-columns: 1fr auto auto 160px; gap: 10px; align-items: center; }
+  .selo { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .selo.ok { background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); }
+  .selo.ruim { background: var(--cor-erro-fundo); color: var(--cor-erro); }
+  .erro-nuvem { display: block; color: var(--cor-erro); font-size: 12px; margin: -4px 0 6px; }
+  .num { text-align: right; }
+  @media (max-width: 640px) { .nuvem { grid-template-columns: 1fr 1fr; } }
+}

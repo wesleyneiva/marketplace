@@ -43,6 +43,19 @@
     </div>
   </section>
 
+  <section class="painel bloco nuvens">
+    <h2>Backup nas nuvens <small>(criptografado; o banco inteiro, com todas as lojas)</small></h2>
+    @for (n of s.backup.nuvens; track n.nome) {
+      <div class="linha nuvem" [class.falha]="!n.continuoOk || !n.diarioOk">
+        <span><b>{{ n.nome }}</b><small class="suave"> · {{ n.empresa }}</small></span>
+        <span class="selo" [class.ok]="n.continuoOk" [class.ruim]="!n.continuoOk" [title]="n.continuoErro ?? ''">contínuo {{ n.continuoOk ? 'em dia' : 'FALHOU' }}</span>
+        <span class="selo" [class.ok]="n.diarioOk" [class.ruim]="!n.diarioOk">diário {{ n.diarioOk ? 'ok' : 'FALHOU' }}</span>
+        <span class="suave num">{{ n.guardado ?? '—' }}@if (n.arquivos) { · {{ n.arquivos | number }} arquivos }</span>
+      </div>
+      @if (n.continuoErro) { <small class="erro-nuvem">{{ n.continuoErro }}</small> }
+    }
+  </section>
+
   <div class="duas-colunas">
     <section class="painel bloco">
       <h2>Rotinas automáticas</h2>

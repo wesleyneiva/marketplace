@@ -247,6 +247,22 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
+### 22/10/2026 (fim da noite) — restaurar uma loja só e as duas nuvens na área do dono
+- **Restaurar UMA loja** (`infra/restaurar-loja.sh`; `docs/plano-de-desastre.md` → Situação A): o backup continua sendo do
+  banco inteiro (todas as lojas, cada linha com `EmpresaId`); a restauração é por loja. Reconstrói o banco à parte no horário
+  pedido (`recuperar-banco.sh --teste --manter-teste`, porta 5434), mostra tabela por tabela o que muda (contagem e
+  "impressão digital" do conteúdo) e, com `--gravar`: backup do banco atual (`~/backup/<banco>-antes-restaurar-loja-N-…`),
+  para o serviço (só produção), apaga as linhas da loja e copia as do backup numa transação só
+  (`session_replication_role = replica`), liga o serviço, confere as contagens e apaga o banco à parte. Fora: Empresas,
+  logins (`--com-usuarios`), Planos/Faturas/Clima. Todas as tabelas de dados de loja têm `EmpresaId` (conferido).
+  Testado no dev (#13 estragada → voltou; #12 intacta). `--banco marketplace_dev` para testar no dev.
+- **Envio contínuo**: Oracle e R2 agora independentes (`infra/enviar-wal.sh`): antes, falha na Oracle parava o script antes
+  do R2 (justo o caso em que o R2 importa). `wal-ultimo.txt`: "… · Oracle ok · R2 ok".
+- **Área do dono → Sistema → "Backup nas nuvens"**: uma linha para a Oracle e outra para a Cloudflare R2, cada uma com o
+  contínuo (2 em 2 min), o diário e quanto está guardado (lê `wal-ultimo.txt` e `nuvem-ultimo.txt`).
+- Pendência pequena: na cópia diária para o R2 o rclone leva alguns "501 NotImplemented" e acerta na 2ª tentativa (está ok
+  hoje); se um dia falhar de vez, ver as opções do rclone para Cloudflare (`provider = Cloudflare`, checksum).
+
 ### 22/10/2026 (noite) — bot que morria em silêncio e histórico da TopSpin (ago–out)
 - **Causa do "bot parado"** (as paradas de hoje depois de publicar): os `catch` das rotinas em segundo plano deixavam passar
   `OperationCanceledException` (para respeitar o desligamento), mas o tempo esgotado do HttpClient (Open-Meteo lento) também é
@@ -561,12 +577,12 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
   2 min (compose); backup em `nuvem:` (Oracle) e `nuvem2:` (Cloudflare R2), conferir `~/backup/wal-ultimo.txt` ("R2 ok") e o card
-  da área do dono → Sistema; plano de desastre em `docs/plano-de-desastre.md`; scripts em `infra/` (enviar-wal, recuperar-banco,
+  da área do dono → Sistema; plano de desastre em `docs/plano-de-desastre.md`; scripts em `infra/` (enviar-wal, recuperar-banco, restaurar-loja,
   configurar-r2) e cópias versionadas das
   rotinas da VM em `infra/vm/` (os originais rodam de `~/scripts` e `/etc/systemd/system`). Teste de estresse: `estresse/README.md`
   (rodar fora do horário das lojas; o ambiente isolado foi desmontado e se recria em ~10 min).

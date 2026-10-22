@@ -15,7 +15,9 @@ public record SistemaResponse(
 
 public record EnderecoNoAr(string Endereco, bool NoAr, int? Ms, string? Erro);
 public record BackupInfo(string? UltimoLocal, long? UltimoLocalKb, int CopiasLocais, string? Nuvem, bool NuvemOk,
-    string? Continuo, bool ContinuoOk);
+    string? Continuo, bool ContinuoOk, List<NuvemInfo> Nuvens);
+// Cada nuvem (Oracle e Cloudflare R2): o envio contínuo de 2 em 2 min, a cópia diária e quanto está guardado lá.
+public record NuvemInfo(string Nome, string Empresa, bool ContinuoOk, string? ContinuoErro, bool DiarioOk, string? Guardado, string? Arquivos);
 public record UsoCliente(int Id, string Nome, long Registros, double Percentual);
 public record RotinaInfo(string Nome, string Situacao);
 
@@ -99,12 +101,34 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
             var walOk = walQuando is not null && DateTime.Now - walQuando < TimeSpan.FromMinutes(10)
                 && System.IO.File.ReadLines(walArquivo).FirstOrDefault()?.Contains(" ok ") == true;
             return new BackupInfo(ultima is null ? null : Path.GetFileName(ultima), dump?.Exists == true ? dump.Length / 1024 : null,
-                pastas.Count, nuvemQuando?.ToString("dd/MM/yyyy HH:mm"), nuvemOk, walQuando?.ToString("dd/MM HH:mm"), walOk);
+                pastas.Count, nuvemQuando?.ToString("dd/MM/yyyy HH:mm"), nuvemOk, walQuando?.ToString("dd/MM HH:mm"), walOk,
+                Nuvens(nuvemArquivo, nuvemOk, walArquivo, walQuando));
         }
         catch (Exception e) when (e is IOException or UnauthorizedAccessException)
         {
-            return new BackupInfo(null, null, 0, null, false, null, false);
+            return new BackupInfo(null, null, 0, null, false, null, false, []);
         }
+    }
+
+    // Lê os resultados dos scripts (infra/enviar-wal.sh → "… · Oracle ok · R2 ok"; infra/vm/backup-nuvem.sh → "Em nuvem2 agora:
+    // Total size: 1.780 GiB") e separa por nuvem. Contínuo parado há mais de 10 min conta como falha nas duas.
+    private static List<NuvemInfo> Nuvens(string nuvemArquivo, bool diarioOk, string walArquivo, DateTime? walQuando)
+    {
+        var wal = System.IO.File.Exists(walArquivo) ? System.IO.File.ReadLines(walArquivo).FirstOrDefault() ?? "" : "";
+        var recente = walQuando is not null && DateTime.Now - walQuando < TimeSpan.FromMinutes(10);
+        var diario = System.IO.File.Exists(nuvemArquivo) ? System.IO.File.ReadAllText(nuvemArquivo) : "";
+        NuvemInfo Uma(string remoto, string nome, string empresa, string marca)
+        {
+            // Formato antigo (antes de 22/10) não tinha "Oracle ok": aí vale o "ok" geral da linha.
+            var ok = recente && (wal.Contains($"{marca} ok") || (marca == "Oracle" && !wal.Contains("Oracle") && wal.Contains(" ok ")));
+            var erro = wal.Split(" · ").FirstOrDefault(p => p.StartsWith($"{marca} FALHOU"));
+            var secao = System.Text.RegularExpressions.Regex.Match(diario,
+                $@"Em {remoto} agora:\s+Total objects:[^(]*\((\d+)\)\s+Total size:\s*([^(\r\n]+)");
+            return new NuvemInfo(nome, empresa, ok, recente ? erro : "parado há mais de 10 min", diarioOk && secao.Success,
+                secao.Success ? secao.Groups[2].Value.Trim() : null, secao.Success ? secao.Groups[1].Value : null);
+        }
+        return [Uma("nuvem", "Oracle Object Storage", "Oracle (mesma empresa da VM)", "Oracle"),
+                Uma("nuvem2", "Cloudflare R2", "Cloudflare (outra empresa)", "R2")];
     }
 
     private record LinhaUso(int Id, string Nome, long Registros);
