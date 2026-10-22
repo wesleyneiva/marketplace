@@ -474,6 +474,9 @@ Pendências:
   por modelo e curva de tamanhos, preço próprio marcado por variação, cliente/vendedor/comissão
   (fase 4), demo de loja de esporte. Caixa: recarregar a página no meio da cobrança de uma OS perde o "marcar paga ao
   concluir" (marcar "Paga" na Oficina).
+- (22/10) **Bot parado depois de publicar**: depois da publicação das 10:16 nenhum bot vendeu por ~15 min (sem erro no log,
+  banco sem trava, clima respondendo); um novo reinício (10:31) resolveu na hora. Causa não achada. Se repetir: olhar a área do
+  dono → simulador (última rodada / último erro) antes de reiniciar.
 - (21/10) **TopSpin**: o usuário entra com `wesley@marcus.com` e a senha provisória do `acesso-topspin.txt` e cria a dele;
   acompanhar o bot (volume, ticket, oficina) nos próximos dias. Plano Lojas tem 2 caixas incluídos (a TopSpin usa 1).
 - (19/10) Ideia combinada e não feita: aba "Despesas e resultado" na Visão geral do dono quando houver custos.
