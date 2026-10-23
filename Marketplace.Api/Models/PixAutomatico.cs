@@ -7,7 +7,8 @@ namespace Marketplace.Api.Models;
 // para aquela venda. Quando o cliente paga, o Mercado Pago avisa o Marcus (webhook) — e o Marcus também pergunta
 // a cada poucos segundos enquanto o caixa espera (no banco, só a pergunta). O pagamento só entra na venda se o
 // provedor disser "pago".
-// Provedores: Mercado Pago (API de Orders) e o banco da loja pela API Pix do Banco Central (Banco do Brasil, 22/10/2026).
+// Provedores: Mercado Pago (API de Orders) e o banco da loja pela API Pix do Banco Central (Banco do Brasil, 22/10/2026;
+// Inter, Sicoob e Itaú, 23/10/2026 — ver os perfis em Services/Pix/PixBancoCentral.cs).
 
 public class CobrancaPix : IDaEmpresa
 {
@@ -42,15 +43,19 @@ public enum StatusCobrancaPix { Pendente, Paga, Expirada, Cancelada, Devolvida }
 public static class ProvedoresPix
 {
     public const string MercadoPago = "MercadoPago";
-    public const string BancoDoBrasil = "BancoDoBrasil"; // API Pix do Banco Central, direto na conta da loja no BB
+    // API Pix do Banco Central, direto na conta da loja no banco
+    public const string BancoDoBrasil = "BancoDoBrasil", Inter = "Inter", Sicoob = "Sicoob", Itau = "Itau";
 
-    public static bool EhBanco(string? p) => p == BancoDoBrasil;
+    public static bool EhBanco(string? p) => p is BancoDoBrasil or Inter or Sicoob or Itau;
 
     // Como aparece para o caixa: "confirmado pelo Mercado Pago" / "pelo Banco do Brasil".
     public static string Nome(string? p) => p switch
     {
         MercadoPago => "Mercado Pago",
         BancoDoBrasil => "Banco do Brasil",
+        Inter => "Inter",
+        Sicoob => "Sicoob",
+        Itau => "Itaú",
         _ => "banco",
     };
 }

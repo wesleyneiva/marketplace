@@ -18,8 +18,9 @@ export interface CobrancaPix {
 }
 
 // Nome do provedor do Pix automático para o caixa ("MercadoPago" → "Mercado Pago"); igual a ProvedoresPix.Nome.
+const NOMES_PIX: Record<string, string> = { MercadoPago: 'Mercado Pago', BancoDoBrasil: 'Banco do Brasil', Inter: 'Inter', Sicoob: 'Sicoob', Itau: 'Itaú' };
 export function nomeProvedorPix(codigo: string | null | undefined): string {
-  return codigo === 'MercadoPago' ? 'Mercado Pago' : codigo === 'BancoDoBrasil' ? 'Banco do Brasil' : 'banco';
+  return (codigo && NOMES_PIX[codigo]) || 'banco';
 }
 
 // Pix AUTOMÁTICO (Mercado Pago ou o banco da loja): gera um QR único com o valor, espera o pagamento e avisa quem usa
@@ -86,7 +87,7 @@ export class PixAutomatico {
 
   readonly valor = input.required<number>();
   readonly sessaoCaixaId = input<number | null>(null);
-  readonly provedor = input<string | null>(null); // "MercadoPago" ou "BancoDoBrasil"
+  readonly provedor = input<string | null>(null); // "MercadoPago", "BancoDoBrasil", "Inter", "Sicoob" ou "Itau"
   protected readonly nome = computed(() => nomeProvedorPix(this.provedor()));
   readonly pago = output<CobrancaPix>();
 

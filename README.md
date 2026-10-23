@@ -110,13 +110,16 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   cancelada) aparece no caixa como "já recebido e sem venda" para usar. Sem aviso (internet), o caixa pode confirmar manualmente.
   Teste local sem conta: `~/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py` (launch "mp-simulador") com o
   segredo de desenvolvimento `MercadoPago:Url=http://127.0.0.1:5399`.
-- **Pix automático direto no banco da loja (Banco do Brasil)** (Configurações → Pix da loja → Confirmação automática →
-  "Direto no Banco do Brasil") — o mesmo Pix automático, mas o dinheiro cai **na conta PJ da loja**, sem o Mercado Pago no meio.
+- **Pix automático direto no banco da loja (Banco do Brasil, Inter, Sicoob, Itaú)** (Configurações → Pix da loja → Confirmação
+  automática → "Direto no banco da loja" → escolher o banco) — o mesmo Pix automático, mas o dinheiro cai **na conta PJ da loja**, sem o Mercado Pago no meio.
   `Services/Pix/PixBancoCentral.cs` fala a **API Pix padrão do Banco Central** (`PUT/GET/PATCH /cob/{txid}`,
   `PUT /pix/{e2eid}/devolucao/{id}`, `GET /cob?inicio&fim` para conferir ao ligar), com o que muda por banco num `Perfil`
   (BB: `oauth.hm.bb.com.br`/`api.hm.bb.com.br/pix/v2` nos testes, `oauth.bb.com.br`/`api-pix.bb.com.br/pix/v2` na produção, login
   Basic client_credentials, chave do desenvolvedor na URL `?gw-dev-app-key=`, QR em `pixCopiaECola` ou `textoImagemQRcode`).
-  Outro banco (Sicredi, Itaú, Inter…) = outro `Perfil`. txid = a `Referencia` da cobrança (32 letras); a devolução usa o E2E
+  Desde 23/10 também **Inter, Sicoob e Itaú** (o que muda por banco está no `Perfil`: login no corpo × Basic, sem secret,
+  campo extra na URL ou no cabeçalho, certificado já no sandbox, token fixo no sandbox; ver 23/10 em Últimas atualizações).
+  Só o BB está **conferido** com o banco de verdade; os outros aparecem na tela como "ainda não conferido" (`Perfil.Conferido`).
+  Outro banco (Sicredi, Bradesco, Santander, Efí…) = outro `Perfil`. txid = a `Referencia` da cobrança (32 letras); a devolução usa o E2E
   guardado (`CobrancaPix.EndToEndId`) e o id fixo `D<txid>` (não devolve duas vezes). A loja cadastra client_id, client_secret,
   chave do desenvolvedor, "ambiente de testes" e, na produção, o **certificado digital A1 (.pfx) + senha** (mTLS; abre e mostra
   "nome · vence dd/mm/aaaa" antes de ligar); tudo CRIPTOGRAFADO (DataProtection). O QR sai na **chave Pix da loja** (tem que ser
@@ -262,7 +265,43 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 22/10/2026 (mais recente) — Pix automático direto no Banco do Brasil (pronto para o 1º cliente BB)
+### 23/10/2026 (mais recente) — Pix automático direto no Inter, Sicoob e Itaú (ainda não conferidos com os bancos)
+- Análise pedida pelo usuário ("deixar prontas as APIs dos outros bancos"): **Nubank PJ** não tem API Pix pública (só cobrança e
+  QR fixo no app) e a **Caixa** não tem API pública de Pix/cobrança (só por intermediário): para essas lojas, Mercado Pago ou
+  Pix manual. Escolhidos primeiro **Inter** (o PJ mais comum em loja pequena, integração feita pelo próprio cliente), **Sicoob**
+  e **Itaú**; depois Bradesco, Santander, Sicredi, Efí.
+- **Motor genérico** (`PixBancoCentral.Perfil` com propriedades nomeadas): `LoginNoCorpo` (client_id/secret no formulário, não
+  no Basic), `SemSecret` (Sicoob), `ClientIdNoCabecalho` (Sicoob), `TokenFixoNoTeste` (sandbox do Sicoob: o "secret" é o token
+  fixo do portal), `CertificadoNoTeste` (Inter), `Escopos` opcional (Itaú não usa), `Extra` = campo a mais na URL (BB,
+  `gw-dev-app-key`) ou no cabeçalho (Inter, `x-conta-corrente`, opcional), QR também em `brcode` (Sicoob), `Conferido`.
+  **Certificado .crt + .key** (Inter e Itaú emitem assim): a tela aceita os dois arquivos juntos (ou um .pfx), o servidor junta e
+  guarda como .pfx (chave com senha também: `ENCRYPTED PRIVATE KEY`) — **sem migration**. Certificado agora é exigido ao ligar
+  na produção de todos (e no sandbox do Inter). Banco que recusa o certificado no TLS 1.3 só "reinicia a conexão": com
+  certificado, a mensagem diz para conferir o certificado (antes dizia "o banco não respondeu").
+- Endereços (pela documentação, **conferir no 1º uso de cada banco**): Inter `cdpj.partners.bancointer.com.br` (`/oauth/v2/token`,
+  `/pix/v2`; sandbox `cdpj-sandbox.partners.uatinter.co`); Sicoob `auth.sicoob.com.br/auth/realms/cooperado/…/token` e
+  `api.sicoob.com.br/pix/api/v2` (sandbox `sandbox.sicoob.com.br/sicoob/sandbox/pix/api/v2`, token fixo); Itaú
+  `sts.itau.com.br/api/oauth/token` e `secure.api.itau/pix_recebimentos/v2` (sandbox `devportal.itau.com.br/api/jwt` e
+  `/sandboxapi/pix_recebimentos_ext_v2/v2`). Trocar sem publicar: `PixBanco:<Codigo>:UrlApi`/`UrlToken` no `marketplace.env`.
+- **Tela**: "Direto no banco da loja" → lista de bancos ("Inter (ainda não conferido)"…); o formulário muda por banco (Sicoob
+  sem secret na produção e "Token de acesso do sandbox" no teste; BB com a chave do desenvolvedor; Inter com a conta corrente
+  opcional) e mostra o aviso **"Ainda não conferido com o banco"** (ao escolher e depois de ligado, com o roteiro do Pix de
+  R$ 0,01). Rota nova `GET /api/pix/bancos`; `PUT /api/pix/banco` aceita `certificadoPem` e `clientSecret` vazio.
+- **Simulador** `~/projetos/marketplace-testes/pix-automatico/simulador-bancos.py` (launch `bancos-simulador`, **https** na
+  porta 5397, com certificado do cliente): `/inter`, `/sicoob`, `/itau`, cada um conferindo o jeito do seu banco (login no
+  corpo, sem secret, escopo, cabeçalho `client_id`, certificado obrigatório). Certificados de teste em `.../pix-automatico/certs/`
+  (CA do banco simulado; `cliente.crt`+`cliente.key`, `cliente.pfx` senha teste123, `cliente-com-senha.key`, `estranho.*` =
+  recusado). O `api-dev` aponta os três para ele e liga `PixBanco:AceitarServidorDeTeste` (aceita o certificado do simulador;
+  **só no Development**).
+- **Testado no dev** (pela API, loja #12, e a tela do Inter no navegador): nos 4 bancos ligar → gerar QR → "Paga" → venda →
+  cancelar com devolução pelo banco → cancelar Pix não pago; Inter sem certificado, com certificado de outra empresa e só com o
+  .crt (recusados com mensagem clara); Sicoob sandbox (token fixo) e produção (.pfx; senha errada recusada); Itaú sandbox sem
+  certificado e produção com .crt + .key com senha; BB igual a antes (sem a chave do desenvolvedor recusa). A #12 voltou ao
+  Mercado Pago de teste, sem chave Pix, como estava.
+- **Falta, por banco, para virar "conferido"**: credenciais do ambiente de testes (sandbox) de cada banco + um Pix de R$ 0,01 na
+  produção do 1º cliente. Depois do teste real: `Conferido = true` no perfil.
+
+### 22/10/2026 — Pix automático direto no Banco do Brasil (pronto para o 1º cliente BB)
 Resumo do fim do dia 22/10 (este chat): (1) **R2 sem os "501"** na cópia diária (`no_head`); (2) **Treino B** de restaurar
 uma loja, feito pelo usuário com sucesso (as duas na seção "fim da noite" abaixo); (3) explicado o que o Marcus tem de
 pagamento/banco (Pix manual e automático, OFX; sem TEF e sem maquininha integrada); (4) **Pix direto no BB**, abaixo.
@@ -631,7 +670,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 22/10/2026 (mais recente), 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -651,7 +690,7 @@ Pendências:
   da demonstração: `./gerar-historico.sh`.
   O usuário autorizou commit, push e publicar sem perguntar.
 - **Dev**: launch `.claude/launch.json` → `api-dev` (porta 5200, já com `MercadoPago__Url` e `PixBanco__BancoDoBrasil__*` dos
-  simuladores), `web-dev` (4200), `mp-simulador` (5399, com devolução `/refund`), `bb-simulador` (5398, API Pix do BB); `api-dev-bb-real` = a API de dev
+  simuladores), `web-dev` (4200), `mp-simulador` (5399, com devolução `/refund`), `bb-simulador` (5398, API Pix do BB), `bancos-simulador` (5397 https, Inter/Sicoob/Itaú); `api-dev-bb-real` = a API de dev
   apontando para o ambiente de testes REAL do BB (no lugar do `api-dev`, mesma porta). Banco do dev = `marketplace_dev` (conferir `dotnet user-secrets list`);
   a API de dev **não** aplica migrations sozinha: `cd Marketplace.Api && dotnet ef database update`.
 - **Empresa de teste no dev**: "Teste Vendas" (#12, 2 caixas, 190 produtos do Juvenal, Pix automático no simulador);
@@ -667,6 +706,9 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
+- **Onde paramos (23/10)**: Pix automático direto no **Inter, Sicoob e Itaú** pronto e publicado, testado só com o simulador
+  (`bancos-simulador`); na tela aparecem como "ainda não conferido". Próximos bancos possíveis: Bradesco, Santander, Sicredi, Efí.
+  Nubank PJ e Caixa não têm API Pix pública.
 - **Onde paramos (fim de 22/10)**: Pix automático direto no Banco do Brasil pronto e publicado; testado no ambiente de testes
   REAL do BB até gerar/consultar/cancelar (o pagamento simulado o BB bloqueia: fica para um Pix real de R$ 0,01 no 1º cliente
   BB). Dev de volta ao normal (loja #1 no Mercado Pago de teste; `api-dev` com os simuladores). O usuário tem a aplicação
@@ -676,7 +718,7 @@ Pendências:
 - Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); envio automático do pedido ao fornecedor;
   acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago; Pix pelo BB com o 1º cliente (R$ 0,01 real,
-  certificado A1, `gw-app-key`?); outros bancos no Pix automático (novo `Perfil` em `PixBancoCentral`); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
+  certificado A1, `gw-app-key`?); conferir Inter/Sicoob/Itaú com credenciais de sandbox reais; mais bancos no Pix automático (novo `Perfil` em `PixBancoCentral`); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
   NSU/bandeira/autorização — prepara a NFC-e).
 
 ## Stack (conferida em 20/10/2026)

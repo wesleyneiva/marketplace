@@ -48,6 +48,21 @@ interface Configuracao {
   proximosFeriados: { data: string; nome: string; situacao: string }[];
 }
 
+// Igual a PixController.BancoPixResponse.
+interface BancoPix {
+  codigo: string;
+  nome: string;
+  conferido: boolean;
+  precisa: string;
+  certificado: string;
+  certificadoNoTeste: boolean;
+  semSecret: boolean;
+  tokenFixoNoTeste: boolean;
+  extraRotulo: string | null;
+  extraDica: string | null;
+  extraObrigatorio: boolean;
+}
+
 type TipoChavePix = 'Cpf' | 'Cnpj' | 'Celular' | 'Email' | 'Aleatoria';
 const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; exemplo: string }[] = [
   { valor: 'Cnpj', rotulo: 'CNPJ', exemplo: '12.345.678/0001-90' },
@@ -165,7 +180,7 @@ export class Configuracoes {
   }
 
   // ----- Pix automático (Mercado Pago ou o banco da loja avisa o caixa) -----
-  protected readonly provedorPix = signal<'MercadoPago' | 'BancoDoBrasil'>('MercadoPago');
+  protected readonly provedorPix = signal<'MercadoPago' | 'Banco'>('MercadoPago');
   protected mpToken = '';
   protected mpTeste = true;
   protected readonly salvandoMp = signal(false);
@@ -189,35 +204,76 @@ export class Configuracoes {
   protected readonly avisoCopiado = signal(false);
   async copiarAviso(url: string): Promise<void> { this.avisoCopiado.set(await copiarTexto(url)); }
 
-  // Banco do Brasil: client_id/secret e chave do desenvolvedor do portal do banco; certificado (.pfx) só na produção.
-  protected bbClientId = '';
-  protected bbClientSecret = '';
-  protected bbChaveApp = '';
-  protected bbTeste = true;
-  protected bbPfxSenha = '';
-  private bbPfx: string | null = null; // o arquivo em base64
+  // Banco da loja: o formulário muda conforme o banco (PixController.BancoPixResponse): o Sicoob não tem client_secret
+  // (no sandbox, é o token fixo), o BB pede a chave do desenvolvedor, o Inter e o Itaú dão o certificado em .crt + .key.
+  protected readonly bancos = httpResource<BancoPix[]>(() => (this.ehAdmin() ? '/api/pix/bancos' : undefined));
+  protected readonly bancoEscolhido = signal<string>('BancoDoBrasil');
+  protected readonly banco = computed(() => this.bancos.value()?.find((b) => b.codigo === this.bancoEscolhido()) ?? null);
+  protected readonly bancoLigado = computed(() => this.bancos.value()?.find((b) => b.codigo === this.config.value()?.pixAutomatico) ?? null);
+  protected bancoClientId = '';
+  protected bancoClientSecret = '';
+  protected bancoExtra = '';
+  protected bancoTeste = true;
+  protected bancoCertSenha = '';
+  protected readonly bancoCertArquivos = signal<string | null>(null); // nomes escolhidos, para a tela
+  private bancoPfx: string | null = null; // .pfx em base64
+  private bancoPem: string | null = null; // .crt + .key em texto
 
-  async escolherCertificado(ev: Event): Promise<void> {
-    const arquivo = (ev.target as HTMLInputElement).files?.[0];
-    this.bbPfx = null;
-    if (!arquivo) return;
-    if (arquivo.size > 20_000) { this.avisoMp.set({ ok: false, texto: 'Esse arquivo é grande demais para um certificado .pfx.' }); return; }
-    const bytes = new Uint8Array(await arquivo.arrayBuffer());
-    let bin = '';
-    bytes.forEach((b) => (bin += String.fromCharCode(b)));
-    this.bbPfx = btoa(bin);
+  protected pedeSecret(b: BancoPix): boolean { return !b.semSecret || (this.bancoTeste && b.tokenFixoNoTeste); }
+  protected pedeCertificado(b: BancoPix): boolean { return !this.bancoTeste || b.certificadoNoTeste; }
+  protected podeLigarBanco(b: BancoPix, temChave: boolean): boolean {
+    return temChave && !this.salvandoMp() && this.bancoClientId.trim().length >= 8 && (!this.pedeSecret(b) || this.bancoClientSecret.trim().length >= 8)
+      && (!b.extraObrigatorio || !!this.bancoExtra.trim()) && (!this.pedeCertificado(b) || !!(this.bancoPfx || this.bancoPem));
   }
 
-  async ligarBanco(): Promise<void> {
+  escolherBanco(codigo: string): void {
+    this.bancoEscolhido.set(codigo);
+    this.avisoMp.set(null);
+    this.bancoExtra = '';
+  }
+
+  // Um .pfx (binário) ou os dois arquivos de texto do Inter/Itaú (.crt e .key, escolhidos juntos).
+  async escolherCertificado(ev: Event): Promise<void> {
+    const arquivos = Array.from((ev.target as HTMLInputElement).files ?? []);
+    this.bancoPfx = this.bancoPem = null;
+    this.bancoCertArquivos.set(null);
+    if (!arquivos.length) return;
+    if (arquivos.some((a) => a.size > 20_000)) { this.avisoMp.set({ ok: false, texto: 'Esse arquivo é grande demais para um certificado.' }); return; }
+    const textos: string[] = [];
+    for (const arquivo of arquivos) {
+      const bytes = new Uint8Array(await arquivo.arrayBuffer());
+      const texto = new TextDecoder().decode(bytes);
+      if (texto.includes('-----BEGIN ')) { textos.push(texto.trim()); continue; }
+      let bin = '';
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      this.bancoPfx = btoa(bin);
+    }
+    if (textos.length) {
+      const pem = textos.join('\n');
+      if (!pem.includes('-----BEGIN CERTIFICATE-----') || !pem.includes('PRIVATE KEY-----')) {
+        this.avisoMp.set({ ok: false, texto: 'Escolha os DOIS arquivos juntos: o certificado (.crt) e a chave (.key).' });
+        return;
+      }
+      this.bancoPem = pem;
+    }
+    this.avisoMp.set(null);
+    this.bancoCertArquivos.set(arquivos.map((a) => a.name).join(' + '));
+  }
+
+  async ligarBanco(b: BancoPix): Promise<void> {
     this.avisoMp.set(null);
     this.salvandoMp.set(true);
+    const cert = this.pedeCertificado(b);
     try {
       const r = await firstValueFrom(this.http.put<{ banco: string; teste: boolean; certificado: string | null }>('/api/pix/banco', {
-        banco: 'BancoDoBrasil', clientId: this.bbClientId, clientSecret: this.bbClientSecret, chaveApp: this.bbChaveApp, teste: this.bbTeste,
-        certificadoBase64: this.bbTeste ? null : this.bbPfx, certificadoSenha: this.bbTeste ? null : this.bbPfxSenha || null,
+        banco: b.codigo, clientId: this.bancoClientId, clientSecret: this.pedeSecret(b) ? this.bancoClientSecret : null,
+        chaveApp: b.extraRotulo ? this.bancoExtra || null : null, teste: this.bancoTeste,
+        certificadoBase64: cert ? this.bancoPfx : null, certificadoPem: cert && !this.bancoPfx ? this.bancoPem : null,
+        certificadoSenha: cert ? this.bancoCertSenha || null : null,
       }));
-      this.bbClientSecret = this.bbChaveApp = this.bbPfxSenha = '';
-      this.bbPfx = null;
+      this.bancoClientSecret = this.bancoExtra = this.bancoCertSenha = '';
+      this.bancoPfx = this.bancoPem = null;
+      this.bancoCertArquivos.set(null);
       this.config.reload();
       this.avisoMp.set({ ok: true, texto: `Ligado direto no ${r.banco}${r.teste ? ' (ambiente de testes: sem dinheiro de verdade)' : ''}. No caixa, o Pix agora gera o QR no banco.` });
     } catch (e) {

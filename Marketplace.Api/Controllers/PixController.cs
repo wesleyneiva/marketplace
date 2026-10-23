@@ -19,10 +19,14 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
     public record CobrancaPixResponse(int Id, decimal Valor, StatusCobrancaPix Status, string CopiaECola, string Svg,
         DateTimeOffset ExpiraEm, DateTimeOffset? PagaEm);
     public record LigarMercadoPagoRequest([Required, StringLength(300)] string Token, bool Teste);
-    // Certificado: o .pfx em base64 (até ~30 KB) e a senha dele; só a produção do banco exige.
+    // Certificado: o .pfx em base64 (até ~30 KB) ou o texto do .crt + .key (Inter, Itaú), e a senha; a produção exige.
+    // ClientSecret: o Sicoob não tem (na produção); no sandbox dele é o token fixo do portal.
     public record LigarBancoRequest([Required, StringLength(30)] string Banco, [Required, StringLength(200)] string ClientId,
-        [Required, StringLength(500)] string ClientSecret, [StringLength(200)] string? ChaveApp, bool Teste,
-        [StringLength(40000)] string? CertificadoBase64, [StringLength(200)] string? CertificadoSenha);
+        [StringLength(4000)] string? ClientSecret, [StringLength(200)] string? ChaveApp, bool Teste,
+        [StringLength(40000)] string? CertificadoBase64, [StringLength(40000)] string? CertificadoPem, [StringLength(200)] string? CertificadoSenha);
+    // O que a tela precisa saber de cada banco para montar o formulário.
+    public record BancoPixResponse(string Codigo, string Nome, bool Conferido, string Precisa, string Certificado, bool CertificadoNoTeste,
+        bool SemSecret, bool TokenFixoNoTeste, string? ExtraRotulo, string? ExtraDica, bool ExtraObrigatorio);
 
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -57,7 +61,12 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
         catch (Exception e) when (e is PixException or ProvedorPixException) { return BadRequest(new { mensagem = e.Message }); }
     }
 
-    // PUT /api/pix/banco  { banco: "BancoDoBrasil", clientId, clientSecret, chaveApp, teste, certificadoBase64?, certificadoSenha? }
+    // GET /api/pix/bancos → os bancos do Pix automático direto na conta (e quais já foram conferidos de verdade)
+    [HttpGet("bancos")]
+    public IEnumerable<BancoPixResponse> Bancos() => PixBancoCentral.Bancos.Select(p => new BancoPixResponse(p.Codigo, p.Nome, p.Conferido,
+        p.Precisa, p.Certificado, p.CertificadoNoTeste, p.SemSecret, p.TokenFixoNoTeste, p.Extra?.Rotulo, p.Extra?.Dica, p.Extra?.Obrigatorio ?? false));
+
+    // PUT /api/pix/banco  { banco: "Inter", clientId, clientSecret?, chaveApp?, teste, certificadoBase64? | certificadoPem?, certificadoSenha? }
     // → liga o Pix automático pelo banco da loja (confere o login e uma consulta no banco antes de guardar)
     [HttpPut("banco")]
     [Authorize(Roles = Perfis.Administrador)]
@@ -71,7 +80,7 @@ public class PixController(PixAutomaticoService pix, ILogger<PixController> log)
         }
         try
         {
-            var e = await pix.LigarBancoAsync(r.Banco, r.ClientId, r.ClientSecret, r.ChaveApp, r.Teste, pfx, r.CertificadoSenha);
+            var e = await pix.LigarBancoAsync(r.Banco, r.ClientId, r.ClientSecret, r.ChaveApp, r.Teste, pfx, r.CertificadoPem, r.CertificadoSenha);
             return Ok(new { banco = ProvedoresPix.Nome(e.PixAutomatico), teste = e.PixBancoTeste, certificado = e.PixBancoCertificadoInfo });
         }
         catch (Exception e) when (e is PixException or ProvedorPixException) { return BadRequest(new { mensagem = e.Message }); }

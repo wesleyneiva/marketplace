@@ -21,24 +21,99 @@ namespace Marketplace.Api.Services.Pix;
 // Login: OAuth2 client_credentials (client_id e client_secret do portal do banco). Sem aviso (webhook): o padrão exige
 // mTLS no NOSSO lado, que o túnel da Cloudflare não repassa — o caixa pergunta a cada 3 s, como já faz com o Mercado Pago.
 //
-// Banco do Brasil (22/10/2026, montado pelo padrão + notas de integradores; CONFERIR no portal developers.bb.com.br
-// e no ambiente de testes antes do 1º cliente): chave do desenvolvedor vai NA URL (?gw-dev-app-key=…), não no
-// cabeçalho; o QR pode vir em "textoImagemQRcode" em vez de "pixCopiaECola"; produção exige o certificado digital da
-// empresa (mTLS, .pfx). Teste local sem conta: ~/projetos/marketplace-testes/pix-automatico/simulador-bb.py
-// (PixBanco:BancoDoBrasil:UrlApi e :UrlToken apontam para ele).
-public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, ILogger<PixBancoCentral> log)
+// Cada banco muda pouco do padrão, e o que muda fica no Perfil: login no cabeçalho (Basic) ou no corpo, sem secret,
+// um campo a mais (na URL ou no cabeçalho), certificado já no ambiente de testes, token fixo no sandbox. Só o BB foi
+// testado no ambiente real do banco (22/10/2026); os outros foram montados pela documentação (23/10/2026) e aparecem
+// na tela como "ainda não conferido" até alguém testar com credenciais de verdade — aí vira Conferido = true.
+// Teste local sem conta: ~/projetos/marketplace-testes/pix-automatico/simulador-bb.py (BB, http) e
+// simulador-bancos.py (Inter, Sicoob, Itaú, https com certificado do cliente); PixBanco:<Codigo>:UrlApi e :UrlToken
+// apontam para eles.
+public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, IHostEnvironment ambiente, ILogger<PixBancoCentral> log)
 {
-    public sealed record Perfil(string Codigo, string Nome, string UrlApiTeste, string UrlApiProducao, string UrlTokenTeste,
-        string UrlTokenProducao, string? ParamChaveTeste, string? ParamChaveProducao, string Escopos);
+    public enum Onde { Url, Cabecalho }
 
-    public static readonly Perfil BancoDoBrasil = new("BancoDoBrasil", "Banco do Brasil",
-        "https://api.hm.bb.com.br/pix/v2", "https://api-pix.bb.com.br/pix/v2",
-        "https://oauth.hm.bb.com.br/oauth/token", "https://oauth.bb.com.br/oauth/token",
-        "gw-dev-app-key", "gw-dev-app-key", "cob.write cob.read pix.write pix.read");
+    // Campo a mais que o banco pede em toda chamada: a chave do desenvolvedor do BB (na URL), a conta corrente do Inter
+    // (no cabeçalho, só quando a aplicação tem mais de uma conta).
+    public sealed record CampoExtra(string Nome, Onde Onde, string Rotulo, string Dica, bool Obrigatorio);
 
-    public static Perfil? PerfilDe(string? codigo) => codigo == BancoDoBrasil.Codigo ? BancoDoBrasil : null;
+    public sealed record Perfil
+    {
+        public required string Codigo { get; init; }
+        public required string Nome { get; init; }
+        public required string UrlApiTeste { get; init; }
+        public required string UrlApiProducao { get; init; }
+        public required string UrlTokenTeste { get; init; }
+        public required string UrlTokenProducao { get; init; }
+        public string? Escopos { get; init; }                // null: o banco não usa (Itaú)
+        public CampoExtra? Extra { get; init; }
+        public bool LoginNoCorpo { get; init; }              // client_id/secret no corpo do formulário, não no Basic
+        public bool SemSecret { get; init; }                 // Sicoob: só o client_id (quem prova é o certificado)
+        public bool ClientIdNoCabecalho { get; init; }       // Sicoob: client_id também em toda chamada da API
+        public bool TokenFixoNoTeste { get; init; }          // Sicoob: o sandbox usa um token fixo do portal, sem login
+        public bool CertificadoNoTeste { get; init; }        // Inter: até o ambiente de testes pede o certificado
+        public required string Certificado { get; init; }   // o que é o certificado desse banco (texto da tela)
+        public required string Precisa { get; init; }       // o que a loja precisa ter (texto da tela)
+        public bool Conferido { get; init; }                 // testado no ambiente real do banco
+    }
 
-    // Tudo o que a loja cadastra (Configurações → Pix da loja). Certificado: o .pfx da empresa, para produção.
+    // BB: chave do desenvolvedor NA URL (?gw-dev-app-key=…); o QR vem em "textoImagemQRcode"; 404 ao listar vazio.
+    public static readonly Perfil BancoDoBrasil = new()
+    {
+        Codigo = Models.ProvedoresPix.BancoDoBrasil, Nome = "Banco do Brasil",
+        UrlApiTeste = "https://api.hm.bb.com.br/pix/v2", UrlApiProducao = "https://api-pix.bb.com.br/pix/v2",
+        UrlTokenTeste = "https://oauth.hm.bb.com.br/oauth/token", UrlTokenProducao = "https://oauth.bb.com.br/oauth/token",
+        Escopos = "cob.write cob.read pix.write pix.read",
+        Extra = new("gw-dev-app-key", Onde.Url, "Chave do desenvolvedor", "developer_application_key", true),
+        Certificado = "e-CNPJ A1 da empresa, arquivo .pfx (com a senha) — a produção do BB exige",
+        Precisa = "conta PJ no Banco do Brasil e uma aplicação no portal developers.bb.com.br com a API Pix liberada (o gerente da conta ajuda)",
+        Conferido = true,
+    };
+
+    // Inter (API Banking v2): login no corpo e com o certificado que o próprio Inter emite (Internet Banking →
+    // Soluções para sua empresa → Nova integração: baixa o .crt e o .key), inclusive no sandbox.
+    public static readonly Perfil Inter = new()
+    {
+        Codigo = Models.ProvedoresPix.Inter, Nome = "Inter",
+        UrlApiTeste = "https://cdpj-sandbox.partners.uatinter.co/pix/v2", UrlApiProducao = "https://cdpj.partners.bancointer.com.br/pix/v2",
+        UrlTokenTeste = "https://cdpj-sandbox.partners.uatinter.co/oauth/v2/token", UrlTokenProducao = "https://cdpj.partners.bancointer.com.br/oauth/v2/token",
+        Escopos = "cob.write cob.read pix.write pix.read",
+        Extra = new("x-conta-corrente", Onde.Cabecalho, "Conta corrente", "só se a integração tiver mais de uma conta (só números)", false),
+        LoginNoCorpo = true, CertificadoNoTeste = true,
+        Certificado = "o certificado que o Inter gera na integração: os arquivos .crt e .key (escolha os dois)",
+        Precisa = "conta PJ no Inter e uma integração criada no Internet Banking (Soluções para sua empresa → Nova integração) com as permissões de Pix",
+    };
+
+    // Sicoob: só client_id (sem secret), certificado e-CNPJ cadastrado na aplicação do developers.sicoob.com.br, e o
+    // client_id vai também no cabeçalho de toda chamada. O sandbox usa um token fixo mostrado no portal.
+    public static readonly Perfil Sicoob = new()
+    {
+        Codigo = Models.ProvedoresPix.Sicoob, Nome = "Sicoob",
+        UrlApiTeste = "https://sandbox.sicoob.com.br/sicoob/sandbox/pix/api/v2", UrlApiProducao = "https://api.sicoob.com.br/pix/api/v2",
+        UrlTokenTeste = "", UrlTokenProducao = "https://auth.sicoob.com.br/auth/realms/cooperado/protocol/openid-connect/token",
+        Escopos = "cob.read cob.write pix.read pix.write",
+        LoginNoCorpo = true, SemSecret = true, ClientIdNoCabecalho = true, TokenFixoNoTeste = true,
+        Certificado = "e-CNPJ A1 da empresa, arquivo .pfx (com a senha), o mesmo enviado na aplicação do portal do Sicoob",
+        Precisa = "conta PJ no Sicoob e uma aplicação no portal developers.sicoob.com.br com a API Pix e o certificado da empresa cadastrado",
+    };
+
+    // Itaú: login no corpo, sem escopo; certificado emitido pelo próprio Itaú (a loja gera a chave e o pedido, o Itaú
+    // assina: .crt + .key, vale 1 ano). O sandbox do portal não pede certificado.
+    public static readonly Perfil Itau = new()
+    {
+        Codigo = Models.ProvedoresPix.Itau, Nome = "Itaú",
+        UrlApiTeste = "https://devportal.itau.com.br/sandboxapi/pix_recebimentos_ext_v2/v2", UrlApiProducao = "https://secure.api.itau/pix_recebimentos/v2",
+        UrlTokenTeste = "https://devportal.itau.com.br/api/jwt", UrlTokenProducao = "https://sts.itau.com.br/api/oauth/token",
+        LoginNoCorpo = true,
+        Certificado = "o certificado que o Itaú emite para a aplicação: os arquivos .crt e .key (escolha os dois); vale 1 ano",
+        Precisa = "conta PJ no Itaú e a API Pix Recebimentos liberada pelo gerente (o Itaú envia as credenciais e o passo a passo do certificado)",
+    };
+
+    public static readonly IReadOnlyList<Perfil> Bancos = [BancoDoBrasil, Inter, Sicoob, Itau];
+
+    public static Perfil? PerfilDe(string? codigo) => Bancos.FirstOrDefault(p => p.Codigo == codigo);
+
+    // Tudo o que a loja cadastra (Configurações → Pix da loja). ChaveApp = o valor do CampoExtra do banco. Certificado:
+    // sempre guardado como .pfx (o .crt + .key do Inter/Itaú é convertido ao ligar).
     public sealed record Credenciais(string ClientId, string ClientSecret, string? ChaveApp, bool Teste, byte[]? Pfx, string? SenhaPfx);
 
     // ================================================================ operações
@@ -119,7 +194,7 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
             normal is "approved" or "refunded" ? recebido : original,
             Guid.TryParseExact(j["txid"]?.GetValue<string>() ?? txid, "N", out var g) ? g.ToString() : null,
             horario,
-            j["pixCopiaECola"]?.GetValue<string>() ?? j["textoImagemQRcode"]?.GetValue<string>(),
+            j["pixCopiaECola"]?.GetValue<string>() ?? j["textoImagemQRcode"]?.GetValue<string>() ?? j["brcode"]?.GetValue<string>(),
             primeiro?["endToEndId"]?.GetValue<string>());
     }
 
@@ -136,10 +211,12 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
     {
         var token = await TokenAsync(p, c, ct);
         var url = UrlApi(p, c) + caminho;
-        if (ParamChave(p, c) is { } param && !string.IsNullOrEmpty(c.ChaveApp))
-            url += (caminho.Contains('?') ? "&" : "?") + param + "=" + Uri.EscapeDataString(c.ChaveApp);
+        if (p.Extra?.Onde == Onde.Url && !string.IsNullOrEmpty(c.ChaveApp))
+            url += (caminho.Contains('?') ? "&" : "?") + NomeExtra(p, c) + "=" + Uri.EscapeDataString(c.ChaveApp);
         using var pedido = new HttpRequestMessage(metodo, url);
         pedido.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        if (p.Extra?.Onde == Onde.Cabecalho && !string.IsNullOrEmpty(c.ChaveApp)) pedido.Headers.TryAddWithoutValidation(p.Extra.Nome, c.ChaveApp);
+        if (p.ClientIdNoCabecalho) pedido.Headers.TryAddWithoutValidation("client_id", c.ClientId);
         if (corpo is not null) pedido.Content = new StringContent(corpo.ToJsonString(), Encoding.UTF8, "application/json");
         var (codigo, texto) = await MandarAsync(c, pedido, ct);
         if ((int)codigo is >= 200 and < 300) return JsonNode.Parse(texto.Length == 0 ? "{}" : texto) ?? new JsonObject();
@@ -155,7 +232,8 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
         throw new BancoPixException((int)codigo switch
         {
             401 or 403 => $"O {p.Nome} recusou o acesso" + (Mensagem(texto) is { } m401 ? $" ({m401})" : "") +
-                          ": confira o client_id, o client_secret, a chave do desenvolvedor e se a API Pix está liberada para a aplicação.",
+                          ": confira o client_id, " + (p.SemSecret ? "" : "o client_secret, ") + (p.Extra is { } x ? $"{x.Rotulo.ToLowerInvariant()}, " : "") +
+                          "o certificado e se a API Pix está liberada para a aplicação.",
             404 => $"Cobrança Pix não encontrada no {p.Nome}.",
             _ => $"O {p.Nome} recusou o pedido" + (Mensagem(texto) is { } m ? $": {m}" : "."),
         }, codigo);
@@ -166,16 +244,24 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
 
     private async Task<string> TokenAsync(Perfil p, Credenciais c, CancellationToken ct)
     {
+        if (c.Teste && p.TokenFixoNoTeste) return c.ClientSecret; // sandbox do Sicoob: o "secret" é o token fixo do portal
         var chave = ChaveCache(p, c);
         if (tokens.TryGetValue(chave, out var t) && t.Vence > DateTimeOffset.UtcNow) return t.Token;
         using var pedido = new HttpRequestMessage(HttpMethod.Post, UrlToken(p, c));
-        pedido.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{c.ClientId}:{c.ClientSecret}")));
-        pedido.Content = new FormUrlEncodedContent(new Dictionary<string, string> { ["grant_type"] = "client_credentials", ["scope"] = p.Escopos });
+        var campos = new Dictionary<string, string> { ["grant_type"] = "client_credentials" };
+        if (p.Escopos is not null) campos["scope"] = p.Escopos;
+        if (p.LoginNoCorpo)
+        {
+            campos["client_id"] = c.ClientId;
+            if (!p.SemSecret) campos["client_secret"] = c.ClientSecret;
+        }
+        else pedido.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{c.ClientId}:{c.ClientSecret}")));
+        pedido.Content = new FormUrlEncodedContent(campos);
         var (codigo, texto) = await MandarAsync(c, pedido, ct);
         if (!((int)codigo is >= 200 and < 300))
         {
             log.LogWarning("Pix {Banco} login: {Codigo} {Texto}", p.Nome, (int)codigo, texto.Length > 300 ? texto[..300] : texto);
-            throw new BancoPixException($"O {p.Nome} recusou o login da aplicação ({(int)codigo}): confira o client_id e o client_secret" +
+            throw new BancoPixException($"O {p.Nome} recusou o login da aplicação ({(int)codigo}): confira o client_id" + (p.SemSecret ? ", o certificado" : " e o client_secret") +
                                         (c.Teste ? " (do ambiente de TESTES)." : " (de PRODUÇÃO)."), codigo);
         }
         var j = JsonNode.Parse(texto);
@@ -199,30 +285,46 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
                 ? "O banco recusou a conexão segura: em produção ele exige o certificado digital da empresa (.pfx). Envie em Configurações → Pix da loja."
                 : "O banco recusou o certificado digital: confira se é o da empresa (e-CNPJ A1), se não venceu e se foi cadastrado no portal do banco.");
         }
+        // TLS 1.3: o banco recusa o certificado DEPOIS do aperto de mão, então do nosso lado chega só "conexão
+        // reiniciada" (visto no simulador, 23/10/2026). Com certificado, o mais provável é ele.
+        catch (HttpRequestException e) when (c.Pfx is not null && e.InnerException is IOException)
+        {
+            log.LogWarning("Pix: o banco fechou a conexão com certificado: {Erro}", string.Join(" → ", Cadeia(e)));
+            throw new BancoPixException("O banco fechou a conexão ao receber o certificado: confira se é o certificado desta aplicação " +
+                                        "(o que o banco emitiu ou o que foi cadastrado no portal) e se não venceu. Se estiver certo, tente de novo.");
+        }
         catch (Exception e) when (e is HttpRequestException or TaskCanceledException)
         {
+            log.LogWarning("Pix: conexão com o banco falhou: {Erro}", string.Join(" → ", Cadeia(e)));
             throw new BancoPixException("O banco não respondeu. Confira a internet e tente de novo.");
         }
     }
 
+    private static IEnumerable<string> Cadeia(Exception? e)
+    {
+        for (; e is not null; e = e.InnerException) yield return $"{e.GetType().Name}: {e.Message}";
+    }
+
     // Sem certificado: o cliente comum. Com certificado (mTLS): um cliente por certificado, guardado (abrir conexão
-    // segura a cada 3 s seria lento).
+    // segura a cada 3 s seria lento). Só no desenvolvimento, PixBanco:AceitarServidorDeTeste aceita o certificado
+    // próprio do simulador (https local); fora dele a conferência do servidor é sempre a normal.
     private static readonly ConcurrentDictionary<string, HttpClient> clientesComCertificado = new();
 
     private HttpClient Cliente(Credenciais c)
     {
-        if (c.Pfx is null)
+        var servidorDeTeste = ambiente.IsDevelopment() && config.GetValue<bool>("PixBanco:AceitarServidorDeTeste");
+        if (c.Pfx is null && !servidorDeTeste)
         {
             var http = fabrica.CreateClient();
             http.Timeout = TimeSpan.FromSeconds(20);
             return http;
         }
-        var chave = Convert.ToHexString(SHA256.HashData(c.Pfx));
+        var chave = (c.Pfx is null ? "sem" : Convert.ToHexString(SHA256.HashData(c.Pfx))) + (servidorDeTeste ? ":teste" : "");
         return clientesComCertificado.GetOrAdd(chave, _ =>
         {
-            var certificado = AbrirCertificado(c.Pfx, c.SenhaPfx);
             var handler = new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(10) };
-            handler.SslOptions.ClientCertificates = [certificado];
+            if (c.Pfx is not null) handler.SslOptions.ClientCertificates = [AbrirCertificado(c.Pfx, c.SenhaPfx)];
+            if (servidorDeTeste) handler.SslOptions.RemoteCertificateValidationCallback = (_, _, _, _) => true;
             return new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(20) };
         });
     }
@@ -234,12 +336,32 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
         catch (CryptographicException) { throw new BancoPixException("Não consegui abrir o certificado: confira o arquivo (.pfx) e a senha dele."); }
     }
 
+    // Inter e Itaú entregam o certificado em dois arquivos de texto (.crt e .key): junta e guarda como .pfx, igual aos
+    // outros. A chave pode vir protegida por senha ("ENCRYPTED PRIVATE KEY").
+    public static byte[] PfxDePem(string pem, string? senha)
+    {
+        if (!pem.Contains("-----BEGIN CERTIFICATE-----")) throw new BancoPixException("Falta o arquivo do certificado (.crt).");
+        if (!pem.Contains("PRIVATE KEY-----")) throw new BancoPixException("Falta o arquivo da chave do certificado (.key).");
+        try
+        {
+            using var cert = pem.Contains("-----BEGIN ENCRYPTED PRIVATE KEY-----")
+                ? X509Certificate2.CreateFromEncryptedPem(pem, pem, senha ?? "")
+                : X509Certificate2.CreateFromPem(pem, pem);
+            return cert.Export(X509ContentType.Pkcs12);
+        }
+        catch (CryptographicException)
+        {
+            throw new BancoPixException("Não consegui juntar o certificado e a chave: confira se o .key é o desse .crt (e a senha, se a chave tiver).");
+        }
+    }
+
     private string UrlApi(Perfil p, Credenciais c) =>
         (config[$"PixBanco:{p.Codigo}:UrlApi"] ?? (c.Teste ? p.UrlApiTeste : p.UrlApiProducao)).TrimEnd('/');
     private string UrlToken(Perfil p, Credenciais c) =>
         config[$"PixBanco:{p.Codigo}:UrlToken"] ?? (c.Teste ? p.UrlTokenTeste : p.UrlTokenProducao);
-    private string? ParamChave(Perfil p, Credenciais c) =>
-        c.Teste ? p.ParamChaveTeste : config[$"PixBanco:{p.Codigo}:ParamChaveProducao"] ?? p.ParamChaveProducao;
+    // BB: na produção talvez seja gw-app-key em vez de gw-dev-app-key (conferir no 1º cliente): dá para trocar sem publicar.
+    private string NomeExtra(Perfil p, Credenciais c) =>
+        (c.Teste ? null : config[$"PixBanco:{p.Codigo}:ParamChaveProducao"]) ?? p.Extra!.Nome;
     private static string ChaveCache(Perfil p, Credenciais c) =>
         p.Codigo + ":" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{c.ClientId}|{c.ClientSecret}|{c.Teste}")));
 

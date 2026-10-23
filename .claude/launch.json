@@ -15,7 +15,7 @@
       "runtimeExecutable": "bash",
       "runtimeArgs": [
         "-c",
-        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 PixBanco__BancoDoBrasil__UrlApi=http://127.0.0.1:5398/pix/v2 PixBanco__BancoDoBrasil__UrlToken=http://127.0.0.1:5398/oauth/token dotnet run --launch-profile http"
+        "cd Marketplace.Api && MercadoPago__Url=http://127.0.0.1:5399 PixBanco__BancoDoBrasil__UrlApi=http://127.0.0.1:5398/pix/v2 PixBanco__BancoDoBrasil__UrlToken=http://127.0.0.1:5398/oauth/token PixBanco__AceitarServidorDeTeste=true PixBanco__Inter__UrlApi=https://127.0.0.1:5397/inter/pix/v2 PixBanco__Inter__UrlToken=https://127.0.0.1:5397/inter/oauth/v2/token PixBanco__Sicoob__UrlApi=https://127.0.0.1:5397/sicoob/pix/api/v2 PixBanco__Sicoob__UrlToken=https://127.0.0.1:5397/sicoob/token PixBanco__Itau__UrlApi=https://127.0.0.1:5397/itau/pix_recebimentos/v2 PixBanco__Itau__UrlToken=https://127.0.0.1:5397/itau/api/oauth/token dotnet run --launch-profile http"
       ],
       "port": 5200,
       "url": "http://localhost:5200"
@@ -51,6 +51,17 @@
         "8"
       ],
       "port": 5398
+    },
+    {
+      "name": "bancos-simulador",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-I",
+        "/home/ubuntu/projetos/marketplace-testes/pix-automatico/simulador-bancos.py",
+        "5397",
+        "8"
+      ],
+      "port": 5397
     }
   ]
 }

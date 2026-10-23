@@ -41,19 +41,32 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         return e;
     }
 
-    // Banco da loja (hoje o Banco do Brasil): confere o login e uma consulta no banco antes de guardar. O QR sai na chave
-    // Pix já cadastrada da loja, que precisa ser DESSA conta. Certificado (.pfx): a produção do BB exige.
-    public async Task<Empresa> LigarBancoAsync(string codigoBanco, string clientId, string clientSecret, string? chaveApp, bool teste,
-        byte[]? pfx, string? senhaPfx)
+    // Banco da loja (Banco do Brasil, Inter, Sicoob, Itaú): confere o login e uma consulta no banco antes de guardar. O QR
+    // sai na chave Pix já cadastrada da loja, que precisa ser DESSA conta. Certificado: .pfx (com senha) ou o .crt + .key
+    // que o Inter e o Itaú emitem (vira .pfx aqui); a produção de todos exige, o sandbox do Inter também.
+    public async Task<Empresa> LigarBancoAsync(string codigoBanco, string clientId, string? clientSecret, string? chaveApp, bool teste,
+        byte[]? pfx, string? certificadoPem, string? senhaPfx)
     {
         var perfil = PixBancoCentral.PerfilDe(codigoBanco) ?? throw new PixException("Banco não atendido pelo Pix automático.");
-        (clientId, clientSecret, chaveApp) = (clientId.Trim(), clientSecret.Trim(), string.IsNullOrWhiteSpace(chaveApp) ? null : chaveApp.Trim());
-        if (clientId.Length < 8 || clientSecret.Length < 8 || clientId.Contains(' ') || clientSecret.Contains(' '))
-            throw new PixException("Cole o client_id e o client_secret inteiros (do portal do banco, sem espaços).");
+        var pedeSecret = !perfil.SemSecret || (teste && perfil.TokenFixoNoTeste);
+        (clientId, clientSecret, chaveApp) = (clientId.Trim(), pedeSecret ? clientSecret?.Trim() ?? "" : "", string.IsNullOrWhiteSpace(chaveApp) ? null : chaveApp.Trim());
+        if (clientId.Length < 8 || clientId.Contains(' ') || (pedeSecret && (clientSecret.Length < 8 || clientSecret.Contains(' '))))
+            throw new PixException(perfil.TokenFixoNoTeste && teste
+                ? "Cole o client_id e o token de acesso do sandbox inteiros (do portal do banco, sem espaços)."
+                : pedeSecret ? "Cole o client_id e o client_secret inteiros (do portal do banco, sem espaços)." : "Cole o client_id inteiro (do portal do banco, sem espaços).");
+        if (perfil.Extra is { Obrigatorio: true } x && chaveApp is null) throw new PixException($"Preencha a {x.Rotulo.ToLowerInvariant()}.");
+        if (perfil.Extra is null) chaveApp = null;
         var e = await db.Empresas.FirstAsync(x => x.Id == contexto.EmpresaId);
         if (string.IsNullOrEmpty(e.PixChave))
             throw new PixException($"Cadastre antes a chave Pix da loja (acima). Ela precisa ser da conta no {perfil.Nome}: é nela que o dinheiro cai.");
 
+        if (pfx is null && !string.IsNullOrWhiteSpace(certificadoPem))
+        {
+            pfx = PixBancoCentral.PfxDePem(certificadoPem, senhaPfx);
+            senhaPfx = null; // o .pfx montado aqui não tem senha (fica criptografado no cofre como os outros)
+        }
+        if (pfx is null && (!teste || perfil.CertificadoNoTeste))
+            throw new PixException($"O {perfil.Nome} exige o certificado{(teste ? " também no ambiente de testes" : " na produção")}: {perfil.Certificado}.");
         string? info = null;
         if (pfx is { Length: > 20_000 }) throw new PixException("Esse arquivo é grande demais para um certificado .pfx (o A1 tem poucos KB).");
         if (pfx is not null)
