@@ -12,7 +12,11 @@ import { CelulaMapa, MapaCalor } from '../../shared/graficos/mapa-calor';
 import { formatar } from '../../shared/graficos/largura';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
+import { FormsModule } from '@angular/forms';
+import { CampoData } from '../../shared/campo-data';
 import { MODULOS } from '../../core/modulos';
+
+type Atalho = '7' | '30' | '60' | '90' | 'mes' | 'mesPassado' | 'datas';
 
 const NOMES = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
 const CURTOS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
@@ -21,7 +25,7 @@ const FORMAS: Record<string, string> = { Pix: 'Pix', Debito: 'Débito', Credito:
 
 @Component({
   selector: 'app-relatorios',
-  imports: [Icone, CurrencyPipe, DecimalPipe, DiaPipe, QuantidadePipe, GraficoColunas, GraficoFaixa, GraficoBarras, MapaCalor],
+  imports: [Icone, FormsModule, CampoData, CurrencyPipe, DecimalPipe, DiaPipe, QuantidadePipe, GraficoColunas, GraficoFaixa, GraficoBarras, MapaCalor],
   templateUrl: './relatorios.html',
   styleUrl: './relatorios.scss',
 })
@@ -29,16 +33,47 @@ export class Relatorios {
   protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly http = inject(HttpClient);
 
-  protected readonly opcoesPeriodo = [7, 30, 60];
-  protected readonly dias = signal(30);
+  // Período: atalhos (últimos N dias, este mês, mês passado) ou datas escolhidas (até 1 ano, o limite do servidor).
+  protected readonly atalhos: { valor: Atalho; texto: string }[] = [
+    { valor: '7', texto: '7 dias' }, { valor: '30', texto: '30 dias' }, { valor: '60', texto: '60 dias' }, { valor: '90', texto: '90 dias' },
+    { valor: 'mes', texto: 'Este mês' }, { valor: 'mesPassado', texto: 'Mês passado' }, { valor: 'datas', texto: 'Escolher datas' },
+  ];
+  protected readonly atalho = signal<Atalho>('30');
+  protected readonly deEscolhido = signal('');
+  protected readonly ateEscolhido = signal('');
 
   // Período em datas de Brasília ("sv-SE" formata como AAAA-MM-DD).
-  private readonly hoje = new Date().toLocaleDateString('sv-SE');
+  protected readonly hoje = new Date().toLocaleDateString('sv-SE');
   protected readonly periodo = computed(() => {
-    const inicio = new Date();
-    inicio.setDate(inicio.getDate() - (this.dias() - 1));
-    return { de: inicio.toLocaleDateString('sv-SE'), ate: this.hoje };
+    const d = (x: Date) => x.toLocaleDateString('sv-SE');
+    const agora = new Date();
+    switch (this.atalho()) {
+      case 'mes': return { de: d(new Date(agora.getFullYear(), agora.getMonth(), 1)), ate: this.hoje };
+      case 'mesPassado': return { de: d(new Date(agora.getFullYear(), agora.getMonth() - 1, 1)), ate: d(new Date(agora.getFullYear(), agora.getMonth(), 0)) };
+      case 'datas': {
+        const [de, ate] = [this.deEscolhido(), this.ateEscolhido()];
+        if (de && ate && de <= ate) return { de, ate };
+        return { de: d(new Date(agora.getFullYear(), agora.getMonth(), 1)), ate: this.hoje }; // enquanto não escolhe: este mês
+      }
+      default: {
+        const inicio = new Date();
+        inicio.setDate(inicio.getDate() - (Number(this.atalho()) - 1));
+        return { de: d(inicio), ate: this.hoje };
+      }
+    }
   });
+  // Quantos dias o período tem (para os textos).
+  protected readonly dias = computed(() => {
+    const p = this.periodo();
+    return Math.round((Date.parse(p.ate) - Date.parse(p.de)) / 86_400_000) + 1;
+  });
+  protected readonly datasInvalidas = computed(() =>
+    this.atalho() === 'datas' && !!this.deEscolhido() && !!this.ateEscolhido() && this.deEscolhido() > this.ateEscolhido());
+
+  protected escolherAtalho(a: Atalho): void {
+    if (a === 'datas' && !this.deEscolhido()) { this.deEscolhido.set(this.periodo().de); this.ateEscolhido.set(this.periodo().ate); }
+    this.atalho.set(a);
+  }
 
   // Os três relatórios: mudou o período → os três recarregam sozinhos.
   protected readonly vendas = httpResource<RelatorioVendas>(() => ({ url: '/api/relatorios/vendas', params: this.periodo() }));
@@ -171,7 +206,7 @@ export class Relatorios {
         await new Promise((ok) => setTimeout(ok, 3000));
         this.segundosIa.set(Math.round((Date.now() - inicio) / 1000));
         const t = await firstValueFrom(this.http.get<{ situacao: string; insights: string | null; mensagem: string | null }>(`/api/relatorios/insights/${id}`));
-        if (t.situacao === 'pronto') { this.insights.set({ texto: t.insights ?? '', periodo: `${this.dias()} dias` }); return; }
+        if (t.situacao === 'pronto') { this.insights.set({ texto: t.insights ?? '', periodo: `${this.dias()} dias (${this.dataCurta(this.periodo().de)} a ${this.dataCurta(this.periodo().ate)})` }); return; }
         if (t.situacao === 'erro') { this.erroInsights.set(t.mensagem ?? 'Não foi possível gerar os insights agora.'); return; }
       }
       this.erroInsights.set('A IA não respondeu em 5 minutos. Tente de novo mais tarde.');
@@ -192,5 +227,9 @@ export class Relatorios {
   // "2026-10-08" → Date ao meio-dia LOCAL (meio-dia: nunca escorrega para o dia anterior por causa do fuso).
   private dataLocal(iso: string): Date {
     return new Date(`${iso}T12:00:00`);
+  }
+
+  private dataCurta(iso: string): string {
+    return `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
   }
 }

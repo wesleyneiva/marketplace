@@ -3,9 +3,18 @@
     <h1><app-icone nome="chart-line" /> Relatórios</h1>
     <p>{{ periodo().de | dia }} a {{ periodo().ate | dia }} · todas as vendas concluídas (caixa, simulador e histórico)</p>
   </div>
-  <div class="periodos" role="group" aria-label="Período">
-    @for (d of opcoesPeriodo; track d) {
-      <button type="button" class="botao" [class.ligado]="dias() === d" (click)="dias.set(d)">{{ d }} dias</button>
+  <div class="filtro-periodo">
+    <div class="periodos" role="group" aria-label="Período">
+      @for (a of atalhos; track a.valor) {
+        <button type="button" class="botao" [class.ligado]="atalho() === a.valor" (click)="escolherAtalho(a.valor)">{{ a.texto }}</button>
+      }
+    </div>
+    @if (atalho() === 'datas') {
+      <div class="datas">
+        <label>De <app-campo-data name="de" [ngModel]="deEscolhido()" (ngModelChange)="deEscolhido.set($event)" [max]="hoje" /></label>
+        <label>Até <app-campo-data name="ate" [ngModel]="ateEscolhido()" (ngModelChange)="ateEscolhido.set($event)" [max]="hoje" /></label>
+        @if (datasInvalidas()) { <span class="txt-erro" role="alert">A data inicial é depois da final.</span> }
+      </div>
     }
   </div>
 </header>
@@ -71,7 +80,7 @@
         <ul class="lista-insights">
           @for (item of itensInsights(); track $index) { <li>{{ item }}</li> }
         </ul>
-        <p class="rodape-insights">Gerado agora sobre os últimos {{ ins.periodo }}. A IA pode errar: confira com os gráficos abaixo.</p>
+        <p class="rodape-insights">Gerado agora sobre {{ ins.periodo }}. A IA pode errar: confira com os gráficos abaixo.</p>
       }
     </section>
 

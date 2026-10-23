@@ -275,7 +275,28 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 23/10/2026 (mais recente, noite) — confirmação no padrão do sistema
+### 23/10/2026 (mais recente, fim da noite) — histórico do Juvenal (ago–out) e filtro de período nos Relatórios
+- **Histórico do Juvenal** (#4, mercado, Rio): `./gerar-historico-loja.sh --empresa 4 --de 2026-08-01 --ate 2026-10-12` (o bot
+  ao vivo vende desde 13/10). O gerador da TopSpin virou `GeradorHistoricoLoja` (esporte ou mercado; no mercado o mesmo
+  movimento do bot, que no dev deu ~101 vendas/dia e ticket ~R$ 51 contra ~103 e ~R$ 56 do bot ao vivo). Resultado: 7.103
+  vendas, R$ 363,7 mil (ago 3.092 / R$ 155,2 mil; set 2.806 / R$ 146,4 mil; 1–12/out), 60 clientes fixos com DDD 21 e ~20%
+  das vendas com CPF na nota, 83 depósitos, 77 boletos de fornecedor, 28 contas fixas/DAS (as da implantação, sem a mensalidade
+  do Marcus). Poupança: mínimo R$ 15,1 mil, hoje ~R$ 89,7 mil. Backup antes: `~/backup/marketplace-antes-historico-juvenal-2026-10-23.dump`.
+  Bot do Juvenal parado durante a geração e religado (SoVendas). O bot ao vivo do mercado em teste agora também põe ~20%
+  das vendas no nome de um dos clientes fixos (`ClientesSimulados.ChanceIdentificadoMercado`).
+- **Achado**: o "Caixa da loja (dinheiro)" do Juvenal está em −R$ 6.201,76 por causa de 8 transferências manuais
+  "Caixa → Poupança" (R$ 6.200, 15–23/10, login do Juvenal) feitas além do depósito automático do bot (que já leva todo o
+  dinheiro do caixa no fim do dia). Não é do histórico. Decidir com o usuário: excluir essas transferências ou deixar.
+- **Pendente (bloqueado pela permissão de escrita direta na produção)**: lançar as mensalidades do Marcus de ago e set (Juvenal
+  R$ 2.149, TopSpin R$ 1.899), a de out do Juvenal (paga em 17/10, já está no financeiro da loja como "Sistema Marcus 1/12") e
+  a implantação de R$ 1.000 de cada um — dos dois lados: faturas pagas na área do dono e contas pagas (Sistemas e software)
+  no financeiro de cada loja. SQL pronto no scratchpad do chat de 23/10 (refazer se preciso). Observações: a área do dono
+  não tem nenhuma fatura ainda; `CobrarDesde` do Juvenal = 10/11 e da TopSpin = 21/11 (a de nov da TopSpin, que vence 10/11,
+  NÃO será gerada); no financeiro do Juvenal as parcelas 2/12 a 12/12 do "Sistema Marcus" estão com R$ 149 (a 1ª é R$ 2.149).
+- **Relatórios**: além de 7/30/60 dias, agora 90 dias, Este mês, Mês passado e Escolher datas (de/até, até 1 ano; data
+  inicial depois da final avisa ao lado). O servidor já aceitava qualquer período.
+
+### 23/10/2026 (noite) — confirmação no padrão do sistema
 Resumo do dia 23/10 (um chat só, tudo publicado): (1) Pix automático direto em mais 7 bancos (manhã e tarde, abaixo), nenhum
 conferido com banco real; (2) importação de clientes por planilha; (3) planilha de exemplo com 20 clientes fictícios de Porto
 Alegre (`clientes-topspin-exemplo.xlsx` na raiz do projeto, fora do Git, e cópia em `~/projetos/marketplace-testes/topspin/`)
@@ -728,7 +749,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -764,7 +785,9 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- **Onde paramos (fim de 23/10)**: dia fechado sem nada pela metade. Último pedido: confirmações no padrão do sistema
+- **Onde paramos (fim de 23/10, depois)**: histórico do Juvenal gerado; PENDENTE lançar mensalidades/implantação (ver
+  "23/10 fim da noite") e decidir as transferências manuais do caixa do Juvenal.
+- **Antes, no fim de 23/10**: dia fechado sem nada pela metade. Último pedido: confirmações no padrão do sistema
   (`shared/confirmacao.ts`; tela nova nunca usa `confirm()`/`alert()` do navegador) e bots conferidos (ok). A TopSpin recebeu
   os 20 clientes de exemplo pela importação (dá para conferir a tela de Clientes com eles). Próximo passo provável: seguir a
   análise da TopSpin com o histórico, ou conferir um banco do Pix com sandbox real (a Efí é o mais fácil de abrir).
