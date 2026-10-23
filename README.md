@@ -282,7 +282,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   `.painel` com sombra em camadas (link/botão sobe 3px no mouse); `.botao` raio 12px + sombra, sobe 2px no mouse;
   `.botao.pequeno` vira pílula "gordinha" (7px 15px); `.ligado` agora é verde cheio com brilho. Cartões locais que imitavam
   painel (Financeiro: saldos, lançamentos, fluxo, a receber; fiado; contas a pagar; painel; estoque; abas em pílula de
-  Cobranças) usam os mesmos tokens. Impressão sem sombra. Abas sublinhadas (Financeiro, Compras, Estoque…) ficaram como eram.
+  Cobranças; no Caixa (PDV): a barra escura flutua, os botões dela são pílulas translúcidas, a busca e o total com raio/sombra novos) usam os mesmos tokens. Impressão sem sombra. Abas sublinhadas (Financeiro, Compras, Estoque…) ficaram como eram.
 - Regra para tela nova: cartão = `.painel` (ou os tokens acima); nunca sombra/raio fixos.
 
 ### 23/10/2026 (tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
