@@ -276,6 +276,11 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
 ### 23/10/2026 (mais recente, noite) — confirmação no padrão do sistema
+Resumo do dia 23/10 (um chat só, tudo publicado): (1) Pix automático direto em mais 7 bancos (manhã e tarde, abaixo), nenhum
+conferido com banco real; (2) importação de clientes por planilha; (3) planilha de exemplo com 20 clientes fictícios de Porto
+Alegre (`clientes-topspin-exemplo.xlsx` na raiz do projeto, fora do Git, e cópia em `~/projetos/marketplace-testes/topspin/`)
+que o usuário **importou na TopSpin** (a TopSpin passou de 62 para 82 clientes); (4) confirmações no padrão do sistema e
+Cancelar na prévia das importações; (5) bots conferidos (abaixo); (6) respondido: trocar a própria senha = ícone de chave no topo.
 - As 24 confirmações usavam o `confirm()` do navegador ("app.wnlabs.com.br diz", fora do tema). Agora todas usam a janela
   própria `shared/confirmacao.ts` (`inject(Confirmacao).pedir(texto, { botao, perigo })`, montada uma vez em `app.ts`): o texto até
   o 1º "?" vira o título, o resto (por linha) a explicação; botão com o nome da ação ("Desativar", "Importar"…), vermelho
@@ -759,7 +764,11 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- **Onde paramos (23/10)**: Pix automático direto em **8 bancos** (BB conferido; Itaú, Bradesco, Santander, Inter, Sicoob,
+- **Onde paramos (fim de 23/10)**: dia fechado sem nada pela metade. Último pedido: confirmações no padrão do sistema
+  (`shared/confirmacao.ts`; tela nova nunca usa `confirm()`/`alert()` do navegador) e bots conferidos (ok). A TopSpin recebeu
+  os 20 clientes de exemplo pela importação (dá para conferir a tela de Clientes com eles). Próximo passo provável: seguir a
+  análise da TopSpin com o histórico, ou conferir um banco do Pix com sandbox real (a Efí é o mais fácil de abrir).
+- **Pix em 8 bancos (23/10)**: Pix automático direto em **8 bancos** (BB conferido; Itaú, Bradesco, Santander, Inter, Sicoob,
   Sicredi e Efí prontos e publicados, testados só com o simulador `bancos-simulador`, "ainda não conferido" na tela). Para
   conferir um banco: credenciais de sandbox reais (o usuário cola na tela, nunca no chat) e, no 1º cliente, Pix de R$ 0,01.
   Nubank PJ e Caixa não têm API Pix pública.
