@@ -288,8 +288,10 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   manuais). Corrigido: `LancarCaixasEDepositarAsync(depositarAte)` — o histórico só deposita até o último dia gerado. Daqui
   para frente o dinheiro fica no "Caixa da loja (dinheiro)" até alguém transferir (TopSpin: R$ 2.447 lá, dia 22 não depositado;
   Itaú da TopSpin em −R$ 6.024,78 — conferir).
-- Em aberto (perguntado): as 12 parcelas "Sistema Marcus (n/12)" que as lojas lançaram (Juvenal out/26–set/27, TopSpin
-  nov/26–out/27) — recomendação: mês a mês (sem número de parcela), apagar as futuras em aberto.
+- **Mensalidade na loja mês a mês** (decidido pelo usuário): apagadas as 23 parcelas futuras em aberto "Sistema Marcus (n/12)"
+  (Juvenal nov/26–set/27, TopSpin nov/26–out/27); a de out do Juvenal (paga, ligada à fatura) virou "· 10/2026". Cada mês a
+  conta nasce sozinha 10 dias antes ("Sistema Marcus · Plano … · nov/2026"), junto com a fatura. Backup antes:
+  `~/backup/marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`.
 
 ### 23/10/2026 (madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
 - Pedido do usuário: "o cliente pagou, aparece no dono; não pagou, aparece em atrasadas e segue o fluxo. Tudo automático."
