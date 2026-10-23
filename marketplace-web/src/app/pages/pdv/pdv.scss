@@ -62,15 +62,9 @@
     flex: 1;
   }
 
-  // botões claros sobre a barra escura: pílula translúcida, sem a sombra (não aparece no escuro)
-  .botao {
-    background: rgb(255 255 255 / 0.08);
-    color: inherit;
-    border-color: rgb(255 255 255 / 0.16);
-    border-radius: 999px;
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
-
-    &:hover:not(:disabled) { background: rgb(255 255 255 / 0.16); border-color: rgb(255 255 255 / 0.3); box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1), 0 6px 14px -6px rgb(0 0 0 / 0.6); }
+  .botao { // pílula translúcida (fundo sempre escuro)
+    background: rgb(255 255 255 / 0.08); color: inherit; border-color: rgb(255 255 255 / 0.16); border-radius: 99px; box-shadow: none;
+    &:hover:not(:disabled) { background: rgb(255 255 255 / 0.16); box-shadow: none; }
   }
 }
 
