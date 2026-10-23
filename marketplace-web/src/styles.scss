@@ -34,11 +34,11 @@
   --sombra: 0 1px 3px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.04);
   // visual "flutuante" (23/10): cartões e botões suspensos sobre o fundo, sombra em camadas
   --borda-flutua: rgb(16 40 24 / 0.05);
-  --sombra-flutua: 0 1px 2px rgb(16 40 24 / 0.06), 0 8px 18px -6px rgb(16 40 24 / 0.14), 0 22px 40px -18px rgb(16 40 24 / 0.22);
-  --sombra-flutua-alta: 0 2px 4px rgb(16 40 24 / 0.06), 0 14px 26px -8px rgb(16 40 24 / 0.18), 0 32px 56px -20px rgb(16 40 24 / 0.28);
-  --sombra-pilula: 0 1px 2px rgb(16 40 24 / 0.08), 0 6px 14px -6px rgb(16 40 24 / 0.22);
-  --sombra-pilula-alta: 0 2px 4px rgb(16 40 24 / 0.08), 0 10px 20px -8px rgb(16 40 24 / 0.3);
-  --sombra-ligado: 0 2px 4px rgb(21 128 61 / 0.25), 0 8px 18px -6px rgb(21 128 61 / 0.5);
+  --sombra-flutua: 0 1px 2px rgb(16 40 24 / 0.07), 0 10px 24px -10px rgb(16 40 24 / 0.22);
+  --sombra-flutua-alta: 0 2px 4px rgb(16 40 24 / 0.07), 0 18px 32px -12px rgb(16 40 24 / 0.3);
+  --sombra-pilula: 0 2px 6px -2px rgb(16 40 24 / 0.2);
+  --sombra-pilula-alta: 0 6px 12px -4px rgb(16 40 24 / 0.28);
+  --sombra-ligado: 0 4px 12px -4px rgb(21 128 61 / 0.5);
   // gráficos
   --grafico-serie: #15803d;        // verde do Marcus (gráficos de uma série)
   --grafico-serie-ativa: #0f5f2d;
@@ -89,11 +89,11 @@
   --sombra: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 16px rgb(0 0 0 / 0.3);
   // no escuro a sombra some no fundo: preta mais forte + um fio claro em cima (luz batendo na borda)
   --borda-flutua: rgb(255 255 255 / 0.07);
-  --sombra-flutua: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 22px -6px rgb(0 0 0 / 0.55), 0 26px 48px -18px rgb(0 0 0 / 0.7);
-  --sombra-flutua-alta: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 2px 4px rgb(0 0 0 / 0.5), 0 16px 30px -8px rgb(0 0 0 / 0.65), 0 36px 60px -20px rgb(0 0 0 / 0.8);
-  --sombra-pilula: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 14px -6px rgb(0 0 0 / 0.6);
-  --sombra-pilula-alta: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 2px 4px rgb(0 0 0 / 0.5), 0 10px 20px -8px rgb(0 0 0 / 0.7);
-  --sombra-ligado: 0 2px 4px rgb(0 0 0 / 0.4), 0 8px 20px -6px rgb(34 197 94 / 0.45);
+  --sombra-flutua: inset 0 1px 0 rgb(255 255 255 / 0.05), 0 12px 26px -10px rgb(0 0 0 / 0.7);
+  --sombra-flutua-alta: inset 0 1px 0 rgb(255 255 255 / 0.07), 0 20px 34px -12px rgb(0 0 0 / 0.8);
+  --sombra-pilula: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 3px 8px -2px rgb(0 0 0 / 0.6);
+  --sombra-pilula-alta: inset 0 1px 0 rgb(255 255 255 / 0.08), 0 8px 14px -4px rgb(0 0 0 / 0.7);
+  --sombra-ligado: 0 4px 14px -4px rgb(34 197 94 / 0.45);
   --grafico-serie: #22c55e;
   --grafico-serie-ativa: #4ade80;
   --grafico-cat-1: #16a34a;
@@ -222,7 +222,7 @@ textarea {
   cursor: pointer;
   white-space: nowrap;
   box-shadow: var(--sombra-pilula);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+  transition: transform 0.15s ease;
 
   &:hover:not(:disabled) {
     border-color: var(--cor-primaria);
@@ -271,6 +271,9 @@ textarea {
   }
 }
 
+// Botões nas linhas de tabela: sem sombra nem pulo (dezenas por tela pesam no desenho).
+td .botao { box-shadow: none !important; transform: none !important; }
+
 // Cartões e quadros: suspensos sobre o fundo. Os que são link sobem um pouco no mouse.
 .painel {
   background: var(--cor-superficie);
@@ -279,7 +282,7 @@ textarea {
   box-shadow: var(--sombra-flutua);
 }
 a.painel, button.painel {
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease;
   &:hover { transform: translateY(-3px); box-shadow: var(--sombra-flutua-alta); }
 }
 
