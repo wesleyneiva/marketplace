@@ -76,6 +76,12 @@ export const routes: Routes = [
         loadComponent: () => import('./pages/clientes/clientes').then((m) => m.Clientes),
       },
       {
+        // Importar a lista de clientes do sistema antigo (planilha), no jeito da importação de produtos.
+        path: 'clientes/importar',
+        canActivate: [precisaPerfil('Administrador', 'Gerente')],
+        loadComponent: () => import('./pages/importar-clientes/importar-clientes').then((m) => m.ImportarClientes),
+      },
+      {
         path: 'clientes/:id',
         canActivate: [precisaPerfil('Administrador', 'Gerente')],
         loadComponent: () => import('./pages/clientes/cliente-ficha').then((m) => m.ClienteFicha),

@@ -4,6 +4,7 @@
     <p>Quem compra, quanto e quando. O caixa identifica o cliente na venda (<kbd>F8</kbd>)@if (ramo().servicos) {<span> e a oficina liga a ordem ao cadastro pelo telefone</span>}.</p>
   </div>
   <div class="botoes-topo">
+    <a class="botao" routerLink="/clientes/importar"><app-icone nome="import" /> Importar planilha</a>
     <button type="button" class="botao primario" (click)="novo()">+ Novo cliente</button>
   </div>
 </header>

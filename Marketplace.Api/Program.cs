@@ -58,6 +58,7 @@ builder.Services.Configure<HostOptions>(o => o.BackgroundServiceExceptionBehavio
 builder.Services.AddHostedService<Marketplace.Api.Services.CobrancasTrabalhador>();
 // gera mensalidades e bloqueia atraso, de hora em hora
 builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoProdutosService>();
+builder.Services.AddScoped<Marketplace.Api.Services.ImportacaoClientesService>();
 builder.Services.AddScoped<Marketplace.Api.Services.NotaFiscal.EntradaNotaService>();
 
 // Simulador de clientes (trabalhador em segundo plano) + clima real de Porto Alegre.

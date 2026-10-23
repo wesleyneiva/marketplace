@@ -1,0 +1,143 @@
+<a routerLink="/clientes" class="voltar"><app-icone nome="arrow-left" /> Clientes</a>
+<header class="titulo-pagina">
+  <div>
+    <h1><app-icone nome="import" /> Importar clientes</h1>
+    <p>Traga a lista de clientes do sistema antigo (ou de uma planilha) de uma vez.</p>
+  </div>
+</header>
+
+@if (resultado(); as r) {
+  <section class="painel sucesso" role="status">
+    <span class="icone"><app-icone nome="circle-check" /></span>
+    <div>
+      <h2>{{ r.novos + r.atualizados }} {{ r.novos + r.atualizados === 1 ? 'cliente importado' : 'clientes importados' }}</h2>
+      <ul>
+        <li><strong>{{ r.novos }}</strong> {{ r.novos === 1 ? 'novo' : 'novos' }} · <strong>{{ r.atualizados }}</strong> {{ r.atualizados === 1 ? 'atualizado' : 'atualizados' }}</li>
+        @if (r.ignorados) {
+          <li class="ignorados"><strong>{{ r.ignorados }}</strong> {{ r.ignorados === 1 ? 'linha com erro foi ignorada' : 'linhas com erro foram ignoradas' }}: corrija e importe de novo (o que já entrou é atualizado, não duplica)</li>
+        }
+      </ul>
+      <div class="botoes">
+        <a class="botao primario" routerLink="/clientes">Ver clientes</a>
+        <button type="button" class="botao" (click)="recomecar()">Importar outra planilha</button>
+      </div>
+    </div>
+  </section>
+} @else if (!previa()) {
+  <section class="passos">
+    <div class="painel passo">
+      <span class="numero">1</span>
+      <div>
+        <h2>Baixe o modelo</h2>
+        <p>Planilha pronta com as colunas certas, um exemplo e as instruções.</p>
+        <a class="botao" [href]="urlModelo" download><app-icone nome="download" /> Baixar modelo (.xlsx)</a>
+      </div>
+    </div>
+    <div class="painel passo">
+      <span class="numero">2</span>
+      <div>
+        <h2>Preencha e envie</h2>
+        <p>Uma linha por cliente, com o nome e o telefone ou o CPF. Também serve a lista exportada do seu sistema antigo (.xlsx ou .csv).</p>
+      </div>
+    </div>
+  </section>
+
+  <label class="area-envio" [class.arrastando]="arrastando()" [class.enviando]="enviando()"
+         (dragover)="arrastarPorCima($event)" (dragleave)="arrastando.set(false)" (drop)="soltarArquivo($event)">
+    <input type="file" accept=".xlsx,.csv" (change)="escolherArquivo($event)" [disabled]="enviando()" class="sr-only" />
+    @if (enviando()) {
+      <strong><app-icone nome="loader-circle" girando /> Lendo a planilha…</strong>
+      <span>Conferindo cada linha. Nada é gravado ainda.</span>
+    } @else {
+      <strong><app-icone nome="file-text" /> Clique para escolher a planilha</strong>
+      <span>ou arraste o arquivo para cá · .xlsx ou .csv · até 5 MB</span>
+    }
+  </label>
+
+  @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }
+} @else {
+  @let p = previa()!;
+
+  <section class="painel resumo">
+    <div class="arquivo">
+      <span><app-icone nome="file-text" /> <strong>{{ p.arquivo }}</strong> · {{ p.totalLinhas }} {{ p.totalLinhas === 1 ? 'linha' : 'linhas' }}</span>
+      <button type="button" class="botao pequeno" (click)="recomecar()" [disabled]="importando()">Enviar outra planilha</button>
+    </div>
+    @for (e of p.errosGerais; track e) { <div class="mensagem-erro" role="alert">{{ e }}</div> }
+    @if (p.totalLinhas > 0) {
+      <div class="contadores">
+        <button type="button" class="contador" [class.ligado]="filtro() === 'todas'" (click)="filtro.set('todas')"><strong>{{ p.totalLinhas }}</strong> todas</button>
+        <button type="button" class="contador novo" [class.ligado]="filtro() === 'novo'" (click)="filtro.set('novo')"><strong>{{ p.novos }}</strong> {{ p.novos === 1 ? 'novo' : 'novos' }}</button>
+        <button type="button" class="contador atualizar" [class.ligado]="filtro() === 'atualizar'" (click)="filtro.set('atualizar')"><strong>{{ p.atualizados }}</strong> para atualizar</button>
+        <button type="button" class="contador erro" [class.ligado]="filtro() === 'erro'" (click)="filtro.set('erro')"><strong>{{ p.comErro }}</strong> com erro</button>
+        <button type="button" class="contador aviso" [class.ligado]="filtro() === 'aviso'" (click)="filtro.set('aviso')"><strong>{{ p.comAviso }}</strong> com aviso</button>
+      </div>
+    }
+    @for (a of p.avisosGerais; track a) { <p class="nota"><app-icone nome="triangle-alert" /> {{ a }}</p> }
+  </section>
+
+  @if (p.totalLinhas > 0) {
+    <section class="painel tabela-rolagem">
+      <table>
+        <thead>
+          <tr><th class="num">Linha</th><th></th><th>Cliente</th><th>Telefone</th><th>CPF</th><th>E-mail</th><th>Nascimento</th></tr>
+        </thead>
+        <tbody>
+          @for (l of linhasFiltradas().visiveis; track l.linha) {
+            <tr [class]="classeDaLinha(l)">
+              <td class="num suave">{{ l.linha }}</td>
+              <td>
+                @switch (l.acao) {
+                  @case ('Novo') { <span class="selo novo">novo</span> }
+                  @case ('Atualizar') { <span class="selo atualizar">atualizar</span> }
+                  @default { <span class="selo erro">erro</span> }
+                }
+              </td>
+              <td class="produto">
+                <span class="nome">{{ l.nome || '—' }}</span>
+                @if (l.apelido) { <small class="codigo">{{ l.apelido }}</small> }
+                @if (l.erros.length || l.avisos.length) {
+                  <div class="mensagens">
+                    @for (e of l.erros; track e) { <div class="msg-erro"><app-icone nome="circle-x" /> {{ e }}</div> }
+                    @for (a of l.avisos; track a) { <div class="msg-aviso"><app-icone nome="triangle-alert" /> {{ a }}</div> }
+                  </div>
+                }
+              </td>
+              <td>{{ telefone(l.telefone) }}</td>
+              <td>{{ cpf(l.cpf) }}</td>
+              <td>{{ l.email || '—' }}</td>
+              <td>{{ l.nascimento ? (l.nascimento | dia) : '—' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="7" class="vazio">Nenhuma linha neste filtro. <app-icone nome="circle-check" /></td></tr>
+          }
+        </tbody>
+      </table>
+      @if (linhasFiltradas().total > limiteNaTela) {
+        <p class="nota rodape">Mostrando as primeiras {{ limiteNaTela }} de {{ linhasFiltradas().total }} linhas deste filtro.</p>
+      }
+    </section>
+
+    <section class="painel confirmar">
+      <div>
+        @if (aproveitaveis() > 0) {
+          <strong>{{ p.novos }} {{ p.novos === 1 ? 'cliente novo' : 'clientes novos' }} e {{ p.atualizados }} para atualizar.</strong>
+          @if (p.comErro > 0) {
+            <p>{{ p.comErro === 1 ? 'A linha com erro será' : 'As ' + p.comErro + ' linhas com erro serão' }} <strong>ignorada{{ p.comErro === 1 ? '' : 's' }}</strong>. Se preferir, corrija a planilha e envie de novo.</p>
+          } @else {
+            <p>Tudo certo com a planilha.</p>
+          }
+        } @else {
+          <strong>Nenhuma linha pode ser importada.</strong>
+          <p>Corrija os erros na planilha e envie de novo.</p>
+        }
+      </div>
+      <div class="acao-confirmar">
+        <button type="button" class="botao primario" [disabled]="aproveitaveis() === 0 || importando()" (click)="importar()">
+          @if (importando()) { <app-icone nome="loader-circle" girando /> Importando… } @else { <app-icone nome="circle-check" /> Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'cliente' : 'clientes' }} }
+        </button>
+        @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }
+      </div>
+    </section>
+  }
+}

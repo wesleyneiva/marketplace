@@ -67,3 +67,13 @@ public record ComissaoMesResponse(string Mes, DateOnly Inicio, DateOnly Fim, boo
 
 public record CategoriaComissao(int Id, string Nome, decimal? ComissaoPercentual);
 public record CategoriaComissaoRequest(int CategoriaId, [Range(0, 30, ErrorMessage = "Comissão de 0% a 30%.")] decimal? ComissaoPercentual);
+
+// ----- Importação de clientes por planilha (Services/ImportacaoClientesService.cs) -----
+// Acao: "Novo", "Atualizar" ou "Erro" (o que aconteceria com a linha).
+public record LinhaPreviaClienteResponse(int Linha, string Acao, string? Nome, string? Apelido, string? Telefone, string? Cpf,
+    string? Email, DateOnly? Nascimento, List<string> Erros, List<string> Avisos);
+
+public record PreviaImportacaoClientesResponse(string Arquivo, int TotalLinhas, int Novos, int Atualizados, int ComErro, int ComAviso,
+    List<string> ErrosGerais, List<string> AvisosGerais, List<LinhaPreviaClienteResponse> Linhas);
+
+public record ResultadoImportacaoClientesResponse(int Novos, int Atualizados, int Ignorados);
