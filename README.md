@@ -282,6 +282,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   quando apaga/desativa/cancela; Esc, X, Cancelar ou clique fora = cancelar; Enter confirma. Regra: tela nova nunca usa
   `confirm()`/`alert()` do navegador.
 - Importar produtos e clientes: botão **Cancelar** ao lado de "Importar" na prévia (volta ao começo, nada gravado).
+- **Bots conferidos (23/10 ~10h50)**: os três vendendo (demo 28, Juvenal 15, TopSpin 1 até 10h50). A pausa da TopSpin em 22/10
+  (10:05 → 16:18) foi o defeito do clima que derrubava o bot sem avisar, corrigido em 22/10 às 14h20 (`ac284bd`); nenhum
+  "Erro na rodada" desde então e o clima de Rio e Porto Alegre atualizado de hora em hora. 21/10 teve 1 venda porque a TopSpin
+  foi criada às 17h37. O ritmo da TopSpin é ~6,4 clientes por dia útil (0,4/h às 9h até 1,1/h às 17h; sábado ×1,6): 1 venda
+  até 10h50 é o esperado (~0,95). O "duplicate key IX_Clima…" no log logo depois de publicar é só barulho (o ClimaService
+  já trata; duas lojas buscando o mesmo clima ao mesmo tempo). Cada publicação pausa os bots ~20 s.
 
 ### 23/10/2026 (fim da tarde) — importar clientes por planilha
 - Pergunta do usuário: "como a gente traz os clientes de uma loja já existente?" — não havia jeito (só um a um). Feito no
