@@ -276,6 +276,10 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
 ### 23/10/2026 (mais recente, tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
+Resumo da tarde (um chat, tudo publicado): (1) "cliente desde" certo (10/08); (2) Cobranças com as próximas mensalidades
+(novembro aparece em 31/10); (3) Visão geral do dono com filtro de período e rosca; (4) achado do depósito do caixa (o bot
+SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e duplicou as transferências do usuário — corrigido);
+(5) mensalidade na loja mês a mês (parcelas "n/12" apagadas); (6) limpeza do disco (abaixo).
 - **Visão geral do dono**: período (Este mês, Mês passado, 3/6/12 meses, Este ano) no "Recebido", no gráfico (meses fora
   do período mais claros) e na rosca; **rosca** (`shared/graficos/grafico-rosca.ts`, cores `--grafico-cat-1..5`, validadas
   para daltonismo) com Carteira por plano, por cliente ou Quem pagou no período; "A receber" zerado mostra as próximas
@@ -292,6 +296,15 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (Juvenal nov/26–set/27, TopSpin nov/26–out/27); a de out do Juvenal (paga, ligada à fatura) virou "· 10/2026". Cada mês a
   conta nasce sozinha 10 dias antes ("Sistema Marcus · Plano … · nov/2026"), junto com a fatura. Backup antes:
   `~/backup/marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`.
+- **No dev**: a "Loja Teste Tênis" (#13) ficou com plano Básico e `CobrarDesde` 10/11 (teste das próximas mensalidades; a
+  fatura de nov aparece em 31/10 no dev). A "Horario Teste" (#10) tem a fatura de out atrasada (teste antigo).
+- **Limpeza do disco (pedida)**: Docker já estava limpo (9 contêineres, todos em uso; sem imagens/volumes sobrando); `bin/obj`,
+  `node_modules` e `dist` são necessários. Mantidos: backups automáticos (`~/backup/marketplace-auto` e `n8n-auto`, rotação de
+  7 dias), `n8n-marcus-telegram-2026-10-17/` (para religar o Telegram), `wal-ultimo.txt`/`nuvem-ultimo.txt` (status das nuvens),
+  `treino-loja-foto.txt` (usado pelo `infra/treino-restaurar-loja.sh`), `~/projetos/marketplace-video` (o vídeo comercial).
+  A apagar (a proteção do Claude Code bloqueou; o usuário roda): os dumps manuais antigos de 22–23/10 (produção e dev),
+  ficando só `marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`, e a planilha duplicada `clientes-topspin-exemplo.xlsx`
+  da raiz (a cópia fica em `marketplace-testes/topspin/`). A produção já tem WAL a cada 2 min + cópia diária em duas nuvens.
 
 ### 23/10/2026 (madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
 - Pedido do usuário: "o cliente pagou, aparece no dono; não pagou, aparece em atrasadas e segue o fluxo. Tudo automático."
@@ -794,6 +807,9 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
+- **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
+  (Juvenal R$ 2.149 e TopSpin R$ 1.899) e vira conta no Contas a pagar de cada loja — conferir. TopSpin: R$ 2.447 no caixa
+  esperando depósito manual e Itaú em −R$ 6.024,78 (conferir).
 - Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
