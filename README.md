@@ -291,10 +291,6 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   Financeiro (saldos, a receber, fluxo, extrato/conciliação), Fiado, Estoque, Clientes/ficha e Relatórios. Regras:
   cartão que não clica **nunca** nasce verde/"selecionado" (saíram o fundo verde de "Total disponível" e "Cai hoje", a borda
   verde de "Saldo em 30 dias" e a borda verde no mouse do Painel); alerta/perigo pintam só o número.
-- **Fluidez** (o usuário sentiu uma travadinha na troca de páginas): não era JavaScript (nenhuma tarefa longa); era o desenho
-  das sombras — 3–4 camadas grandes em cada cartão/botão e sombra animada. Agora: 2 camadas com desfoque menor, só o
-  movimento é animado (a sombra troca na hora) e botões dentro de tabela não têm sombra nem pulo (Contas a pagar: 87 → 12
-  elementos com sombra). Regra: não animar `box-shadow`; não pôr sombra em item que se repete por linha.
 
 ### 23/10/2026 (tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
 Resumo da tarde (um chat, tudo publicado): (1) "cliente desde" certo (10/08); (2) Cobranças com as próximas mensalidades

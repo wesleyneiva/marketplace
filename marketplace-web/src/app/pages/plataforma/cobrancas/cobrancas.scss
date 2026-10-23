@@ -15,7 +15,7 @@
   button {
     border: 1px solid var(--borda-flutua); background: var(--cor-superficie); border-radius: 999px; padding: 8px 16px;
     cursor: pointer; font: inherit; color: inherit; box-shadow: var(--sombra-pilula);
-    transition: transform 0.15s ease;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
     &:hover { transform: translateY(-2px); box-shadow: var(--sombra-pilula-alta); }
   }
   button.ativa { background: var(--cor-primaria); border-color: transparent; color: #fff; font-weight: 600; box-shadow: var(--sombra-ligado); }
