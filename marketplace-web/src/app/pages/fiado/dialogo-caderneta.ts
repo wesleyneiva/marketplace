@@ -10,6 +10,7 @@ import { ContaFinanceira, URL_FINANCEIRO, hojeIso, mensagemDeErro } from '../../
 import { Icone } from '../../shared/icone';
 import { CampoData } from '../../shared/campo-data';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../shared/confirmacao';
 
 // A caderneta de UM cliente: o extrato, receber fora do caixa, desfazer, dar baixa (Administrador) e cobrar no WhatsApp.
 @Component({
@@ -19,6 +20,7 @@ import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
   styleUrls: ['../financeiro/financeiro.scss', './fiado.scss'],
 })
 export class DialogoCaderneta {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   private readonly dlg = viewChild.required<ElementRef<HTMLDialogElement>>('dlg');
@@ -96,7 +98,7 @@ export class DialogoCaderneta {
 
   protected async confirmarBaixa(): Promise<void> {
     const c = this.caderneta()!.cliente;
-    if (!confirm(`Dar baixa de ${this.real(this.baixa.valor ?? 0)} na dívida de ${c.nome}? Vira despesa (Inadimplência) na DRE.`)) return;
+    if (!(await this.confirmacao.pedir(`Dar baixa de ${this.real(this.baixa.valor ?? 0)} na dívida de ${c.nome}?\nVira despesa (Inadimplência) na DRE.`, { botao: 'Dar baixa', perigo: true }))) return;
     await this.fazer(async () => {
       await firstValueFrom(this.http.post(`${URL_FIADO}/clientes/${c.id}/baixa`, this.baixa));
       return `Baixa de ${this.real(this.baixa.valor ?? 0)} registrada.`;
@@ -104,7 +106,7 @@ export class DialogoCaderneta {
   }
 
   protected async desfazer(l: LancamentoFiado): Promise<void> {
-    if (!confirm(`Desfazer o recebimento de ${this.real(l.valor)}? Ele sai também do Financeiro.`)) return;
+    if (!(await this.confirmacao.pedir(`Desfazer o recebimento de ${this.real(l.valor)}?\nEle sai também do Financeiro.`, { botao: 'Desfazer', perigo: true }))) return;
     await this.fazer(async () => {
       await firstValueFrom(this.http.delete(`${URL_FIADO}/pagamentos/${l.id}`));
       return 'Recebimento desfeito.';

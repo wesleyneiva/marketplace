@@ -7,6 +7,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { copiarTexto } from '../../shared/copiar';
 import { Icone } from '../../shared/icone';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../shared/confirmacao';
 
 interface Usuario {
   id: string; nome: string; email: string; perfil: string; ativo: boolean; trocarSenha: boolean; sistema: boolean;
@@ -20,6 +21,7 @@ interface Usuario {
   styleUrl: './usuarios.scss',
 })
 export class Usuarios {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   protected readonly eu = inject(AuthService).usuario;
 
@@ -87,7 +89,7 @@ export class Usuarios {
   }
 
   async alternarAtivo(u: Usuario): Promise<void> {
-    if (u.ativo && !confirm(`Desativar ${u.nome}? A pessoa não consegue mais entrar (e quem estiver logado cai em até 1 minuto).`)) return;
+    if (u.ativo && !(await this.confirmacao.pedir(`Desativar ${u.nome}?\nA pessoa não consegue mais entrar (e quem estiver logado cai em até 1 minuto).`, { botao: 'Desativar', perigo: true }))) return;
     await this.executar(async () => {
       await firstValueFrom(this.http.post(`/api/usuarios/${u.id}/${u.ativo ? 'desativar' : 'reativar'}`, {}));
       this.mostrarAviso(`${u.nome} ${u.ativo ? 'desativado' : 'reativado'}.`);
@@ -95,7 +97,7 @@ export class Usuarios {
   }
 
   async redefinirSenha(u: Usuario): Promise<void> {
-    if (!confirm(`Gerar uma nova senha provisória para ${u.nome}? A senha atual deixa de funcionar.`)) return;
+    if (!(await this.confirmacao.pedir(`Gerar uma nova senha provisória para ${u.nome}?\nA senha atual deixa de funcionar.`, { botao: 'Gerar nova senha' }))) return;
     await this.executar(async () => {
       const r = await firstValueFrom(this.http.post<{ usuario: Usuario; senhaProvisoria: string }>(`/api/usuarios/${u.id}/redefinir-senha`, {}));
       this.mostrarSenha(r.usuario, r.senhaProvisoria);

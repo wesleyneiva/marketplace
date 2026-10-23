@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { ConfirmacaoJanela } from './shared/confirmacao';
 
-// Componente raiz: só mostra a página da rota atual.
+// Componente raiz: mostra a página da rota atual e a janela de confirmação (Confirmacao.pedir), que serve a todas.
 @Component({
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, ConfirmacaoJanela],
   selector: 'app-root',
-  template: '<router-outlet />',
+  template: '<router-outlet /><app-confirmacao />',
 })
 export class App {}

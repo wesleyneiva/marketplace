@@ -9,6 +9,7 @@ import { FORMAS_PAGAMENTO } from '../../core/api/pdv.api';
 import { rotuloMotivo } from '../../core/api/trocas.api';
 import { Icone } from '../../shared/icone';
 import { ClienteForm } from './cliente-form';
+import { Confirmacao } from '../../shared/confirmacao';
 
 // Ficha do cliente: dados, números (quanto compra, de quanto em quanto tempo, há quantos dias não vem), o que mais
 // leva, as compras, as trocas e (loja de esporte) as raquetes que passaram pela oficina.
@@ -19,6 +20,7 @@ import { ClienteForm } from './cliente-form';
   styleUrls: ['../usuarios/usuarios.scss', './clientes.scss', './cliente-ficha.scss'],
 })
 export class ClienteFicha {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly ramo = this.auth.ramo;
@@ -35,7 +37,7 @@ export class ClienteFicha {
   protected async alternarAtivo(): Promise<void> {
     const c = this.ficha.value()?.cliente;
     if (!c) return;
-    if (c.ativo && !confirm(`Desativar ${c.nome}? Ele some da busca do caixa (o histórico fica).`)) return;
+    if (c.ativo && !(await this.confirmacao.pedir(`Desativar ${c.nome}?\nEle some da busca do caixa (o histórico fica).`, { botao: 'Desativar', perigo: true }))) return;
     try {
       await firstValueFrom(this.http.post(`/api/clientes/${c.id}/ativo`, {}, { params: { valor: !c.ativo } }));
       this.ficha.reload();

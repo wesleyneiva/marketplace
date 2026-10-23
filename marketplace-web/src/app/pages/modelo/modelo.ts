@@ -6,6 +6,7 @@ import { Router, RouterLink } from '@angular/router';
 import { Categoria, UNIDADES } from '../../core/api/produtos.api';
 import { GRADES_PRONTAS, ModeloDetalhe, ModelosApi, Variacao } from '../../core/api/modelos.api';
 import { Icone } from '../../shared/icone';
+import { Confirmacao } from '../../shared/confirmacao';
 
 // Um modelo com grade: /produtos/modelos/novo (cadastra a matriz tamanho × cor, já com o estoque inicial)
 // e /produtos/modelos/:id (matriz do estoque, entrada em grade, acrescentar tamanho/cor, editar).
@@ -16,6 +17,7 @@ import { Icone } from '../../shared/icone';
   styleUrl: './modelo.scss',
 })
 export class ModeloPagina {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly api = inject(ModelosApi);
   private readonly router = inject(Router);
 
@@ -280,7 +282,7 @@ export class ModeloPagina {
   protected async alternarAtivo(): Promise<void> {
     const m = this.modelo();
     if (!m) return;
-    if (m.ativo && !confirm(`Desativar "${m.nome}" e todas as variações? Elas deixam de aparecer nas vendas.`)) return;
+    if (m.ativo && !(await this.confirmacao.pedir(`Desativar "${m.nome}" e todas as variações?\nElas deixam de aparecer nas vendas.`, { botao: 'Desativar', perigo: true }))) return;
     try {
       await (m.ativo ? this.api.desativar(m.id) : this.api.reativar(m.id));
       await this.carregar(m.id);

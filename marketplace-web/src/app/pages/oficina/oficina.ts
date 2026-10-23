@@ -10,6 +10,7 @@ import { HistoricoCliente, MOTIVOS_GARANTIA, NOME_STATUS, Ordem, ResumoOrdens, S
 import { Icone } from '../../shared/icone';
 import { Paginacao } from '../../shared/paginacao';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../shared/confirmacao';
 
 type Aba = 'abertas' | 'prontas' | 'entregues' | 'todas';
 const TAMANHO = 25;
@@ -23,6 +24,7 @@ const TAMANHO = 25;
   styleUrl: './oficina.scss',
 })
 export class Oficina {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly nomeStatus = NOME_STATUS;
@@ -162,7 +164,7 @@ export class Oficina {
   }
 
   protected async mudar(o: Ordem, status: StatusOrdem): Promise<void> {
-    if (status === 'Cancelada' && !confirm(`Cancelar a OS ${o.numero} de ${o.cliente}?`)) return;
+    if (status === 'Cancelada' && !(await this.confirmacao.pedir(`Cancelar a OS ${o.numero} de ${o.cliente}?`, { botao: 'Cancelar a OS', perigo: true }))) return;
     try {
       await firstValueFrom(this.http.post<Ordem>(`${URL_ORDENS}/${o.id}/status`, { status }));
       this.aviso.set(`OS ${o.numero}: ${NOME_STATUS[status]}.`);

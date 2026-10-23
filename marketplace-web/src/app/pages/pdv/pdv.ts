@@ -1,3 +1,4 @@
+import { Confirmacao } from '../../shared/confirmacao';
 import { MARCA } from '../../shared/marca';
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
@@ -53,6 +54,7 @@ interface ItemCarrinho {
   host: { '(document:keydown)': 'teclaGlobal($event)' },
 })
 export class Pdv {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly api = inject(PdvApi);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
@@ -860,8 +862,8 @@ export class Pdv {
   }
 
   // Sem o aviso (internet caiu, provedor fora do ar): o caixa confere no celular e confirma por conta dele.
-  protected pixManual(): void {
-    if (!confirm(`Confirmar o Pix de ${dinheiroBr(this.valorPix())} SEM o aviso do ${this.nomePix()}?\n\nSó confirme se você viu o Pix cair no celular da loja.`)) return;
+  protected async pixManual(): Promise<void> {
+    if (!(await this.confirmacao.pedir(`Confirmar o Pix de ${dinheiroBr(this.valorPix())} SEM o aviso do ${this.nomePix()}?\nSó confirme se você viu o Pix cair no celular da loja.`, { botao: 'Confirmar o Pix' }))) return;
     const automatico = this.pixAutomatico();
     this.pixAutomatico.set(null); // deixa o "Adicionar" registrar este Pix como manual
     void this.confirmarValor().finally(() => this.pixAutomatico.set(automatico));

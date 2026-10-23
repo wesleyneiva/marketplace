@@ -8,6 +8,7 @@ import { AuthService } from '../../core/auth/auth.service';
 import { ComissaoMes, Vendedor } from '../../core/api/clientes.api';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 import { Icone } from '../../shared/icone';
+import { Confirmacao } from '../../shared/confirmacao';
 
 interface CategoriaComissao { id: number; nome: string; comissaoPercentual: number | null }
 
@@ -20,6 +21,7 @@ interface CategoriaComissao { id: number; nome: string; comissaoPercentual: numb
   styleUrls: ['../usuarios/usuarios.scss', '../clientes/clientes.scss', './vendedores.scss'],
 })
 export class Vendedores {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly ehAdmin = computed(() => this.auth.temPerfil('Administrador'));
@@ -74,7 +76,7 @@ export class Vendedores {
   }
 
   protected async lancar(): Promise<void> {
-    if (!confirm(`Lançar as comissões de ${this.nomeMes()} em Contas a pagar?`)) return;
+    if (!(await this.confirmacao.pedir(`Lançar as comissões de ${this.nomeMes()} em Contas a pagar?`, { botao: 'Lançar' }))) return;
     this.ocupado.set(true);
     try {
       await firstValueFrom(this.http.post('/api/vendedores/comissao/lancar', {}, { params: { mes: this.mes() } }));

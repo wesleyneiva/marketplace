@@ -178,12 +178,15 @@
           <p>Corrija os erros na planilha e envie de novo.</p>
         }
       </div>
-      <button type="button" class="botao primario" [disabled]="aproveitaveis() === 0 || importando()" (click)="importar()">
-        @if (importando()) { <app-icone nome="loader-circle" girando /> Importando… } @else { <app-icone nome="circle-check" /> Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }} }
-      </button>
+      <div class="acao-confirmar">
+        <div class="botoes-confirmar">
+          <button type="button" class="botao" (click)="recomecar()" [disabled]="importando()">Cancelar</button>
+          <button type="button" class="botao primario" [disabled]="aproveitaveis() === 0 || importando()" (click)="importar()">
+            @if (importando()) { <app-icone nome="loader-circle" girando /> Importando… } @else { <app-icone nome="circle-check" /> Importar {{ aproveitaveis() }} {{ aproveitaveis() === 1 ? 'produto' : 'produtos' }} }
+          </button>
+        </div>
+        @if (erro()) { <div class="mensagem-erro" role="alert">{{ erro() }}</div> }
+      </div>
     </section>
-    @if (erro()) {
-      <div class="mensagem-erro" role="alert">{{ erro() }}</div>
-    }
   }
 }

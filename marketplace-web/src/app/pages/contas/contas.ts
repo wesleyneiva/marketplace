@@ -1,3 +1,4 @@
+import { Confirmacao } from '../../shared/confirmacao';
 import { Component, ElementRef, computed, effect, inject, input, linkedSignal, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -71,6 +72,7 @@ const FORMAS = ['PIX', 'Boleto', 'Dinheiro', 'Transferência', 'Cartão de débi
   styleUrl: './contas.scss',
 })
 export class Contas {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
 
   protected readonly formas = FORMAS;
@@ -269,12 +271,12 @@ export class Contas {
   }
 
   async desfazer(c: Conta): Promise<void> {
-    if (!confirm(`Desfazer o pagamento de "${c.descricao}"? Ela volta a ficar em aberto.`)) return;
+    if (!(await this.confirmacao.pedir(`Desfazer o pagamento de "${c.descricao}"?\nEla volta a ficar em aberto.`, { botao: 'Desfazer', perigo: true }))) return;
     await this.acao(() => firstValueFrom(this.http.post(`${URL}/${c.id}/desfazer-pagamento`, {})), 'Pagamento desfeito.');
   }
 
   async excluir(c: Conta): Promise<void> {
-    if (!confirm(`Excluir "${c.descricao}" (${c.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})?`)) return;
+    if (!(await this.confirmacao.pedir(`Excluir "${c.descricao}" (${c.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})?`, { botao: 'Excluir', perigo: true }))) return;
     await this.acao(() => firstValueFrom(this.http.delete(`${URL}/${c.id}`)), 'Conta excluída.');
   }
 

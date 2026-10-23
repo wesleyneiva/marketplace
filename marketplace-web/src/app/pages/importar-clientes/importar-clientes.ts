@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { Icone } from '../../shared/icone';
+import { Confirmacao } from '../../shared/confirmacao';
 
 // Igual a Contracts/ClienteDtos.cs (importação de clientes).
 interface LinhaPreviaCliente {
@@ -48,6 +49,7 @@ type Filtro = 'todas' | 'erro' | 'aviso' | 'novo' | 'atualizar';
   styleUrl: '../importar-produtos/importar-produtos.scss',
 })
 export class ImportarClientes {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
 
   protected readonly urlModelo = '/api/clientes/importacao/modelo';
@@ -121,7 +123,7 @@ export class ImportarClientes {
     if (!this.arquivo || !p) return;
     const total = this.aproveitaveis();
     const aviso = p.comErro === 1 ? '\n\nA linha com erro será ignorada.' : p.comErro > 1 ? `\n\nAs ${p.comErro} linhas com erro serão ignoradas.` : '';
-    if (!confirm(`Importar ${total} ${total === 1 ? 'cliente' : 'clientes'} agora?${aviso}`)) return;
+    if (!(await this.confirmacao.pedir(`Importar ${total} ${total === 1 ? 'cliente' : 'clientes'} agora?${aviso}`, { botao: 'Importar' }))) return;
     this.importando.set(true);
     this.erro.set(null);
     try {

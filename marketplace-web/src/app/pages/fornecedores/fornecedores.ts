@@ -7,6 +7,7 @@ import { firstValueFrom } from 'rxjs';
 import { Fornecedor } from '../../core/api/compras.api';
 import { Icone } from '../../shared/icone';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../shared/confirmacao';
 
 @Component({
   selector: 'app-fornecedores',
@@ -15,6 +16,7 @@ import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
   styleUrl: '../usuarios/usuarios.scss',
 })
 export class Fornecedores {
+  private readonly confirmacao = inject(Confirmacao);
   protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly http = inject(HttpClient);
 
@@ -57,7 +59,7 @@ export class Fornecedores {
   }
 
   async alternar(f: Fornecedor): Promise<void> {
-    if (f.ativo && !confirm(`Desativar ${f.nome}? Ele sai da sugestão de compra.`)) return;
+    if (f.ativo && !(await this.confirmacao.pedir(`Desativar ${f.nome}?\nEle sai da sugestão de compra.`, { botao: 'Desativar', perigo: true }))) return;
     await firstValueFrom(this.http.post(`/api/fornecedores/${f.id}/ativo`, {}, { params: { valor: !f.ativo } }));
     this.fornecedores.reload();
   }

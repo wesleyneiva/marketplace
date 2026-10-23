@@ -9,6 +9,7 @@ import { Cidade, CidadeBusca, nomeDoFuso } from '../../shared/cidade-busca';
 import { Icone } from '../../shared/icone';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
 import { LISTA_RAMOS, Ramo, perfilRamo } from '../../core/ramos';
+import { Confirmacao } from '../../shared/confirmacao';
 
 // Formatos iguais a Contracts/PlataformaDtos.cs.
 interface EmpresaResumo {
@@ -70,6 +71,7 @@ export const ENDERECO_CLIENTES = 'https://app.wnlabs.com.br';
   styleUrl: './empresas.scss',
 })
 export class Empresas {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
 
   protected readonly empresas = httpResource<EmpresaResumo[]>(() => URL);
@@ -165,7 +167,7 @@ export class Empresas {
   }
 
   async alternarSituacao(e: EmpresaResumo): Promise<void> {
-    if (e.ativa && !confirm(`Suspender "${e.nome}"?\n\nNinguém da empresa consegue entrar, e quem está usando agora sai em até 1 minuto. Os dados ficam guardados.`)) return;
+    if (e.ativa && !(await this.confirmacao.pedir(`Suspender "${e.nome}"?\nNinguém da empresa consegue entrar, e quem está usando agora sai em até 1 minuto. Os dados ficam guardados.`, { botao: 'Suspender', perigo: true }))) return;
     this.processando.set(e.id);
     try {
       await firstValueFrom(this.http.post(`${URL}/${e.id}/${e.ativa ? 'suspender' : 'reativar'}`, {}));
@@ -190,7 +192,7 @@ export class Empresas {
   }
 
   async redefinirSenha(e: EmpresaResumo, u: UsuarioDaEmpresa): Promise<void> {
-    if (!confirm(`Gerar uma senha provisória nova para ${u.nome} (${u.email})?\n\nA senha atual deixa de funcionar.`)) return;
+    if (!(await this.confirmacao.pedir(`Gerar uma senha provisória nova para ${u.nome} (${u.email})?\nA senha atual deixa de funcionar.`, { botao: 'Gerar nova senha' }))) return;
     try {
       const r = await firstValueFrom(this.http.post<{ email: string; senhaProvisoria: string }>(`${URL}/${e.id}/usuarios/${u.id}/redefinir-senha`, {}));
       this.mostrarSenha({ titulo: 'Senha nova', empresa: e.nome, nome: u.nome, email: r.email, senha: r.senhaProvisoria });

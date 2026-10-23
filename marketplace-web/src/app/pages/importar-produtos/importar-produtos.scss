@@ -269,6 +269,10 @@ tr.aviso {
   margin-bottom: 14px;
 }
 
+// Cancelar (volta ao começo, nada gravado) e Importar lado a lado; o erro fica logo abaixo dos botões.
+.acao-confirmar { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.botoes-confirmar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
 .sucesso {
   display: flex;
   gap: 14px;

@@ -1,3 +1,4 @@
+import { Confirmacao } from '../../shared/confirmacao';
 import { Component, computed, inject, signal } from '@angular/core';
 import { AuthService } from '../../core/auth/auth.service';
 import { CurrencyPipe, DatePipe } from '@angular/common';
@@ -42,6 +43,7 @@ interface ItemEstado {
   styleUrl: './nota-entrada.scss',
 })
 export class NotaEntradaPagina {
+  private readonly confirmacao = inject(Confirmacao);
   protected readonly ramo = inject(AuthService).ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
   private readonly api = inject(NotasApi);
 
@@ -226,7 +228,7 @@ export class NotaEntradaPagina {
       : `Dar entrada de ${lancar} ${lancar === 1 ? 'item' : 'itens'} da NF-e ${c.numero} no estoque?`
       + (r.novos ? `\n${r.novos} produto(s) novo(s) serão cadastrados.` : '')
       + (this.pedidoId ? `\nO pedido de compra #${this.pedidoId} será marcado como recebido.` : '');
-    if (!confirm(texto)) return;
+    if (!(await this.confirmacao.pedir(texto, { botao: soConta ? 'Lançar a nota' : 'Dar entrada' }))) return;
 
     const decisoes: DecisaoItemNota[] = this.itens().map((i) => ({
       numeroItem: i.base.numeroItem,

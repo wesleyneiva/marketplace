@@ -1,3 +1,4 @@
+import { Confirmacao } from '../../shared/confirmacao';
 import { Component, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -26,6 +27,7 @@ type Linha = { tipo: 'mov'; mov: Movimento } | { tipo: 'implantacao'; data: stri
   styleUrls: ['./financeiro.scss', './lancamentos.scss'],
 })
 export class Lancamentos {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
 
@@ -156,9 +158,9 @@ export class Lancamentos {
   protected async excluir(m: Movimento): Promise<void> {
     const valor = m.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     const pergunta = m.origem === 'Transferencia'
-      ? `Excluir a transferência de ${valor}? As duas pontas (saída e entrada) saem do livro.`
+      ? `Excluir a transferência de ${valor}?\nAs duas pontas (saída e entrada) saem do livro.`
       : `Excluir "${m.descricao}" (${valor})?`;
-    if (!confirm(pergunta)) return;
+    if (!(await this.confirmacao.pedir(pergunta, { botao: 'Excluir', perigo: true }))) return;
     this.erroLinha.set(null);
     try {
       await firstValueFrom(this.http.delete(`${URL_FINANCEIRO}/movimentos/${m.id}`));

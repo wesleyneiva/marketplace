@@ -6,6 +6,7 @@ import { RouterLink } from '@angular/router';
 import { Categoria, Pagina, Produto, ProdutosApi } from '../../core/api/produtos.api';
 import { Icone } from '../../shared/icone';
 import { Paginacao } from '../../shared/paginacao';
+import { Confirmacao } from '../../shared/confirmacao';
 
 @Component({
   selector: 'app-produtos',
@@ -14,6 +15,7 @@ import { Paginacao } from '../../shared/paginacao';
   styleUrl: './produtos.scss',
 })
 export class Produtos {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly api = inject(ProdutosApi);
   protected readonly auth = inject(AuthService);
 
@@ -77,7 +79,7 @@ export class Produtos {
   }
 
   async alternarAtivo(produto: Produto): Promise<void> {
-    if (produto.ativo && !confirm(`Desativar "${produto.nome}"? Ele deixa de aparecer nas vendas.`)) return;
+    if (produto.ativo && !(await this.confirmacao.pedir(`Desativar "${produto.nome}"?\nEle deixa de aparecer nas vendas.`, { botao: 'Desativar', perigo: true }))) return;
 
     this.processando.set(produto.id);
     this.erro.set(null);

@@ -9,6 +9,7 @@ import { DiaPipe } from '../../../shared/dia.pipe';
 import { API, ConfiguracaoCobranca, FORMAS, Fatura, hojeIso, linkCobranca, mensagemErro, mesAno } from '../comum';
 import { CampoData } from '../../../shared/campo-data';
 import { FecharAoClicarFora } from '../../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../../shared/confirmacao';
 
 type Aba = 'abertas' | 'atrasadas' | 'pagas' | 'todas';
 interface ClienteLista { id: number; nome: string; cortesia: boolean }
@@ -21,6 +22,7 @@ interface ClienteLista { id: number; nome: string; cortesia: boolean }
   styleUrl: './cobrancas.scss',
 })
 export class Cobrancas {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   protected readonly mesAno = mesAno;
   protected readonly formas = FORMAS;
@@ -63,7 +65,7 @@ export class Cobrancas {
 
   // ----- Outras ações -----
   async desfazer(f: Fatura): Promise<void> {
-    if (!confirm(`Desfazer o recebimento de ${f.cliente} (${mesAno(f.competencia)})? Ela volta a ficar em aberto.`)) return;
+    if (!(await this.confirmacao.pedir(`Desfazer o recebimento de ${f.cliente} (${mesAno(f.competencia)})?\nEla volta a ficar em aberto.`, { botao: 'Desfazer', perigo: true }))) return;
     await this.acao(f, `${API}/faturas/${f.id}/desfazer-pagamento`, {}, 'Recebimento desfeito.');
   }
 

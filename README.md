@@ -275,7 +275,15 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 23/10/2026 (mais recente, fim da tarde) — importar clientes por planilha
+### 23/10/2026 (mais recente, noite) — confirmação no padrão do sistema
+- As 24 confirmações usavam o `confirm()` do navegador ("app.wnlabs.com.br diz", fora do tema). Agora todas usam a janela
+  própria `shared/confirmacao.ts` (`inject(Confirmacao).pedir(texto, { botao, perigo })`, montada uma vez em `app.ts`): o texto até
+  o 1º "?" vira o título, o resto (por linha) a explicação; botão com o nome da ação ("Desativar", "Importar"…), vermelho
+  quando apaga/desativa/cancela; Esc, X, Cancelar ou clique fora = cancelar; Enter confirma. Regra: tela nova nunca usa
+  `confirm()`/`alert()` do navegador.
+- Importar produtos e clientes: botão **Cancelar** ao lado de "Importar" na prévia (volta ao começo, nada gravado).
+
+### 23/10/2026 (fim da tarde) — importar clientes por planilha
 - Pergunta do usuário: "como a gente traz os clientes de uma loja já existente?" — não havia jeito (só um a um). Feito no
   jeito da importação de produtos (ver Funcionalidades → "Importar clientes por planilha"). Decisão: na importação o CPF
   é opcional (precisa telefone OU CPF), porque a lista de um sistema antigo raramente tem CPF de todos.
@@ -709,7 +717,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada

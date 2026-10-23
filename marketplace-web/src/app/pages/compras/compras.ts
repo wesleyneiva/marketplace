@@ -15,6 +15,7 @@ import { Produto } from '../../core/api/produtos.api';
 import { EnviarPedido } from './enviar-pedido';
 import { ComprasResumo } from '../../core/compras-resumo';
 import { FecharAoClicarFora } from '../../shared/fechar-ao-clicar-fora';
+import { Confirmacao } from '../../shared/confirmacao';
 
 interface Escolha { marcado: boolean; quantidade: number; custo: number }
 interface ItemNovo { produtoId: number; produto: string; unidade: string; estoqueAtual: number; estoqueMinimo: number; fornecedorId: number | null; fornecedor: string | null; quantidade: number; custo: number }
@@ -28,6 +29,7 @@ interface Conferencia { itemId: number; produto: string; unidade: string; pereci
   styleUrl: './compras.scss',
 })
 export class Compras {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly resumo = inject(ComprasResumo); // número no menu
   private readonly envio = viewChild.required(EnviarPedido); // janela "Enviar pedido ao fornecedor" (WhatsApp, e-mail, copiar)
@@ -132,7 +134,7 @@ export class Compras {
   }
 
   async cancelar(p: Pedido): Promise<void> {
-    if (!confirm(`Cancelar o pedido #${p.id} (${p.fornecedor})?`)) return;
+    if (!(await this.confirmacao.pedir(`Cancelar o pedido #${p.id} (${p.fornecedor})?`, { botao: 'Cancelar o pedido', perigo: true }))) return;
     await this.executar(async () => {
       await firstValueFrom(this.http.post(`/api/compras/pedidos/${p.id}/cancelar`, {}));
       this.mostrarAviso(`Pedido #${p.id} cancelado.`);

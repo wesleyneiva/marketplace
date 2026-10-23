@@ -6,6 +6,7 @@ import { LinhaPrevia, PreviaImportacao, ProdutosApi, ResultadoImportacao, URL_MO
 import { DiaPipe } from '../../shared/dia.pipe';
 import { QuantidadePipe } from '../../shared/quantidade.pipe';
 import { Icone } from '../../shared/icone';
+import { Confirmacao } from '../../shared/confirmacao';
 
 type Filtro = 'todas' | 'erro' | 'aviso' | 'novo' | 'atualizar';
 
@@ -17,6 +18,7 @@ type Filtro = 'todas' | 'erro' | 'aviso' | 'novo' | 'atualizar';
   styleUrl: './importar-produtos.scss',
 })
 export class ImportarProdutos {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly api = inject(ProdutosApi);
 
   protected readonly urlModelo = URL_MODELO_IMPORTACAO;
@@ -103,7 +105,7 @@ export class ImportarProdutos {
     if (!this.arquivo || !p) return;
     const total = this.aproveitaveis();
     const aviso = p.comErro > 0 ? `\n\nAs ${p.comErro} linhas com erro serão ignoradas.` : '';
-    if (!confirm(`Importar ${total} ${total === 1 ? 'produto' : 'produtos'} agora?${aviso}`)) return;
+    if (!(await this.confirmacao.pedir(`Importar ${total} ${total === 1 ? 'produto' : 'produtos'} agora?${aviso}`, { botao: 'Importar' }))) return;
 
     this.importando.set(true);
     this.erro.set(null);

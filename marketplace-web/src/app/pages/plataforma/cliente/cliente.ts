@@ -14,6 +14,7 @@ import { CurrencyPipe } from '@angular/common';
 import { DiaPipe } from '../../../shared/dia.pipe';
 import { API, Fatura, Plano, mesAno } from '../comum';
 import { CampoData } from '../../../shared/campo-data';
+import { Confirmacao } from '../../../shared/confirmacao';
 
 // Formato igual a Contracts/PlataformaDtos.cs (ClienteDetalheResponse).
 interface Ficha {
@@ -50,6 +51,7 @@ const URL = '/api/plataforma/empresas';
   styleUrl: './cliente.scss',
 })
 export class Cliente {
+  private readonly confirmacao = inject(Confirmacao);
   protected readonly perfilRamo = perfilRamo;
   private readonly http = inject(HttpClient);
   readonly id = input.required<string>(); // vem da rota /plataforma/clientes/:id
@@ -158,7 +160,7 @@ export class Cliente {
   }
 
   async alternarSituacao(r: Resumo): Promise<void> {
-    if (r.ativa && !confirm(`Suspender "${r.nome}"?\n\nNinguém da empresa consegue entrar, e quem está usando agora sai em até 1 minuto. Os dados ficam guardados.`)) return;
+    if (r.ativa && !(await this.confirmacao.pedir(`Suspender "${r.nome}"?\nNinguém da empresa consegue entrar, e quem está usando agora sai em até 1 minuto. Os dados ficam guardados.`, { botao: 'Suspender', perigo: true }))) return;
     await this.executar('situacao', this.avisoSituacao,
       () => firstValueFrom(this.http.post(`${URL}/${r.id}/${r.ativa ? 'suspender' : 'reativar'}`, {})),
       r.ativa ? 'Cliente suspenso.' : 'Cliente reativado.');

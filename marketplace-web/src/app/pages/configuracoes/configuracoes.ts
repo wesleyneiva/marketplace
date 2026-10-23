@@ -20,6 +20,7 @@ import { PixQrCodeComponent, chavePixLegivel } from '../../shared/pix-qrcode';
 import { DiaPipe } from '../../shared/dia.pipe';
 import { HorarioEditor } from '../../shared/horario-editor/horario-editor';
 import { Horario, horarioParaServidor, horarioParaTela } from '../../shared/horario-editor/horario';
+import { Confirmacao } from '../../shared/confirmacao';
 
 interface Configuracao {
   balancaDigitosCodigo: number;
@@ -80,6 +81,7 @@ const TIPOS_CHAVE: { valor: TipoChavePix; rotulo: string; exemplo: string }[] = 
   styleUrl: './configuracoes.scss',
 })
 export class Configuracoes {
+  private readonly confirmacao = inject(Confirmacao);
   private readonly http = inject(HttpClient);
   private readonly auth = inject(AuthService);
   protected readonly ramo = this.auth.ramo; // palavras e o que aparece conforme o ramo (core/ramos.ts)
@@ -164,7 +166,7 @@ export class Configuracoes {
   }
 
   async salvarPix(tirar = false): Promise<void> {
-    if (tirar && !confirm('Tirar a chave Pix da loja? O caixa deixa de mostrar o QR Code.')) return;
+    if (tirar && !(await this.confirmacao.pedir('Tirar a chave Pix da loja?\nO caixa deixa de mostrar o QR Code.', { botao: 'Tirar a chave', perigo: true }))) return;
     this.avisoPix.set(null);
     this.salvandoPix.set(true);
     try {
@@ -289,7 +291,7 @@ export class Configuracoes {
   }
 
   async desligarAutomatico(nome: string): Promise<void> {
-    if (!confirm(`Desligar o Pix automático pelo ${nome}? O caixa volta ao Pix manual (QR da chave da loja) e as credenciais são apagadas.`)) return;
+    if (!(await this.confirmacao.pedir(`Desligar o Pix automático pelo ${nome}?\nO caixa volta ao Pix manual (QR da chave da loja) e as credenciais são apagadas.`, { botao: 'Desligar', perigo: true }))) return;
     this.avisoMp.set(null);
     try {
       await firstValueFrom(this.http.delete('/api/pix/automatico'));
