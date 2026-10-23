@@ -3,7 +3,7 @@
 
   .total {
     display: flex; flex-direction: column; gap: 2px; padding: 12px 16px;
-    border: 1px solid var(--cor-borda); border-radius: 12px; background: var(--cor-superficie);
+    border: 1px solid var(--borda-flutua); border-radius: var(--raio-painel); background: var(--cor-superficie); box-shadow: var(--sombra-flutua);
     span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
     strong { font-size: 20px; font-variant-numeric: tabular-nums; }
     &.principal { border-color: var(--cor-primaria); background: var(--cor-primaria-clara); strong { font-size: 24px; color: var(--cor-primaria-escura); } }
@@ -20,7 +20,7 @@
 
 .cartao-conta {
   display: flex; flex-direction: column;
-  border: 1px solid var(--cor-borda); border-left: 4px solid var(--cor-texto-suave); border-radius: 12px; background: var(--cor-superficie);
+  border: 1px solid var(--borda-flutua); border-left: 4px solid var(--cor-texto-suave); border-radius: var(--raio-painel); background: var(--cor-superficie); box-shadow: var(--sombra-flutua);
   &.t-Banco { border-left-color: var(--cor-info); }
   &.t-Maquininha { border-left-color: var(--cor-roxo); }
   &:not(.t-Banco):not(.t-Maquininha) { border-left-color: var(--cor-primaria); }
@@ -28,7 +28,7 @@
 
   .abrir {
     display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 10px; border: 0; background: transparent;
-    text-align: left; cursor: pointer; color: inherit; font: inherit; border-radius: 12px 12px 0 0;
+    text-align: left; cursor: pointer; color: inherit; font: inherit; border-radius: var(--raio-painel) var(--raio-painel) 0 0;
     &:hover { background: var(--cor-verde-fundo); .saldo { text-decoration: underline; text-decoration-thickness: 1px; } }
   }
   .nome { font-weight: 700; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }

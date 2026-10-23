@@ -275,7 +275,17 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 23/10/2026 (mais recente, tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
+### 23/10/2026 (fim da tarde) — visual "flutuante" em todo o sistema
+- Pedido do usuário (viu uma prévia na Visão geral e aprovou): cartões e botões "suspensos" sobre o fundo. Em `styles.scss`:
+  tokens `--sombra-flutua`, `--sombra-flutua-alta`, `--sombra-pilula`, `--sombra-pilula-alta`, `--sombra-ligado`,
+  `--borda-flutua` (claro e escuro — no escuro sombra preta mais forte + fio claro em cima) e `--raio-painel` (18px).
+  `.painel` com sombra em camadas (link/botão sobe 3px no mouse); `.botao` raio 12px + sombra, sobe 2px no mouse;
+  `.botao.pequeno` vira pílula "gordinha" (7px 15px); `.ligado` agora é verde cheio com brilho. Cartões locais que imitavam
+  painel (Financeiro: saldos, lançamentos, fluxo, a receber; fiado; contas a pagar; painel; estoque; abas em pílula de
+  Cobranças) usam os mesmos tokens. Impressão sem sombra. Abas sublinhadas (Financeiro, Compras, Estoque…) ficaram como eram.
+- Regra para tela nova: cartão = `.painel` (ou os tokens acima); nunca sombra/raio fixos.
+
+### 23/10/2026 (tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
 Resumo da tarde (um chat, tudo publicado): (1) "cliente desde" certo (10/08); (2) Cobranças com as próximas mensalidades
 (novembro aparece em 31/10); (3) Visão geral do dono com filtro de período e rosca; (4) achado do depósito do caixa (o bot
 SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e duplicou as transferências do usuário — corrigido);
@@ -817,7 +827,7 @@ Pendências:
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
   (Juvenal R$ 2.149 e TopSpin R$ 1.899) e vira conta no Contas a pagar de cada loja — conferir. TopSpin: R$ 2.447 no caixa
   esperando depósito manual; Itaú em −R$ 6.024,78 é o efeito do parcelado (explicado na seção da tarde; fica assim).
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada

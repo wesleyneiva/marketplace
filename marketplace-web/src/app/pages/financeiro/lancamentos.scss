@@ -18,7 +18,7 @@
   display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 10px;
   div {
     display: flex; flex-direction: column; gap: 2px; padding: 10px 14px;
-    border: 1px solid var(--cor-borda); border-radius: 12px; background: var(--cor-superficie);
+    border: 1px solid var(--borda-flutua); border-radius: var(--raio-painel); background: var(--cor-superficie); box-shadow: var(--sombra-flutua);
     span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
     strong { font-size: 18px; font-variant-numeric: tabular-nums; }
     &.destaque { border-color: var(--cor-primaria); }

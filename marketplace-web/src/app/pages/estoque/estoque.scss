@@ -51,9 +51,10 @@
   flex-direction: column;
   gap: 2px;
   padding: 14px 16px;
-  border-radius: 12px;
-  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-painel);
+  border: 1px solid var(--borda-flutua);
   background: var(--cor-superficie);
+  box-shadow: var(--sombra-flutua);
 
   span {
     font-size: 13px;

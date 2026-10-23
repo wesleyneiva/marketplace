@@ -1,15 +1,15 @@
 .cartoes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 18px;
+  margin-bottom: 18px;
 }
 
 .cartao {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 16px;
+  padding: 20px 22px;
   color: inherit;
   text-decoration: none;
 
@@ -18,12 +18,11 @@
   small { color: var(--cor-texto-suave); font-size: 13px; }
   &.futuro { opacity: 0.7; border-style: dashed; }
 }
-a.cartao:hover { box-shadow: var(--sombra); }
 
 .duas-colunas {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 
 .bloco {
