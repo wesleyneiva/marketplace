@@ -144,6 +144,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.Status).HasMaxLength(10);
             e.Property(x => x.FormaPagamento).HasMaxLength(15);
             e.Property(x => x.Observacao).HasMaxLength(300);
+            e.Property(x => x.Mensalidade).HasDefaultValue(true);
             // Uma mensalidade (não cancelada) por cliente e mês.
             e.HasIndex(x => new { x.ClienteId, x.Competencia }).IsUnique().HasFilter("\"Status\" <> 'Cancelada'");
             e.HasIndex(x => new { x.Status, x.Vencimento });
@@ -350,6 +351,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.HasOne(c => c.Fornecedor).WithMany().HasForeignKey(c => c.FornecedorId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.NotaEntrada).WithMany().HasForeignKey(c => c.NotaEntradaId).OnDelete(DeleteBehavior.SetNull);
             e.HasOne(c => c.PagaPor).WithMany().HasForeignKey(c => c.PagaPorId).OnDelete(DeleteBehavior.Restrict);
+            e.HasOne<Fatura>().WithMany().HasForeignKey(c => c.FaturaId).OnDelete(DeleteBehavior.SetNull);
+            e.HasIndex(c => c.FaturaId);
             e.HasOne(c => c.CriadaPor).WithMany().HasForeignKey(c => c.CriadaPorId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(c => c.CategoriaFinanceira).WithMany().HasForeignKey(c => c.CategoriaFinanceiraId).OnDelete(DeleteBehavior.Restrict);
             e.HasOne(c => c.ContaFinanceira).WithMany().HasForeignKey(c => c.ContaFinanceiraId).OnDelete(DeleteBehavior.Restrict);

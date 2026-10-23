@@ -611,6 +611,9 @@ namespace Marketplace.Api.Migrations
                     b.Property<int>("EmpresaId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("FaturaId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("FormaPagamento")
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)");
@@ -652,6 +655,8 @@ namespace Marketplace.Api.Migrations
                     b.HasIndex("ContaFinanceiraId");
 
                     b.HasIndex("CriadaPorId");
+
+                    b.HasIndex("FaturaId");
 
                     b.HasIndex("FornecedorId");
 
@@ -998,12 +1003,20 @@ namespace Marketplace.Api.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("character varying(15)");
 
+                    b.Property<bool>("Mensalidade")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
                     b.Property<string>("Observacao")
                         .HasMaxLength(300)
                         .HasColumnType("character varying(300)");
 
                     b.Property<DateOnly?>("PagaEm")
                         .HasColumnType("date");
+
+                    b.Property<bool>("PagaPelaLoja")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -2955,6 +2968,11 @@ namespace Marketplace.Api.Migrations
                         .HasForeignKey("EmpresaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Marketplace.Api.Models.Fatura", null)
+                        .WithMany()
+                        .HasForeignKey("FaturaId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("Marketplace.Api.Models.Fornecedor", "Fornecedor")
                         .WithMany()

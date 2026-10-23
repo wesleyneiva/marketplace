@@ -13,7 +13,7 @@ namespace Marketplace.Api.Controllers;
 [ApiController]
 [Route("api/contas")]
 [Authorize(Roles = $"{Perfis.Administrador},{Perfis.Gerente}")]
-public class ContasController(AppDbContext db) : ControllerBase
+public class ContasController(AppDbContext db, CobrancasService cobrancas) : ControllerBase
 {
     private string? UsuarioId => User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -124,6 +124,8 @@ public class ContasController(AppDbContext db) : ControllerBase
         var conta = await db.ContasPagar.FirstOrDefaultAsync(c => c.Id == id);
         if (conta is null) return NotFound();
         if (conta.PagaEm is not null) return BadRequest(new { mensagem = "Conta já paga: desfaça o pagamento para editar." });
+        if (conta.FaturaId is not null && (r.Valor != conta.Valor || r.Vencimento != conta.Vencimento))
+            return BadRequest(new { mensagem = "É a mensalidade do Marcus: o valor e o vencimento vêm da WN Labs (fale com o suporte para mudar)." });
         if (await FornecedorInvalidoAsync(r.FornecedorId)) return BadRequest(new { mensagem = "Fornecedor não encontrado." });
         var (categoria, erro) = await CategoriaAsync(r.CategoriaId, r.Descricao, conta.CategoriaFinanceiraId);
         if (erro is not null) return BadRequest(new { mensagem = erro });
@@ -145,6 +147,7 @@ public class ContasController(AppDbContext db) : ControllerBase
         var conta = await db.ContasPagar.FirstOrDefaultAsync(c => c.Id == id);
         if (conta is null) return NotFound();
         if (conta.PagaEm is not null) return BadRequest(new { mensagem = "Conta já paga não pode ser excluída (desfaça o pagamento antes)." });
+        if (conta.FaturaId is not null) return BadRequest(new { mensagem = "É a mensalidade do Marcus: ela não pode ser excluída (fale com o suporte se estiver errada)." });
         db.ContasPagar.Remove(conta);
         await db.SaveChangesAsync();
         return NoContent();
@@ -172,6 +175,7 @@ public class ContasController(AppDbContext db) : ControllerBase
         await Financeiro.RegistrarPagamentoAsync(db, conta, deOnde.Id, UsuarioId);
         await db.SaveChangesAsync();
         await transacao.CommitAsync();
+        if (conta.FaturaId is not null) await cobrancas.SincronizarAsync(Relogio.Hoje, conta.EmpresaId); // mensalidade do Marcus: paga no dono na hora
         return await UmaAsync(id);
     }
 
@@ -192,6 +196,7 @@ public class ContasController(AppDbContext db) : ControllerBase
         conta.ContaFinanceiraId = null;
         await db.SaveChangesAsync();
         await transacao.CommitAsync();
+        if (conta.FaturaId is not null) await cobrancas.SincronizarAsync(Relogio.Hoje, conta.EmpresaId); // reabre a fatura no dono
         return await UmaAsync(id);
     }
 

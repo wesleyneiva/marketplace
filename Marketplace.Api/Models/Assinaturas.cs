@@ -32,6 +32,8 @@ public class Fatura
     public decimal? ValorPago { get; set; }
     public string? FormaPagamento { get; set; } // Pix, Boleto, Dinheiro, Transferencia, Cartao
     public string? Observacao { get; set; }
+    public bool PagaPelaLoja { get; set; }
+    public bool Mensalidade { get; set; } = true; // false = cobrança à parte (ex.: implantação): não conta como "o mês já tem fatura"      // paga pela baixa da loja no Contas a pagar (desfazer lá reabre aqui)
     public DateTimeOffset CriadaEm { get; set; } = DateTimeOffset.UtcNow;
 }
 

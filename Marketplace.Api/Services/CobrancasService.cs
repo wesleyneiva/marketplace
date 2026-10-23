@@ -8,6 +8,8 @@ namespace Marketplace.Api.Services;
 
 // Cobranças da PLATAFORMA (o dono cobrando os mercados): gera as mensalidades, bloqueia quem atrasou demais e libera
 // quem pagou. Tudo no calendário de Brasília. As tabelas não têm filtro de empresa (são da plataforma).
+// Tudo automático (23/10/2026): cada fatura vira uma conta "Sistema Marcus" no Contas a pagar da LOJA; a loja dá baixa
+// lá e a fatura fica Paga aqui (desfez lá, reabre aqui); não pagou, fica atrasada e segue o fluxo (aviso e bloqueio).
 public class CobrancasService(AppDbContext db, IServiceProvider services, ILogger<CobrancasService> log)
 {
     private static readonly string[] Meses = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -33,7 +35,9 @@ public class CobrancasService(AppDbContext db, IServiceProvider services, ILogge
     public async Task<ConfiguracaoPlataforma> ConfiguracaoAsync() =>
         await db.ConfiguracoesPlataforma.FirstOrDefaultAsync(c => c.Id == 1) ?? new ConfiguracaoPlataforma();
 
-    // Mensalidades do mês atual e do próximo que vencem até "hoje + dias de antecedência" e ainda não existem.
+    // Mensalidades de cada mês desde o início do cliente (CobrarDesde, ou o cadastro) até o próximo mês, que vencem até
+    // "hoje + dias de antecedência" e ainda não existem. Um mês que faltou (cliente cadastrado com início no passado)
+    // também é gerado — no máximo 24 meses para trás.
     public async Task<int> GerarAsync(DateOnly hoje, int? soCliente = null)
     {
         var cfg = await ConfiguracaoAsync();
@@ -41,13 +45,16 @@ public class CobrancasService(AppDbContext db, IServiceProvider services, ILogge
             .Where(e => !e.Plataforma && !e.Cortesia && e.PlanoId != null && (soCliente == null || e.Id == soCliente))
             .ToListAsync();
         var mesAtual = new DateOnly(hoje.Year, hoje.Month, 1);
-        var existentes = await db.Faturas.Where(f => f.Status != StatusFatura.Cancelada && f.Competencia >= mesAtual.AddMonths(-1))
+        var existentes = await db.Faturas.Where(f => f.Mensalidade && f.Status != StatusFatura.Cancelada && f.Competencia >= mesAtual.AddMonths(-24))
             .Select(f => new { f.ClienteId, f.Competencia }).ToListAsync();
 
         var novas = 0;
         foreach (var e in clientes.Where(Cobra))
         {
-            foreach (var competencia in new[] { mesAtual, mesAtual.AddMonths(1) })
+            var inicio = e.CobrarDesde ?? DateOnly.FromDateTime(e.CriadoEm.UtcDateTime);
+            var primeira = new DateOnly(inicio.Year, inicio.Month, 1);
+            if (primeira < mesAtual.AddMonths(-24)) primeira = mesAtual.AddMonths(-24);
+            for (var competencia = primeira; competencia <= mesAtual.AddMonths(1); competencia = competencia.AddMonths(1))
             {
                 var vencimento = VencimentoDe(e, competencia);
                 if (vencimento > hoje.AddDays(cfg.DiasGerarAntes)) continue;              // ainda é cedo
@@ -70,6 +77,96 @@ public class CobrancasService(AppDbContext db, IServiceProvider services, ILogge
         }
         return novas;
     }
+
+    // ================================================================ a conta da loja
+
+    // Cada fatura tem a sua conta no Contas a pagar da loja (cria ou acha a que a loja já lançou: "Sistema Marcus…" com
+    // vencimento no mesmo mês) e as duas andam juntas: a loja pagou → Paga aqui (e libera quem estava bloqueado por
+    // atraso); desfez lá → Aberta de novo (só se foi a loja que pagou); valor/vencimento mudados aqui → a conta em aberto
+    // acompanha; fatura cancelada → a conta em aberto sai. A loja apagou a conta → ela volta na próxima rodada.
+    public async Task<int> SincronizarAsync(DateOnly hoje, int? soCliente = null)
+    {
+        var faturas = await db.Faturas.Include(f => f.Cliente)
+            .Where(f => (soCliente == null || f.ClienteId == soCliente) && !f.Cliente!.Plataforma).ToListAsync();
+        var mudancas = 0;
+        var pagas = new HashSet<int>();
+        foreach (var doCliente in faturas.GroupBy(f => f.ClienteId))
+        {
+            using var escopo = services.CriarEscopo(doCliente.Key);
+            var loja = escopo.ServiceProvider.GetRequiredService<AppDbContext>();
+            var ids = doCliente.Select(f => f.Id).ToList();
+            var ligadas = await loja.ContasPagar.Where(c => c.FaturaId != null && ids.Contains(c.FaturaId.Value)).ToListAsync();
+            int? categoria = null;
+            foreach (var f in doCliente.OrderBy(f => f.Vencimento))
+            {
+                var conta = ligadas.FirstOrDefault(c => c.FaturaId == f.Id);
+                if (f.Status == StatusFatura.Cancelada)
+                {
+                    if (conta is { PagaEm: null }) { loja.ContasPagar.Remove(conta); mudancas++; }
+                    continue;
+                }
+                if (conta is null)
+                {
+                    // A loja já tinha lançado a mensalidade (ex.: as 12 parcelas da implantação)? Usa essa.
+                    var (ini, fim) = (new DateOnly(f.Vencimento.Year, f.Vencimento.Month, 1), new DateOnly(f.Vencimento.Year, f.Vencimento.Month, 1).AddMonths(1));
+                    conta = await loja.ContasPagar.Where(c => c.FaturaId == null && c.Descricao.StartsWith("Sistema Marcus")
+                            && c.Vencimento >= ini && c.Vencimento < fim)
+                        .OrderBy(c => c.Vencimento).FirstOrDefaultAsync();
+                    if (conta is null)
+                    {
+                        categoria ??= await loja.CategoriasFinanceiras.Where(c => c.Nome == "Sistemas e software").Select(c => (int?)c.Id).FirstOrDefaultAsync() ?? 0;
+                        conta = new ContaPagar
+                        {
+                            Descricao = Cortar($"Sistema Marcus · {f.Descricao}", 200), Vencimento = f.Vencimento, Valor = f.Valor,
+                            CategoriaFinanceiraId = categoria > 0 ? categoria : null,
+                            Observacao = f.Status == StatusFatura.Paga
+                                ? $"Mensalidade do Marcus já recebida pela WN Labs em {f.PagaEm:dd/MM/yyyy}: dê baixa para registrar a saída do dinheiro."
+                                : "Mensalidade do Marcus (lançada sozinha pela WN Labs). Dê baixa aqui quando pagar.",
+                        };
+                        loja.ContasPagar.Add(conta);
+                    }
+                    conta.FaturaId = f.Id;
+                    ligadas.Add(conta);
+                    mudancas++;
+                }
+                if (conta.PagaEm is { } pagaEm && f.Status == StatusFatura.Aberta)
+                {
+                    (f.Status, f.PagaEm, f.ValorPago, f.FormaPagamento, f.PagaPelaLoja) = (StatusFatura.Paga, pagaEm, conta.ValorPago ?? conta.Valor, Forma(conta.FormaPagamento), true);
+                    f.Observacao ??= "Baixa no Contas a pagar da loja.";
+                    pagas.Add(f.ClienteId);
+                    mudancas++;
+                }
+                else if (conta.PagaEm is null && f.Status == StatusFatura.Paga && f.PagaPelaLoja)
+                {
+                    (f.Status, f.PagaEm, f.ValorPago, f.FormaPagamento, f.PagaPelaLoja) = (StatusFatura.Aberta, null, null, null, false);
+                    mudancas++;
+                }
+                else if (conta.PagaEm is null && f.Status == StatusFatura.Aberta && (conta.Valor != f.Valor || conta.Vencimento != f.Vencimento))
+                {
+                    (conta.Valor, conta.Vencimento) = (f.Valor, f.Vencimento);
+                    mudancas++;
+                }
+            }
+            await loja.SaveChangesAsync();
+        }
+        await db.SaveChangesAsync();
+        foreach (var id in pagas) await LiberarSeEmDiaAsync(id, hoje);
+        if (mudancas > 0) log.LogInformation("Cobranças: {Mudancas} acerto(s) entre faturas e contas das lojas.", mudancas);
+        return mudancas;
+    }
+
+    // "Pix", "Boleto", "TED"… do Contas a pagar da loja → a forma da fatura (null quando não dá para saber).
+    private static string? Forma(string? texto) => Normal(texto) switch
+    {
+        var t when t.Contains("pix") => "Pix",
+        var t when t.Contains("boleto") => "Boleto",
+        var t when t.Contains("transf") || t.Contains("ted") || t.Contains("doc") => "Transferencia",
+        var t when t.Contains("dinheiro") || t.Contains("especie") => "Dinheiro",
+        var t when t.Contains("cart") || t.Contains("credito") || t.Contains("debito") => "Cartao",
+        _ => null,
+    };
+    private static string Normal(string? t) => ImportacaoProdutosService.Normalizar(t ?? "");
+    private static string Cortar(string v, int max) => v.Length <= max ? v : v[..max];
 
     // Bloqueio automático: mensalidade aberta vencida há mais de X dias.
     public async Task<int> BloquearAtrasadosAsync(DateOnly hoje)
@@ -140,6 +237,7 @@ public class CobrancasTrabalhador(IServiceScopeFactory escopos, ILogger<Cobranca
                 using var scope = escopos.CreateScope();
                 var cobrancas = scope.ServiceProvider.GetRequiredService<CobrancasService>();
                 await cobrancas.GerarAsync(Relogio.Hoje);
+                await cobrancas.SincronizarAsync(Relogio.Hoje); // antes do bloqueio: quem pagou na loja não é bloqueado
                 await cobrancas.BloquearAtrasadosAsync(Relogio.Hoje);
                 UltimaRodada = DateTimeOffset.UtcNow;
             }

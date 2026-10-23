@@ -86,6 +86,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
     public async Task<object> Gerar(int? clienteId = null)
     {
         var novas = await cobrancas.GerarAsync(Relogio.Hoje, clienteId);
+        await cobrancas.SincronizarAsync(Relogio.Hoje, clienteId);
         var bloqueados = clienteId is null ? await cobrancas.BloquearAtrasadosAsync(Relogio.Hoje) : 0;
         return new { novas, bloqueados };
     }
@@ -97,7 +98,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         var cliente = await db.Empresas.Include(e => e.Plano).FirstOrDefaultAsync(e => e.Id == r.ClienteId && !e.Plataforma);
         if (cliente is null) return BadRequest(new { mensagem = "Cliente não encontrado." });
         var competencia = new DateOnly(r.Competencia.Year, r.Competencia.Month, 1);
-        if (await db.Faturas.AnyAsync(f => f.ClienteId == cliente.Id && f.Competencia == competencia && f.Status != StatusFatura.Cancelada))
+        if (await db.Faturas.AnyAsync(f => f.ClienteId == cliente.Id && f.Mensalidade && f.Competencia == competencia && f.Status != StatusFatura.Cancelada))
             return BadRequest(new { mensagem = "Este cliente já tem mensalidade nesse mês (cancele a outra antes, se for o caso)." });
         var valor = r.Valor ?? CobrancasService.ValorMensal(cliente, cliente.Plano);
         if (valor <= 0) return BadRequest(new { mensagem = "Informe o valor (o cliente não tem plano)." });
@@ -110,6 +111,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         };
         db.Faturas.Add(fatura);
         await db.SaveChangesAsync();
+        await cobrancas.SincronizarAsync(Relogio.Hoje, cliente.Id); // vira conta no Contas a pagar da loja
         return Ok(new { fatura.Id });
     }
 
@@ -123,6 +125,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         f.Valor = Math.Round(r.Valor, 2);
         if (!string.IsNullOrWhiteSpace(r.Descricao)) f.Descricao = r.Descricao.Trim();
         await db.SaveChangesAsync();
+        await cobrancas.SincronizarAsync(Relogio.Hoje, f.ClienteId); // a conta da loja acompanha
         await cobrancas.LiberarSeEmDiaAsync(f.ClienteId, Relogio.Hoje); // vencimento adiado pode tirar do bloqueio
         return Ok();
     }
@@ -153,6 +156,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         var f = await db.Faturas.FirstOrDefaultAsync(x => x.Id == id);
         if (f is null) return NotFound();
         if (f.Status != StatusFatura.Paga) return BadRequest(new { mensagem = "Esta mensalidade não está paga." });
+        if (f.PagaPelaLoja) return BadRequest(new { mensagem = "Foi paga pela loja (baixa no Contas a pagar dela): o pagamento se desfaz lá." });
         (f.Status, f.PagaEm, f.ValorPago, f.FormaPagamento) = (StatusFatura.Aberta, null, null, null);
         await db.SaveChangesAsync();
         return Ok(); // o bloqueio (se for o caso) vem na próxima rotina, como para qualquer atraso
@@ -167,6 +171,7 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         f.Status = StatusFatura.Cancelada;
         f.Observacao = string.IsNullOrWhiteSpace(r.Motivo) ? "Cancelada" : r.Motivo.Trim();
         await db.SaveChangesAsync();
+        await cobrancas.SincronizarAsync(Relogio.Hoje, f.ClienteId); // a conta em aberto sai da loja
         await cobrancas.LiberarSeEmDiaAsync(f.ClienteId, Relogio.Hoje);
         return Ok();
     }

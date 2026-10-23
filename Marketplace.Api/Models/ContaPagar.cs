@@ -16,6 +16,9 @@ public class ContaPagar : IDaEmpresa
 
     // Veio do recebimento de um pedido de compra (boleto do fornecedor ou pago na entrega)?
     public int? PedidoCompraId { get; set; }
+    // Mensalidade do Marcus: a fatura da área do dono que esta conta paga (a WN Labs lança sozinha; a loja dá baixa aqui
+    // e a fatura fica Paga no dono — ver CobrancasService.SincronizarAsync).
+    public int? FaturaId { get; set; }
     public PedidoCompra? PedidoCompra { get; set; }
 
     // Veio de uma NF-e (as parcelas da nota)?
