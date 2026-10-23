@@ -296,6 +296,13 @@ SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e dup
   (Juvenal nov/26–set/27, TopSpin nov/26–out/27); a de out do Juvenal (paga, ligada à fatura) virou "· 10/2026". Cada mês a
   conta nasce sozinha 10 dias antes ("Sistema Marcus · Plano … · nov/2026"), junto com a fatura. Backup antes:
   `~/backup/marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`.
+- **Itaú da TopSpin negativo (−R$ 6.024,78 em 23/10) — não é erro, fica assim (decisão do usuário: retrato realista)**:
+  saldo de implantação R$ 60 mil em 01/08; banco ago +0,5 mil, set −35,1 mil, out −31,6 mil. Motivos: (1) 63% das vendas
+  no crédito parcelado (R$ 133 mil de R$ 209,8 mil desde 01/08) — faltam entrar R$ 84,9 mil em parcelas (nov 27,6 mil,
+  dez 14,6 mil… até ago/2027) enquanto fornecedores (R$ 103,7 mil, menos que o CMV de R$ 124 mil: não é estoque demais) e
+  fixas saem à vista; (2) fixas ~R$ 27 mil/mês + DAS ~R$ 4,5 mil contra lucro bruto ~R$ 29 mil/mês (vendas ~R$ 70 mil):
+  DRE perto do zero a zero. Nov: saem ~R$ 44 mil, entram ~R$ 27,6 mil de parcelas + vendas. Nenhuma conta vencida em aberto.
+  Se um dia quiser a loja saudável: saldo inicial, fixas menores ou antecipação de recebíveis.
 - **No dev**: a "Loja Teste Tênis" (#13) ficou com plano Básico e `CobrarDesde` 10/11 (teste das próximas mensalidades; a
   fatura de nov aparece em 31/10 no dev). A "Horario Teste" (#10) tem a fatura de out atrasada (teste antigo).
 - **Limpeza do disco (pedida)**: Docker já estava limpo (9 contêineres, todos em uso; sem imagens/volumes sobrando); `bin/obj`,
@@ -809,7 +816,7 @@ Pendências:
 ### Para continuar num chat novo
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
   (Juvenal R$ 2.149 e TopSpin R$ 1.899) e vira conta no Contas a pagar de cada loja — conferir. TopSpin: R$ 2.447 no caixa
-  esperando depósito manual e Itaú em −R$ 6.024,78 (conferir).
+  esperando depósito manual; Itaú em −R$ 6.024,78 é o efeito do parcelado (explicado na seção da tarde; fica assim).
 - Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
