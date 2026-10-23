@@ -52,3 +52,8 @@ a.cartao:hover { box-shadow: var(--sombra); }
 .duas-colunas { margin-bottom: 18px; }
 .bloco.grafico { min-width: 0; }
 .nota { margin: 6px 0 0; font-size: 12px; color: var(--cor-texto-suave); }
+.secao-cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; margin: 6px 0 10px; }
+.secao-cabeca .secao-titulo { margin: 0; }
+.periodos { display: flex; flex-wrap: wrap; gap: 6px; }
+.bloco-cabeca { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.bloco .bloco-cabeca h2 { margin: 0; }

@@ -45,3 +45,7 @@ tr.atrasada td:first-child { box-shadow: inset 3px 0 0 var(--cor-erro); }
 .msg { font-size: 14px; }
 .msg.ok { color: var(--cor-primaria-escura); font-weight: 600; }
 .msg.falhou { color: var(--cor-erro); }
+
+.proximas { margin-top: 14px; padding: 14px 16px 6px; }
+.proximas h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 16px; }
+.proximas h2 small { font-weight: 400; font-size: 13px; color: var(--cor-texto-suave); }

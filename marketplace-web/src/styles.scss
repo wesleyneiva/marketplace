@@ -35,6 +35,12 @@
   // gráficos
   --grafico-serie: #15803d;        // verde do Marcus (gráficos de uma série)
   --grafico-serie-ativa: #0f5f2d;
+  // categorias (gráfico de rosca): ordem fixa, validada para daltonismo (claro e escuro); sempre com legenda e valor
+  --grafico-cat-1: #15803d;
+  --grafico-cat-2: #4a3aa7;
+  --grafico-cat-3: #eda100;
+  --grafico-cat-4: #2a78d6;
+  --grafico-cat-5: #e87ba4;
   --grafico-temperatura: #4a3aa7;  // violeta: temperatura (validado contra o verde, inclusive p/ daltonismo)
   --grafico-saidas: #4a3aa7;       // fluxo de caixa: saídas (o mesmo violeta validado; vermelho/laranja reprovam p/ deutan)
   --grafico-estimado: #4caf6e;     // fluxo de caixa: entradas ESTIMADAS (verde mais claro = incerteza)
@@ -76,6 +82,11 @@
   --sombra: 0 1px 3px rgb(0 0 0 / 0.5), 0 4px 16px rgb(0 0 0 / 0.3);
   --grafico-serie: #22c55e;
   --grafico-serie-ativa: #4ade80;
+  --grafico-cat-1: #16a34a;
+  --grafico-cat-2: #9085e9;
+  --grafico-cat-3: #c98500;
+  --grafico-cat-4: #3987e5;
+  --grafico-cat-5: #d55181;
   --grafico-temperatura: #a78bfa;
   --grafico-saidas: #a78bfa;
   --grafico-estimado: #4caf6e;

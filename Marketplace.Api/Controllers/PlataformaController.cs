@@ -42,27 +42,36 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             reais.Count(r => r.UltimoAcesso > agora.AddDays(-1)), reais.Count(r => r.UltimoAcesso > agora.AddDays(-7)),
             reais.Where(r => r.Ativa && (r.UltimoAcesso is null || r.UltimoAcesso < agora.AddDays(-7)))
                 .OrderBy(r => r.UltimoAcesso ?? DateTimeOffset.MinValue).ToList(),
-            reais.OrderByDescending(r => r.CriadoEm).Take(5).ToList(),
+            reais.OrderByDescending(r => r.ClienteDesde).ThenByDescending(r => r.Id).Take(5).ToList(),
             await FaturamentoAsync(empresas));
     }
 
-    // O faturamento do DONO (mensalidades): receita mensal da carteira, recebido no mês, a receber, atrasado e 12 meses.
+    // O faturamento do DONO (mensalidades e avulsas): receita mensal da carteira, recebido no mês, a receber, atrasado,
+    // os últimos 24 meses (a tela escolhe o período) e as próximas mensalidades que ainda vão aparecer.
     private async Task<FaturamentoPlataforma> FaturamentoAsync(List<Empresa> empresas)
     {
         var hoje = Relogio.Hoje;
         var inicioMes = new DateOnly(hoje.Year, hoje.Month, 1);
-        var desde = inicioMes.AddMonths(-11);
+        var desde = inicioMes.AddMonths(-23);
         var pagantes = empresas.Where(e => e.Ativa && CobrancasService.Cobra(e)).ToList();
+        var nomes = empresas.ToDictionary(e => e.Id, e => e.Nome);
         var faturas = await db.Faturas.AsNoTracking().Where(f => f.Status != StatusFatura.Cancelada
                 && (f.Competencia >= desde || (f.PagaEm != null && f.PagaEm >= desde) || f.Status == StatusFatura.Aberta))
             .Select(f => new { f.ClienteId, f.Competencia, f.Vencimento, f.Valor, f.Status, f.PagaEm, f.ValorPago }).ToListAsync();
         var abertas = faturas.Where(f => f.Status == StatusFatura.Aberta).ToList();
-        var meses = Enumerable.Range(0, 12).Select(i => desde.AddMonths(i)).Select(m => new MesPlataforma(m,
+        var meses = Enumerable.Range(0, 24).Select(i => desde.AddMonths(i)).Select(m => new MesPlataforma(m,
             faturas.Where(f => f.Competencia == m).Sum(f => f.Valor),
             faturas.Where(f => f.PagaEm is { } p && p.Year == m.Year && p.Month == m.Month).Sum(f => f.ValorPago ?? 0))).ToList();
+        var recebimentos = faturas.Where(f => f.PagaEm is { } p && p >= desde)
+            .GroupBy(f => (Mes: new DateOnly(f.PagaEm!.Value.Year, f.PagaEm.Value.Month, 1), f.ClienteId))
+            .Select(g => new RecebidoDoCliente(g.Key.Mes, g.Key.ClienteId, nomes.GetValueOrDefault(g.Key.ClienteId, $"#{g.Key.ClienteId}"),
+                g.Sum(f => f.ValorPago ?? 0)))
+            .OrderBy(r => r.Mes).ToList();
         var porPlano = pagantes.GroupBy(e => e.Plano?.Nome ?? "Sem plano")
             .Select(g => new PlanoNaCarteira(g.Key, g.Count(), g.Sum(e => CobrancasService.ValorMensal(e, e.Plano))))
             .OrderByDescending(p => p.Receita).ToList();
+        var porCliente = pagantes.Select(e => new ClienteNaCarteira(e.Id, e.Nome, e.Plano?.Nome, CobrancasService.ValorMensal(e, e.Plano)))
+            .OrderByDescending(c => c.Receita).ToList();
         return new FaturamentoPlataforma(
             pagantes.Sum(e => CobrancasService.ValorMensal(e, e.Plano)), pagantes.Count,
             meses[^1].Recebido,
@@ -70,7 +79,7 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
             abertas.Where(f => f.Vencimento < hoje).Sum(f => f.Valor),
             abertas.Where(f => f.Vencimento < hoje).Select(f => f.ClienteId).Distinct().Count(),
             empresas.Count(e => !e.Ativa && e.MotivoSuspensao == MotivosSuspensao.Atraso),
-            meses, porPlano);
+            meses, porPlano, porCliente, recebimentos, await cobrancas.ProximasAsync(hoje));
     }
 
     // PUT /api/plataforma/empresas/5/assinatura → plano, vencimento, teste grátis, valor combinado, cortesia
@@ -316,12 +325,20 @@ public class PlataformaController(AppDbContext db, UserManager<Usuario> usuarios
         {
             var u = usuariosPorEmpresa.GetValueOrDefault(e.Id);
             var m = movimento.GetValueOrDefault(e.Id);
-            return new EmpresaResumoResponse(e.Id, e.Nome, e.Subdominio, e.LimiteCaixas, e.Ativa, e.Demonstracao, e.CriadoEm,
+            return new EmpresaResumoResponse(e.Id, e.Nome, e.Subdominio, e.LimiteCaixas, e.Ativa, e.Demonstracao, e.CriadoEm, ClienteDesde(e),
                 u?.Total ?? 0, u?.Ativos ?? 0, produtos.GetValueOrDefault(e.Id), m?.Dias ?? 0,
                 u?.UltimoAcesso, m?.Ultimo, caixas.GetValueOrDefault(e.Id), e.Cidade is null ? null : $"{e.Cidade}/{e.Uf}",
                 e.VendasAutomaticas, e.Responsavel, e.Telefone, e.Plano?.Nome, CobrancasService.ValorMensal(e, e.Plano), e.Cortesia,
                 e.MotivoSuspensao, atrasadas.GetValueOrDefault(e.Id)?.Total ?? 0,
                 atrasadas.GetValueOrDefault(e.Id) is { } a ? hoje.DayNumber - a.Mais.DayNumber : 0, e.Ramo);
         }).ToList();
+    }
+
+    // Cliente desde quando: o cadastro, ou o início da cobrança se ele já era cliente antes de entrar no sistema
+    // (ex.: cadastrado em 12/10 com mensalidades desde 10/08).
+    private static DateOnly ClienteDesde(Empresa e)
+    {
+        var cadastro = Relogio.DiaLocal(e.CriadoEm);
+        return e.CobrarDesde is { } desde && desde < cadastro ? desde : cadastro;
     }
 }

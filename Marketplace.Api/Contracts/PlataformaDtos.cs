@@ -6,7 +6,7 @@ namespace Marketplace.Api.Contracts;
 // quanto cada cliente vende ou fatura: isso é sigiloso do cliente.
 
 public record EmpresaResumoResponse(
-    int Id, string Nome, string Subdominio, int LimiteCaixas, bool Ativa, bool Demonstracao, DateTimeOffset CriadoEm,
+    int Id, string Nome, string Subdominio, int LimiteCaixas, bool Ativa, bool Demonstracao, DateTimeOffset CriadoEm, DateOnly ClienteDesde,
     int Usuarios, int UsuariosAtivos, int Produtos, int DiasComMovimento30,
     DateTimeOffset? UltimoAcesso, DateTimeOffset? UltimoMovimento, int CaixasAbertos, string? Cidade, string VendasAutomaticas,
     string? Responsavel, string? Telefone, string? Plano, decimal ValorMensal, bool Cortesia, string? MotivoSuspensao,

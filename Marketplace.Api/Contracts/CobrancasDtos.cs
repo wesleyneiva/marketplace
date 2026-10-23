@@ -50,9 +50,18 @@ public record SituacaoAssinaturaResponse(string? Nivel, string? Mensagem, List<F
 public record FaturaDoCliente(DateOnly Competencia, DateOnly Vencimento, decimal Valor, string Descricao, int DiasAtraso);
 
 // Visão geral do dono: o faturamento DELE (as mensalidades), mês a mês.
+// Meses: os últimos 24 (a tela filtra o período); Recebimentos: quanto cada cliente pagou em cada um desses meses.
 public record FaturamentoPlataforma(decimal ReceitaMensal, int ClientesPagantes, decimal RecebidoMes, decimal AReceber, decimal Atrasado,
-    int ClientesAtrasados, int Bloqueados, List<MesPlataforma> Meses, List<PlanoNaCarteira> PorPlano);
+    int ClientesAtrasados, int Bloqueados, List<MesPlataforma> Meses, List<PlanoNaCarteira> PorPlano,
+    List<ClienteNaCarteira> PorCliente, List<RecebidoDoCliente> Recebimentos, List<ProximaMensalidade> Proximas);
 
 public record MesPlataforma(DateOnly Mes, decimal Faturado, decimal Recebido);
 
 public record PlanoNaCarteira(string Plano, int Clientes, decimal Receita);
+
+public record ClienteNaCarteira(int ClienteId, string Cliente, string? Plano, decimal Receita);
+
+public record RecebidoDoCliente(DateOnly Mes, int ClienteId, string Cliente, decimal Valor);
+
+// A próxima mensalidade de um cliente, que ainda não apareceu: aparece sozinha em AparecemEm.
+public record ProximaMensalidade(int ClienteId, string Cliente, DateOnly Competencia, DateOnly Vencimento, decimal Valor, DateOnly AparecemEm);

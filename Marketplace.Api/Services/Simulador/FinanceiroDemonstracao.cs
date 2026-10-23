@@ -53,7 +53,9 @@ public class FinanceiroDemonstracao(AppDbContext db, ILogger<FinanceiroDemonstra
     }
 
     // Caixas fechados ainda não lançados → Financeiro; e o depósito do dia (fica o troco na gaveta).
-    public async Task<int> LancarCaixasEDepositarAsync(CancellationToken ct = default)
+    // depositarAte: só deposita os caixas até esse dia (loja em teste: os dias do bot ao vivo são das pessoas, que
+    // levam o dinheiro ao banco à mão — depositar também duplicaria a transferência delas).
+    public async Task<int> LancarCaixasEDepositarAsync(CancellationToken ct = default, DateOnly? depositarAte = null)
     {
         var desde = await db.ContasFinanceiras.Where(c => c.Chave == ContaDinheiro).Select(c => c.SaldoInicialEm).FirstAsync(ct);
         var sessoes = await db.SessoesCaixa.Where(s => s.Status == StatusSessao.Fechada && s.AbertaEm >= Relogio.InicioDoDiaUtc(desde))
@@ -62,6 +64,7 @@ public class FinanceiroDemonstracao(AppDbContext db, ILogger<FinanceiroDemonstra
         foreach (var sessao in sessoes)
         {
             await FinanceiroCaixa.PrepararFechamentoAsync(db, sessao); // não faz nada se já lançado
+            if (depositarAte is { } ate && Relogio.DiaLocal(sessao.AbertaEm) > ate) { await db.SaveChangesAsync(ct); continue; }
             if (await DepositarAsync(sessao)) depositos++;
             await db.SaveChangesAsync(ct);
         }

@@ -1,3 +1,4 @@
+using Marketplace.Api.Contracts;
 using Marketplace.Api.Data;
 using Marketplace.Api.Models;
 using Marketplace.Api.Seguranca;
@@ -76,6 +77,35 @@ public class CobrancasService(AppDbContext db, IServiceProvider services, ILogge
             log.LogInformation("Cobranças: {Novas} mensalidade(s) gerada(s).", novas);
         }
         return novas;
+    }
+
+    // A próxima mensalidade de cada cliente que ainda não apareceu (é gerada sozinha "dias de antecedência" antes do
+    // vencimento): para o dono saber o que vem aí. Mesmas regras do GerarAsync (início combinado, teste grátis).
+    public async Task<List<ProximaMensalidade>> ProximasAsync(DateOnly hoje)
+    {
+        var cfg = await ConfiguracaoAsync();
+        var clientes = await db.Empresas.AsNoTracking().Include(e => e.Plano)
+            .Where(e => !e.Plataforma && !e.Cortesia && e.PlanoId != null).ToListAsync();
+        var mesAtual = new DateOnly(hoje.Year, hoje.Month, 1);
+        var existentes = await db.Faturas.Where(f => f.Mensalidade && f.Status != StatusFatura.Cancelada && f.Competencia >= mesAtual.AddMonths(-1))
+            .Select(f => new { f.ClienteId, f.Competencia }).ToListAsync();
+        var proximas = new List<ProximaMensalidade>();
+        foreach (var e in clientes.Where(Cobra))
+        {
+            for (var competencia = mesAtual.AddMonths(-1); competencia <= mesAtual.AddMonths(24); competencia = competencia.AddMonths(1))
+            {
+                var vencimento = VencimentoDe(e, competencia);
+                if (vencimento <= hoje.AddDays(cfg.DiasGerarAntes)) continue;            // já era para ter aparecido
+                if (e.CobrarDesde is { } desde && vencimento < desde) continue;
+                if (e.CobrarDesde is null && vencimento < DateOnly.FromDateTime(e.CriadoEm.UtcDateTime)) continue;
+                if (e.TesteAte is { } teste && vencimento <= teste) continue;
+                if (existentes.Any(x => x.ClienteId == e.Id && x.Competencia == competencia)) continue;
+                proximas.Add(new ProximaMensalidade(e.Id, e.Nome, competencia, vencimento, ValorMensal(e, e.Plano),
+                    vencimento.AddDays(-cfg.DiasGerarAntes)));
+                break;
+            }
+        }
+        return proximas.OrderBy(p => p.Vencimento).ThenBy(p => p.Cliente).ToList();
     }
 
     // ================================================================ a conta da loja

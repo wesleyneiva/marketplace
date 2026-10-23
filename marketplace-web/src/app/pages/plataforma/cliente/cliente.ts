@@ -27,7 +27,7 @@ interface Ficha {
   observacoes: string | null;
 }
 interface Resumo {
-  id: number; nome: string; limiteCaixas: number; ativa: boolean; demonstracao: boolean; criadoEm: string;
+  id: number; nome: string; limiteCaixas: number; ativa: boolean; demonstracao: boolean; criadoEm: string; clienteDesde: string;
   usuarios: number; usuariosAtivos: number; produtos: number; diasComMovimento30: number;
   ultimoAcesso: string | null; ultimoMovimento: string | null; caixasAbertos: number; cidade: string | null;
   vendasAutomaticas: 'Desligado' | 'SoVendas' | 'Completo';

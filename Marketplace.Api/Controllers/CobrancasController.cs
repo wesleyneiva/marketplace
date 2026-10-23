@@ -81,6 +81,10 @@ public class CobrancasController(AppDbContext db, CobrancasService cobrancas) : 
         return lista.Select(f => Resposta(f, hoje)).ToList();
     }
 
+    // GET /api/plataforma/faturas/proximas → a próxima mensalidade de cada cliente, que ainda não apareceu
+    [HttpGet("faturas/proximas")]
+    public Task<List<ProximaMensalidade>> Proximas() => cobrancas.ProximasAsync(Relogio.Hoje);
+
     // POST /api/plataforma/faturas/gerar → roda agora a rotina das mensalidades (ela também roda sozinha de hora em hora)
     [HttpPost("faturas/gerar")]
     public async Task<object> Gerar(int? clienteId = null)

@@ -158,7 +158,7 @@ public class GeradorHistoricoLoja(AppDbContext db, ClimaService clima, LocaisDas
         // Financeiro desde o 1º dia (os saldos iniciais da implantação ficam como estão).
         foreach (var c in await db.ContasFinanceiras.Where(c => c.Chave != null).ToListAsync(ct)) c.SaldoInicialEm = de;
         await db.SaveChangesAsync(ct);
-        var depositos = await financeiro.LancarCaixasEDepositarAsync(ct);
+        var depositos = await financeiro.LancarCaixasEDepositarAsync(ct, depositarAte: ate); // os dias do bot ao vivo, não
         var boletos = await financeiro.BoletosDoHistoricoAsync(de, ate, robo.Id);
         var fixas = await ContasFixasAsync(de, robo.Id, ct);
         var pagas = await financeiro.PagarVencidasAsync(hoje, robo.Id);

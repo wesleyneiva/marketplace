@@ -30,6 +30,8 @@ export class Cobrancas {
   protected readonly aba = signal<Aba>('abertas');
   protected readonly faturas = httpResource<Fatura[]>(() => `${API}/faturas?situacao=${this.aba()}`);
   protected readonly config = httpResource<ConfiguracaoCobranca>(() => `${API}/cobranca/configuracao`);
+  protected readonly proximas = httpResource<{ clienteId: number; cliente: string; competencia: string; vencimento: string; valor: number; aparecemEm: string }[]>(
+    () => `${API}/faturas/proximas`);
   protected readonly clientes = httpResource<ClienteLista[]>(() => `${API}/empresas`);
 
   protected readonly totalAberto = computed(() => (this.faturas.value() ?? []).filter((f) => f.status === 'Aberta').reduce((s, f) => s + f.valor, 0));

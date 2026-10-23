@@ -1,7 +1,8 @@
 <header class="titulo-pagina">
   <div>
     <h1><app-icone nome="receipt" /> Cobranças</h1>
-    <p>As mensalidades dos clientes. Elas aparecem sozinhas alguns dias antes do vencimento; quando o cliente pagar, marque <b>Recebi</b>.</p>
+    <p>As mensalidades dos clientes. Cada uma aparece sozinha {{ config.value()?.diasGerarAntes ?? 10 }} dias antes do vencimento e vira uma conta
+      no Contas a pagar da loja: quando a loja dá baixa lá, fica recebida aqui sozinha. Pagou por fora? Marque <b>Recebi</b>.</p>
   </div>
   <div class="botoes">
     <button type="button" class="botao" (click)="abrirNova()"><app-icone nome="plus" /> Cobrança avulsa</button>
@@ -58,6 +59,26 @@
     </tbody>
   </table>
 </section>
+
+@if (aba() === 'abertas' && (proximas.value() ?? []).length) {
+  <section class="painel proximas">
+    <h2><app-icone nome="calendar-clock" /> Próximas mensalidades <small>ainda não apareceram</small></h2>
+    <table>
+      <thead><tr><th>Cliente</th><th>Mês</th><th>Vencimento</th><th class="num">Valor</th><th>Aparece em</th></tr></thead>
+      <tbody>
+        @for (p of proximas.value(); track p.clienteId) {
+          <tr>
+            <td><a [routerLink]="['/plataforma/clientes', p.clienteId]"><b>{{ p.cliente }}</b></a></td>
+            <td>{{ mesAno(p.competencia) }}</td>
+            <td>{{ p.vencimento | dia }}</td>
+            <td class="num">{{ p.valor | currency: 'BRL' }}</td>
+            <td>{{ p.aparecemEm | dia }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </section>
+}
 
 <section class="painel regras">
   <h2><app-icone nome="settings" /> Regras de cobrança</h2>

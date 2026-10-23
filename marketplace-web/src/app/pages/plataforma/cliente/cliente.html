@@ -10,7 +10,7 @@
     <header class="titulo-pagina">
       <div>
         <h1><app-icone nome="store" /> {{ r.nome }}</h1>
-        <p>#{{ r.id }} · {{ perfilRamo(r.ramo).nome }} · cliente desde {{ r.criadoEm | date: 'dd/MM/yyyy' }} · {{ r.cidade ?? 'cidade não definida' }}
+        <p>#{{ r.id }} · {{ perfilRamo(r.ramo).nome }} · cliente desde {{ r.clienteDesde | dia }} · {{ r.cidade ?? 'cidade não definida' }}
           @if (r.demonstracao) { · <span class="selo demo">demonstração</span> }
           @if (!r.ativa) { · <span class="selo suspensa">{{ d.assinatura.motivoSuspensao === 'Atraso' ? 'bloqueado por atraso' : 'suspenso' }}</span> }</p>
       </div>

@@ -8,22 +8,34 @@
 
 @if (dados.value(); as d) {
   @let f = d.faturamento;
-  <h2 class="secao-titulo"><app-icone nome="circle-dollar-sign" /> Meu faturamento</h2>
+  <div class="secao-cabeca">
+    <h2 class="secao-titulo"><app-icone nome="circle-dollar-sign" /> Meu faturamento</h2>
+    <div class="periodos" role="group" aria-label="Período">
+      @for (p of periodos; track p.valor) {
+        <button type="button" class="botao pequeno" [class.ligado]="periodo() === p.valor" [attr.aria-pressed]="periodo() === p.valor"
+                (click)="periodo.set(p.valor)">{{ p.texto }}</button>
+      }
+    </div>
+  </div>
   <section class="cartoes">
     <div class="painel cartao destaque">
       <span class="rotulo">Receita mensal da carteira</span>
       <strong>{{ f.receitaMensal | currency: 'BRL' }}</strong>
-      <small>{{ f.clientesPagantes }} cliente{{ f.clientesPagantes === 1 ? '' : 's' }} pagante{{ f.clientesPagantes === 1 ? '' : 's' }}</small>
+      <small>{{ f.clientesPagantes }} cliente{{ f.clientesPagantes === 1 ? '' : 's' }} pagante{{ f.clientesPagantes === 1 ? '' : 's' }} · hoje</small>
     </div>
     <div class="painel cartao">
-      <span class="rotulo">Recebido neste mês</span>
-      <strong>{{ f.recebidoMes | currency: 'BRL' }}</strong>
-      <small>mensalidades pagas</small>
+      <span class="rotulo">Recebido {{ textoPeriodo() }}</span>
+      <strong>{{ recebidoPeriodo().total | currency: 'BRL' }}</strong>
+      <small>mensalidades e avulsas · {{ recebidoPeriodo().clientes }} cliente{{ recebidoPeriodo().clientes === 1 ? '' : 's' }}</small>
     </div>
     <a class="painel cartao" routerLink="/plataforma/cobrancas">
       <span class="rotulo">A receber</span>
       <strong>{{ f.aReceber | currency: 'BRL' }}</strong>
-      <small>em aberto, ainda no prazo</small>
+      @if (f.aReceber === 0 && proximas(); as p) {
+        <small>próximas: {{ p.valor | currency: 'BRL' }} vencem {{ (p.vencimento | dia).slice(0, 5) }} (aparecem {{ (p.aparecemEm | dia).slice(0, 5) }})</small>
+      } @else {
+        <small>já em Cobranças, ainda no prazo</small>
+      }
     </a>
     <a class="painel cartao" [class.perigo]="f.atrasado > 0" routerLink="/plataforma/cobrancas">
       <span class="rotulo">Atrasado</span>
@@ -35,16 +47,21 @@
   <div class="duas-colunas">
     <section class="painel bloco grafico">
       <h2>Recebido por mês</h2>
-      <app-grafico-colunas [dados]="recebidoPorMes()" descricao="Mensalidades recebidas por mês nos últimos 12 meses" />
-      <p class="nota">O mês atual (mais claro) ainda está em andamento.</p>
+      <app-grafico-colunas [dados]="recebidoPorMes()" descricao="Recebido por mês (mensalidades e avulsas)" />
+      <p class="nota">Os meses fora do período escolhido aparecem mais claros.</p>
     </section>
     <section class="painel bloco">
-      <h2>Carteira por plano</h2>
-      @for (p of f.porPlano; track p.plano) {
-        <div class="linha"><span><b>{{ p.plano }}</b> <small>{{ p.clientes }} cliente{{ p.clientes === 1 ? '' : 's' }}</small></span><span>{{ p.receita | currency: 'BRL' }}/mês</span></div>
-      } @empty {
-        <p class="vazio">Nenhum cliente pagante ainda. Defina o plano na ficha do cliente.</p>
-      }
+      <div class="bloco-cabeca">
+        <h2>{{ rosca() === 'recebido' ? 'Quem pagou ' + textoPeriodo() : 'Carteira' }}</h2>
+        <div class="periodos" role="group" aria-label="Ver a rosca por">
+          <button type="button" class="botao pequeno" [class.ligado]="rosca() === 'plano'" (click)="rosca.set('plano')">Por plano</button>
+          <button type="button" class="botao pequeno" [class.ligado]="rosca() === 'cliente'" (click)="rosca.set('cliente')">Por cliente</button>
+          <button type="button" class="botao pequeno" [class.ligado]="rosca() === 'recebido'" (click)="rosca.set('recebido')">Recebido</button>
+        </div>
+      </div>
+      <app-grafico-rosca [dados]="fatias()" [rotuloCentro]="rosca() === 'recebido' ? 'recebido' : 'por mês'"
+                         [descricao]="rosca() === 'recebido' ? 'Recebido no período por cliente' : 'Receita mensal da carteira'"
+                         [vazio]="rosca() === 'recebido' ? 'Nada recebido ' + textoPeriodo() + '.' : 'Nenhum cliente pagante ainda. Defina o plano na ficha do cliente.'" />
     </section>
   </div>
 
@@ -89,7 +106,7 @@
       @for (c of d.recentes; track c.id) {
         <a class="linha" [routerLink]="['/plataforma/clientes', c.id]">
           <span><b>{{ c.nome }}</b> <small>{{ c.cidade ?? '' }}</small></span>
-          <span class="quando">desde {{ c.criadoEm | date: 'dd/MM/yyyy' }}</span>
+          <span class="quando">desde {{ c.clienteDesde | dia }}</span>
         </a>
       } @empty {
         <p class="vazio">Nenhum cliente ainda. Comece em <a routerLink="/plataforma/clientes">Clientes → Novo cliente</a>.</p>
