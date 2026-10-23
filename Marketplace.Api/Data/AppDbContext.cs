@@ -144,9 +144,10 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ContextoEmpres
             e.Property(x => x.Status).HasMaxLength(10);
             e.Property(x => x.FormaPagamento).HasMaxLength(15);
             e.Property(x => x.Observacao).HasMaxLength(300);
-            e.Property(x => x.Mensalidade).HasDefaultValue(true);
+            e.Property(x => x.Mensalidade).HasDefaultValue(true).HasSentinel(true); // sentinela true: o "false" (avulsa) vai para o banco
             // Uma mensalidade (não cancelada) por cliente e mês.
-            e.HasIndex(x => new { x.ClienteId, x.Competencia }).IsUnique().HasFilter("\"Status\" <> 'Cancelada'");
+            // Uma MENSALIDADE por cliente e mês; cobrança avulsa (implantação) pode cair no mesmo mês.
+            e.HasIndex(x => new { x.ClienteId, x.Competencia }).IsUnique().HasFilter("\"Status\" <> 'Cancelada' AND \"Mensalidade\"");
             e.HasIndex(x => new { x.Status, x.Vencimento });
         });
         builder.Entity<ConfiguracaoPlataforma>(e =>

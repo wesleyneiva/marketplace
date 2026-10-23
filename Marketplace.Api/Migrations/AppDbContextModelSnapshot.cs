@@ -1038,7 +1038,7 @@ namespace Marketplace.Api.Migrations
 
                     b.HasIndex("ClienteId", "Competencia")
                         .IsUnique()
-                        .HasFilter("\"Status\" <> 'Cancelada'");
+                        .HasFilter("\"Status\" <> 'Cancelada' AND \"Mensalidade\"");
 
                     b.HasIndex("Status", "Vencimento");
 
