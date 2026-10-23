@@ -7,18 +7,22 @@ using static Marketplace.Api.Models.ChavesFinanceiras;
 
 namespace Marketplace.Api.Services.Simulador;
 
-// O PASSADO de uma LOJA DE ESPORTE em teste (ex.: TopSpin), para as telas e a DRE terem meses para analisar.
-// Mesmas regras do bot ao vivo da loja (PerfilEsporte): poucos clientes, cesta pequena e cara, crédito parcelado,
-// 45% dos clientes identificados (os 60 fixos), o vendedor ativo, e cada encordoamento vira uma OS já entregue.
+// O PASSADO de uma LOJA em teste (TopSpin, esporte; Juvenal, mercado), para as telas e a DRE terem meses para analisar.
+// Mesmas regras do bot ao vivo da loja:
+//  • esporte (PerfilEsporte): poucos clientes, cesta pequena e cara, crédito parcelado, 45% identificados (os 60 fixos),
+//    o vendedor ativo, e cada encordoamento vira uma OS já entregue;
+//  • mercado (ComportamentoCliente/PerfilConsumo): o movimento do mercadinho, cesta do dia a dia, ~20% dão o CPF na nota
+//    (os 60 clientes fixos do bairro), sem fiado (módulo desligado).
 // Como o histórico da demonstração: NÃO mexe no estoque (Origem = Historico) e um caixa fechado por dia aberto.
 // O financeiro começa no 1º dia do histórico (os saldos iniciais da implantação ficam): caixas lançados e depositados,
 // maquininha, boletos dos fornecedores pelo custo vendido na semana, as contas fixas da loja (as mesmas da implantação,
 // menos a mensalidade do Marcus, que ainda não era cliente) e o DAS — tudo pago no vencimento.
-public class GeradorHistoricoEsporte(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios,
-    FinanceiroDemonstracao financeiro, IServiceScopeFactory escopos, ILogger<GeradorHistoricoEsporte> log)
+public class GeradorHistoricoLoja(AppDbContext db, ClimaService clima, LocaisDasLojas locais, UserManager<Usuario> usuarios,
+    FinanceiroDemonstracao financeiro, IServiceScopeFactory escopos, ILogger<GeradorHistoricoLoja> log)
 {
-    // Sem o limite do estoque o passado venderia mais do que o bot ao vivo: 75% dá as ~6–7 vendas por dia útil combinadas.
-    private const double Movimento = 0.75;
+    // Sem o limite do estoque o passado venderia mais do que o bot ao vivo: 75% dá as ~6–7 vendas por dia útil combinadas
+    // na loja de esporte. No mercado o estoque quase nunca falta inteiro (a cesta troca o item): o mesmo movimento do bot.
+    private const double MovimentoEsporte = 0.75, MovimentoMercado = 1.0;
 
     public async Task<ResultadoHistorico> GerarAsync(DateOnly de, DateOnly ate, CancellationToken ct)
     {
@@ -38,8 +42,13 @@ public class GeradorHistoricoEsporte(AppDbContext db, ClimaService clima, Locais
         var local = locais.Local(empresaId) ?? throw new InvalidOperationException("Cadastre a cidade da loja antes (o clima vem de lá).");
         var climaPorHora = await clima.ObterHistoricoAsync(local, hoje.DayNumber - de.DayNumber + 1, ct);
 
+        var esporte = await db.Empresas.AnyAsync(e => e.Id == empresaId && e.Ramo == Ramos.Esporte, ct);
+        var movimento = esporte ? MovimentoEsporte : MovimentoMercado;
         var produtos = await db.Produtos.AsNoTracking().Include(p => p.Modelo).Include(p => p.Categoria).Where(p => p.Ativo).ToListAsync(ct);
-        var opcoes = PerfilEsporte.Opcoes(produtos.Select(p => (p, 9999m))); // sem limite de estoque no passado
+        var opcoes = esporte // sem limite de estoque no passado
+            ? PerfilEsporte.Opcoes(produtos.Select(p => (p, 9999m)))
+            : produtos.Select(p => (Produto: p, Habito: PerfilConsumo.Para(p), Disponivel: 9999m)).ToList();
+        var chanceIdentificado = esporte ? ClientesSimulados.ChanceIdentificado : ClientesSimulados.ChanceIdentificadoMercado;
         var porId = produtos.ToDictionary(p => p.Id);
         var clientes = new List<Cliente>();
         for (var i = 0; i < ClientesSimulados.Quantos; i++) clientes.Add(await ClientesSimulados.SortearAsync(db, robo.Id, ct));
@@ -66,12 +75,13 @@ public class GeradorHistoricoEsporte(AppDbContext db, ClimaService clima, Locais
                 var inicio = TimeSpan.FromHours(hora) < abre ? abre : TimeSpan.FromHours(hora);
                 var termino = TimeSpan.FromHours(hora + 1) > fecha ? fecha : TimeSpan.FromHours(hora + 1);
                 var tempo = climaPorHora.GetValueOrDefault(Momento(dia, TimeSpan.FromHours(hora))) ?? ClimaAgora.Neutro;
-                var chegam = ComportamentoCliente.Poisson(PerfilEsporte.ClientesNaHora(dia, hora, tempo, Movimento) * (termino - inicio).TotalHours);
+                var porHora = esporte ? PerfilEsporte.ClientesNaHora(dia, hora, tempo, movimento) : ComportamentoCliente.ClientesNaHora(dia, hora, tempo, movimento);
+                var chegam = ComportamentoCliente.Poisson(porHora * (termino - inicio).TotalHours);
                 for (var n = 0; n < chegam; n++)
                 {
                     var momento = Momento(dia, inicio).AddSeconds(Random.Shared.Next((int)(termino - inicio).TotalSeconds));
-                    var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, momento.ToOffset(TimeSpan.FromHours(-3)), PerfilEsporte.TamanhosDeCesta);
-                    PerfilEsporte.CompletarCesta(itens, opcoes);
+                    var itens = ComportamentoCliente.MontarCesta(opcoes, tempo, momento.ToOffset(TimeSpan.FromHours(-3)), esporte ? PerfilEsporte.TamanhosDeCesta : null);
+                    if (esporte) PerfilEsporte.CompletarCesta(itens, opcoes);
                     if (itens.Count == 0) continue;
 
                     var venda = new Venda { UsuarioId = robo.Id, DataHora = momento, Origem = OrigemVenda.Historico };
@@ -79,7 +89,7 @@ public class GeradorHistoricoEsporte(AppDbContext db, ClimaService clima, Locais
                     {
                         var p = porId[item.Key];
                         // Sem o limite do estoque, a cesta levaria 2–3 raquetes iguais: item caro (raquete, tênis, raqueteira) é 1.
-                        var qtd = p.PrecoVenda >= 150 ? 1 : item.Sum(i => i.Quantidade);
+                        var qtd = esporte && p.PrecoVenda >= 150 ? 1 : item.Sum(i => i.Quantidade);
                         venda.Itens.Add(new ItemVenda
                         {
                             ProdutoId = p.Id, Descricao = p.Nome, Unidade = p.Unidade, Quantidade = qtd, PrecoUnitario = p.PrecoVenda,
@@ -87,14 +97,14 @@ public class GeradorHistoricoEsporte(AppDbContext db, ClimaService clima, Locais
                         });
                     }
                     venda.Subtotal = venda.Total = venda.Itens.Sum(i => i.Total);
-                    var pg = PerfilEsporte.Pagamento(venda.Total);
+                    var pg = esporte ? PerfilEsporte.Pagamento(venda.Total) : ComportamentoCliente.Pagamento(venda.Total);
                     venda.Pagamentos.Add(new PagamentoVenda { Forma = Enum.Parse<FormaPagamento>(pg.Forma), Valor = pg.Valor, Parcelas = pg.Parcelas });
                     venda.ValorPago = pg.Valor;
                     venda.Troco = pg.Valor - venda.Total;
 
                     // Cliente fixo (quem deixa raquete sempre se identifica) e o vendedor.
                     var servicos = venda.Itens.Select(i => porId[i.ProdutoId]).Where(p => p.Servico && OficinaDemonstracao.EhDaOficina(p.Nome)).ToList();
-                    Cliente? cliente = servicos.Count > 0 || Random.Shared.NextDouble() < ClientesSimulados.ChanceIdentificado
+                    Cliente? cliente = servicos.Count > 0 || Random.Shared.NextDouble() < chanceIdentificado
                         ? (Random.Shared.NextDouble() < 0.65 ? clientes[Random.Shared.Next(Math.Min(20, clientes.Count))] : clientes[Random.Shared.Next(clientes.Count)])
                         : null;
                     venda.ClienteId = cliente?.Id;

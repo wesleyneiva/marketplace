@@ -265,6 +265,8 @@ public class SimuladorClientes(
                     ? (await ClientesSimulados.SortearAsync(db, usuarioId, ct)).Id : null;
                 pedido = pedido with { ClienteId = cliente, VendedorId = await ClientesSimulados.VendedorAsync(db, ct) };
             }
+            else if (!completo && Random.Shared.NextDouble() < ClientesSimulados.ChanceIdentificadoMercado)
+                pedido = pedido with { ClienteId = (await ClientesSimulados.SortearAsync(db, usuarioId, ct)).Id }; // mercado em teste: CPF na nota
             var venda = await vendas.FinalizarAsync(usuarioId, podeDescontoLivre: false, pedido, OrigemVenda.Simulador);
             // Loja de tênis: o encordoamento vendido vira ordem de serviço (o bot faz e entrega depois).
             if (esporte) await OficinaDemonstracao.AbrirOrdensAsync(db, venda, itens, produtos, usuarioId);

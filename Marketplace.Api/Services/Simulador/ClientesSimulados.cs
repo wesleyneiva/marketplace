@@ -4,14 +4,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Marketplace.Api.Services.Simulador;
 
-// Clientes FIXOS da loja de esporte em teste: ~60 pessoas que voltam ao longo das semanas (os "de sempre" mais vezes),
-// para o cadastro e o histórico terem vida. Parte das vendas sai no nome de um deles; toda OS da oficina também
-// (o encordoamento é de quem deixou a raquete). Cada um tem a raquete, a corda e a tensão dele.
+// Clientes FIXOS da loja em teste: ~60 pessoas que voltam ao longo das semanas (os "de sempre" mais vezes), para o
+// cadastro e o histórico terem vida. Parte das vendas sai no nome de um deles. Na loja de esporte toda OS da oficina
+// também (o encordoamento é de quem deixou a raquete) e cada um tem a raquete, a corda e a tensão dele; no mercado são
+// os clientes do bairro que pedem CPF na nota. O telefone usa o DDD do estado da loja.
 public static class ClientesSimulados
 {
     public const int Quantos = 60;
     private const int DeSempre = 20;        // os 20 primeiros voltam bem mais
-    public const double ChanceIdentificado = 0.45; // venda sem oficina: 45% dão o nome/CPF
+    public const double ChanceIdentificado = 0.45; // esporte, venda sem oficina: 45% dão o nome/CPF
+    public const double ChanceIdentificadoMercado = 0.20; // mercado: ~1 em 5 pede CPF na nota
 
     private static readonly string[] Cordas =
         ["Babolat RPM Blast 1.25", "Luxilon ALU Power 1.25", "Solinco Hyper-G 1.25", "Babolat Xcel 1.30", "Wilson NXT 1.30", "Head Lynx 1.25"];
@@ -22,11 +24,14 @@ public static class ClientesSimulados
         var turma = await db.Clientes.Where(c => c.Simulado && c.Ativo).OrderBy(c => c.Id).ToListAsync(ct);
         if (turma.Count < Quantos)
         {
+            var loja = await db.Empresas.Where(e => e.Id == db.EmpresaAtual).Select(e => new { e.Ramo, e.Uf }).FirstAsync(ct);
+            var esporte = loja.Ramo == Ramos.Esporte;
+            var ddd = Ddd(loja.Uf);
             var telefones = turma.Select(c => c.Telefone).ToHashSet();
             for (var i = turma.Count; i < Quantos; i++)
             {
                 string telefone;
-                do telefone = $"519{Random.Shared.Next(80000000, 99999999)}"; while (!telefones.Add(telefone));
+                do telefone = $"{ddd}9{Random.Shared.Next(80000000, 99999999)}"; while (!telefones.Add(telefone));
                 var tensao = Random.Shared.Next(21, 27);
                 var cliente = new Cliente
                 {
@@ -34,7 +39,7 @@ public static class ClientesSimulados
                     Telefone = telefone, Simulado = true, CriadoPorId = usuarioId,
                     Nascimento = Random.Shared.NextDouble() < 0.6
                         ? new DateOnly(Random.Shared.Next(1965, 2008), Random.Shared.Next(1, 13), Random.Shared.Next(1, 29)) : null,
-                    Raquete = Random.Shared.NextDouble() < 0.75 ? Sortear(OficinaDemonstracao.RaquetesDoCliente) : null,
+                    Raquete = esporte && Random.Shared.NextDouble() < 0.75 ? Sortear(OficinaDemonstracao.RaquetesDoCliente) : null,
                 };
                 if (cliente.Raquete is not null)
                 {
@@ -56,6 +61,14 @@ public static class ClientesSimulados
         var ids = await db.Vendedores.Where(v => v.Ativo).Select(v => v.Id).ToListAsync(ct);
         return ids.Count == 0 ? null : ids[Random.Shared.Next(ids.Count)];
     }
+
+    // DDD da capital do estado da loja (os clientes de teste são "do bairro"); sem estado, 11.
+    private static string Ddd(string? uf) => uf switch
+    {
+        "RS" => "51", "RJ" => "21", "SP" => "11", "MG" => "31", "PR" => "41", "SC" => "48", "BA" => "71", "PE" => "81",
+        "CE" => "85", "DF" => "61", "GO" => "62", "ES" => "27", "PA" => "91", "AM" => "92",
+        _ => "11",
+    };
 
     private static string Sortear(string[] lista) => lista[Random.Shared.Next(lista.Length)];
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Gera o PASSADO de uma LOJA DE ESPORTE em teste (vendas sem mexer no estoque, clientes, OS e financeiro).
+# Gera o PASSADO de uma LOJA em teste, esporte ou mercado (vendas sem mexer no estoque, clientes, OS e financeiro).
 # Só preenche dias sem nenhuma venda. Contas fixas copiadas das da implantação (menos a mensalidade do Marcus) e o DAS.
 # Uso:
 #   ./gerar-historico-loja.sh --empresa 5 --de 2026-08-01 --ate 2026-10-20
