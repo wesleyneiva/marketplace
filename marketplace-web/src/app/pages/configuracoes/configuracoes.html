@@ -154,7 +154,7 @@
           <label [class.marcado]="provedorPix() === 'MercadoPago'"><input type="radio" name="provedorPix" [checked]="provedorPix() === 'MercadoPago'" (change)="provedorPix.set('MercadoPago'); avisoMp.set(null)" />
             <span><b>Mercado Pago</b><small>O dinheiro cai na conta do Mercado Pago (que cobra a taxa dele).</small></span></label>
           <label [class.marcado]="provedorPix() === 'Banco'"><input type="radio" name="provedorPix" [checked]="provedorPix() === 'Banco'" (change)="provedorPix.set('Banco'); avisoMp.set(null)" />
-            <span><b>Direto no banco da loja</b><small>O dinheiro cai na conta PJ da loja, sem intermediário: Banco do Brasil, Inter, Sicoob ou Itaú.</small></span></label>
+            <span><b>Direto no banco da loja</b><small>O dinheiro cai na conta PJ da loja, sem intermediário: Banco do Brasil, Itaú, Bradesco, Santander, Inter, Sicoob, Sicredi ou Efí.</small></span></label>
         </div>
         @if (provedorPix() === 'MercadoPago') {
           <p class="dica">Cole aqui o <b>Access Token</b> da aplicação do Mercado Pago (Suas integrações → a aplicação → Credenciais). Ele fica guardado

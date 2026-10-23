@@ -8,7 +8,7 @@ namespace Marketplace.Api.Models;
 // a cada poucos segundos enquanto o caixa espera (no banco, só a pergunta). O pagamento só entra na venda se o
 // provedor disser "pago".
 // Provedores: Mercado Pago (API de Orders) e o banco da loja pela API Pix do Banco Central (Banco do Brasil, 22/10/2026;
-// Inter, Sicoob e Itaú, 23/10/2026 — ver os perfis em Services/Pix/PixBancoCentral.cs).
+// Inter, Sicoob, Itaú, Bradesco, Santander, Sicredi e Efí, 23/10/2026 — ver os perfis em Services/Pix/PixBancoCentral.cs).
 
 public class CobrancaPix : IDaEmpresa
 {
@@ -44,9 +44,10 @@ public static class ProvedoresPix
 {
     public const string MercadoPago = "MercadoPago";
     // API Pix do Banco Central, direto na conta da loja no banco
-    public const string BancoDoBrasil = "BancoDoBrasil", Inter = "Inter", Sicoob = "Sicoob", Itau = "Itau";
+    public const string BancoDoBrasil = "BancoDoBrasil", Inter = "Inter", Sicoob = "Sicoob", Itau = "Itau",
+        Bradesco = "Bradesco", Santander = "Santander", Sicredi = "Sicredi", Efi = "Efi";
 
-    public static bool EhBanco(string? p) => p is BancoDoBrasil or Inter or Sicoob or Itau;
+    public static bool EhBanco(string? p) => p is BancoDoBrasil or Inter or Sicoob or Itau or Bradesco or Santander or Sicredi or Efi;
 
     // Como aparece para o caixa: "confirmado pelo Mercado Pago" / "pelo Banco do Brasil".
     public static string Nome(string? p) => p switch
@@ -56,6 +57,10 @@ public static class ProvedoresPix
         Inter => "Inter",
         Sicoob => "Sicoob",
         Itau => "Itaú",
+        Bradesco => "Bradesco",
+        Santander => "Santander",
+        Sicredi => "Sicredi",
+        Efi => "Efí",
         _ => "banco",
     };
 }

@@ -18,7 +18,8 @@ export interface CobrancaPix {
 }
 
 // Nome do provedor do Pix automático para o caixa ("MercadoPago" → "Mercado Pago"); igual a ProvedoresPix.Nome.
-const NOMES_PIX: Record<string, string> = { MercadoPago: 'Mercado Pago', BancoDoBrasil: 'Banco do Brasil', Inter: 'Inter', Sicoob: 'Sicoob', Itau: 'Itaú' };
+const NOMES_PIX: Record<string, string> = { MercadoPago: 'Mercado Pago', BancoDoBrasil: 'Banco do Brasil', Inter: 'Inter', Sicoob: 'Sicoob', Itau: 'Itaú',
+  Bradesco: 'Bradesco', Santander: 'Santander', Sicredi: 'Sicredi', Efi: 'Efí' };
 export function nomeProvedorPix(codigo: string | null | undefined): string {
   return (codigo && NOMES_PIX[codigo]) || 'banco';
 }
@@ -87,7 +88,7 @@ export class PixAutomatico {
 
   readonly valor = input.required<number>();
   readonly sessaoCaixaId = input<number | null>(null);
-  readonly provedor = input<string | null>(null); // "MercadoPago", "BancoDoBrasil", "Inter", "Sicoob" ou "Itau"
+  readonly provedor = input<string | null>(null); // "MercadoPago", "BancoDoBrasil", "Inter", "Sicoob", "Itau", "Bradesco", "Santander", "Sicredi" ou "Efi"
   protected readonly nome = computed(() => nomeProvedorPix(this.provedor()));
   readonly pago = output<CobrancaPix>();
 

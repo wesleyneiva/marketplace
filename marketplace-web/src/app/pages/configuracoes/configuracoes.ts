@@ -232,7 +232,8 @@ export class Configuracoes {
     this.bancoExtra = '';
   }
 
-  // Um .pfx (binário) ou os dois arquivos de texto do Inter/Itaú (.crt e .key, escolhidos juntos).
+  // Um .pfx/.p12 (binário) ou os dois arquivos do Inter/Itaú/Sicredi (.crt ou .cer e .key, escolhidos juntos). O .cer pode
+  // vir binário (DER): vira texto PEM aqui.
   async escolherCertificado(ev: Event): Promise<void> {
     const arquivos = Array.from((ev.target as HTMLInputElement).files ?? []);
     this.bancoPfx = this.bancoPem = null;
@@ -246,12 +247,16 @@ export class Configuracoes {
       if (texto.includes('-----BEGIN ')) { textos.push(texto.trim()); continue; }
       let bin = '';
       bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      if (/\.(cer|crt|der)$/i.test(arquivo.name)) {
+        textos.push(`-----BEGIN CERTIFICATE-----\n${btoa(bin).replace(/(.{64})/g, '$1\n')}\n-----END CERTIFICATE-----`);
+        continue;
+      }
       this.bancoPfx = btoa(bin);
     }
     if (textos.length) {
       const pem = textos.join('\n');
       if (!pem.includes('-----BEGIN CERTIFICATE-----') || !pem.includes('PRIVATE KEY-----')) {
-        this.avisoMp.set({ ok: false, texto: 'Escolha os DOIS arquivos juntos: o certificado (.crt) e a chave (.key).' });
+        this.avisoMp.set({ ok: false, texto: 'Escolha os DOIS arquivos juntos: o certificado (.crt ou .cer) e a chave (.key).' });
         return;
       }
       this.bancoPem = pem;

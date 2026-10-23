@@ -21,12 +21,14 @@ namespace Marketplace.Api.Services.Pix;
 // Login: OAuth2 client_credentials (client_id e client_secret do portal do banco). Sem aviso (webhook): o padrão exige
 // mTLS no NOSSO lado, que o túnel da Cloudflare não repassa — o caixa pergunta a cada 3 s, como já faz com o Mercado Pago.
 //
-// Cada banco muda pouco do padrão, e o que muda fica no Perfil: login no cabeçalho (Basic) ou no corpo, sem secret,
+// Cada banco muda pouco do padrão, e o que muda fica no Perfil: login no cabeçalho (Basic) ou no corpo (formulário ou
+// JSON), sem secret,
 // um campo a mais (na URL ou no cabeçalho), certificado já no ambiente de testes, token fixo no sandbox. Só o BB foi
-// testado no ambiente real do banco (22/10/2026); os outros foram montados pela documentação (23/10/2026) e aparecem
+// testado no ambiente real do banco (22/10/2026); os outros (Inter, Sicoob, Itaú, Bradesco, Santander, Sicredi, Efí) foram
+// montados pela documentação (23/10/2026) e aparecem
 // na tela como "ainda não conferido" até alguém testar com credenciais de verdade — aí vira Conferido = true.
 // Teste local sem conta: ~/projetos/marketplace-testes/pix-automatico/simulador-bb.py (BB, http) e
-// simulador-bancos.py (Inter, Sicoob, Itaú, https com certificado do cliente); PixBanco:<Codigo>:UrlApi e :UrlToken
+// simulador-bancos.py (os outros sete, https com certificado do cliente); PixBanco:<Codigo>:UrlApi e :UrlToken
 // apontam para eles.
 public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, IHostEnvironment ambiente, ILogger<PixBancoCentral> log)
 {
@@ -47,6 +49,7 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
         public string? Escopos { get; init; }                // null: o banco não usa (Itaú)
         public CampoExtra? Extra { get; init; }
         public bool LoginNoCorpo { get; init; }              // client_id/secret no corpo do formulário, não no Basic
+        public bool LoginJson { get; init; }                 // Efí: Basic + corpo em JSON {"grant_type": …}, não formulário
         public bool SemSecret { get; init; }                 // Sicoob: só o client_id (quem prova é o certificado)
         public bool ClientIdNoCabecalho { get; init; }       // Sicoob: client_id também em toda chamada da API
         public bool TokenFixoNoTeste { get; init; }          // Sicoob: o sandbox usa um token fixo do portal, sem login
@@ -108,7 +111,56 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
         Precisa = "conta PJ no Itaú e a API Pix Recebimentos liberada pelo gerente (o Itaú envia as credenciais e o passo a passo do certificado)",
     };
 
-    public static readonly IReadOnlyList<Perfil> Bancos = [BancoDoBrasil, Inter, Sicoob, Itau];
+    // Bradesco: login Basic, sem escopo; certificado da empresa (A1) cadastrado no banco, inclusive na homologação.
+    public static readonly Perfil Bradesco = new()
+    {
+        Codigo = Models.ProvedoresPix.Bradesco, Nome = "Bradesco",
+        UrlApiTeste = "https://qrpix-h.bradesco.com.br/v2", UrlApiProducao = "https://qrpix.bradesco.com.br/v2",
+        UrlTokenTeste = "https://qrpix-h.bradesco.com.br/auth/server/oauth/token", UrlTokenProducao = "https://qrpix.bradesco.com.br/auth/server/oauth/token",
+        CertificadoNoTeste = true,
+        Certificado = "e-CNPJ A1 da empresa, arquivo .pfx (com a senha), o mesmo cadastrado no Bradesco",
+        Precisa = "conta PJ no Bradesco e a API Pix liberada pelo gerente (o Bradesco cadastra o certificado da empresa e envia o client_id e o client_secret)",
+    };
+
+    // Santander: login no corpo (grant_type também na URL, como na documentação); certificado da empresa cuja parte
+    // pública vai na aplicação do portal, inclusive na homologação.
+    public static readonly Perfil Santander = new()
+    {
+        Codigo = Models.ProvedoresPix.Santander, Nome = "Santander",
+        UrlApiTeste = "https://trust-pix-h.santander.com.br/api/v1", UrlApiProducao = "https://trust-pix.santander.com.br/api/v1",
+        UrlTokenTeste = "https://trust-pix-h.santander.com.br/oauth/token?grant_type=client_credentials",
+        UrlTokenProducao = "https://trust-pix.santander.com.br/oauth/token?grant_type=client_credentials",
+        LoginNoCorpo = true, CertificadoNoTeste = true,
+        Certificado = "certificado digital da empresa, arquivo .pfx (com a senha), cuja parte pública foi enviada na aplicação do portal",
+        Precisa = "conta PJ no Santander e uma aplicação no portal developer.santander.com.br com a API Pix (o gerente libera)",
+    };
+
+    // Sicredi: login Basic com grant_type e escopo na URL; certificado emitido pelo próprio Sicredi (a cooperativa
+    // assina o pedido: .cer + .key), inclusive na homologação.
+    public static readonly Perfil Sicredi = new()
+    {
+        Codigo = Models.ProvedoresPix.Sicredi, Nome = "Sicredi",
+        UrlApiTeste = "https://api-pix-h.sicredi.com.br/api/v2", UrlApiProducao = "https://api-pix.sicredi.com.br/api/v2",
+        UrlTokenTeste = "https://api-pix-h.sicredi.com.br/oauth/token?grant_type=client_credentials&scope=cob.write+cob.read+pix.write+pix.read",
+        UrlTokenProducao = "https://api-pix.sicredi.com.br/oauth/token?grant_type=client_credentials&scope=cob.write+cob.read+pix.write+pix.read",
+        Escopos = "cob.write cob.read pix.write pix.read", CertificadoNoTeste = true,
+        Certificado = "o certificado que o Sicredi emite para a aplicação: os arquivos .cer (ou .crt) e .key (escolha os dois)",
+        Precisa = "conta PJ no Sicredi e o acesso à API Pix pedido à cooperativa (ela envia o client_id e o client_secret e emite o certificado)",
+    };
+
+    // Efí (ex-Gerencianet): login Basic com corpo em JSON; certificado .p12 gerado na conta Efí (sem senha), um para
+    // homologação e outro para produção.
+    public static readonly Perfil Efi = new()
+    {
+        Codigo = Models.ProvedoresPix.Efi, Nome = "Efí",
+        UrlApiTeste = "https://pix-h.api.efipay.com.br/v2", UrlApiProducao = "https://pix.api.efipay.com.br/v2",
+        UrlTokenTeste = "https://pix-h.api.efipay.com.br/oauth/token", UrlTokenProducao = "https://pix.api.efipay.com.br/oauth/token",
+        LoginJson = true, CertificadoNoTeste = true,
+        Certificado = "o certificado .p12 gerado na conta Efí (API → Meus certificados; um de homologação e outro de produção, sem senha)",
+        Precisa = "conta na Efí (ex-Gerencianet) e uma aplicação em API → Aplicações com os escopos de Pix (cobranças e devoluções)",
+    };
+
+    public static readonly IReadOnlyList<Perfil> Bancos = [BancoDoBrasil, Itau, Bradesco, Santander, Inter, Sicoob, Sicredi, Efi];
 
     public static Perfil? PerfilDe(string? codigo) => Bancos.FirstOrDefault(p => p.Codigo == codigo);
 
@@ -256,7 +308,9 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
             if (!p.SemSecret) campos["client_secret"] = c.ClientSecret;
         }
         else pedido.Headers.Authorization = new AuthenticationHeaderValue("Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{c.ClientId}:{c.ClientSecret}")));
-        pedido.Content = new FormUrlEncodedContent(campos);
+        pedido.Content = p.LoginJson
+            ? new StringContent(JsonSerializer.Serialize(campos), Encoding.UTF8, "application/json")
+            : new FormUrlEncodedContent(campos);
         var (codigo, texto) = await MandarAsync(c, pedido, ct);
         if (!((int)codigo is >= 200 and < 300))
         {
@@ -333,7 +387,13 @@ public class PixBancoCentral(IHttpClientFactory fabrica, IConfiguration config, 
     public static X509Certificate2 AbrirCertificado(byte[] pfx, string? senha)
     {
         try { return X509CertificateLoader.LoadPkcs12(pfx, senha, X509KeyStorageFlags.EphemeralKeySet); }
-        catch (CryptographicException) { throw new BancoPixException("Não consegui abrir o certificado: confira o arquivo (.pfx) e a senha dele."); }
+        catch (CryptographicException) when (string.IsNullOrEmpty(senha))
+        {
+            // .p12 "sem senha" (Efí) às vezes é senha vazia, às vezes nenhuma: tenta a outra forma.
+            try { return X509CertificateLoader.LoadPkcs12(pfx, senha is null ? "" : null, X509KeyStorageFlags.EphemeralKeySet); }
+            catch (CryptographicException) { throw new BancoPixException("Não consegui abrir o certificado: confira o arquivo (.pfx/.p12) e a senha dele."); }
+        }
+        catch (CryptographicException) { throw new BancoPixException("Não consegui abrir o certificado: confira o arquivo (.pfx/.p12) e a senha dele."); }
     }
 
     // Inter e Itaú entregam o certificado em dois arquivos de texto (.crt e .key): junta e guarda como .pfx, igual aos
