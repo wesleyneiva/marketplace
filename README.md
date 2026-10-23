@@ -302,7 +302,7 @@ SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e dup
   `node_modules` e `dist` são necessários. Mantidos: backups automáticos (`~/backup/marketplace-auto` e `n8n-auto`, rotação de
   7 dias), `n8n-marcus-telegram-2026-10-17/` (para religar o Telegram), `wal-ultimo.txt`/`nuvem-ultimo.txt` (status das nuvens),
   `treino-loja-foto.txt` (usado pelo `infra/treino-restaurar-loja.sh`), `~/projetos/marketplace-video` (o vídeo comercial).
-  A apagar (a proteção do Claude Code bloqueou; o usuário roda): os dumps manuais antigos de 22–23/10 (produção e dev),
+  Apagados (o usuário rodou o comando): os dumps manuais antigos de 22–23/10 (produção e dev),
   ficando só `marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`, e a planilha duplicada `clientes-topspin-exemplo.xlsx`
   da raiz (a cópia fica em `marketplace-testes/topspin/`). A produção já tem WAL a cada 2 min + cópia diária em duas nuvens.
 
@@ -357,7 +357,7 @@ SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e dup
 ### 23/10/2026 (noite) — confirmação no padrão do sistema
 Resumo do dia 23/10 (um chat só, tudo publicado): (1) Pix automático direto em mais 7 bancos (manhã e tarde, abaixo), nenhum
 conferido com banco real; (2) importação de clientes por planilha; (3) planilha de exemplo com 20 clientes fictícios de Porto
-Alegre (`clientes-topspin-exemplo.xlsx` na raiz do projeto, fora do Git, e cópia em `~/projetos/marketplace-testes/topspin/`)
+Alegre (`~/projetos/marketplace-testes/topspin/clientes-topspin-exemplo.xlsx`; a cópia da raiz foi apagada)
 que o usuário **importou na TopSpin** (a TopSpin passou de 62 para 82 clientes); (4) confirmações no padrão do sistema e
 Cancelar na prévia das importações; (5) bots conferidos (abaixo); (6) respondido: trocar a própria senha = ícone de chave no topo.
 - As 24 confirmações usavam o `confirm()` do navegador ("app.wnlabs.com.br diz", fora do tema). Agora todas usam a janela
