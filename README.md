@@ -275,7 +275,34 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 23/10/2026 (mais recente, fim da noite) — histórico do Juvenal (ago–out) e filtro de período nos Relatórios
+### 23/10/2026 (mais recente, madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
+- Pedido do usuário: "o cliente pagou, aparece no dono; não pagou, aparece em atrasadas e segue o fluxo. Tudo automático."
+  Escolhido (perguntado): a loja dá baixa na conta "Sistema Marcus" do Contas a pagar dela → a fatura fica Paga no dono.
+  (Pix automático da WN Labs fica para quando houver a conta de recebimento.)
+- **Como funciona** (`CobrancasService`): a rotina de hora em hora faz gerar → sincronizar → bloquear.
+  - **Gerar**: as mensalidades de todos os meses desde o início do cliente (`CobrarDesde`, ou o cadastro; até 24 meses),
+    vencimento dia 10 (`DiaVencimento`), 10 dias antes (`DiasGerarAntes`).
+  - **Sincronizar** (`SincronizarAsync`): cada fatura ganha a sua conta na loja (`ContaPagar.FaturaId`): usa a que a loja
+    já lançou ("Sistema Marcus…" com vencimento no mesmo mês) ou cria "Sistema Marcus · Plano … · mês" em "Sistemas e
+    software". Loja pagou → fatura Paga (`PagaPelaLoja`, libera quem estava bloqueado); loja desfez → fatura reabre;
+    fatura editada no dono → a conta em aberto acompanha; fatura cancelada → a conta em aberto sai; a loja não edita
+    valor/vencimento nem exclui a mensalidade; o dono não desfaz o que a loja pagou. Contas a pagar e área do dono
+    sincronizam na hora (sem esperar a rotina).
+  - Cliente **bloqueado** não entra no sistema para dar baixa: aí o dono recebe pela área do dono (como antes) e a conta
+    fica em aberto na loja com o aviso "já recebida pela WN Labs… dê baixa para registrar a saída".
+  - Cobrança avulsa (`Fatura.Mensalidade = false`, ex.: implantação) não conta como "o mês já tem fatura" (índice único
+    só para mensalidade: migration `FaturaUnicaSoMensalidade`, depois da `MensalidadeNaContaDaLoja`).
+- **Dados**: Juvenal e TopSpin com `CobrarDesde` 10/08/2026. Juvenal: implantação R$ 1.000 (01/08), ago e set R$ 2.149
+  pagas no vencimento, out paga em 17/10 (a parcela "1/12" que ele lançou; as 12 parcelas recuaram 1 mês: 10/10 a
+  10/09/2027, e as 11 de R$ 149 viraram R$ 2.149). TopSpin: implantação R$ 1.000, ago, set e out R$ 1.899 pagas. Tudo
+  também no financeiro de cada loja (pago do banco). Próximas: novembro (vence 10/11) aparece em 31/10 e já liga à
+  parcela que cada loja tem para 10/11. Backups: `~/backup/marketplace-antes-correcoes-juvenal-2026-10-23.dump` e
+  `marketplace-antes-MensalidadeNaContaDaLoja-2026-10-23.dump`.
+- **Juvenal**: excluídas as 8 transferências manuais Caixa → Poupança (caixa voltou a R$ 198,24).
+- Testado no dev: gerar ago–out atrasadas e bloquear; ligar a conta já paga; pagar/desfazer/pagar pela loja; dono não
+  desfaz o pago pela loja; dono recebe e o cliente é liberado; implantação no mesmo mês da mensalidade.
+
+### 23/10/2026 (fim da noite) — histórico do Juvenal (ago–out) e filtro de período nos Relatórios
 - **Histórico do Juvenal** (#4, mercado, Rio): `./gerar-historico-loja.sh --empresa 4 --de 2026-08-01 --ate 2026-10-12` (o bot
   ao vivo vende desde 13/10). O gerador da TopSpin virou `GeradorHistoricoLoja` (esporte ou mercado; no mercado o mesmo
   movimento do bot, que no dev deu ~101 vendas/dia e ticket ~R$ 51 contra ~103 e ~R$ 56 do bot ao vivo). Resultado: 7.103
@@ -287,7 +314,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Achado**: o "Caixa da loja (dinheiro)" do Juvenal está em −R$ 6.201,76 por causa de 8 transferências manuais
   "Caixa → Poupança" (R$ 6.200, 15–23/10, login do Juvenal) feitas além do depósito automático do bot (que já leva todo o
   dinheiro do caixa no fim do dia). Não é do histórico. Decidir com o usuário: excluir essas transferências ou deixar.
-- **Pendente (bloqueado pela permissão de escrita direta na produção)**: lançar as mensalidades do Marcus de ago e set (Juvenal
+- (Resolvido em 23/10, seção "madrugada" acima) ~~Pendente~~: lançar as mensalidades do Marcus de ago e set (Juvenal
   R$ 2.149, TopSpin R$ 1.899), a de out do Juvenal (paga em 17/10, já está no financeiro da loja como "Sistema Marcus 1/12") e
   a implantação de R$ 1.000 de cada um — dos dois lados: faturas pagas na área do dono e contas pagas (Sistemas e software)
   no financeiro de cada loja. SQL pronto no scratchpad do chat de 23/10 (refazer se preciso). Observações: a área do dono
@@ -749,7 +776,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -785,8 +812,9 @@ Pendências:
 - **Clima** (20/10): dado do Open-Meteo (modelo, não estação); temperatura e chuva conferidas com METAR (SBRJ/SBGL em
   `https://aviationweather.gov/api/data/metar?ids=SBRJ,SBGL&hours=6&format=raw`), nuvens não. Nunca pôr regra fixa de
   clima nas instruções da IA: o efeito vem calculado e testado por `RelatoriosService.Clima`.
-- **Onde paramos (fim de 23/10, depois)**: histórico do Juvenal gerado; PENDENTE lançar mensalidades/implantação (ver
-  "23/10 fim da noite") e decidir as transferências manuais do caixa do Juvenal.
+- **Onde paramos (fim de 23/10, por último)**: histórico do Juvenal gerado; mensalidades do Marcus automáticas (dono ↔
+  Contas a pagar da loja) com ago–out e implantação pagas nas duas lojas; transferências do caixa do Juvenal excluídas.
+  O usuário vai analisar os números do Juvenal e a área do dono.
 - **Antes, no fim de 23/10**: dia fechado sem nada pela metade. Último pedido: confirmações no padrão do sistema
   (`shared/confirmacao.ts`; tela nova nunca usa `confirm()`/`alert()` do navegador) e bots conferidos (ok). A TopSpin recebeu
   os 20 clientes de exemplo pela importação (dá para conferir a tela de Clientes com eles). Próximo passo provável: seguir a
