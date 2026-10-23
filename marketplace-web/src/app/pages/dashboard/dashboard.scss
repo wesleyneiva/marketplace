@@ -1,3 +1,4 @@
+@use 'cartao';
 .cabecalho {
   display: flex;
   align-items: center;
@@ -41,14 +42,7 @@
   // O número acompanha a largura do cartão (5 cartões lado a lado em tela de notebook não estouram).
   container-type: inline-size;
 
-  &.clicavel {
-    transition: border-color 0.15s, box-shadow 0.15s;
-
-    &:hover {
-      border-color: var(--cor-primaria);
-      box-shadow: var(--sombra);
-    }
-  }
+  &.clicavel { @include cartao.clicavel; }
 
   .topo-cartao {
     display: flex;

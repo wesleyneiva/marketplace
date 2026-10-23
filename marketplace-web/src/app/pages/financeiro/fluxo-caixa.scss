@@ -1,3 +1,4 @@
+@use 'cartao';
 .alternar { display: inline-flex; gap: 4px; flex-wrap: wrap; }
 .checar { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--cor-texto-suave); cursor: pointer; }
 
@@ -6,16 +7,7 @@
   transition: opacity 0.15s;
   &.carregando { opacity: 0.6; }
 
-  .numero {
-    display: flex; flex-direction: column; gap: 2px; padding: 12px 14px;
-    border: 1px solid var(--borda-flutua); border-radius: var(--raio-painel); background: var(--cor-superficie); box-shadow: var(--sombra-flutua);
-    span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
-    strong { font-size: 20px; font-variant-numeric: tabular-nums; }
-    small { font-size: 12px; color: var(--cor-texto-suave); }
-    &.destaque { border-color: var(--cor-primaria); }
-    &.alerta { border-color: var(--cor-alerta-icone); background: var(--cor-alerta-fundo); }
-    &.perigo { border-color: var(--cor-erro); background: var(--cor-erro-fundo); strong { color: var(--cor-erro); } }
-  }
+  .numero { @include cartao.numero; }
   .minimo { display: flex; gap: 4px; align-items: center; input { width: 110px; padding: 5px 8px; } }
 }
 

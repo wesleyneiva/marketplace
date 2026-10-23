@@ -1,4 +1,5 @@
 @use '../compras/compras.scss';
+@use 'cartao';
 
 .resumo {
   display: grid;
@@ -6,26 +7,8 @@
   gap: 10px;
   margin-bottom: 14px;
 
-  .cartao {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 12px 14px;
-    border: 1px solid var(--borda-flutua);
-    border-radius: var(--raio-painel);
-    background: var(--cor-superficie);
-    box-shadow: var(--sombra-flutua);
-    text-align: left;
-    cursor: pointer;
-
-    span { font-size: 12px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--cor-texto-suave); }
-    strong { font-size: 18px; font-variant-numeric: tabular-nums; }
-    small { color: var(--cor-texto-suave); font-size: 12px; }
-
-    &:hover { border-color: var(--cor-primaria); }
-    &.perigo strong { color: var(--cor-erro); }
-    &.alerta strong { color: var(--cor-alerta-medio); }
-  }
+  .cartao { @include cartao.numero; }
+  button.cartao { @include cartao.clicavel; }
 }
 
 .filtros-contas {

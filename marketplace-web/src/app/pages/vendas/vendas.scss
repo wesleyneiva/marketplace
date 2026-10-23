@@ -19,8 +19,6 @@
   background: var(--cor-primaria-clara); color: var(--cor-primaria-escura); font-weight: 600;
 }
 
-.resumo .cartao { cursor: default; &:hover { border-color: var(--cor-borda); } }
-.resumo button.cartao { cursor: pointer; &:hover { border-color: var(--cor-primaria); } }
 
 .linha-venda { cursor: pointer; &:hover td, &:focus td { background: var(--cor-verde-fundo); } }
 tr.cancelada td { color: var(--cor-texto-suave); }

@@ -1,3 +1,4 @@
+@use 'cartao';
 .filtro-periodo { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
 
 .periodos {
@@ -44,21 +45,7 @@
 }
 
 .numero {
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  > span {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--cor-texto-suave);
-  }
-
-  strong {
-    font-size: 28px;
-    font-weight: 650;
-  }
+  @include cartao.numero;
 
   .delta {
     font-weight: 600;

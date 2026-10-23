@@ -1,11 +1,7 @@
+@use 'cartao';
 .resumo-clientes { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 14px; }
-.cartao {
-  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--cor-borda); border-radius: var(--raio);
-  background: var(--cor-superficie); color: inherit; text-align: left; font: inherit;
-  span { font-size: 13px; color: var(--cor-texto-suave); }
-  strong { font-size: 22px; }
-}
-button.cartao { cursor: pointer; &:hover, &.ligado { border-color: var(--cor-primaria); } &.ligado { box-shadow: inset 0 0 0 1px var(--cor-primaria); } }
+.cartao { @include cartao.numero; }
+button.cartao { @include cartao.clicavel; &.ligado { @include cartao.ligado; } }
 .filtros-clientes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px;
   input { flex: 1 1 260px; } .chips { display: flex; flex-wrap: wrap; gap: 6px; } }
 .linha-cliente { cursor: pointer; &:hover td { background: var(--cor-verde-fundo); } }

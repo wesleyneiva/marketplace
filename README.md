@@ -284,6 +284,13 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   painel (Financeiro: saldos, lançamentos, fluxo, a receber; fiado; contas a pagar; painel; estoque; abas em pílula de
   Cobranças; no Caixa (PDV): a barra escura flutua, os botões dela são pílulas translúcidas, a busca e o total com raio/sombra novos) usam os mesmos tokens. Impressão sem sombra. Abas sublinhadas (Financeiro, Compras, Estoque…) ficaram como eram.
 - Regra para tela nova: cartão = `.painel` (ou os tokens acima); nunca sombra/raio fixos.
+- **Um cartão só (pedido do usuário: "um layout só" para lojas, mercados e dono)**: `src/estilos/_cartao.scss` (no
+  `includePaths` do angular.json) com `@include cartao.numero` (rótulo 13px, número até 30px que encolhe com o cartão,
+  flutua), `cartao.clicavel` (sobe 3px no mouse) e `cartao.ligado` (só o cartão-filtro escolhido pela pessoa). Modelo: a
+  Visão geral do dono. Aplicado em Visão geral, Sistema (dono), Painel, Contas a pagar, Vendas, Oficina, Trocas,
+  Financeiro (saldos, a receber, fluxo, extrato/conciliação), Fiado, Estoque, Clientes/ficha e Relatórios. Regras:
+  cartão que não clica **nunca** nasce verde/"selecionado" (saíram o fundo verde de "Total disponível" e "Cai hoje", a borda
+  verde de "Saldo em 30 dias" e a borda verde no mouse do Painel); alerta/perigo pintam só o número.
 
 ### 23/10/2026 (tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
 Resumo da tarde (um chat, tudo publicado): (1) "cliente desde" certo (10/08); (2) Cobranças com as próximas mensalidades

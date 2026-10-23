@@ -1,3 +1,4 @@
+@use 'cartao';
 .acoes-topo {
   display: flex;
   gap: 8px;
@@ -46,50 +47,12 @@
 }
 
 .cartao-resumo {
+  @include cartao.numero;
   flex: 1 1 200px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
-  border-radius: var(--raio-painel);
-  border: 1px solid var(--borda-flutua);
-  background: var(--cor-superficie);
-  box-shadow: var(--sombra-flutua);
-
-  span {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--cor-texto-suave);
-  }
-
-  strong {
-    font-size: 26px;
-  }
-
-  small {
-    color: var(--cor-texto-suave);
-  }
-
-  &.vermelho strong {
-    color: var(--cor-erro);
-  }
-
-  &.amarelo strong {
-    color: var(--cor-alerta-medio);
-  }
-
-  &.verde strong {
-    color: var(--cor-primaria-escura);
-  }
-
-  // Cartão que filtra a lista (Sem estoque) ou leva a outra aba (Abaixo do mínimo).
-  &.clicavel {
-    font: inherit;
-    text-align: left;
-    color: inherit;
-    cursor: pointer;
-    &:hover { border-color: var(--cor-primaria); }
-  }
+  &.vermelho > strong { color: var(--cor-erro); }
+  &.amarelo > strong { color: var(--cor-alerta-medio); }
+  &.verde > strong { color: var(--cor-primaria-escura); }
+  &.clicavel { @include cartao.clicavel; }
 }
 
 .periodo {
