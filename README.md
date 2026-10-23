@@ -275,7 +275,23 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
 
-### 23/10/2026 (mais recente, madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
+### 23/10/2026 (mais recente, tarde) — área do dono: filtro de período, rosca e próximas mensalidades; depósito do caixa
+- **Visão geral do dono**: período (Este mês, Mês passado, 3/6/12 meses, Este ano) no "Recebido", no gráfico (meses fora
+  do período mais claros) e na rosca; **rosca** (`shared/graficos/grafico-rosca.ts`, cores `--grafico-cat-1..5`, validadas
+  para daltonismo) com Carteira por plano, por cliente ou Quem pagou no período; "A receber" zerado mostra as próximas
+  (valor, vencimento e quando aparecem). Servidor manda 24 meses + recebido por cliente + próximas (`CobrancasService.ProximasAsync`).
+- **Cobranças**: tabela "Próximas mensalidades" (ainda não apareceram; aparecem `DiasGerarAntes` = 10 dias antes) e texto
+  novo (a baixa vem do Contas a pagar da loja). Novembro de Juvenal e TopSpin aparece em 31/10.
+- **Cliente desde** = o cadastro, ou o início da cobrança (`CobrarDesde`) se for antes: Juvenal e TopSpin "desde 10/08".
+- **Depósito do caixa (achado)**: no modo SoVendas o bot **não** deposita; quem depositou 17–22/10 (Juvenal) e 20–21/10
+  (TopSpin) foi o gerador de histórico, uma vez, que pegou também os dias do bot ao vivo (por isso duplicou as transferências
+  manuais). Corrigido: `LancarCaixasEDepositarAsync(depositarAte)` — o histórico só deposita até o último dia gerado. Daqui
+  para frente o dinheiro fica no "Caixa da loja (dinheiro)" até alguém transferir (TopSpin: R$ 2.447 lá, dia 22 não depositado;
+  Itaú da TopSpin em −R$ 6.024,78 — conferir).
+- Em aberto (perguntado): as 12 parcelas "Sistema Marcus (n/12)" que as lojas lançaram (Juvenal out/26–set/27, TopSpin
+  nov/26–out/27) — recomendação: mês a mês (sem número de parcela), apagar as futuras em aberto.
+
+### 23/10/2026 (madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
 - Pedido do usuário: "o cliente pagou, aparece no dono; não pagou, aparece em atrasadas e segue o fluxo. Tudo automático."
   Escolhido (perguntado): a loja dá baixa na conta "Sistema Marcus" do Contas a pagar dela → a fatura fica Paga no dono.
   (Pix automático da WN Labs fica para quando houver a conta de recebimento.)
@@ -776,7 +792,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (mais recente, tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
