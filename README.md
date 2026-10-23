@@ -313,14 +313,14 @@ SoVendas não deposita; o gerador de histórico depositava os dias ao vivo e dup
   fixas saem à vista; (2) fixas ~R$ 27 mil/mês + DAS ~R$ 4,5 mil contra lucro bruto ~R$ 29 mil/mês (vendas ~R$ 70 mil):
   DRE perto do zero a zero. Nov: saem ~R$ 44 mil, entram ~R$ 27,6 mil de parcelas + vendas. Nenhuma conta vencida em aberto.
   Se um dia quiser a loja saudável: saldo inicial, fixas menores ou antecipação de recebíveis.
-- **No dev**: a "Loja Teste Tênis" (#13) ficou com plano Básico e `CobrarDesde` 10/11 (teste das próximas mensalidades; a
-  fatura de nov aparece em 31/10 no dev). A "Horario Teste" (#10) tem a fatura de out atrasada (teste antigo).
+- **No dev**: a "Loja Teste Tênis" (#13) voltou a ficar sem plano (o teste das próximas mensalidades foi desfeito). A
+  "Horario Teste" (#10) tem a fatura de out atrasada (teste antigo).
 - **Limpeza do disco (pedida)**: Docker já estava limpo (9 contêineres, todos em uso; sem imagens/volumes sobrando); `bin/obj`,
   `node_modules` e `dist` são necessários. Mantidos: backups automáticos (`~/backup/marketplace-auto` e `n8n-auto`, rotação de
   7 dias), `n8n-marcus-telegram-2026-10-17/` (para religar o Telegram), `wal-ultimo.txt`/`nuvem-ultimo.txt` (status das nuvens),
   `treino-loja-foto.txt` (usado pelo `infra/treino-restaurar-loja.sh`), `~/projetos/marketplace-video` (o vídeo comercial).
   Apagados (o usuário rodou o comando): os dumps manuais antigos de 22–23/10 (produção e dev),
-  ficando só `marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump`, e a planilha duplicada `clientes-topspin-exemplo.xlsx`
+  e depois também o `marketplace-antes-apagar-parcelas-marcus-2026-10-23.dump` (a produção conferida; fica só o automático), e a planilha duplicada `clientes-topspin-exemplo.xlsx`
   da raiz (a cópia fica em `marketplace-testes/topspin/`). A produção já tem WAL a cada 2 min + cópia diária em duas nuvens.
 
 ### 23/10/2026 (madrugada) — mensalidades do Marcus automáticas (dono ↔ Contas a pagar da loja)
