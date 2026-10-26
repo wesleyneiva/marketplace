@@ -62,6 +62,24 @@
         "8"
       ],
       "port": 5397
+    },
+    {
+      "name": "site-tech",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd /home/ubuntu/projetos/techwnlabs && npx ng serve --port 4300"
+      ],
+      "port": 4300
+    },
+    {
+      "name": "site-tech-worker",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": [
+        "-c",
+        "cd /home/ubuntu/projetos/techwnlabs && npm run build && npx wrangler dev --port 8787 --local"
+      ],
+      "port": 8787
     }
   ]
 }
