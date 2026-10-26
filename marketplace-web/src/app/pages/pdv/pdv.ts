@@ -971,7 +971,7 @@ export class Pdv {
       return;
     }
     if (this.formaAtual() === 'Pix' && this.pixAutomatico()) {
-      this.erro.set(`Com o Pix automático, gere o QR e espere o aviso do ${this.nomePix()} (ou use "Confirmar o Pix manualmente").`);
+      this.erro.set(`Com a confirmação automática do Pix, gere o QR e espere o aviso do ${this.nomePix()} (ou use "Confirmar o Pix manualmente").`);
       return;
     }
     if (this.formaAtual() !== 'Dinheiro' && valor > this.falta()) {

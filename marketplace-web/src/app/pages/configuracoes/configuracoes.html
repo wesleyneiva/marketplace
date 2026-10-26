@@ -166,7 +166,7 @@
               </label>
               <label class="marcar-linha"><input type="checkbox" name="mpTeste" [(ngModel)]="mpTeste" /> São credenciais de teste</label>
               <div class="acoes-pix">
-                <button type="submit" class="botao primario" [disabled]="salvandoMp() || mpToken.trim().length < 20">{{ salvandoMp() ? 'Conferindo no Mercado Pago…' : 'Ligar Pix automático' }}</button>
+                <button type="submit" class="botao primario" [disabled]="salvandoMp() || mpToken.trim().length < 20">{{ salvandoMp() ? 'Conferindo no Mercado Pago…' : 'Ligar a confirmação automática' }}</button>
                 @if (avisoMp(); as a) { <span class="dica" [class.txt-erro]="!a.ok" role="status">{{ a.texto }}</span> }
               </div>
             </form>

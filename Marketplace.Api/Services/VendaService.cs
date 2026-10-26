@@ -133,7 +133,7 @@ public class VendaService(AppDbContext db, EstoqueService estoque, CaixaService 
 
         PrepararPagamentos(venda, pedido.Pagamentos);
         if (offline is not null && venda.Pagamentos.Any(p => p.CobrancaPixId is not null || p.Forma is FormaPagamento.Fiado or FormaPagamento.ValeTroca))
-            throw new EstoqueException("Sem internet não há Pix automático, fiado nem vale-troca.");
+            throw new EstoqueException("Sem internet não há Pix com confirmação automática, fiado nem vale-troca.");
         await VincularPixAutomaticoAsync(venda, pedido.Pagamentos, sessao.Id);
         await trocas.UsarValesAsync(venda);
 

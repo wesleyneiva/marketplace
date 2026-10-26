@@ -13,6 +13,8 @@ namespace Marketplace.Api.Services.Pix;
 
 // Pix automático DIRETO PELO BANCO DA LOJA, pela "API Pix" padrão do Banco Central (a mesma em todos os bancos; muda o
 // endereço, o login e pequenos detalhes, que ficam no Perfil). O dinheiro cai na conta da loja, sem intermediário.
+// ATENÇÃO AO NOME: aqui "automático" é a CONFIRMAÇÃO (a tela diz "Confirmação automática do Pix"); é a Cobrança imediata
+// (/cob). O "Pix Automático" do Banco Central (débito recorrente autorizado pelo cliente, rotas /rec e /cobr) NÃO existe aqui.
 //   PUT   /cob/{txid}                      cria a cobrança (QR único com o valor, expira em N segundos)
 //   GET   /cob/{txid}                      situação: ATIVA, CONCLUIDA (com a lista "pix" recebida), REMOVIDA_…
 //   PATCH /cob/{txid}                      cancela (status REMOVIDA_PELO_USUARIO_RECEBEDOR)

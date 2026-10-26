@@ -47,7 +47,7 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
     public async Task<Empresa> LigarBancoAsync(string codigoBanco, string clientId, string? clientSecret, string? chaveApp, bool teste,
         byte[]? pfx, string? certificadoPem, string? senhaPfx)
     {
-        var perfil = PixBancoCentral.PerfilDe(codigoBanco) ?? throw new PixException("Banco não atendido pelo Pix automático.");
+        var perfil = PixBancoCentral.PerfilDe(codigoBanco) ?? throw new PixException("Banco não atendido pela confirmação automática do Pix.");
         var pedeSecret = !perfil.SemSecret || (teste && perfil.TokenFixoNoTeste);
         (clientId, clientSecret, chaveApp) = (clientId.Trim(), pedeSecret ? clientSecret?.Trim() ?? "" : "", string.IsNullOrWhiteSpace(chaveApp) ? null : chaveApp.Trim());
         if (clientId.Length < 8 || clientId.Contains(' ') || (pedeSecret && (clientSecret.Length < 8 || clientSecret.Contains(' '))))
@@ -114,7 +114,7 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
         valor = Math.Round(valor, 2);
         if (valor < 0.01m || valor > 999_999.99m) throw new PixException("Valor do Pix inválido.");
         var e = await db.Empresas.AsNoTracking().FirstAsync(x => x.Id == contexto.EmpresaId);
-        if (e.PixAutomatico is null) throw new PixException("O Pix automático não está ligado: o administrador liga em Configurações → Pix da loja.");
+        if (e.PixAutomatico is null) throw new PixException("A confirmação automática do Pix não está ligada: o administrador liga em Configurações → Pix da loja.");
         if (sessaoCaixaId is int s && !await db.SessoesCaixa.AnyAsync(x => x.Id == s)) throw new PixException("Caixa não encontrado.");
 
         var c = new CobrancaPix { Provedor = e.PixAutomatico, Valor = valor, ExpiraEm = DateTimeOffset.UtcNow + Validade, SessaoCaixaId = sessaoCaixaId, CriadaPorId = usuarioId };
@@ -271,7 +271,7 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
     private string Token(Empresa e)
     {
         if (e.PixAutomatico != ProvedoresPix.MercadoPago || string.IsNullOrEmpty(e.MercadoPagoToken))
-            throw new PixException("O Pix automático pelo Mercado Pago não está ligado: o administrador liga em Configurações → Pix da loja.");
+            throw new PixException("A confirmação automática do Pix pelo Mercado Pago não está ligada: o administrador liga em Configurações → Pix da loja.");
         try { return Cofre.Unprotect(e.MercadoPagoToken); }
         catch (CryptographicException) { throw new PixException("Não foi possível ler o token do Mercado Pago: cole-o de novo em Configurações → Pix da loja."); }
     }
@@ -279,7 +279,7 @@ public class PixAutomaticoService(AppDbContext db, ContextoEmpresa contexto, Mer
     private PixBancoCentral.Credenciais CredenciaisBanco(Empresa e)
     {
         if (!ProvedoresPix.EhBanco(e.PixAutomatico) || e.PixBancoClientId is null || e.PixBancoSegredos is null)
-            throw new PixException("O Pix automático pelo banco não está ligado: o administrador liga em Configurações → Pix da loja.");
+            throw new PixException("A confirmação automática do Pix pelo banco não está ligada: o administrador liga em Configurações → Pix da loja.");
         try
         {
             var s = JsonSerializer.Deserialize<SegredosBanco>(CofreBanco.Unprotect(e.PixBancoSegredos))!;

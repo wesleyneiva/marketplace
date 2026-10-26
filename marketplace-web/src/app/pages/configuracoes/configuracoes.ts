@@ -197,7 +197,7 @@ export class Configuracoes {
       this.config.reload();
       this.avisoMp.set({ ok: true, texto: `Ligado na conta ${r.conta}${r.teste ? ' (modo teste: o Pix é aprovado sozinho)' : ''}. No caixa, o Pix agora gera o QR do Mercado Pago.` });
     } catch (e) {
-      this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível ligar o Pix automático.' });
+      this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível ligar a confirmação automática do Pix.' });
     } finally {
       this.salvandoMp.set(false);
     }
@@ -291,12 +291,12 @@ export class Configuracoes {
   }
 
   async desligarAutomatico(nome: string): Promise<void> {
-    if (!(await this.confirmacao.pedir(`Desligar o Pix automático pelo ${nome}?\nO caixa volta ao Pix manual (QR da chave da loja) e as credenciais são apagadas.`, { botao: 'Desligar', perigo: true }))) return;
+    if (!(await this.confirmacao.pedir(`Desligar a confirmação automática do Pix pelo ${nome}?\nO caixa volta ao Pix manual (QR da chave da loja) e as credenciais são apagadas.`, { botao: 'Desligar', perigo: true }))) return;
     this.avisoMp.set(null);
     try {
       await firstValueFrom(this.http.delete('/api/pix/automatico'));
       this.config.reload();
-      this.avisoMp.set({ ok: true, texto: 'Pix automático desligado.' });
+      this.avisoMp.set({ ok: true, texto: 'Confirmação automática do Pix desligada.' });
     } catch (e) {
       this.avisoMp.set({ ok: false, texto: (e instanceof HttpErrorResponse ? e.error?.mensagem : null) ?? 'Não foi possível desligar.' });
     }

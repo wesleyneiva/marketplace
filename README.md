@@ -107,7 +107,7 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   servidor a partir da chave cadastrada (`GET /api/empresa/configuracao/pix/qrcode?valor=`; desenho pelo QRCoder). O dinheiro cai
   direto na conta da loja; o caixa confere no celular antes de confirmar e a conferência fica pelo extrato OFX. Confirmação
   automática: ver Pix automático (Mercado Pago ou direto no banco).
-- **Pix automático (Mercado Pago)** (Configurações → Pix da loja → Confirmação automática) — o administrador cola o Access
+- **Confirmação automática do Pix pelo Mercado Pago** (chamada de "Pix automático" no código e nas notas antigas; Configurações → Pix da loja → Confirmação automática) — o administrador cola o Access
   Token da aplicação do Mercado Pago (conferido em `/users/me` e guardado CRIPTOGRAFADO com DataProtection; a tela só mostra o
   final). No caixa, ao escolher Pix: "Gerar QR do Pix" cria uma `CobrancaPix` no Mercado Pago pela API de Orders (`POST /v1/orders`, pix,
   external_reference = Guid da cobrança, validade 30 min; pago = `processed/accredited`; no modo teste o comprador é
@@ -120,8 +120,8 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   cancelada) aparece no caixa como "já recebido e sem venda" para usar. Sem aviso (internet), o caixa pode confirmar manualmente.
   Teste local sem conta: `~/projetos/marketplace-testes/pix-automatico/simulador-mercadopago.py` (launch "mp-simulador") com o
   segredo de desenvolvimento `MercadoPago:Url=http://127.0.0.1:5399`.
-- **Pix automático direto no banco da loja (Banco do Brasil, Itaú, Bradesco, Santander, Inter, Sicoob, Sicredi, Efí)** (Configurações → Pix da loja → Confirmação
-  automática → "Direto no banco da loja" → escolher o banco) — o mesmo Pix automático, mas o dinheiro cai **na conta PJ da loja**, sem o Mercado Pago no meio.
+- **Confirmação automática do Pix direto no banco da loja (Banco do Brasil, Itaú, Bradesco, Santander, Inter, Sicoob, Sicredi, Efí)** (Configurações → Pix da loja → Confirmação
+  automática → "Direto no banco da loja" → escolher o banco) — a mesma confirmação automática, mas o dinheiro cai **na conta PJ da loja**, sem o Mercado Pago no meio.
   `Services/Pix/PixBancoCentral.cs` fala a **API Pix padrão do Banco Central** (`PUT/GET/PATCH /cob/{txid}`,
   `PUT /pix/{e2eid}/devolucao/{id}`, `GET /cob?inicio&fim` para conferir ao ligar), com o que muda por banco num `Perfil`
   (BB: `oauth.hm.bb.com.br`/`api.hm.bb.com.br/pix/v2` nos testes, `oauth.bb.com.br`/`api-pix.bb.com.br/pix/v2` na produção, login
@@ -274,6 +274,20 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
   (online, o servidor cobra o preço atual do cadastro).
 - Ainda **não testado com queda real de internet numa loja** (no dev, derrubando a API: busca local, venda guardada, reenvio sem duplicar).
 - Para o Pix automático receber de verdade: ativar as credenciais de produção no Mercado Pago e trocar o token no Marcus.
+
+### 26/10/2026 — "Pix automático" virou "Confirmação automática do Pix" nas telas
+- Pergunta do usuário: "essas APIs do Pix são do Pix automático?" **Não.** O que o Marcus faz é a **Cobrança imediata** da API
+  Pix do Banco Central (`/cob` para criar/consultar/cancelar o QR com valor e `/pix/{e2eid}/devolucao` para devolver): o
+  "automático" era só a **confirmação** (o caixa não confere no celular). O **Pix Automático oficial** do Banco Central (desde
+  06/2025) é o **débito recorrente** autorizado pelo cliente uma vez no app do banco (rotas `/rec` e `/cobr`) — **não existe no
+  Marcus**. Usos possíveis no futuro: mensalidade do Marcus cobrada das lojas; planos/assinaturas de clientes de uma loja.
+- Para não confundir, todo texto que a loja vê agora diz **"confirmação automática do Pix"** (o título da tela já dizia):
+  botão "Ligar a confirmação automática", desligar/erro em Configurações, aviso do caixa e as mensagens do servidor
+  (`PixAutomaticoService`, `VendaService`). Nomes internos (`PixAutomatico`, `pix-automatico.ts`, rotas `/api/pix/...`) ficam
+  iguais — sem migration. Aviso do nome no topo de `PixBancoCentral.cs`. Nas notas antigas abaixo, "Pix automático" = isto.
+- No mesmo dia: VM reiniciada pelo usuário; conferido que os bots voltaram sozinhos (Demonstração, Juvenal e TopSpin vendendo
+  desde 10:23). Na subida, um erro único do clima (`IX_Clima_Latitude_Longitude_DataHora`, gravou a mesma hora duas vezes),
+  sem efeito.
 
 ### 23/10/2026 (fim da tarde) — visual "flutuante" em todo o sistema
 - Pedido do usuário (viu uma prévia na Visão geral e aprovou): cartões e botões "suspensos" sobre o fundo. Em `styles.scss`:
@@ -834,10 +848,12 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
+- **Onde paramos (26/10)**: renomeado nas telas "Pix automático" → "Confirmação automática do Pix" (é Cobrança imediata, não o
+  Pix Automático recorrente do Banco Central; ver 26/10). Bots conferidos depois do reinício da VM (ok). Nada pela metade.
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
   (Juvenal R$ 2.149 e TopSpin R$ 1.899) e vira conta no Contas a pagar de cada loja — conferir. TopSpin: R$ 2.447 no caixa
   esperando depósito manual; Itaú em −R$ 6.024,78 é o efeito do parcelado (explicado na seção da tarde; fica assim).
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 26/10/2026, 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
@@ -893,7 +909,8 @@ Pendências:
 - Próximos passos possíveis: as pendências acima (inclusive o que ficou da grade); envio automático do pedido ao fornecedor;
   acompanhar Juvenal e TopSpin; testar o caixa offline numa loja de verdade; abrir caixa sem internet; NFC-e
   (serviço fiscal, quando houver CNPJ); credenciais de produção do Mercado Pago; Pix pelo BB com o 1º cliente (R$ 0,01 real,
-  certificado A1, `gw-app-key`?); conferir os 7 bancos novos com credenciais de sandbox reais (a Efí tem sandbox fácil de abrir); mais bancos no Pix automático (novo `Perfil` em `PixBancoCentral`); maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
+  certificado A1, `gw-app-key`?); conferir os 7 bancos novos com credenciais de sandbox reais (a Efí tem sandbox fácil de abrir); mais bancos na confirmação automática do Pix (novo `Perfil` em `PixBancoCentral`); Pix Automático do Banco Central
+  (recorrente, `/rec` + `/cobr`) para a mensalidade do Marcus ou assinaturas das lojas, se fizer sentido; maquininha integrada (Mercado Pago Point pela mesma API de Orders, guardando
   NSU/bandeira/autorização — prepara a NFC-e).
 
 ## Stack (conferida em 20/10/2026)
