@@ -288,6 +288,12 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - No mesmo dia: VM reiniciada pelo usuário; conferido que os bots voltaram sozinhos (Demonstração, Juvenal e TopSpin vendendo
   desde 10:23). Na subida, um erro único do clima (`IX_Clima_Latitude_Longitude_DataHora`, gravou a mesma hora duas vezes),
   sem efeito.
+- **Cloudflare (e-mail de 26/10)**: certificados eMudhra comprometidos, pedir cloudflared ≥ 2026.10.2. A VM já estava em
+  2026.10.3 (apt, 21/10); atualizado para **2026.10.4** e reiniciado (~5 s fora). Rotas do túnel são todas `http://localhost`
+  (5100 app/demo, 8095 promofeet): nenhuma origem HTTPS afetada. app, demo e promofeet conferidos (200).
+- Portainer: senha do `admin` redefinida (helper-reset-password oficial; cópia do banco em `~/backup/portainer-antes-reset-senha-2026-10-26.db`).
+  O usuário troca em My account e apaga `~/servicos/portainer/senha-admin.txt`.
+- IA (Insights) conferida de ponta a ponta: Marcus → n8n "Marketplace – Insights IA" → Gemini respondeu em 40 s (execução 30954).
 
 ### 23/10/2026 (fim da tarde) — visual "flutuante" em todo o sistema
 - Pedido do usuário (viu uma prévia na Visão geral e aprovou): cartões e botões "suspensos" sobre o fundo. Em `styles.scss`:
