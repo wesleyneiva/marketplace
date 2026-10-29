@@ -12,11 +12,13 @@
       <strong>Simulador de clientes {{ sim.ativo ? 'ativo' : 'pausado' }}</strong>
       <small>
         @if (sim.temperatura !== null) { {{ sim.cidade }} {{ sim.temperatura }} °C, {{ sim.tempo }} · }
-        Caixa {{ sim.numeroCaixa }} {{ sim.caixaAberto ? 'aberto' : 'fechado' }} ·
+        Caixa {{ sim.numeroCaixa }} {{ sim.caixaAberto ? 'aberto' : sim.caixaComOutro ? 'com ' + sim.caixaComOutro : 'fechado' }} ·
         {{ sim.vendasHoje }} {{ sim.vendasHoje === 1 ? 'cliente' : 'clientes' }} hoje ({{ sim.faturamentoHoje | currency: 'BRL' }})
         @if (sim.ultimoErro) { · <b class="txt-perigo">erro: {{ sim.ultimoErro }}</b> }
       </small>
-      @if (sim.ativo && sim.numeroCaixa !== 9) { <small>Para vender você mesmo no Caixa {{ sim.numeroCaixa }}, pause o simulador: ele fecha o caixa dele.</small> }
+      @if (sim.ativo && sim.caixaComOutro) {
+        <small class="txt-perigo">O Caixa {{ sim.numeroCaixa }} está aberto por {{ sim.caixaComOutro }} desde {{ sim.caixaComOutroDesde | date: 'dd/MM HH:mm' }}: o simulador só volta a vender quando esse caixa for fechado.</small>
+      } @else if (sim.ativo && sim.numeroCaixa !== 9) { <small>Para vender você mesmo no Caixa {{ sim.numeroCaixa }}, pause o simulador: ele fecha o caixa dele.</small> }
       @if (avisoSimulador()) { <small class="ok"><app-icone nome="circle-check" /> {{ avisoSimulador() }}</small> }
     </div>
     @if (ehAdmin()) {

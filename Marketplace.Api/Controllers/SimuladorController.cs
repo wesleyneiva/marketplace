@@ -9,9 +9,11 @@ using Microsoft.EntityFrameworkCore;
 namespace Marketplace.Api.Controllers;
 
 // Disponivel = esta empresa tem vendas automáticas (senão o painel nem mostra o cartão do simulador).
+// CaixaComOutro = uma pessoa está com o caixa do robô aberto (o robô espera ela fechar para vender).
 public record SimuladorStatus(
     bool Disponivel, int NumeroCaixa, bool Ativo, double Intensidade, bool CaixaAberto, DateTimeOffset? UltimaRodada, string? UltimoErro,
-    decimal? Temperatura, string? Tempo, bool ClimaReal, string? Cidade, int VendasHoje, decimal FaturamentoHoje);
+    decimal? Temperatura, string? Tempo, bool ClimaReal, string? Cidade, int VendasHoje, decimal FaturamentoHoje,
+    string? CaixaComOutro, DateTimeOffset? CaixaComOutroDesde);
 
 [ApiController]
 [Route("api/simulador")]
@@ -35,12 +37,17 @@ public class SimuladorController(SimuladorEstado estado, SimuladorClientes simul
         var tempo = local is null ? null : clima.Ultimo(local) ?? await clima.ObterAsync(local, HttpContext.RequestAborted);
 
         var limite = await db.Empresas.Where(e => e.Id == empresaId).Select(e => e.LimiteCaixas).FirstAsync();
+        var numero = SimuladorEstado.CaixaDoRobo(modo == ModosVendasAutomaticas.Completo, limite);
+        var outro = aberto ? null : await db.SessoesCaixa.AsNoTracking()
+            .Where(s => s.NumeroCaixa == numero && s.Status == StatusSessao.Aberta && s.Usuario!.Email != email)
+            .Select(s => new { s.Usuario!.NomeCompleto, s.AbertaEm }).FirstOrDefaultAsync();
         return new SimuladorStatus(modo != ModosVendasAutomaticas.Desligado,
-            SimuladorEstado.CaixaDoRobo(modo == ModosVendasAutomaticas.Completo, limite),
+            numero,
             estado.Ativo && modo != ModosVendasAutomaticas.Desligado && !loja.Pausado,
             estado.Intensidade, aberto, loja.UltimaRodada, loja.UltimoErro,
             tempo?.Temperatura, tempo?.Descricao, tempo?.Real ?? false, local?.Nome,
-            await deHoje.CountAsync(), await deHoje.SumAsync(v => (decimal?)v.Total) ?? 0);
+            await deHoje.CountAsync(), await deHoje.SumAsync(v => (decimal?)v.Total) ?? 0,
+            outro?.NomeCompleto, outro?.AbertaEm);
     }
 
     // POST /api/simulador/pausar  e  /retomar  (só Administrador; só nesta empresa, até o sistema reiniciar)

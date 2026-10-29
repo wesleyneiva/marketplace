@@ -16,6 +16,8 @@ export interface SimuladorStatus {
   climaReal: boolean;
   vendasHoje: number;
   faturamentoHoje: number;
+  caixaComOutro: string | null; // uma pessoa está com o caixa do robô aberto: o robô espera
+  caixaComOutroDesde: string | null;
 }
 
 @Injectable({ providedIn: 'root' })

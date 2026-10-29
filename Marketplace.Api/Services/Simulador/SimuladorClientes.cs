@@ -44,6 +44,8 @@ public class SimuladorEstado(IConfiguration config)
         public bool Pausado { get; set; }
         public DateTimeOffset? UltimaRodada { get; set; }
         public string? UltimoErro { get; set; }
+        // Motivo de o robô não conseguir abrir o caixa dele (ex.: uma pessoa deixou o caixa aberto). Só para não repetir o log.
+        public string? CaixaRecusado { get; set; }
         public DateOnly? UltimaRotinaDaManha { get; set; }
         public string? UsuarioId { get; set; }
     }
@@ -139,10 +141,14 @@ public class SimuladorClientes(
                 }
                 catch (CaixaException e)
                 {
-                    // Ex.: uma pessoa está usando o caixa agora. O robô tenta de novo no próximo minuto.
-                    log.LogDebug("Simulador não abriu o Caixa {Numero} da empresa {Empresa}: {Motivo}", numero, empresaId, e.Message);
+                    // Ex.: uma pessoa está usando o caixa agora. O robô tenta de novo no próximo minuto
+                    // (no log normal só quando o motivo muda: um caixa esquecido aberto parava o bot sem aviso).
+                    if (loja.CaixaRecusado != e.Message)
+                        log.LogInformation("Simulador não abriu o Caixa {Numero} da empresa {Empresa}: {Motivo}", numero, empresaId, e.Message);
+                    loja.CaixaRecusado = e.Message;
                     return;
                 }
+                loja.CaixaRecusado = null;
                 if (completo)
                 {
                     // Caderneta: quem chegou no "dia de pagar" vem acertar o fiado; calote antigo vira baixa.
