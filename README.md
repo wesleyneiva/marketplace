@@ -219,6 +219,13 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 
 ## Últimas atualizações
 
+### 29/10/2026 — bot da TopSpin parado por caixa esquecido aberto
+- O bot da TopSpin não abriu hoje: o **Caixa 1 ficou aberto no login do Wesley desde 28/10 18:03** (sem venda, R$ 0,00). O bot
+  usa o Caixa 1 (último do plano), recebe "caixa em uso" a cada minuto e esperava calado (log só em Debug). O reinício da VM
+  não teve relação. Agora: o painel mostra "Caixa 1 com Wesley" e o aviso em vermelho "aberto por … desde …: o simulador só
+  volta a vender quando esse caixa for fechado"; o log normal registra o motivo uma vez (`SimuladorEstado.Loja.CaixaRecusado`).
+  Solução: fechar o caixa no PDV com o login de quem abriu (ou pausar/retomar não resolve: o caixa é da pessoa).
+
 ### 16/10/2026
 Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migration, em `~/backup/marketplace-antes-*-2026-10-16.dump`).
 
@@ -854,6 +861,8 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
+- **Onde paramos (29/10)**: bot da TopSpin parado por caixa 1 esquecido aberto no login do Wesley (ver 29/10); aviso
+  novo no painel publicado. Falta o usuário fechar esse caixa no PDV.
 - **Onde paramos (26/10)**: renomeado nas telas "Pix automático" → "Confirmação automática do Pix" (é Cobrança imediata, não o
   Pix Automático recorrente do Banco Central; ver 26/10). Bots conferidos depois do reinício da VM (ok). Nada pela metade.
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
