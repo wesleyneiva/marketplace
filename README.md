@@ -225,6 +225,10 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   não teve relação. Agora: o painel mostra "Caixa 1 com Wesley" e o aviso em vermelho "aberto por … desde …: o simulador só
   volta a vender quando esse caixa for fechado"; o log normal registra o motivo uma vez (`SimuladorEstado.Loja.CaixaRecusado`).
   Solução: fechar o caixa no PDV com o login de quem abriu (ou pausar/retomar não resolve: o caixa é da pessoa).
+- **Caixa aberto no topo** (pedido do usuário, publicado): selo "Caixa N aberto desde HH:MM" ao lado do relógio (vermelho e
+  com data se aberto em outro dia; leva ao PDV); **Sair** com caixa aberto não desconecta, mostra "Feche o Caixa N antes de
+  sair" abaixo do botão; fechar a aba com caixa aberto → pergunta do navegador (`beforeunload`). Serviço `core/caixa-aberto.ts`
+  (casca recarrega a cada tela e minuto; PDV ao abrir/fechar; sem internet mantém o último valor).
 
 ### 16/10/2026
 Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migration, em `~/backup/marketplace-antes-*-2026-10-16.dump`).
@@ -862,7 +866,8 @@ Pendências:
 
 ### Para continuar num chat novo
 - **Onde paramos (29/10)**: bot da TopSpin parado por caixa 1 esquecido aberto no login do Wesley (ver 29/10); aviso
-  novo no painel publicado. Falta o usuário fechar esse caixa no PDV.
+  novo no painel publicado; o usuário fechou o caixa e o bot voltou (11:51). Depois: selo do caixa aberto no topo e Sair
+  bloqueado com caixa aberto (publicado).
 - **Onde paramos (26/10)**: renomeado nas telas "Pix automático" → "Confirmação automática do Pix" (é Cobrança imediata, não o
   Pix Automático recorrente do Banco Central; ver 26/10). Bots conferidos depois do reinício da VM (ok). Nada pela metade.
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
