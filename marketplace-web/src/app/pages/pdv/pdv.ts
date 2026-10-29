@@ -27,6 +27,7 @@ import { EstornoVenda } from '../../shared/estorno-venda';
 import { CupomDetalhe } from '../../shared/cupom-detalhe';
 import { Conexao } from '../../core/offline/conexao';
 import { CaixaOffline, novoIdLocal } from '../../core/offline/caixa-offline.service';
+import { CaixaAberto } from '../../core/caixa-aberto';
 import { Troca, TrocasApi } from '../../core/api/trocas.api';
 import { TrocaCaixa } from '../../shared/troca-caixa';
 import { ClienteCaixa } from '../../shared/cliente-caixa';
@@ -64,6 +65,7 @@ export class Pdv {
   protected readonly impressora = inject(ImpressoraService);
   protected readonly conexao = inject(Conexao);
   protected readonly offline = inject(CaixaOffline);
+  private readonly caixaAberto = inject(CaixaAberto); // aviso do topo e o "Sair"
   private readonly modelosApi = inject(ModelosApi);
   private readonly router = inject(Router);
   protected readonly semInternet = computed(() => !this.conexao.online());
@@ -331,6 +333,7 @@ export class Pdv {
       const usuario = this.auth.usuario();
       if (usuario) await this.offline.iniciar(usuario.id, usuario.empresa.id);
       void this.offline.guardarResumo(this.caixa() ?? null);
+      void this.caixaAberto.recarregar();
       this.mostrarAviso(`Caixa ${this.numeroCaixa} aberto. Boas vendas!`);
       this.focarBusca();
     });
@@ -1216,6 +1219,7 @@ export class Pdv {
     }
     await this.executar(async () => {
       this.fechamento.set(await this.api.fechar(contado, this.observacaoFechamento.trim() || null));
+      void this.caixaAberto.recarregar();
       if (this.impressora.config().automatica) this.imprimirFechamento();
     });
   }

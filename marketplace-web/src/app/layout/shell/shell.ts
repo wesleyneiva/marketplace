@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { copiarTexto } from '../../shared/copiar';
@@ -6,6 +7,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { AuthService } from '../../core/auth/auth.service';
+import { CaixaAberto } from '../../core/caixa-aberto';
 import { ComprasResumo } from '../../core/compras-resumo';
 import { Modulo } from '../../core/modulos';
 import { Icone } from '../../shared/icone';
@@ -33,7 +35,7 @@ const MODULO_DA_ROTA: Record<string, Modulo> = {
 // "Casca" do sistema: menu lateral + barra do topo. As páginas aparecem no <router-outlet>.
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, Logo, Icone, RelogioBrasilia, Rodape],
+  imports: [DatePipe, RouterOutlet, RouterLink, RouterLinkActive, Logo, Icone, RelogioBrasilia, Rodape],
   templateUrl: './shell.html',
   styleUrl: './shell.scss',
 })
@@ -89,6 +91,10 @@ export class Shell {
     { rotulo: 'Sistema', icone: 'settings', rota: '/plataforma/sistema', perfis: ['Administrador'], pronto: true },
   ];
 
+  // Caixa aberto por este usuário (core/caixa-aberto.ts): aviso no topo e "Sair" só depois de fechar o caixa.
+  protected readonly caixaAberto = inject(CaixaAberto);
+  protected readonly avisoSair = signal(false);
+
   protected readonly areaDoDono = computed(() => !!this.usuario()?.soPlataforma);
 
   // Número ao lado de "Compras" (core/compras-resumo.ts): refaz a cada troca de tela e de minuto em minuto.
@@ -128,8 +134,13 @@ export class Shell {
   // Módulos liberados pelo dono da plataforma: confere a cada minuto e ao voltar para a aba. Se o módulo da tela aberta
   // deixou de valer, volta para o início (o menu já se refaz sozinho pelo signal do usuário).
   constructor() {
-    const atualizar = () => { void this.auth.atualizar(); this.resumoCompras.recarregar(); };
-    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => this.resumoCompras.recarregar());
+    const atualizar = () => { void this.auth.atualizar(); this.resumoCompras.recarregar(); void this.caixaAberto.recarregar(); };
+    this.router.events.pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed()).subscribe(() => {
+      this.resumoCompras.recarregar();
+      void this.caixaAberto.recarregar();
+      this.avisoSair.set(false);
+    });
+    void this.caixaAberto.recarregar();
     const id = setInterval(atualizar, 60_000);
     const aoVoltar = () => { if (document.visibilityState === 'visible') atualizar(); };
     document.addEventListener('visibilitychange', aoVoltar);
@@ -145,6 +156,11 @@ export class Shell {
   }
 
   async sair(): Promise<void> {
+    await this.caixaAberto.recarregar(); // pode ter sido fechado em outra aba
+    if (this.caixaAberto.caixa()) {
+      this.avisoSair.set(true);
+      return;
+    }
     await this.auth.logout();
     await this.router.navigateByUrl('/login');
   }

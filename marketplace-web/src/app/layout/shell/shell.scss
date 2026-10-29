@@ -232,6 +232,66 @@ nav {
   flex: 1; // empurra o rodapé para o pé da tela
 }
 
+// Caixa aberto por este usuário (ao lado do relógio): leva ao PDV. De outro dia = vermelho.
+.caixa-aberto {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--cor-verde-borda);
+  background: var(--cor-verde-fundo);
+  color: var(--cor-primaria-escura);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover { border-color: var(--cor-primaria); }
+
+  &.atrasado {
+    border-color: var(--cor-erro-borda);
+    background: var(--cor-erro-fundo);
+    color: var(--cor-erro);
+  }
+
+  .desde { font-weight: 500; }
+}
+
+// "Sair" com o caixa aberto: o aviso aparece logo abaixo do botão.
+.sair-area { position: relative; }
+
+.aviso-sair {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 30;
+  width: 290px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--cor-erro-borda);
+  background: var(--cor-superficie);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+
+  p {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 4px;
+    font-weight: 600;
+    color: var(--cor-erro);
+  }
+
+  small { color: var(--cor-texto-suave); }
+
+  .acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+  }
+}
+
 // Relógio de Brasília: separado do usuário por uma linha fina.
 .relogio-topo {
   padding-right: 14px;
@@ -290,6 +350,8 @@ nav {
     padding-right: 0;
     border-right: 0;
   }
+
+  .caixa-aberto .desde { display: none; } // no celular: só "Caixa 1 aberto"
 
   .topo {
     padding: 10px 16px;

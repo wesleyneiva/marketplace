@@ -46,6 +46,13 @@
       <button type="button" class="botao-menu" (click)="menuAberto.set(!menuAberto())" aria-label="Abrir menu"><app-icone nome="menu" /></button>
 
       <div class="espaco"></div>
+      @if (caixaAberto.caixa(); as c) {
+        <a class="caixa-aberto" [class.atrasado]="caixaAberto.deOutroDia()" routerLink="/pdv"
+           [title]="'Você está com o Caixa ' + c.numero + ' aberto. Feche o caixa antes de sair do sistema.'">
+          <app-icone [nome]="caixaAberto.deOutroDia() ? 'circle-alert' : 'receipt'" />
+          <span>Caixa {{ c.numero }} aberto<span class="desde"> desde {{ c.abertaEm | date: (caixaAberto.deOutroDia() ? 'dd/MM HH:mm' : 'HH:mm') }}</span></span>
+        </a>
+      }
       <app-relogio-brasilia class="relogio-topo" />
       @if (usuario(); as u) {
         <div class="usuario">
@@ -62,7 +69,19 @@
       @if (!usuario()?.somenteLeitura) {
       <a class="trocar-senha" routerLink="/trocar-senha" title="Trocar minha senha" aria-label="Trocar minha senha"><app-icone nome="key-round" /></a>
       }
-      <button type="button" class="sair" (click)="sair()"><app-icone nome="log-out" /> Sair</button>
+      <div class="sair-area">
+        <button type="button" class="sair" (click)="sair()"><app-icone nome="log-out" /> Sair</button>
+        @if (avisoSair() && caixaAberto.caixa(); as c) {
+          <div class="aviso-sair" role="alert">
+            <p><app-icone nome="circle-alert" /> Feche o Caixa {{ c.numero }} antes de sair.</p>
+            <small>Caixa esquecido aberto fica preso para o próximo operador.</small>
+            <div class="acoes">
+              <button type="button" class="botao pequeno" (click)="avisoSair.set(false)">Agora não</button>
+              <a class="botao pequeno primario" routerLink="/pdv" (click)="avisoSair.set(false)">Ir para o caixa</a>
+            </div>
+          </div>
+        }
+      </div>
     </header>
 
     @if (usuario()?.somenteLeitura) {
