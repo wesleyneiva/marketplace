@@ -229,6 +229,12 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
   com data se aberto em outro dia; leva ao PDV); **Sair** com caixa aberto não desconecta, mostra "Feche o Caixa N antes de
   sair" abaixo do botão; fechar a aba com caixa aberto → pergunta do navegador (`beforeunload`). Serviço `core/caixa-aberto.ts`
   (casca recarrega a cada tela e minuto; PDV ao abrir/fechar; sem internet mantém o último valor).
+- **Login**: o campo de e-mail mostra "Digite seu e-mail" (era "voce@seumercado.com.br", que falava de mercado) e a senha
+  "••••••••" como exemplo.
+- **Limpeza da VM (fim do dia)**: apagada a cópia do Portainer de 26/10 (senha já conferida) e caches temporários (`.angular/cache`,
+  `/tmp`). Disco em 13% (25 de 193 GB). Em `~/backup` ficaram só as rotinas automáticas (`marketplace-auto`, `n8n-auto`), o
+  `treino-loja-foto.txt` (usado por `infra/treino-restaurar-loja.sh`), a exportação dos fluxos do Telegram de 17/10 e os
+  arquivos de situação (`wal-ultimo.txt`: R2 ok; `nuvem-ultimo.txt`: Oracle e R2 com 2,1 GB).
 
 ### 16/10/2026
 Tudo publicado em https://app.wnlabs.com.br (backup do banco antes de cada migration, em `~/backup/marketplace-antes-*-2026-10-16.dump`).
@@ -302,7 +308,7 @@ Limitações conhecidas (decididas assim; mudar se o cliente pedir):
 - **Cloudflare (e-mail de 26/10)**: certificados eMudhra comprometidos, pedir cloudflared ≥ 2026.10.2. A VM já estava em
   2026.10.3 (apt, 21/10); atualizado para **2026.10.4** e reiniciado (~5 s fora). Rotas do túnel são todas `http://localhost`
   (5100 app/demo, 8095 promofeet): nenhuma origem HTTPS afetada. app, demo e promofeet conferidos (200).
-- Portainer: senha do `admin` redefinida (helper-reset-password oficial; cópia do banco em `~/backup/portainer-antes-reset-senha-2026-10-26.db`).
+- Portainer: senha do `admin` redefinida (helper-reset-password oficial; a cópia do banco de antes foi apagada em 29/10).
   O usuário troca em My account e apaga `~/servicos/portainer/senha-admin.txt`.
 - IA (Insights) conferida de ponta a ponta: Marcus → n8n "Marketplace – Insights IA" → Gemini respondeu em 40 s (execução 30954).
 
@@ -865,15 +871,17 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- **Onde paramos (29/10)**: bot da TopSpin parado por caixa 1 esquecido aberto no login do Wesley (ver 29/10); aviso
-  novo no painel publicado; o usuário fechou o caixa e o bot voltou (11:51). Depois: selo do caixa aberto no topo e Sair
-  bloqueado com caixa aberto (publicado).
+- **Onde paramos (29/10, fim)**: tudo publicado, git limpo, dev parado, nada pela metade. O dia: bot da TopSpin parado por
+  Caixa 1 esquecido aberto no login do Wesley (fechado; bot voltou às 11:51, com aviso novo no painel do simulador); selo
+  "Caixa N aberto" no topo + Sair bloqueado com caixa aberto; login com "Digite seu e-mail" / "••••••••"; limpeza da VM.
+  No dev, o usuário `caixa@testevendas.test` ficou com o Caixa 1 aberto (do teste do selo). Próximo marco: **31/10** a
+  mensalidade de novembro aparece sozinha nas duas lojas (conferir no Contas a pagar).
 - **Onde paramos (26/10)**: renomeado nas telas "Pix automático" → "Confirmação automática do Pix" (é Cobrança imediata, não o
   Pix Automático recorrente do Banco Central; ver 26/10). Bots conferidos depois do reinício da VM (ok). Nada pela metade.
 - **Onde paramos (fim de 23/10, tarde)**: nada pela metade. Próximo marco: 31/10 a mensalidade de novembro aparece sozinha
   (Juvenal R$ 2.149 e TopSpin R$ 1.899) e vira conta no Contas a pagar de cada loja — conferir. TopSpin: R$ 2.447 no caixa
   esperando depósito manual; Itaú em −R$ 6.024,78 é o efeito do parcelado (explicado na seção da tarde; fica assim).
-- Ler este README (Funcionalidades + Últimas atualizações, começando por 26/10/2026, 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
+- Ler este README (Funcionalidades + Últimas atualizações, começando por 29/10/2026, 26/10/2026, 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (madrugada), 23/10/2026 (fim da noite), 23/10/2026 (noite), 23/10/2026 (fim da tarde), 23/10/2026 (tarde), 23/10/2026 (manhã), 22/10/2026, 22/10/2026 (fim da noite), 22/10/2026 (noite, as duas),  22/10/2026 (fim da tarde), 22/10/2026 (tarde), 22/10/2026, 21/10/2026 (noite), 21/10, 20/10, 19/10 (tarde),
   19/10 e 17/10), a seção Stack, as Pendências acima e `docs/plano-ramo-e-grade.md`.
   Memórias do assistente em `~/.claude/projects/-home-ubuntu-projetos-marketplace/memory/`.
 - **Infra** (20/10): disco 200 GB (~165 GB livres); PostgreSQL com 300 conexões, 2 GB de cache e arquivamento contínuo a cada
