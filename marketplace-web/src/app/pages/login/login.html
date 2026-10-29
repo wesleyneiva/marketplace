@@ -23,7 +23,8 @@
     @if (acesso().loginComSenha) {
     <form [formGroup]="form" (ngSubmit)="entrar()" novalidate>
       <label for="email">E-mail</label>
-      <input id="email" type="email" formControlName="email" autocomplete="username" autofocus />
+      <input id="email" type="email" formControlName="email" autocomplete="username"
+             placeholder="Digite seu e-mail" autofocus />
       @if (form.controls.email.touched && form.controls.email.invalid) {
         <small class="aviso">Informe um e-mail válido.</small>
       }
@@ -31,7 +32,7 @@
       <label for="senha">Senha</label>
       <div class="campo-senha">
         <input id="senha" [type]="mostrarSenha() ? 'text' : 'password'" formControlName="senha"
-               autocomplete="current-password" />
+               autocomplete="current-password" placeholder="••••••••" />
         <button type="button" class="olho" (click)="mostrarSenha.set(!mostrarSenha())"
                 [attr.aria-label]="mostrarSenha() ? 'Esconder senha' : 'Mostrar senha'">
           {{ mostrarSenha() ? 'Esconder' : 'Mostrar' }}
