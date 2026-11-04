@@ -219,6 +219,13 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 
 ## Últimas atualizações
 
+### 04/11/2026 — fonte do sistema agora é a Inter
+- A pedido do usuário, a fonte de todo o sistema passou de Space Grotesk para **Inter** (variável, pesos 100 a 900), embutida em
+  `marketplace-web/public/fontes` (`inter-latin`, `inter-latin-ext`, licença em `inter-licenca.txt`), sem depender do Google.
+  Conferido em 14 telas a 1366 px: sem texto cortado nem rolagem lateral. Celular e impressos não foram conferidos.
+- Continuam como estavam: monoespaçada do cupom e da senha, Arial das etiquetas. Ainda em Space Grotesk: site tech.wnlabs,
+  cartilha de implantação, PDF da Stack e vídeo comercial (por isso os arquivos `space-grotesk-*` seguem em `public/fontes`).
+
 ### 29/10/2026 — bot da TopSpin parado por caixa esquecido aberto
 - O bot da TopSpin não abriu hoje: o **Caixa 1 ficou aberto no login do Wesley desde 28/10 18:03** (sem venda, R$ 0,00). O bot
   usa o Caixa 1 (último do plano), recebe "caixa em uso" a cada minuto e esperava calado (log só em Debug). O reinício da VM
@@ -871,6 +878,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
+- **Onde paramos (04/11)**: fonte do sistema trocada para Inter e publicada (ver 04/11/2026). Nada pela metade.
 - **Onde paramos (29/10, fim)**: tudo publicado, git limpo, dev parado, nada pela metade. O dia: bot da TopSpin parado por
   Caixa 1 esquecido aberto no login do Wesley (fechado; bot voltou às 11:51, com aviso novo no painel do simulador); selo
   "Caixa N aberto" no topo + Sair bloqueado com caixa aberto; login com "Digite seu e-mail" / "••••••••"; limpeza da VM.
@@ -949,7 +957,7 @@ com backup contínuo criptografado em **duas nuvens**. Versão em PDF: `docs/sta
 |---|---|
 | Acesso | Cloudflare (DNS de wnlabs.com.br, HTTPS, proteção) → **Cloudflare Tunnel** (`cloudflared` 2026.10, a VM liga para a Cloudflare; o DNS aponta para o túnel, não para um IP) |
 | Acesso administrativo | Tailscale (SSH na `oracle-a1`, sem porta aberta) |
-| Telas | **Angular 22** + TypeScript 6; fonte Space Grotesk e ícones Lucide embutidos; service worker + IndexedDB (caixa offline) |
+| Telas | **Angular 22** + TypeScript 6; fonte Inter e ícones Lucide embutidos; service worker + IndexedDB (caixa offline) |
 | Servidor / API | **ASP.NET Core** em C#, **.NET 10**; entrega as telas e a API na porta 5100 (serviço `marketplace` do systemd); atende app.wnlabs.com.br e demo.wnlabs.com.br |
 | Dados | **PostgreSQL 18** (Docker, `postgres:18-alpine`, só 127.0.0.1); Entity Framework Core 10 + Npgsql |
 | Bibliotecas | ASP.NET Identity (login, perfis, bloqueio), ClosedXML (planilha de produtos), QRCoder (QR do Pix) |
