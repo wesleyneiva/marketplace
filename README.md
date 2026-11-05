@@ -219,6 +219,17 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 
 ## Últimas atualizações
 
+### 05/11/2026 — bots do Juvenal e da TopSpin desligados
+- A pedido do usuário ("já temos dados suficientes"), **Vendas automáticas = Desligado** nas lojas #4 (Juvenal) e #5 (TopSpin),
+  às 08:29. Última venda do bot: Juvenal em 05/11 08:27, TopSpin em 04/11 17:13. O bot da **demonstração (#1, Completo) segue ligado**.
+- Para religar: área do dono → ficha do cliente → Vendas automáticas → Só vendas.
+- **Caixa preso (corrigido)**: desligar o modo com o robô no meio do expediente deixava o caixa dele aberto para sempre (o robô
+  não faz login). Agora, a cada minuto, `SimuladorClientes.FecharCaixasDeBotsDesligadosAsync` fecha o caixa de robô aberto em
+  loja desligada. Testado no dev (caixa de pessoa na mesma loja não é tocado). O último fechamento do Juvenal (5 vendas,
+  R$ 197,40) ficou com diferença de −R$ 1,54: é o "erro de troco" sorteado 1 em cada 10 fechamentos, não um defeito.
+- Continuam rodando nas duas lojas: mensalidades do Marcus (dono ↔ Contas a pagar). Sem bot, os números param em 05/11 e o
+  Caixa 1 fica livre para uso manual. Nenhuma OS da TopSpin ficou em andamento (48, todas entregues).
+
 ### 04/11/2026 — fonte do sistema agora é a Inter
 - A pedido do usuário, a fonte de todo o sistema passou de Space Grotesk para **Inter** (variável, pesos 100 a 900), embutida em
   `marketplace-web/public/fontes` (`inter-latin`, `inter-latin-ext`, licença em `inter-licenca.txt`), sem depender do Google.
@@ -878,6 +889,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
+- **Onde paramos (05/11)**: bots do Juvenal e da TopSpin desligados e publicados (ver 05/11/2026); só o da demonstração segue vendendo.
 - **Onde paramos (04/11)**: fonte do sistema trocada para Inter e publicada (ver 04/11/2026). Nada pela metade.
 - **Onde paramos (29/10, fim)**: tudo publicado, git limpo, dev parado, nada pela metade. O dia: bot da TopSpin parado por
   Caixa 1 esquecido aberto no login do Wesley (fechado; bot voltou às 11:51, com aviso novo no painel do simulador); selo
