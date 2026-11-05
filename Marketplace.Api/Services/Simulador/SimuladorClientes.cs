@@ -82,6 +82,7 @@ public class SimuladorClientes(
                 log.LogWarning("Simulador: não consegui ler as lojas ({Erro}); tento de novo no próximo minuto.", e.Message);
                 continue;
             }
+            await FecharCaixasDeBotsDesligadosAsync(parar);
             foreach (var (empresaId, modo, caixas) in lojas)
             {
                 var loja = estado.DaEmpresa(empresaId);
@@ -98,6 +99,29 @@ public class SimuladorClientes(
                 }
             }
         } while (await relogio.WaitForNextTickAsync(parar));
+    }
+
+    // Bot desligado com o caixa ainda aberto: fecha aqui, porque o robô não faz login e ninguém mais fecharia esse caixa
+    // (ele ficaria preso, e a loja não conseguiria abrir o Caixa 1).
+    private async Task FecharCaixasDeBotsDesligadosAsync(CancellationToken parar)
+    {
+        try
+        {
+            using var scope = escopos.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            var desligadas = db.Empresas.AsNoTracking()
+                .Where(e => e.VendasAutomaticas == ModosVendasAutomaticas.Desligado).Select(e => e.Id);
+            var empresas = await db.SessoesCaixa.IgnoreQueryFilters().AsNoTracking()
+                .Where(s => s.Status == StatusSessao.Aberta && desligadas.Contains(s.EmpresaId)
+                    && s.Usuario!.Email!.StartsWith("caixa-automatico-") && s.Usuario.Email.EndsWith("@sistema.local"))
+                .Select(s => s.EmpresaId).Distinct().ToListAsync(parar);
+            foreach (var empresaId in empresas)
+                await FecharCaixaDoRoboAsync(empresaId);
+        }
+        catch (Exception e) when (!parar.IsCancellationRequested)
+        {
+            log.LogWarning("Simulador: não consegui fechar o caixa de um bot desligado ({Erro}); tento de novo no próximo minuto.", e.Message);
+        }
     }
 
     // Uma "rodada" = um minuto da loja. "completo" = a demonstração (compras, contas, fiado e depósitos também).
