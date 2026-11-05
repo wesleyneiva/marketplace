@@ -230,6 +230,17 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 - Continuam rodando nas duas lojas: mensalidades do Marcus (dono ↔ Contas a pagar). Sem bot, os números param em 05/11 e o
   Caixa 1 fica livre para uso manual. Nenhuma OS da TopSpin ficou em andamento (48, todas entregues).
 
+### 05/11/2026 — mensalidade de novembro: como a baixa anda entre a loja e o dono
+- Dúvida do usuário: a do Juvenal apareceu recebida e a da TopSpin não. Não era defeito: alguém clicou em **Pagar** no login
+  `juvenal@marcus.com` (Contas a pagar), e na TopSpin ninguém clicou. **A loja nunca paga sozinha**; só a baixa no dono é
+  automática, e só no sentido loja → dono. O **Recebi** do dono não dá baixa na loja.
+- Teste do usuário: reabriu a conta do Juvenal (#1279) por SQL no pgAdmin. A loja voltou na hora e o dono continuou "Paga" até
+  rodar a sincronização: SQL não avisa o sistema. **Gerar mensalidades agora** (ou a rotina de hora em hora) acertou. Os botões
+  Pagar e Desfazer da tela sincronizam na hora, pelo código; **o Desfazer da tela não foi testado nesta rodada**.
+- Reabrir conta paga por SQL exige apagar também o `MovimentosFinanceiros` dela, senão o saldo fica errado. Preferir o Desfazer.
+- **Cobrar** (WhatsApp) em Cobranças depende só de telefone na ficha do cliente, não de atraso. A TopSpin está sem telefone.
+- Situação: novembro em aberto nas duas lojas (Juvenal R$ 2.149, TopSpin R$ 1.899), vencimento 10/11.
+
 ### 04/11/2026 — fonte do sistema agora é a Inter
 - A pedido do usuário, a fonte de todo o sistema passou de Space Grotesk para **Inter** (variável, pesos 100 a 900), embutida em
   `marketplace-web/public/fontes` (`inter-latin`, `inter-latin-ext`, licença em `inter-licenca.txt`), sem depender do Google.
@@ -889,7 +900,7 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- **Onde paramos (05/11)**: bots do Juvenal e da TopSpin desligados e publicados (ver 05/11/2026); só o da demonstração segue vendendo.
+- **Onde paramos (05/11)**: bots do Juvenal e da TopSpin desligados e publicados; só o da demonstração segue vendendo. Mensalidades de novembro em aberto nas duas lojas (vencem em 10/11), conferidas com o usuário. Nada pela metade. Ver as duas seções de 05/11/2026.
 - **Onde paramos (04/11)**: fonte do sistema trocada para Inter e publicada (ver 04/11/2026). Nada pela metade.
 - **Onde paramos (29/10, fim)**: tudo publicado, git limpo, dev parado, nada pela metade. O dia: bot da TopSpin parado por
   Caixa 1 esquecido aberto no login do Wesley (fechado; bot voltou às 11:51, com aviso novo no painel do simulador); selo
