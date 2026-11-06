@@ -52,6 +52,10 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
             (config["Plataforma:EnderecosVigiados"] ?? "https://app.wnlabs.com.br/api/saude;https://demo.wnlabs.com.br/api/saude")
             .Split(';', StringSplitOptions.RemoveEmptyEntries).Select(u => TestarAsync(u, ct)));
 
+        var lojasComBot = await db.Empresas.AsNoTracking()
+            .Where(e => e.Ativa && e.VendasAutomaticas != ModosVendasAutomaticas.Desligado)
+            .OrderBy(e => e.Nome).Select(e => e.Nome).ToListAsync(ct);
+
         return new SistemaResponse(
             new DateTimeOffset(processo.StartTime), typeof(Program).Assembly.GetName().Version?.ToString() ?? "?",
             processo.WorkingSet64 / 1048576, conexao.Database, bancoMb,
@@ -59,8 +63,8 @@ public class SistemaController(AppDbContext db, IConfiguration config, IHttpClie
             enderecos.ToList(), Backups(),
             linhas.Select(l => new UsoCliente(l.Id, l.Nome, l.Registros, Math.Round(100.0 * l.Registros / total, 1))).ToList(),
             [
-                new("Vendas automáticas (simulador)", !simulador.Ativo ? "desligado"
-                    : $"ligado em {await db.Empresas.CountAsync(e => e.Ativa && e.VendasAutomaticas != ModosVendasAutomaticas.Desligado, ct)} loja(s)"),
+                new("Vendas automáticas (simulador)", !simulador.Ativo || lojasComBot.Count == 0 ? "desligado"
+                    : $"ligado em: {string.Join(", ", lojasComBot)}"),
                 new("Cobranças (mensalidades e bloqueio)", CobrancasTrabalhador.UltimaRodada is { } c
                     ? $"última rodada {TimeZoneInfo.ConvertTime(c, Relogio.Fuso):dd/MM HH:mm}" : "ainda não rodou desde que ligou"),
             ]);

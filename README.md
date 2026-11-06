@@ -232,7 +232,9 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 
 ### 06/11/2026 — todos os bots desligados
 - A pedido do usuário, a **demonstração (#1)** também ficou com **Vendas automáticas = Desligado**, às 12:00. Não há mais bot
-  vendendo em nenhuma loja: a tela Sistema da área do dono deve mostrar "ligado em 0 loja(s)". Última venda: 06/11 11:57.
+  vendendo em nenhuma loja. Última venda: 06/11 11:57.
+- Tela Sistema da área do dono: a linha do simulador agora mostra **os nomes** ("ligado em: Loja A, Loja B") ou "desligado" quando
+  nenhuma loja tem bot (antes era "ligado em N loja(s)", pedido do usuário). Testado no dev com duas lojas.
 - O Caixa 9 fechou sozinho às 12:00 (36 vendas, R$ 1.423,48, diferença zero). Por ser fechamento fora da rotina, o dinheiro desse
   dia não foi depositado no banco da demonstração, e a rotina da manhã (compras, contas) também parou.
 - Sem bot, a demonstração pública fica com "hoje" zerado e os números parados em 06/11. Para religar: tela de Empresas ou, por SQL,
