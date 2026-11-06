@@ -230,6 +230,15 @@ Clientes entram por **https://app.wnlabs.com.br**; a vitrine pública fica em **
 - Continuam rodando nas duas lojas: mensalidades do Marcus (dono ↔ Contas a pagar). Sem bot, os números param em 05/11 e o
   Caixa 1 fica livre para uso manual. Nenhuma OS da TopSpin ficou em andamento (48, todas entregues).
 
+### 06/11/2026 — todos os bots desligados
+- A pedido do usuário, a **demonstração (#1)** também ficou com **Vendas automáticas = Desligado**, às 12:00. Não há mais bot
+  vendendo em nenhuma loja: a tela Sistema da área do dono deve mostrar "ligado em 0 loja(s)". Última venda: 06/11 11:57.
+- O Caixa 9 fechou sozinho às 12:00 (36 vendas, R$ 1.423,48, diferença zero). Por ser fechamento fora da rotina, o dinheiro desse
+  dia não foi depositado no banco da demonstração, e a rotina da manhã (compras, contas) também parou.
+- Sem bot, a demonstração pública fica com "hoje" zerado e os números parados em 06/11. Para religar: tela de Empresas ou, por SQL,
+  `VendasAutomaticas = 'Completo'` na empresa 1 (o modo Completo é só da demonstração).
+- O banco `marketplace_demo` ("Seu Mercado", Completo) não tem serviço rodando: sem venda desde 16/10, não foi alterado.
+
 ### 05/11/2026 — mensalidade de novembro: como a baixa anda entre a loja e o dono
 - Dúvida do usuário: a do Juvenal apareceu recebida e a da TopSpin não. Não era defeito: alguém clicou em **Pagar** no login
   `juvenal@marcus.com` (Contas a pagar), e na TopSpin ninguém clicou. **A loja nunca paga sozinha**; só a baixa no dono é
@@ -900,7 +909,8 @@ Pendências:
   A nota de teste `~/projetos/marketplace-testes/notas/nota-4-boleto-2-parcelas.xml` já foi usada no dev (empresa 12).
 
 ### Para continuar num chat novo
-- **Onde paramos (05/11)**: bots do Juvenal e da TopSpin desligados e publicados; só o da demonstração segue vendendo. Mensalidades de novembro em aberto nas duas lojas (vencem em 10/11), conferidas com o usuário. Nada pela metade. Ver as duas seções de 05/11/2026.
+- **Onde paramos (06/11)**: todos os bots desligados, inclusive o da demonstração (ver 06/11/2026). Nada pela metade.
+- **Onde paramos (05/11)**: bots do Juvenal e da TopSpin desligados e publicados. Mensalidades de novembro em aberto nas duas lojas (vencem em 10/11), conferidas com o usuário. Nada pela metade. Ver as duas seções de 05/11/2026.
 - **Onde paramos (04/11)**: fonte do sistema trocada para Inter e publicada (ver 04/11/2026). Nada pela metade.
 - **Onde paramos (29/10, fim)**: tudo publicado, git limpo, dev parado, nada pela metade. O dia: bot da TopSpin parado por
   Caixa 1 esquecido aberto no login do Wesley (fechado; bot voltou às 11:51, com aviso novo no painel do simulador); selo
